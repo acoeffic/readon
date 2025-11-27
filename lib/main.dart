@@ -7,7 +7,6 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'theme/app_theme.dart'; // 🌈 ton thème ReadOn
 
-
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Supabase.initialize(
@@ -120,18 +119,21 @@ class WelcomePage extends StatelessWidget {
                   shape: BoxShape.circle,
                 ),
                 child: Center(
-                  child: Icon(Icons.menu_book_rounded,
-                      color: AppColors.primary, size: 72),
+                  child: Icon(
+                    Icons.menu_book_rounded,
+                    color: AppColors.primary,
+                    size: 72,
+                  ),
                 ),
               ),
               const SizedBox(height: AppSpace.l),
               Text(
                 'ReadOn',
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      color: AppColors.primary,
-                      fontSize: 26,
-                      fontWeight: FontWeight.w700,
-                    ),
+                  color: AppColors.primary,
+                  fontSize: 26,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               const Spacer(),
               SizedBox(
@@ -220,9 +222,9 @@ class LoginPage extends StatelessWidget {
         );
       } on AuthException catch (e) {
         if (!context.mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.message)));
       } catch (_) {
         if (!context.mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
@@ -245,12 +247,14 @@ class LoginPage extends StatelessWidget {
 
       final supabase = Supabase.instance.client;
       try {
-        final res = await supabase.auth
-            .signInWithPassword(email: email, password: password);
+        final res = await supabase.auth.signInWithPassword(
+          email: email,
+          password: password,
+        );
         if (res.session == null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Connexion impossible')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Connexion impossible')));
           return;
         }
 
@@ -258,13 +262,13 @@ class LoginPage extends StatelessWidget {
           MaterialPageRoute(builder: (_) => const MainNavigation()),
         );
       } on AuthException catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.message)));
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Erreur inconnue')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Erreur inconnue')));
       }
     }
 
@@ -280,10 +284,10 @@ class LoginPage extends StatelessWidget {
               const SizedBox(height: AppSpace.l),
               Text(
                 'Bienvenue sur ReadOn',
-                style: Theme.of(context)
-                    .textTheme
-                    .headlineMedium
-                    ?.copyWith(fontSize: 28, fontWeight: FontWeight.w700),
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               const SizedBox(height: AppSpace.s),
               Text(
@@ -300,15 +304,15 @@ class LoginPage extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: AppSpace.m),
-              Text('Mot de passe',
-                  style: Theme.of(context).textTheme.titleMedium),
+              Text(
+                'Mot de passe',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
               const SizedBox(height: AppSpace.xs),
               TextField(
                 controller: passwordController,
                 obscureText: true,
-                decoration: const InputDecoration(
-                  hintText: '••••••••',
-                ),
+                decoration: const InputDecoration(hintText: '••••••••'),
               ),
               Align(
                 alignment: Alignment.centerRight,
@@ -374,9 +378,7 @@ class SignUpPage extends StatelessWidget {
           password: password,
           emailRedirectTo:
               'https://nzbhmshkcwudzydeahrq.supabase.co/auth/v1/callback',
-          data: {
-            'display_name': name,
-          },
+          data: {'display_name': name},
         );
 
         // Si la confirmation email est requise, aucune session ne sera active.
@@ -394,20 +396,21 @@ class SignUpPage extends StatelessWidget {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
-                'Compte créé. Vérifie tes emails pour confirmer puis connecte-toi.'),
+              'Compte créé. Vérifie tes emails pour confirmer puis connecte-toi.',
+            ),
           ),
         );
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (_) => const ConfirmEmailPage()),
         );
       } on AuthException catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.message)));
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Erreur inconnue')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Erreur inconnue')));
       }
     }
 
@@ -423,10 +426,10 @@ class SignUpPage extends StatelessWidget {
               const SizedBox(height: AppSpace.xl),
               Text(
                 'Rejoins ReadOn',
-                style: Theme.of(context)
-                    .textTheme
-                    .headlineMedium
-                    ?.copyWith(fontSize: 26, fontWeight: FontWeight.w700),
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  fontSize: 26,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               const SizedBox(height: AppSpace.s),
               Text(
@@ -438,9 +441,7 @@ class SignUpPage extends StatelessWidget {
               const SizedBox(height: AppSpace.xs),
               TextField(
                 controller: nameController,
-                decoration: const InputDecoration(
-                  hintText: 'Ton nom',
-                ),
+                decoration: const InputDecoration(hintText: 'Ton nom'),
               ),
               const SizedBox(height: AppSpace.m),
               Text('Email', style: Theme.of(context).textTheme.titleMedium),
@@ -452,15 +453,15 @@ class SignUpPage extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: AppSpace.m),
-              Text('Mot de passe',
-                  style: Theme.of(context).textTheme.titleMedium),
+              Text(
+                'Mot de passe',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
               const SizedBox(height: AppSpace.xs),
               TextField(
                 controller: passwordController,
                 obscureText: true,
-                decoration: const InputDecoration(
-                  hintText: '••••••••',
-                ),
+                decoration: const InputDecoration(hintText: '••••••••'),
               ),
               const SizedBox(height: AppSpace.l),
               SizedBox(
@@ -518,15 +519,17 @@ class ConfirmEmailPage extends StatelessWidget {
             children: [
               _BackHeader(title: 'Confirmation', titleColor: AppColors.primary),
               const SizedBox(height: AppSpace.xl),
-              const Icon(Icons.mark_email_unread,
-                  size: 72, color: AppColors.primary),
+              const Icon(
+                Icons.mark_email_unread,
+                size: 72,
+                color: AppColors.primary,
+              ),
               const SizedBox(height: AppSpace.m),
               Text(
                 'Confirme ton compte',
-                style: Theme.of(context)
-                    .textTheme
-                    .headlineMedium
-                    ?.copyWith(fontWeight: FontWeight.w700),
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: AppSpace.s),
@@ -597,16 +600,16 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
     setState(() => _loading = true);
 
     final supabase = Supabase.instance.client;
-    final pattern =
-        '%${query.replaceAll('%', '\\%').replaceAll('_', '\\_')}%';
+    final pattern = '%${query.replaceAll('%', '\\%').replaceAll('_', '\\_')}%';
 
     try {
-      final data = await supabase
-              .from('profiles')
-              .select('id, display_name, email')
-              .or('display_name.ilike.$pattern,email.ilike.$pattern')
-              .limit(20)
-          as List<dynamic>;
+      final data =
+          await supabase
+                  .from('profiles')
+                  .select('id, display_name, email')
+                  .or('display_name.ilike.$pattern,email.ilike.$pattern')
+                  .limit(20)
+              as List<dynamic>;
       if (!mounted) return;
       setState(() {
         _results = data
@@ -617,9 +620,9 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
     } on PostgrestException catch (e) {
       if (!mounted) return;
       setState(() => _loading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.message)));
     } catch (e) {
       if (!mounted) return;
       setState(() => _loading = false);
@@ -639,9 +642,9 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
       return;
     }
     if (targetId == null || targetId == currentUser.id) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Utilisateur invalide')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Utilisateur invalide')));
       return;
     }
 
@@ -651,15 +654,16 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
           .from('friends')
           .select('id, status')
           .or(
-              'and(requester_id.eq.${currentUser.id},addressee_id.eq.$targetId),and(requester_id.eq.$targetId,addressee_id.eq.${currentUser.id})')
+            'and(requester_id.eq.${currentUser.id},addressee_id.eq.$targetId),and(requester_id.eq.$targetId,addressee_id.eq.${currentUser.id})',
+          )
           .limit(1);
 
       if ((existing as List).isNotEmpty) {
         final status =
             (existing.first as Map)['status'] as String? ?? 'en attente';
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Relation déjà $status')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Relation déjà $status')));
         return;
       }
 
@@ -670,9 +674,9 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
       });
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Invitation envoyée')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Invitation envoyée')));
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -724,15 +728,15 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
                         itemBuilder: (context, index) {
                           final user = _results[index];
                           final name =
-                              (user['display_name'] ?? user['email']) as String? ??
-                                  '';
+                              (user['display_name'] ?? user['email'])
+                                  as String? ??
+                              '';
                           final email = user['email'] as String? ?? '';
                           return Container(
                             padding: const EdgeInsets.all(AppSpace.m),
                             decoration: BoxDecoration(
                               color: AppColors.white,
-                              borderRadius:
-                                  BorderRadius.circular(AppRadius.l),
+                              borderRadius: BorderRadius.circular(AppRadius.l),
                               border: Border.all(color: AppColors.border),
                             ),
                             child: Row(
@@ -740,7 +744,9 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
                                 CircleAvatar(
                                   backgroundColor: AppColors.accentLight,
                                   child: Text(
-                                    name.isNotEmpty ? name[0].toUpperCase() : '?',
+                                    name.isNotEmpty
+                                        ? name[0].toUpperCase()
+                                        : '?',
                                     style: const TextStyle(
                                       color: AppColors.primary,
                                       fontWeight: FontWeight.w700,
@@ -755,16 +761,16 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
                                     children: [
                                       Text(
                                         name,
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .titleMedium,
+                                        style: Theme.of(
+                                          context,
+                                        ).textTheme.titleMedium,
                                       ),
                                       const SizedBox(height: AppSpace.xs),
                                       Text(
                                         email,
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .bodyMedium,
+                                        style: Theme.of(
+                                          context,
+                                        ).textTheme.bodyMedium,
                                       ),
                                     ],
                                   ),
@@ -863,8 +869,8 @@ class _AddBookPageState extends State<AddBookPage> {
 
       setState(() {
         _searchResults = parsedResults
-            .whereType<Map>()
-            .map((e) => Map<String, dynamic>.from(e as Map))
+            .whereType<Map<String, dynamic>>()
+            .map((e) => Map<String, dynamic>.from(e))
             .toList();
         _searching = false;
       });
@@ -880,9 +886,9 @@ class _AddBookPageState extends State<AddBookPage> {
   Future<void> _addBookFromSearch(Map<String, dynamic> book) async {
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Non connecté')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Non connecté')));
       return;
     }
     try {
@@ -953,9 +959,9 @@ class _AddBookPageState extends State<AddBookPage> {
     }
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Non connecté')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Non connecté')));
       return;
     }
     setState(() => _saving = true);
@@ -963,11 +969,7 @@ class _AddBookPageState extends State<AddBookPage> {
       final supabase = Supabase.instance.client;
       final inserted = await supabase
           .from('books')
-          .insert({
-            'title': title,
-            'author': author,
-            'total_pages': pages,
-          })
+          .insert({'title': title, 'author': author, 'total_pages': pages})
           .select('id')
           .single();
 
@@ -977,9 +979,9 @@ class _AddBookPageState extends State<AddBookPage> {
         'book_id': bookId,
       });
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Livre ajouté')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Livre ajouté')));
       Navigator.of(context).pop();
     } catch (e) {
       if (!mounted) return;
@@ -1005,8 +1007,10 @@ class _AddBookPageState extends State<AddBookPage> {
             children: [
               _BackHeader(title: 'Ajouter un livre'),
               const SizedBox(height: AppSpace.l),
-              Text('Recherche Google Books',
-                  style: Theme.of(context).textTheme.titleMedium),
+              Text(
+                'Recherche Google Books',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
               const SizedBox(height: AppSpace.xs),
               TextField(
                 controller: _searchController,
@@ -1043,16 +1047,16 @@ class _AddBookPageState extends State<AddBookPage> {
                   ),
                 ),
               const SizedBox(height: AppSpace.xl),
-              Text('Ajout manuel',
-                  style: Theme.of(context).textTheme.titleMedium),
+              Text(
+                'Ajout manuel',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
               const SizedBox(height: AppSpace.xl),
               Text('Titre', style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: AppSpace.xs),
               TextField(
                 controller: _titleController,
-                decoration: const InputDecoration(
-                  hintText: 'Ex : Sapiens',
-                ),
+                decoration: const InputDecoration(hintText: 'Ex : Sapiens'),
               ),
               const SizedBox(height: AppSpace.m),
               Text('Auteur', style: Theme.of(context).textTheme.titleMedium),
@@ -1064,15 +1068,15 @@ class _AddBookPageState extends State<AddBookPage> {
                 ),
               ),
               const SizedBox(height: AppSpace.m),
-              Text('Nombre de pages',
-                  style: Theme.of(context).textTheme.titleMedium),
+              Text(
+                'Nombre de pages',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
               const SizedBox(height: AppSpace.xs),
               TextField(
                 controller: _pagesController,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  hintText: 'Ex : 412',
-                ),
+                decoration: const InputDecoration(hintText: 'Ex : 412'),
               ),
               const SizedBox(height: AppSpace.l),
               SizedBox(
@@ -1089,13 +1093,16 @@ class _AddBookPageState extends State<AddBookPage> {
                   onPressed: _saving ? null : _save,
                   child: _saving
                       ? const CircularProgressIndicator(
-                          valueColor:
-                              AlwaysStoppedAnimation<Color>(AppColors.white),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            AppColors.white,
+                          ),
                         )
                       : const Text(
                           'Enregistrer',
                           style: TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.w600),
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                 ),
               ),
@@ -1106,7 +1113,6 @@ class _AddBookPageState extends State<AddBookPage> {
     );
   }
 }
-
 
 class FeedPage extends StatefulWidget {
   const FeedPage({super.key});
@@ -1223,9 +1229,7 @@ class _FeedPageState extends State<FeedPage>
                     label: 'Ajouter livre',
                     onTap: () {
                       Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => const AddBookPage(),
-                        ),
+                        MaterialPageRoute(builder: (_) => const AddBookPage()),
                       );
                       _toggleFab();
                     },
@@ -1261,8 +1265,11 @@ class _FeedPageState extends State<FeedPage>
                       child: child,
                     );
                   },
-                  child: const Icon(Icons.add,
-                      color: AppColors.white, size: 30),
+                  child: const Icon(
+                    Icons.add,
+                    color: AppColors.white,
+                    size: 30,
+                  ),
                 ),
               ),
             ),
@@ -1331,7 +1338,9 @@ class _FeedHeader extends StatelessWidget {
                 GestureDetector(
                   onTap: () {
                     Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const ProfilPage(showBack: true)),
+                      MaterialPageRoute(
+                        builder: (_) => const ProfilPage(showBack: true),
+                      ),
                     );
                   },
                   child: const CircleAvatar(
@@ -1344,25 +1353,33 @@ class _FeedHeader extends StatelessWidget {
                 IconButton(
                   onPressed: () {
                     Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const SearchUsersPage()),
+                      MaterialPageRoute(
+                        builder: (_) => const SearchUsersPage(),
+                      ),
                     );
                   },
-                  icon: const Icon(Icons.search,
-                      color: AppColors.white, size: 28),
+                  icon: const Icon(
+                    Icons.search,
+                    color: AppColors.white,
+                    size: 28,
+                  ),
                 ),
               ],
             ),
             Text(
               'Accueil',
               style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w700,
-                  ),
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.w700,
+              ),
             ),
             IconButton(
               onPressed: () {},
-              icon: const Icon(Icons.notifications_none,
-                  color: AppColors.white, size: 28),
+              icon: const Icon(
+                Icons.notifications_none,
+                color: AppColors.white,
+                size: 28,
+              ),
             ),
           ],
         ),
@@ -1400,17 +1417,11 @@ class _ProgressCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: Theme.of(context).textTheme.headlineMedium,
-          ),
+          Text(title, style: Theme.of(context).textTheme.headlineMedium),
           const SizedBox(height: AppSpace.m),
           _ProgressBar(value: progress),
           const SizedBox(height: AppSpace.s),
-          Text(
-            subtitle,
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
+          Text(subtitle, style: Theme.of(context).textTheme.bodyMedium),
         ],
       ),
     );
@@ -1446,10 +1457,7 @@ class _FriendActivityCard extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              CircleAvatar(
-                radius: 20,
-                backgroundColor: activity.avatarColor,
-              ),
+              CircleAvatar(radius: 20, backgroundColor: activity.avatarColor),
               const SizedBox(width: AppSpace.m),
               Expanded(
                 child: Column(
@@ -1460,11 +1468,13 @@ class _FriendActivityCard extends StatelessWidget {
                         Expanded(
                           child: Text(
                             activity.name,
-                            style:
-                                Theme.of(context).textTheme.titleMedium,
+                            style: Theme.of(context).textTheme.titleMedium,
                           ),
                         ),
-                        Text(activity.emoji, style: const TextStyle(fontSize: 16)),
+                        Text(
+                          activity.emoji,
+                          style: const TextStyle(fontSize: 16),
+                        ),
                       ],
                     ),
                     const SizedBox(height: AppSpace.xs),
@@ -1536,9 +1546,9 @@ class _ActionChip extends StatelessWidget {
               const SizedBox(width: AppSpace.s),
               Text(
                 label,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w500,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w500),
               ),
             ],
           ),
@@ -1591,10 +1601,9 @@ class StartReadingPage extends StatelessWidget {
                         children: [
                           Text(
                             'Sapiens',
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleMedium
-                                ?.copyWith(fontSize: 17),
+                            style: Theme.of(
+                              context,
+                            ).textTheme.titleMedium?.copyWith(fontSize: 17),
                           ),
                           const SizedBox(height: AppSpace.xs),
                           Text(
@@ -1607,11 +1616,13 @@ class StartReadingPage extends StatelessWidget {
                               foregroundColor: AppColors.primary,
                               side: const BorderSide(color: AppColors.primary),
                               shape: RoundedRectangleBorder(
-                                borderRadius:
-                                    BorderRadius.circular(AppRadius.s),
+                                borderRadius: BorderRadius.circular(
+                                  AppRadius.s,
+                                ),
                               ),
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: AppSpace.m),
+                                horizontal: AppSpace.m,
+                              ),
                             ),
                             onPressed: () {},
                             child: const Text('Changer de livre'),
@@ -1703,14 +1714,18 @@ class StartReadingPage extends StatelessWidget {
               const SizedBox(height: AppSpace.xs),
               Row(
                 children: [
-                  const Icon(Icons.menu_book, size: 18, color: AppColors.primary),
+                  const Icon(
+                    Icons.menu_book,
+                    size: 18,
+                    color: AppColors.primary,
+                  ),
                   const SizedBox(width: AppSpace.s),
                   Text(
                     'Ajouter les pages manuellement',
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleMedium
-                        ?.copyWith(color: AppColors.primary, fontSize: 14),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: AppColors.primary,
+                      fontSize: 14,
+                    ),
                   ),
                 ],
               ),
@@ -1742,9 +1757,7 @@ class StartReadingPage extends StatelessWidget {
                             const Text('🔥  '),
                             Text(
                               'Série : 6 jours',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodyMedium
+                              style: Theme.of(context).textTheme.bodyMedium
                                   ?.copyWith(color: AppColors.primary),
                             ),
                           ],
@@ -1782,7 +1795,6 @@ class FriendActivity {
 
 class SessionsPage extends StatelessWidget {
   const SessionsPage({super.key});
-
 
   @override
   Widget build(BuildContext context) {
@@ -1857,9 +1869,7 @@ class ProfilPage extends StatelessWidget {
                     icon: const Icon(Icons.settings_outlined),
                     onPressed: () {
                       Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => const SettingsPage(),
-                        ),
+                        MaterialPageRoute(builder: (_) => const SettingsPage()),
                       );
                     },
                   ),
@@ -1896,14 +1906,14 @@ class ProfilPage extends StatelessWidget {
                         5,
                         (index) => Padding(
                           padding: EdgeInsets.only(
-                              right: index == 4 ? 0 : AppSpace.s),
+                            right: index == 4 ? 0 : AppSpace.s,
+                          ),
                           child: Container(
                             width: 12 + (index % 2 == 0 ? 4 : 0),
                             height: 28 + (index % 2 == 0 ? 6 : 0),
                             decoration: BoxDecoration(
                               color: AppColors.primary,
-                              borderRadius:
-                                  BorderRadius.circular(AppRadius.s),
+                              borderRadius: BorderRadius.circular(AppRadius.s),
                             ),
                           ),
                         ),
@@ -1919,23 +1929,19 @@ class ProfilPage extends StatelessWidget {
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.primary,
                     side: const BorderSide(color: AppColors.primary),
-                    padding:
-                        const EdgeInsets.symmetric(vertical: AppSpace.m),
+                    padding: const EdgeInsets.symmetric(vertical: AppSpace.m),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(AppRadius.l),
                     ),
                   ),
                   onPressed: () {
                     Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => const FriendsPage(),
-                      ),
+                      MaterialPageRoute(builder: (_) => const FriendsPage()),
                     );
                   },
                   child: const Text(
                     'Mes amis',
-                    style:
-                        TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                   ),
                 ),
               ),
@@ -1946,32 +1952,28 @@ class ProfilPage extends StatelessWidget {
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.primary,
                     side: const BorderSide(color: AppColors.primary),
-                    padding:
-                        const EdgeInsets.symmetric(vertical: AppSpace.m),
+                    padding: const EdgeInsets.symmetric(vertical: AppSpace.m),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(AppRadius.l),
                     ),
                   ),
                   onPressed: () {
                     Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => const UserBooksPage(),
-                      ),
+                      MaterialPageRoute(builder: (_) => const UserBooksPage()),
                     );
                   },
                   child: const Text(
                     'Ma bibliothèque',
-                    style:
-                        TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                   ),
                 ),
               ),
               const SizedBox(height: AppSpace.m),
               Text(
                 'Ton objectif 2025',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontSize: 22,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.headlineMedium?.copyWith(fontSize: 22),
               ),
               const SizedBox(height: AppSpace.s),
               Container(
@@ -2013,9 +2015,9 @@ class ProfilPage extends StatelessWidget {
               const SizedBox(height: AppSpace.l),
               Text(
                 'Mes badges',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontSize: 22,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.headlineMedium?.copyWith(fontSize: 22),
               ),
               const SizedBox(height: AppSpace.s),
               Container(
@@ -2030,14 +2032,8 @@ class ProfilPage extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: const [
-                        _Badge(
-                          color: AppColors.primary,
-                          label: '🌱 Débutant',
-                        ),
-                        _Badge(
-                          color: Color(0xFF6A5AE0),
-                          label: '🔥 Série 7j',
-                        ),
+                        _Badge(color: AppColors.primary, label: '🌱 Débutant'),
+                        _Badge(color: Color(0xFF6A5AE0), label: '🔥 Série 7j'),
                         _Badge(
                           color: AppColors.accentLight,
                           label: '📘 1er livre',
@@ -2050,9 +2046,7 @@ class ProfilPage extends StatelessWidget {
                       children: [
                         Text(
                           'Voir tout →',
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodyMedium
+                          style: Theme.of(context).textTheme.bodyMedium
                               ?.copyWith(color: AppColors.textSecondary),
                         ),
                       ],
@@ -2070,9 +2064,7 @@ class ProfilPage extends StatelessWidget {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(AppRadius.l),
                     ),
-                    padding: const EdgeInsets.symmetric(
-                      vertical: AppSpace.m,
-                    ),
+                    padding: const EdgeInsets.symmetric(vertical: AppSpace.m),
                   ),
                   onPressed: () {},
                   child: const Text(
@@ -2135,7 +2127,8 @@ class ProfilPage extends StatelessWidget {
                 if (email.isEmpty || password.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                        content: Text('Email et mot de passe Kindle requis')),
+                      content: Text('Email et mot de passe Kindle requis'),
+                    ),
                   );
                   return;
                 }
@@ -2143,10 +2136,7 @@ class ProfilPage extends StatelessWidget {
                 try {
                   await Supabase.instance.client.functions.invoke(
                     'sync_kindle',
-                    body: {
-                      'email': email,
-                      'password': password,
-                    },
+                    body: {'email': email, 'password': password},
                   );
                   if (!ctx.mounted) return;
                   Navigator.of(ctx).pop();
@@ -2182,10 +2172,9 @@ class ProfilPage extends StatelessWidget {
                     children: [
                       Text(
                         'Connexion Kindle',
-                        style: Theme.of(context)
-                            .textTheme
-                            .headlineMedium
-                            ?.copyWith(fontSize: 20),
+                        style: Theme.of(
+                          context,
+                        ).textTheme.headlineMedium?.copyWith(fontSize: 20),
                       ),
                       IconButton(
                         icon: const Icon(Icons.close),
@@ -2220,7 +2209,8 @@ class ProfilPage extends StatelessWidget {
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
                                 valueColor: AlwaysStoppedAnimation<Color>(
-                                    AppColors.white),
+                                  AppColors.white,
+                                ),
                               ),
                             )
                           : const Icon(Icons.login),
@@ -2262,18 +2252,14 @@ class _Badge extends StatelessWidget {
         Container(
           width: 70,
           height: 70,
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-          ),
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
         const SizedBox(height: AppSpace.xs),
         Text(
           label,
-          style: Theme.of(context)
-              .textTheme
-              .bodyMedium
-              ?.copyWith(color: AppColors.textPrimary),
+          style: Theme.of(
+            context,
+          ).textTheme.bodyMedium?.copyWith(color: AppColors.textPrimary),
         ),
       ],
     );
@@ -2324,8 +2310,8 @@ class _FriendsPageState extends State<FriendsPage> {
         if (requester != null &&
             addressee != null &&
             (requester == user.id || addressee == user.id)) {
-          _friendRelations[requester == user.id ? addressee : requester] =
-              map.map((key, value) => MapEntry(key.toString(), value));
+          _friendRelations[requester == user.id ? addressee : requester] = map
+              .map((key, value) => MapEntry(key.toString(), value));
           ids.add(requester == user.id ? addressee : requester);
         }
       }
@@ -2366,16 +2352,17 @@ class _FriendsPageState extends State<FriendsPage> {
           .from('friends')
           .delete()
           .or(
-              'and(requester_id.eq.${user.id},addressee_id.eq.$friendId),and(requester_id.eq.$friendId,addressee_id.eq.${user.id})');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Ami supprimé')),
-      );
+            'and(requester_id.eq.${user.id},addressee_id.eq.$friendId),and(requester_id.eq.$friendId,addressee_id.eq.${user.id})',
+          );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Ami supprimé')));
       _friendRelations.remove(friendId);
       await _loadFriends();
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Suppression impossible')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Suppression impossible')));
     }
   }
 
@@ -2400,7 +2387,10 @@ class _FriendsPageState extends State<FriendsPage> {
                       ),
                     );
                   },
-                  icon: const Icon(Icons.mail_outline, color: AppColors.primary),
+                  icon: const Icon(
+                    Icons.mail_outline,
+                    color: AppColors.primary,
+                  ),
                   label: const Text(
                     'Voir les demandes',
                     style: TextStyle(color: AppColors.primary),
@@ -2409,8 +2399,7 @@ class _FriendsPageState extends State<FriendsPage> {
               ),
               const SizedBox(height: AppSpace.m),
               if (_loading) const LinearProgressIndicator(),
-              if (_error != null && !_loading)
-                Center(child: Text(_error!)),
+              if (_error != null && !_loading) Center(child: Text(_error!)),
               if (!_loading && _friends.isEmpty && _error == null)
                 Center(
                   child: Text(
@@ -2433,8 +2422,7 @@ class _FriendsPageState extends State<FriendsPage> {
                         padding: const EdgeInsets.all(AppSpace.m),
                         decoration: BoxDecoration(
                           color: AppColors.white,
-                          borderRadius:
-                              BorderRadius.circular(AppRadius.l),
+                          borderRadius: BorderRadius.circular(AppRadius.l),
                           border: Border.all(color: AppColors.border),
                         ),
                         child: Row(
@@ -2452,29 +2440,31 @@ class _FriendsPageState extends State<FriendsPage> {
                             const SizedBox(width: AppSpace.m),
                             Expanded(
                               child: Column(
-                                crossAxisAlignment:
-                                    CrossAxisAlignment.start,
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
                                     name,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .titleMedium,
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.titleMedium,
                                   ),
                                   const SizedBox(height: AppSpace.xs),
                                   Text(
                                     email,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .bodyMedium,
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodyMedium,
                                   ),
                                 ],
                               ),
                             ),
                             IconButton(
-                              icon: const Icon(Icons.delete_outline,
-                                  color: AppColors.error),
-                              onPressed: () => _removeFriend(friend['id'] as String? ?? ''),
+                              icon: const Icon(
+                                Icons.delete_outline,
+                                color: AppColors.error,
+                              ),
+                              onPressed: () =>
+                                  _removeFriend(friend['id'] as String? ?? ''),
                               tooltip: 'Supprimer',
                             ),
                           ],
@@ -2525,7 +2515,8 @@ class _UserBooksPageState extends State<UserBooksPage> {
       final data = await client
           .from('user_books')
           .select(
-              'id, created_at, book:books(id, title, author, cover_url, description)')
+            'id, created_at, book:books(id, title, author, cover_url, description)',
+          )
           .eq('user_id', user.id)
           .order('created_at', ascending: false);
 
@@ -2557,9 +2548,9 @@ class _UserBooksPageState extends State<UserBooksPage> {
     try {
       await client.from('user_books').delete().eq('id', userBookId);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Livre retiré')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Livre retiré')));
       await _loadBooks();
     } catch (e) {
       if (!mounted) return;
@@ -2588,8 +2579,7 @@ class _UserBooksPageState extends State<UserBooksPage> {
               _BackHeader(title: 'Ma bibliothèque'),
               const SizedBox(height: AppSpace.m),
               if (_loading) const LinearProgressIndicator(),
-              if (_error != null && !_loading)
-                Center(child: Text(_error!)),
+              if (_error != null && !_loading) Center(child: Text(_error!)),
               if (!_loading && _userBooks.isEmpty && _error == null)
                 Expanded(
                   child: Center(
@@ -2609,7 +2599,8 @@ class _UserBooksPageState extends State<UserBooksPage> {
                       final entry = _userBooks[index];
                       final book = (entry['book'] as Map?) ?? {};
                       final title = book['title'] as String? ?? 'Sans titre';
-                      final author = book['author'] as String? ?? 'Auteur inconnu';
+                      final author =
+                          book['author'] as String? ?? 'Auteur inconnu';
                       final cover = book['cover_url'] as String?;
                       final userBookId = entry['id']?.toString() ?? '';
                       final deleting = _deleting.contains(userBookId);
@@ -2618,8 +2609,7 @@ class _UserBooksPageState extends State<UserBooksPage> {
                         padding: const EdgeInsets.all(AppSpace.m),
                         decoration: BoxDecoration(
                           color: AppColors.white,
-                          borderRadius:
-                              BorderRadius.circular(AppRadius.l),
+                          borderRadius: BorderRadius.circular(AppRadius.l),
                           border: Border.all(color: AppColors.border),
                         ),
                         child: Row(
@@ -2630,8 +2620,9 @@ class _UserBooksPageState extends State<UserBooksPage> {
                               height: 90,
                               decoration: BoxDecoration(
                                 color: AppColors.accentLight,
-                                borderRadius:
-                                    BorderRadius.circular(AppRadius.m),
+                                borderRadius: BorderRadius.circular(
+                                  AppRadius.m,
+                                ),
                                 image: cover != null
                                     ? DecorationImage(
                                         image: NetworkImage(cover),
@@ -2646,21 +2637,20 @@ class _UserBooksPageState extends State<UserBooksPage> {
                             const SizedBox(width: AppSpace.m),
                             Expanded(
                               child: Column(
-                                crossAxisAlignment:
-                                    CrossAxisAlignment.start,
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
                                     title,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .titleMedium,
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.titleMedium,
                                   ),
                                   const SizedBox(height: AppSpace.xs),
                                   Text(
                                     author,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .bodyMedium,
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodyMedium,
                                   ),
                                 ],
                               ),
@@ -2674,11 +2664,14 @@ class _UserBooksPageState extends State<UserBooksPage> {
                                         strokeWidth: 2,
                                         valueColor:
                                             AlwaysStoppedAnimation<Color>(
-                                                AppColors.error),
+                                              AppColors.error,
+                                            ),
                                       ),
                                     )
-                                  : const Icon(Icons.delete_outline,
-                                      color: AppColors.error),
+                                  : const Icon(
+                                      Icons.delete_outline,
+                                      color: AppColors.error,
+                                    ),
                               onPressed: deleting || userBookId.isEmpty
                                   ? null
                                   : () => _removeUserBook(userBookId),
@@ -2766,16 +2759,21 @@ class _FriendRequestsPageState extends State<FriendRequestsPage> {
         }
       }
 
-      final requests = relationList.map((rel) {
-        final requesterId = rel['requester_id'] as String?;
-        final profile = requesterId != null ? profileMap[requesterId] : null;
-        return {
-          'request_id': rel['id'],
-          'requester_id': requesterId,
-          'display_name': profile?['display_name'] ?? 'Utilisateur',
-          'email': profile?['email'] ?? '',
-        };
-      }).where((req) => req['requester_id'] != null).toList();
+      final requests = relationList
+          .map((rel) {
+            final requesterId = rel['requester_id'] as String?;
+            final profile = requesterId != null
+                ? profileMap[requesterId]
+                : null;
+            return {
+              'request_id': rel['id'],
+              'requester_id': requesterId,
+              'display_name': profile?['display_name'] ?? 'Utilisateur',
+              'email': profile?['email'] ?? '',
+            };
+          })
+          .where((req) => req['requester_id'] != null)
+          .toList();
 
       if (!mounted) return;
       setState(() {
@@ -2809,17 +2807,15 @@ class _FriendRequestsPageState extends State<FriendRequestsPage> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            accept ? 'Demande acceptée' : 'Demande refusée',
-          ),
+          content: Text(accept ? 'Demande acceptée' : 'Demande refusée'),
         ),
       );
       await _loadRequests();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Action impossible')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Action impossible')));
     } finally {
       if (mounted) {
         setState(() {
@@ -2842,8 +2838,7 @@ class _FriendRequestsPageState extends State<FriendRequestsPage> {
               _BackHeader(title: 'Demandes d\'amis'),
               const SizedBox(height: AppSpace.m),
               if (_loading) const LinearProgressIndicator(),
-              if (_error != null && !_loading)
-                Center(child: Text(_error!)),
+              if (_error != null && !_loading) Center(child: Text(_error!)),
               if (!_loading && _requests.isEmpty && _error == null)
                 Expanded(
                   child: Center(
@@ -2870,8 +2865,7 @@ class _FriendRequestsPageState extends State<FriendRequestsPage> {
                         padding: const EdgeInsets.all(AppSpace.m),
                         decoration: BoxDecoration(
                           color: AppColors.white,
-                          borderRadius:
-                              BorderRadius.circular(AppRadius.l),
+                          borderRadius: BorderRadius.circular(AppRadius.l),
                           border: Border.all(color: AppColors.border),
                         ),
                         child: Row(
@@ -2889,21 +2883,20 @@ class _FriendRequestsPageState extends State<FriendRequestsPage> {
                             const SizedBox(width: AppSpace.m),
                             Expanded(
                               child: Column(
-                                crossAxisAlignment:
-                                    CrossAxisAlignment.start,
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
                                     name,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .titleMedium,
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.titleMedium,
                                   ),
                                   const SizedBox(height: AppSpace.xs),
                                   Text(
                                     email,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .bodyMedium,
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodyMedium,
                                   ),
                                 ],
                               ),
@@ -2916,14 +2909,13 @@ class _FriendRequestsPageState extends State<FriendRequestsPage> {
                                     onPressed: busy
                                         ? null
                                         : () => _respondToRequest(
-                                              requestId,
-                                              true,
-                                            ),
+                                            requestId,
+                                            true,
+                                          ),
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: AppColors.primary,
                                       foregroundColor: AppColors.white,
-                                      minimumSize:
-                                          const Size.fromHeight(36),
+                                      minimumSize: const Size.fromHeight(36),
                                     ),
                                     child: busy
                                         ? const SizedBox(
@@ -2932,8 +2924,9 @@ class _FriendRequestsPageState extends State<FriendRequestsPage> {
                                             child: CircularProgressIndicator(
                                               strokeWidth: 2,
                                               valueColor:
-                                                  AlwaysStoppedAnimation<
-                                                      Color>(AppColors.white),
+                                                  AlwaysStoppedAnimation<Color>(
+                                                    AppColors.white,
+                                                  ),
                                             ),
                                           )
                                         : const Text('Accepter'),
@@ -2943,13 +2936,12 @@ class _FriendRequestsPageState extends State<FriendRequestsPage> {
                                     onPressed: busy
                                         ? null
                                         : () => _respondToRequest(
-                                              requestId,
-                                              false,
-                                            ),
+                                            requestId,
+                                            false,
+                                          ),
                                     style: OutlinedButton.styleFrom(
                                       foregroundColor: AppColors.error,
-                                      minimumSize:
-                                          const Size.fromHeight(34),
+                                      minimumSize: const Size.fromHeight(34),
                                     ),
                                     child: const Text('Refuser'),
                                   ),
@@ -2983,10 +2975,7 @@ class SettingsPage extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _BackHeader(
-                title: 'Paramètres',
-                titleColor: AppColors.primary,
-              ),
+              _BackHeader(title: 'Paramètres', titleColor: AppColors.primary),
               const SizedBox(height: AppSpace.l),
               _SettingsSection(
                 title: 'Profil',
@@ -3057,9 +3046,7 @@ class SettingsPage extends StatelessWidget {
                     if (confirm == true) {
                       // Retour à la page de connexion
                       Navigator.of(context).pushAndRemoveUntil(
-                        MaterialPageRoute(
-                          builder: (_) => const WelcomePage(),
-                        ),
+                        MaterialPageRoute(builder: (_) => const WelcomePage()),
                         (route) => false,
                       );
                     }
@@ -3086,10 +3073,7 @@ class _SettingsSection extends StatelessWidget {
   final String title;
   final List<_SettingsItem> items;
 
-  const _SettingsSection({
-    required this.title,
-    required this.items,
-  });
+  const _SettingsSection({required this.title, required this.items});
 
   @override
   Widget build(BuildContext context) {
@@ -3098,10 +3082,9 @@ class _SettingsSection extends StatelessWidget {
       children: [
         Text(
           title,
-          style: Theme.of(context)
-              .textTheme
-              .headlineMedium
-              ?.copyWith(fontSize: 20),
+          style: Theme.of(
+            context,
+          ).textTheme.headlineMedium?.copyWith(fontSize: 20),
         ),
         const SizedBox(height: AppSpace.s),
         Container(
@@ -3114,12 +3097,14 @@ class _SettingsSection extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: items
-                .map((e) => Padding(
-                      padding: EdgeInsets.only(
-                        bottom: e == items.last ? 0 : AppSpace.s,
-                      ),
-                      child: e,
-                    ))
+                .map(
+                  (e) => Padding(
+                    padding: EdgeInsets.only(
+                      bottom: e == items.last ? 0 : AppSpace.s,
+                    ),
+                    child: e,
+                  ),
+                )
                 .toList(),
           ),
         ),
@@ -3135,10 +3120,7 @@ class _SettingsItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text(
-      label,
-      style: Theme.of(context).textTheme.titleMedium,
-    );
+    return Text(label, style: Theme.of(context).textTheme.titleMedium);
   }
 }
 
@@ -3146,10 +3128,7 @@ class _BackHeader extends StatelessWidget {
   final String title;
   final Color? titleColor;
 
-  const _BackHeader({
-    required this.title,
-    this.titleColor,
-  });
+  const _BackHeader({required this.title, this.titleColor});
 
   @override
   Widget build(BuildContext context) {
@@ -3164,9 +3143,9 @@ class _BackHeader extends StatelessWidget {
             child: Text(
               title,
               style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    color: titleColor ?? AppColors.textPrimary,
-                    fontWeight: FontWeight.w700,
-                  ),
+                color: titleColor ?? AppColors.textPrimary,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
         ),

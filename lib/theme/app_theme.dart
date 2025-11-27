@@ -113,30 +113,28 @@ class AppTheme {
       backgroundColor: AppColors.white,
       indicatorColor: AppColors.accentLight,
       elevation: 0,
-      iconTheme: WidgetStateProperty.resolveWith(
-        (Set<WidgetState> states) {
-          return IconThemeData(
-            color: states.contains(WidgetState.selected)
-                ? AppColors.primary
-                : AppColors.textSecondary,
-            size: 24,
-          );
-        },
-      ),
-      labelTextStyle: WidgetStateProperty.resolveWith(
-        (Set<WidgetState> states) {
-          return TextStyle(
-            fontFamily: 'Inter',
-            fontSize: 12,
-            fontWeight: states.contains(WidgetState.selected)
-                ? FontWeight.w600
-                : FontWeight.w500,
-            color: states.contains(WidgetState.selected)
-                ? AppColors.primary
-                : AppColors.textSecondary,
-          );
-        },
-      ),
+      iconTheme: WidgetStateProperty.resolveWith((Set<WidgetState> states) {
+        return IconThemeData(
+          color: states.contains(WidgetState.selected)
+              ? AppColors.primary
+              : AppColors.textSecondary,
+          size: 24,
+        );
+      }),
+      labelTextStyle: WidgetStateProperty.resolveWith((
+        Set<WidgetState> states,
+      ) {
+        return TextStyle(
+          fontFamily: 'Inter',
+          fontSize: 12,
+          fontWeight: states.contains(WidgetState.selected)
+              ? FontWeight.w600
+              : FontWeight.w500,
+          color: states.contains(WidgetState.selected)
+              ? AppColors.primary
+              : AppColors.textSecondary,
+        );
+      }),
     ),
 
     // ✏️ Champs de texte
