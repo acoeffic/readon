@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "Kindle to Readon Sync",
+  "version": "1.0.0",
+  "description": "Synchronise tes livres Kindle",
+  "permissions": ["activeTab", "storage"],
+  "host_permissions": [
+    "https://read.amazon.com/*",
+    "https://kindle-backend-clean-production.up.railway.app/*"
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://read.amazon.com/notebook*"],
+      "js": ["content.js"]
+    }
+  ],
+  "background": {
+    "service_worker": "background.js"
+  }
+}

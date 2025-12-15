@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
-import '../../widgets/back_header.dart';
 import '../../widgets/progress_bar.dart';
-import '../../widgets/badge.dart';
-import '../../friends/friends_page.dart';
-import '../../books/user_books_page.dart';
-import '../../integrations/kindle/kindle_connect_page.dart';
+import '/../widgets/badge.dart';
+import '../friends/friends_page.dart';
+import '../../integrations/kindle_connect_page.dart';
 import 'settings_page.dart';
+import '../books/user_books_page.dart';
 
 class ProfilePage extends StatelessWidget {
   final bool showBack;
@@ -59,7 +58,7 @@ class ProfilePage extends StatelessWidget {
                   IconButton(
                     icon: const Icon(Icons.settings_outlined),
                     onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const SettingsPage()),
+                      MaterialPageRoute(builder: (_) => SettingsPage()),
                     ),
                   ),
                 ],
@@ -118,7 +117,7 @@ class ProfilePage extends StatelessWidget {
                 context,
                 label: 'Mes amis',
                 onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const FriendsPage()),
+                  MaterialPageRoute(builder: (_) => FriendsPage()),
                 ),
               ),
 
@@ -128,7 +127,7 @@ class ProfilePage extends StatelessWidget {
                 context,
                 label: 'Ma bibliothèque',
                 onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const UserBooksPage()),
+                  MaterialPageRoute(builder: (_) => UserBooksPage()),
                 ),
               ),
 
@@ -139,7 +138,7 @@ class ProfilePage extends StatelessWidget {
                 label: 'Synchroniser mon compte Kindle',
                 icon: Icons.cloud_sync_outlined,
                 onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const KindleConnectPage()),
+                  MaterialPageRoute(builder: (_) => KindleConnectPage()),
                 ),
               ),
 

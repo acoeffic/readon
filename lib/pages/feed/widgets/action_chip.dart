@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../theme/app_theme.dart';
+import 'package:readon/theme/app_theme.dart';
 
 class ActionChipButton extends StatelessWidget {
   final IconData icon;
@@ -23,7 +23,7 @@ class ActionChipButton extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppRadius.pill),
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.symmetric(
+          padding: EdgeInsets.symmetric(
             horizontal: AppSpace.l,
             vertical: AppSpace.s,
           ),
@@ -31,7 +31,7 @@ class ActionChipButton extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(icon, size: 18, color: AppColors.textPrimary),
-              const SizedBox(width: AppSpace.s),
+              SizedBox(width: AppSpace.s),
               Text(
                 label,
                 style: Theme.of(context)

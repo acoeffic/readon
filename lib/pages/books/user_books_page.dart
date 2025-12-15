@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../theme/app_theme.dart';
-import '../../widgets/back_header.dart';
+import '../../services/kindle_api_service.dart';
 
 class UserBooksPage extends StatefulWidget {
   const UserBooksPage({super.key});
@@ -11,187 +9,192 @@ class UserBooksPage extends StatefulWidget {
 }
 
 class _UserBooksPageState extends State<UserBooksPage> {
-  bool _loading = true;
-  String? _error;
-  List<Map<String, dynamic>> _userBooks = [];
-  final Set<String> _deleting = {};
+  final KindleApiService _apiService = KindleApiService();
+  List<Book> _kindleBooks = [];
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadBooks();
+    _loadKindleBooks();
   }
 
-  Future<void> _loadBooks() async {
-    final client = Supabase.instance.client;
-    final user = client.auth.currentUser;
-
-    if (user == null) {
-      setState(() {
-        _error = 'Non connecté';
-        _loading = false;
-      });
-      return;
-    }
-
-    try {
-      final data = await client
-          .from('user_books')
-          .select('id, created_at, book:books(id, title, author, cover_url, description)')
-          .eq('user_id', user.id)
-          .order('created_at', ascending: false);
-
-      final list = (data as List)
-          .map((e) => Map<String, dynamic>.from(e as Map))
-          .toList();
-
-      if (!mounted) return;
-      setState(() {
-        _userBooks = list;
-        _loading = false;
-        _error = null;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _error = 'Erreur de chargement';
-        _loading = false;
-      });
-    }
-  }
-
-  Future<void> _removeUserBook(String userBookId) async {
-    if (userBookId.isEmpty) return;
-
-    final client = Supabase.instance.client;
-
-    setState(() => _deleting.add(userBookId));
-
-    try {
-      await client.from('user_books').delete().eq('id', userBookId);
-
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Livre retiré')),
-      );
-
-      await _loadBooks();
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Impossible de retirer ce livre')),
-      );
-    } finally {
-      if (mounted) {
-        setState(() => _deleting.remove(userBookId));
-      }
-    }
+  Future<void> _loadKindleBooks() async {
+    setState(() => _isLoading = true);
+    
+    final books = await _apiService.getBooks();
+    
+    setState(() {
+      _kindleBooks = books;
+      _isLoading = false;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.bgLight,
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpace.l),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const BackHeader(title: 'Ma bibliothèque'),
-              const SizedBox(height: AppSpace.m),
+      appBar: AppBar(
+        title: const Text('Ma Bibliothèque'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _loadKindleBooks,
+            tooltip: 'Rafraîchir les livres Kindle',
+          ),
+        ],
+      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _kindleBooks.isEmpty
+              ? _buildEmptyState()
+              : _buildBooksList(),
+    );
+  }
 
-              if (_loading) const LinearProgressIndicator(),
-              if (_error != null && !_loading)
-                Center(child: Text(_error!)),
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.book, size: 64, color: Colors.grey),
+          const SizedBox(height: 16),
+          const Text('Aucun livre Kindle synchronisé'),
+          const SizedBox(height: 8),
+          const Text(
+            'Utilisez l\'extension Chrome pour synchroniser',
+            style: TextStyle(color: Colors.grey),
+          ),
+        ],
+      ),
+    );
+  }
 
-              if (!_loading && _userBooks.isEmpty && _error == null)
+  Widget _buildBooksList() {
+    return ListView.builder(
+      itemCount: _kindleBooks.length,
+      itemBuilder: (context, index) {
+        final book = _kindleBooks[index];
+        return Card(
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: ListTile(
+            leading: book.cover.isNotEmpty
+                ? Image.network(book.cover, width: 50, fit: BoxFit.cover)
+                : const Icon(Icons.book, size: 50),
+            title: Text(book.title, maxLines: 2, overflow: TextOverflow.ellipsis),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(book.author),
+                if (book.highlightCount > 0)
+                  Text(
+                    '${book.highlightCount} highlights',
+                    style: TextStyle(color: Theme.of(context).primaryColor),
+                  ),
+              ],
+            ),
+            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+            onTap: () {
+              // Navigation vers les détails du livre
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => BookDetailPage(book: book),
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+}
+
+// Page de détails
+class BookDetailPage extends StatelessWidget {
+  final Book book;
+
+  const BookDetailPage({super.key, required this.book});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text(book.title)),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Cover et infos
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (book.cover.isNotEmpty)
+                  Image.network(book.cover, height: 200),
+                const SizedBox(width: 16),
                 Expanded(
-                  child: Center(
-                    child: Text(
-                      'Aucun livre dans ta bibliothèque',
-                      style: Theme.of(context).textTheme.bodyMedium,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        book.title,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(book.author),
+                      const SizedBox(height: 16),
+                      Text('${book.highlightCount} highlights'),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            
+            const SizedBox(height: 24),
+            const Divider(),
+            const SizedBox(height: 16),
+            
+            // Highlights
+            const Text(
+              'Highlights',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            
+            ...book.highlights.map((highlight) => Card(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          highlight.text,
+                          style: const TextStyle(fontStyle: FontStyle.italic),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          highlight.location,
+                          style: const TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
+                        if (highlight.note != null) ...[
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.blue.shade50,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text('Note: ${highlight.note}'),
+                          ),
+                        ],
+                      ],
                     ),
                   ),
-                ),
-
-              if (!_loading && _userBooks.isNotEmpty)
-                Expanded(
-                  child: ListView.separated(
-                    itemCount: _userBooks.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: AppSpace.s),
-                    itemBuilder: (context, index) {
-                      final entry = _userBooks[index];
-                      final book = (entry['book'] as Map?) ?? {};
-                      final title = book['title'] as String? ?? 'Sans titre';
-                      final author = book['author'] as String? ?? 'Auteur inconnu';
-                      final cover = book['cover_url'] as String?;
-                      final userBookId = entry['id']?.toString() ?? '';
-                      final deleting = _deleting.contains(userBookId);
-
-                      return Container(
-                        padding: const EdgeInsets.all(AppSpace.m),
-                        decoration: BoxDecoration(
-                          color: AppColors.white,
-                          borderRadius: BorderRadius.circular(AppRadius.l),
-                          border: Border.all(color: AppColors.border),
-                        ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Container(
-                              width: 60,
-                              height: 90,
-                              decoration: BoxDecoration(
-                                color: AppColors.accentLight,
-                                borderRadius: BorderRadius.circular(AppRadius.m),
-                                image: cover != null
-                                    ? DecorationImage(
-                                        image: NetworkImage(cover),
-                                        fit: BoxFit.cover,
-                                      )
-                                    : null,
-                              ),
-                              child: cover == null
-                                  ? const Icon(Icons.menu_book_outlined)
-                                  : null,
-                            ),
-                            const SizedBox(width: AppSpace.m),
-
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(title, style: Theme.of(context).textTheme.titleMedium),
-                                  const SizedBox(height: AppSpace.xs),
-                                  Text(author, style: Theme.of(context).textTheme.bodyMedium),
-                                ],
-                              ),
-                            ),
-
-                            IconButton(
-                              icon: deleting
-                                  ? const SizedBox(
-                                      height: 16,
-                                      width: 16,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        valueColor: AlwaysStoppedAnimation<Color>(AppColors.error),
-                                      ),
-                                    )
-                                  : const Icon(Icons.delete_outline, color: AppColors.error),
-                              onPressed: deleting || userBookId.isEmpty
-                                  ? null
-                                  : () => _removeUserBook(userBookId),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                ),
-            ],
-          ),
+                )),
+          ],
         ),
       ),
     );

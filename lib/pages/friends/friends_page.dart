@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../theme/app_theme.dart';
-import '../../widgets/back_header.dart';
 import 'friend_requests_page.dart';
 
 class FriendsPage extends StatefulWidget {
@@ -19,6 +18,7 @@ class _FriendsPageState extends State<FriendsPage> {
   @override
   void initState() {
     super.initState();
+    print('🚀 FriendsPage initState appelé !');
     _loadFriends();
   }
 
@@ -35,11 +35,18 @@ class _FriendsPageState extends State<FriendsPage> {
     }
 
     try {
+      print('🔍 Chargement des amis pour user: ${user.id}');
       final data = await supabase.rpc('get_friends', params: {'uid': user.id});
+      
+      print('📦 Données brutes reçues: $data');
+      print('📦 Type de données: ${data.runtimeType}');
 
       final list = (data as List)
           .map((e) => Map<String, dynamic>.from(e as Map))
           .toList();
+
+      print('✅ Nombre d\'amis trouvés: ${list.length}');
+      print('📋 Liste des amis: $list');
 
       if (!mounted) return;
       setState(() {
@@ -47,10 +54,11 @@ class _FriendsPageState extends State<FriendsPage> {
         _loading = false;
         _error = null;
       });
-    } catch (_) {
+    } catch (e) {
+      print('❌ Erreur: $e');
       if (!mounted) return;
       setState(() {
-        _error = 'Erreur lors du chargement';
+        _error = 'Erreur lors du chargement: $e';
         _loading = false;
       });
     }
@@ -73,10 +81,11 @@ class _FriendsPageState extends State<FriendsPage> {
       );
 
       await _loadFriends();
-    } catch (_) {
+    } catch (e) {
+      print('❌ Erreur suppression ami: $e');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Impossible de retirer cet ami')),
+        SnackBar(content: Text('Impossible de retirer cet ami: $e')),
       );
     }
   }
@@ -85,99 +94,132 @@ class _FriendsPageState extends State<FriendsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bgLight,
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpace.l),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const BackHeader(title: 'Mes amis'),
-                  IconButton(
-                    icon: const Icon(Icons.mail_outline, color: AppColors.primary),
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const FriendRequestsPage()),
-                      );
-                    },
+      appBar: AppBar(
+        backgroundColor: AppColors.bgLight,
+        title: const Text('Mes amis'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.mail_outline, color: AppColors.primary),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const FriendRequestsPage()),
+              );
+            },
+          ),
+        ],
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(AppSpace.l),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (_loading) const LinearProgressIndicator(),
+
+            if (_error != null && !_loading)
+              Expanded(
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.error_outline, size: 48, color: AppColors.error),
+                      const SizedBox(height: AppSpace.m),
+                      Text(
+                        _error!, 
+                        style: Theme.of(context).textTheme.bodyMedium,
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: AppSpace.m),
+                      ElevatedButton(
+                        onPressed: _loadFriends,
+                        child: const Text('Réessayer'),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
 
-              const SizedBox(height: AppSpace.m),
-
-              if (_loading) const LinearProgressIndicator(),
-
-              if (_error != null && !_loading)
-                Expanded(
-                  child: Center(
-                    child: Text(_error!, style: Theme.of(context).textTheme.bodyMedium),
-                  ),
-                ),
-
-              if (!_loading && _friends.isEmpty && _error == null)
-                Expanded(
-                  child: Center(
-                    child: Text('Aucun ami trouvé', style: Theme.of(context).textTheme.bodyMedium),
-                  ),
-                ),
-
-              if (!_loading && _friends.isNotEmpty)
-                Expanded(
-                  child: ListView.separated(
-                    itemCount: _friends.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: AppSpace.s),
-                    itemBuilder: (context, index) {
-                      final f = _friends[index];
-                      final name = f['display_name'] as String? ?? 'Utilisateur';
-                      final email = f['email'] as String? ?? '';
-                      final friendId = f['id'] as String? ?? '';
-
-                      return Container(
-                        padding: const EdgeInsets.all(AppSpace.m),
-                        decoration: BoxDecoration(
-                          color: AppColors.white,
-                          borderRadius: BorderRadius.circular(AppRadius.l),
-                          border: Border.all(color: AppColors.border),
+            if (!_loading && _friends.isEmpty && _error == null)
+              Expanded(
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.people_outline, size: 64, color: AppColors.textSecondary),
+                      const SizedBox(height: AppSpace.m),
+                      Text(
+                        'Aucun ami trouvé', 
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: AppSpace.s),
+                      Text(
+                        'Ajoutez des amis pour voir leur activité !',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppColors.textSecondary,
                         ),
-                        child: Row(
-                          children: [
-                            CircleAvatar(
-                              backgroundColor: AppColors.accentLight,
-                              child: Text(
-                                name.isNotEmpty ? name[0].toUpperCase() : '?',
-                                style: const TextStyle(color: AppColors.primary),
-                              ),
-                            ),
-                            const SizedBox(width: AppSpace.m),
-
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(name, style: Theme.of(context).textTheme.titleMedium),
-                                  const SizedBox(height: AppSpace.xs),
-                                  Text(email, style: Theme.of(context).textTheme.bodyMedium),
-                                ],
-                              ),
-                            ),
-
-                            IconButton(
-                              icon: const Icon(Icons.delete_outline, color: AppColors.error),
-                              onPressed: friendId.isEmpty
-                                  ? null
-                                  : () => _removeFriend(friendId),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
+                      ),
+                    ],
                   ),
                 ),
-            ],
-          ),
+              ),
+
+            if (!_loading && _friends.isNotEmpty)
+              Expanded(
+                child: ListView.separated(
+                  itemCount: _friends.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: AppSpace.s),
+                  itemBuilder: (context, index) {
+                    final f = _friends[index];
+                    final name = f['display_name'] as String? ?? 'Utilisateur';
+                    final email = f['email'] as String? ?? '';
+                    final friendId = f['id'] as String? ?? '';
+
+                    return Container(
+                      padding: const EdgeInsets.all(AppSpace.m),
+                      decoration: BoxDecoration(
+                        color: AppColors.white,
+                        borderRadius: BorderRadius.circular(AppRadius.l),
+                        border: Border.all(color: AppColors.border),
+                      ),
+                      child: Row(
+                        children: [
+                          CircleAvatar(
+                            backgroundColor: AppColors.accentLight,
+                            child: Text(
+                              name.isNotEmpty ? name[0].toUpperCase() : '?',
+                              style: const TextStyle(color: AppColors.primary),
+                            ),
+                          ),
+                          const SizedBox(width: AppSpace.m),
+
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(name, style: Theme.of(context).textTheme.titleMedium),
+                                const SizedBox(height: AppSpace.xs),
+                                Text(
+                                  email, 
+                                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          IconButton(
+                            icon: const Icon(Icons.delete_outline, color: AppColors.error),
+                            onPressed: friendId.isEmpty
+                                ? null
+                                : () => _removeFriend(friendId),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+          ],
         ),
       ),
     );

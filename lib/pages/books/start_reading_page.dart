@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/back_header.dart';
-import '../books/widgets/progress_bar.dart';
+import '../../widgets/progress_bar.dart';
 
 class StartReadingPage extends StatelessWidget {
   const StartReadingPage({super.key});

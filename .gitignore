@@ -28,3 +28,4 @@ readon-sync/
 # Misc
 .DS_Store
 *.log
+flutter/

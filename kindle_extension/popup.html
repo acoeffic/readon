@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body {
+      width: 320px;
+      padding: 20px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      margin: 0;
+    }
+    
+    .header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    
+    h1 {
+      font-size: 20px;
+      margin: 0 0 5px 0;
+      color: #333;
+    }
+    
+    .subtitle {
+      font-size: 12px;
+      color: #666;
+    }
+    
+    .status {
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      font-size: 14px;
+      text-align: center;
+    }
+    
+    .status.idle {
+      background: #f0f0f0;
+      color: #666;
+    }
+    
+    .status.syncing {
+      background: #fff3cd;
+      color: #856404;
+    }
+    
+    .status.success {
+      background: #d4edda;
+      color: #155724;
+    }
+    
+    .status.error {
+      background: #f8d7da;
+      color: #721c24;
+    }
+    
+    button {
+      width: 100%;
+      padding: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    #syncBtn {
+      background: #007bff;
+      color: white;
+    }
+    
+    #syncBtn:hover:not(:disabled) {
+      background: #0056b3;
+    }
+    
+    #syncBtn:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    
+    .info {
+      margin-top: 15px;
+      padding: 10px;
+      background: #e7f3ff;
+      border-radius: 6px;
+      font-size: 12px;
+      color: #004085;
+    }
+    
+    .stats {
+      display: flex;
+      justify-content: space-around;
+      margin-top: 15px;
+      padding-top: 15px;
+      border-top: 1px solid #ddd;
+    }
+    
+    .stat {
+      text-align: center;
+    }
+    
+    .stat-value {
+      font-size: 24px;
+      font-weight: bold;
+      color: #007bff;
+    }
+    
+    .stat-label {
+      font-size: 12px;
+      color: #666;
+      margin-top: 4px;
+    }
+    
+    .loader {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #007bff;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 10px;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>📚 Kindle Sync</h1>
+    <div class="subtitle">Synchronise avec Readon</div>
+  </div>
+
+  <div id="status" class="status idle">
+    Prêt à synchroniser
+  </div>
+
+  <button id="syncBtn">
+    🔄 Synchroniser maintenant
+  </button>
+
+  <div class="info">
+    💡 Assurez-vous d'être sur la page <strong>read.amazon.com/notebook</strong> avant de synchroniser.
+  </div>
+
+  <div id="statsContainer" style="display: none;">
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-value" id="booksCount">0</div>
+        <div class="stat-label">Livres</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value" id="highlightsCount">0</div>
+        <div class="stat-label">Highlights</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

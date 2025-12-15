@@ -1,49 +1,73 @@
 import 'package:flutter/material.dart';
-import '../../../theme/app_theme.dart';
-import 'progress_bar.dart';
+import '../../../widgets/progress_bar.dart';
 
 class ProgressCard extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final double progress;
+  final String bookTitle;
+  final String author;
+  final double progress; // Entre 0.0 et 1.0
+  final int? currentPage;
+  final int? totalPages;
 
   const ProgressCard({
     super.key,
-    required this.title,
-    required this.subtitle,
+    required this.bookTitle,
+    required this.author,
     required this.progress,
+    this.currentPage,
+    this.totalPages,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(AppSpace.l),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(AppRadius.l),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x0F000000),
-            blurRadius: 10,
-            offset: Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: Theme.of(context).textTheme.headlineMedium,
-          ),
-          const SizedBox(height: AppSpace.m),
-          ProgressBar(value: progress),
-          const SizedBox(height: AppSpace.s),
-          Text(
-            subtitle,
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-        ],
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              bookTitle,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              author,
+              style: const TextStyle(
+                fontSize: 14,
+                color: Colors.grey,
+              ),
+            ),
+            const SizedBox(height: 12),
+            ProgressBar(value: progress),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  '${(progress * 100).toInt()}%',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                if (currentPage != null && totalPages != null)
+                  Text(
+                    'Page $currentPage sur $totalPages',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey,
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

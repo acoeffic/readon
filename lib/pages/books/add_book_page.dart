@@ -264,3 +264,35 @@ class _AddBookPageState extends State<AddBookPage> {
                 controller: _authorController,
                 decoration: const InputDecoration(hintText: 'Auteur'),
               ),
+              const SizedBox(height: AppSpace.m),
+
+              TextField(
+                controller: _pagesController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(hintText: 'Pages totales'),
+              ),
+
+              const SizedBox(height: AppSpace.l),
+
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _saving ? null : _save,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    padding: const EdgeInsets.symmetric(vertical: AppSpace.m),
+                  ),
+                  child: _saving
+                      ? const SizedBox(
+                          height: 16,
+                          width: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.white),
+                        )
+                      : const Text('Enregistrer'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );

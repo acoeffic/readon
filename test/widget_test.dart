@@ -7,7 +7,7 @@
 
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:readon/main.dart';
+import 'package:readon/app.dart';
 
 void main() {
   testWidgets('ReadOn app renders welcome screen', (WidgetTester tester) async {

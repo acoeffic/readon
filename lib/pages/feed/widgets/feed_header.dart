@@ -25,7 +25,7 @@ class FeedHeader extends StatelessWidget {
                   onTap: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (_) => const ProfilPage(showBack: true),
+                        builder: (_) => ProfilePage(showBack: true),
                       ),
                     );
                   },
@@ -40,7 +40,7 @@ class FeedHeader extends StatelessWidget {
                   onPressed: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (_) => const SearchUsersPage(),
+                        builder: (_) => SearchUsersPage(),
                       ),
                     );
                   },
