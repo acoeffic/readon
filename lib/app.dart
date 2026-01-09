@@ -1,9 +1,7 @@
-// app.dart
-// Contient l'initialisation du MaterialApp et le thème global
-
 import 'package:flutter/material.dart';
 import 'theme/app_theme.dart';
 import 'pages/welcome/welcome_page.dart';
+import 'pages/ocr_test_page.dart';
 
 class ReadOnApp extends StatelessWidget {
   const ReadOnApp({super.key});
@@ -15,6 +13,10 @@ class ReadOnApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       home: const WelcomePage(),
+      routes: {
+        '/welcome': (context) => const WelcomePage(), // Ajout de cette route
+        '/ocr-test': (context) => const OCRTestPage(),
+      },
     );
   }
 }

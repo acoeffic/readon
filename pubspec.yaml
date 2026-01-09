@@ -36,6 +36,10 @@ dependencies:
   cupertino_icons: ^1.0.8
   supabase_flutter: ^2.8.1
   http: ^1.6.0
+  image_picker: ^1.0.7              # Capture photo from camera/gallery
+  google_mlkit_text_recognition: ^0.13.0  # OCR on-device (free)
+  path_provider: ^2.1.2             # Local storage for images
+  permission_handler: ^11.3.0       # Camera/storage permissions
 
 dev_dependencies:
   flutter_test:

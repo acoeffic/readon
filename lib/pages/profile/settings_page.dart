@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/back_header.dart';
 
@@ -96,7 +97,16 @@ class SettingsPage extends StatelessWidget {
                     );
 
                     if (confirm == true) {
-                      Navigator.of(context).pop();
+                      // Déconnexion de Supabase
+                      await Supabase.instance.client.auth.signOut();
+                      
+                      // Navigation vers la page de bienvenue
+                      if (context.mounted) {
+                        Navigator.of(context).pushNamedAndRemoveUntil(
+                          '/welcome',
+                          (route) => false,
+                        );
+                      }
                     }
                   },
                   child: const Text(

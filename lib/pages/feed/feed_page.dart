@@ -8,6 +8,7 @@ import '../../theme/app_theme.dart';
 import '../feed/widgets/feed_header.dart';
 import 'widgets/friend_activity_card.dart';
 import '../feed/widgets/progress_card.dart';
+import 'package:readon/pages/friends/friends_page.dart';
 
 class FeedPage extends StatefulWidget {
   const FeedPage({super.key});
@@ -114,7 +115,16 @@ class _FeedPageState extends State<FeedPage> {
                 runSpacing: 10,
                 children: [
                   ActionChipButton(icon: Icons.book, label: 'Découvrir des livres', onTap: () {}),
-                  ActionChipButton(icon: Icons.people, label: 'Voir les amis', onTap: () {}),
+                  ActionChipButton(
+  icon: Icons.people, 
+  label: 'Voir les amis', 
+  onTap: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => FriendsPage()),
+    );
+  }
+),
                   ActionChipButton(icon: Icons.add, label: 'Ajouter une lecture', onTap: () {}),
                 ],
               ),
