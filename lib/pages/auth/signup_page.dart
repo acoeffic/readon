@@ -1,5 +1,5 @@
 // pages/auth/signup_page.dart
-// Page d'inscription extraite et structurée
+// Page d'inscription avec acceptation des CGU
 
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -7,6 +7,7 @@ import '../../theme/app_theme.dart';
 import '../../widgets/back_header.dart';
 import '../auth/confirm_email_page.dart';
 import '../auth/login_page.dart';
+import '../../widgets/terms_acceptance_checkbox.dart';
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});
@@ -19,6 +20,7 @@ class _SignUpPageState extends State<SignUpPage> {
   final nameController = TextEditingController();
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
+  bool _acceptedTerms = false;
 
   Future<void> signUp() async {
     final name = nameController.text.trim();
@@ -28,6 +30,16 @@ class _SignUpPageState extends State<SignUpPage> {
     if (email.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Email et mot de passe requis')),
+      );
+      return;
+    }
+
+    if (!_acceptedTerms) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Vous devez accepter les conditions d\'utilisation'),
+          backgroundColor: Colors.red,
+        ),
       );
       return;
     }
@@ -110,6 +122,7 @@ class _SignUpPageState extends State<SignUpPage> {
               TextField(
                 controller: emailController,
                 decoration: const InputDecoration(hintText: 'ton.email@mail.com'),
+                keyboardType: TextInputType.emailAddress,
               ),
 
               const SizedBox(height: AppSpace.m),
@@ -122,20 +135,36 @@ class _SignUpPageState extends State<SignUpPage> {
               ),
 
               const SizedBox(height: AppSpace.l),
+
+              // Acceptation des CGU
+              TermsAcceptanceCheckbox(
+                value: _acceptedTerms,
+                onChanged: (value) {
+                  setState(() => _acceptedTerms = value ?? false);
+                },
+              ),
+
+              const SizedBox(height: AppSpace.l),
+
+              // Bouton créer compte (désactivé si CGU pas acceptées)
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
+                    backgroundColor: _acceptedTerms 
+                        ? AppColors.primary 
+                        : Colors.grey.shade400,
                     foregroundColor: AppColors.white,
                     padding: const EdgeInsets.symmetric(vertical: AppSpace.m),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(AppRadius.l),
                     ),
                   ),
-                  onPressed: signUp,
-                  child: const Text('Créer un compte',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                  onPressed: _acceptedTerms ? signUp : null,
+                  child: const Text(
+                    'Créer un compte',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
                 ),
               ),
 
@@ -145,8 +174,10 @@ class _SignUpPageState extends State<SignUpPage> {
                   onPressed: () => Navigator.of(context).pushReplacement(
                     MaterialPageRoute(builder: (_) => const LoginPage()),
                   ),
-                  child: const Text('Déjà un compte ? Se connecter',
-                      style: TextStyle(color: AppColors.primary)),
+                  child: const Text(
+                    'Déjà un compte ? Se connecter',
+                    style: TextStyle(color: AppColors.primary),
+                  ),
                 ),
               ),
             ],

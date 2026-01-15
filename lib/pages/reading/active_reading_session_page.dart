@@ -1,0 +1,291 @@
+// lib/pages/reading/active_reading_session_page.dart
+
+import 'package:flutter/material.dart';
+import 'dart:async';
+import '../../models/reading_session.dart';
+import '../../models/book.dart';
+import 'end_reading_session_page.dart';
+import 'reading_session_summary_page.dart';
+
+class ActiveReadingSessionPage extends StatefulWidget {
+  final ReadingSession activeSession;
+  final Book book;
+
+  const ActiveReadingSessionPage({
+    super.key,
+    required this.activeSession,
+    required this.book,
+  });
+
+  @override
+  State<ActiveReadingSessionPage> createState() => _ActiveReadingSessionPageState();
+}
+
+class _ActiveReadingSessionPageState extends State<ActiveReadingSessionPage> {
+  Timer? _timer;
+  Duration _elapsed = Duration.zero;
+
+  @override
+  void initState() {
+    super.initState();
+    _startTimer();
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  void _startTimer() {
+    
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      setState(() {
+        _elapsed = DateTime.now().difference(widget.activeSession.startTime);
+      });
+    });
+  }
+
+  String _formatDuration(Duration duration) {
+    final hours = duration.inHours;
+    final minutes = duration.inMinutes % 60;
+    final seconds = duration.inSeconds % 60;
+    
+    if (hours > 0) {
+      return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+    }
+    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+  }
+
+  Future<void> _endSession() async {
+  final completedSession = await Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) => EndReadingSessionPage(
+        activeSession: widget.activeSession,
+      ),
+    ),
+  );
+
+  if (!mounted) return;
+  
+  // Si la session est complétée, aller à la page résumé
+  if (completedSession != null) {
+    await Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ReadingSessionSummaryPage(
+          session: completedSession,
+        ),
+      ),
+    );
+  } else {
+    // Session annulée, retour en arrière
+    Navigator.of(context).pop();
+  }
+}
+
+  Future<void> _cancelSession() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Abandonner la session'),
+        content: const Text('Voulez-vous vraiment abandonner cette session de lecture ?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Non'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Oui', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true && mounted) {
+      // TODO: Supprimer la session de la base de données
+      Navigator.of(context).popUntil((route) => route.isFirst);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return WillPopScope(
+      onWillPop: () async {
+        final confirm = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Quitter la session'),
+            content: const Text('La session reste active. Vous pourrez la terminer plus tard.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Rester'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Quitter'),
+              ),
+            ],
+          ),
+        );
+        return confirm ?? false;
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Lecture en cours'),
+          backgroundColor: Colors.deepPurple,
+        ),
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              children: [
+                // Infos du livre
+                Card(
+                  elevation: 2,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      children: [
+                        if (widget.book.coverUrl != null && widget.book.coverUrl!.isNotEmpty)
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.network(
+                              widget.book.coverUrl!,
+                              width: 60,
+                              height: 90,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  width: 60,
+                                  height: 90,
+                                  color: Colors.grey.shade300,
+                                  child: const Icon(Icons.book, size: 30),
+                                );
+                              },
+                            ),
+                          ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                widget.book.title,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              if (widget.book.author != null) ...[
+                                const SizedBox(height: 4),
+                                Text(
+                                  widget.book.author!,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.grey.shade600,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                
+                const SizedBox(height: 40),
+                
+                // Chronomètre
+                Expanded(
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text(
+                          'Temps de lecture',
+                          style: TextStyle(
+                            fontSize: 20,
+                            color: Colors.grey,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 30),
+                          decoration: BoxDecoration(
+                            color: Colors.deepPurple.shade50,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            _formatDuration(_elapsed),
+                            style: TextStyle(
+                              fontSize: 64,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.deepPurple.shade700,
+                              fontFeatures: const [FontFeature.tabularFigures()],
+                            ),
+                          ),
+                        ),
+                        
+                        const SizedBox(height: 24),
+                        
+                        Text(
+                          'Page de départ: ${widget.activeSession.startPage}',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                
+                const SizedBox(height: 40),
+                
+                // Boutons d'action
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    ElevatedButton.icon(
+                      onPressed: _endSession,
+                      icon: const Icon(Icons.stop, size: 28),
+                      label: const Text(
+                        'Terminer la session',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.all(20),
+                        backgroundColor: Colors.green,
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                    
+                    const SizedBox(height: 12),
+                    
+                    OutlinedButton.icon(
+                      onPressed: _cancelSession,
+                      icon: const Icon(Icons.cancel_outlined),
+                      label: const Text('Abandonner'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.all(16),
+                        foregroundColor: Colors.red,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

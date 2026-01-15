@@ -288,7 +288,7 @@ class _AddBookPageState extends State<AddBookPage> {
                           width: 16,
                           child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.white),
                         )
-                      : const Text('Enregistrer'),
+                                            : const Text('Enregistrer'),
                 ),
               ),
             ],
@@ -296,3 +296,5 @@ class _AddBookPageState extends State<AddBookPage> {
         ),
       ),
     );
+  }
+}

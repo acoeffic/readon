@@ -7,6 +7,7 @@ import '../pages/books/user_books_page.dart';
 import '../pages/profile/profile_page.dart';
 import '../pages/sessions/sessions_page.dart';
 import '../pages/stats/stats_page.dart';
+import '../widgets/global_reading_session_fab.dart';
 
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
@@ -68,6 +69,8 @@ class _MainNavigationState extends State<MainNavigation> {
           ),
         ],
       ),
+      // 👇 AJOUTE LE FAB GLOBAL ICI
+      floatingActionButton: const GlobalReadingSessionFAB(),
     );
   }
 }
