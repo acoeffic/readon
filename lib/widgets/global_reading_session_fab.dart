@@ -10,7 +10,6 @@ import '../pages/books/scan_book_cover_page.dart';
 import '../services/google_books_service.dart';
 import '../models/book.dart';
 import 'active_session_dialog.dart';
-import '../models/book.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 final _supabase = Supabase.instance.client;
@@ -18,200 +17,6 @@ final _supabase = Supabase.instance.client;
 /// FloatingActionButton global pour démarrer une session de lecture
 class GlobalReadingSessionFAB extends StatelessWidget {
   const GlobalReadingSessionFAB({super.key});
-
-  Future<void> _showBookSourceChoice(BuildContext context) async {
-    // 🔍 VÉRIFIER S'IL Y A UNE SESSION EN COURS
-    final sessionService = ReadingSessionService();
-    
-    try {
-      final activeSessions = await sessionService.getAllActiveSessions();
-      
-      if (!context.mounted) return;
-      
-      if (activeSessions.isNotEmpty) {
-        // Il y a une session en cours - afficher le dialog
-        final activeSession = activeSessions.first;
-        
-        // Charger le livre associé
-        final booksService = BooksService();
-        Book? book;
-        try {
-          book = await booksService.getBookById(int.parse(activeSession.bookId));
-        } catch (e) {
-          print('Erreur chargement livre: $e');
-        }
-        
-        if (!context.mounted) return;
-        
-        showDialog(
-          context: context,
-          builder: (context) => ActiveSessionDialog(
-            activeSession: activeSession,
-            onResume: () async {
-  // Reprendre la session - récupérer les infos du livre d'abord
-  try {
-    final bookId = activeSession.bookId;
-    final bookData = await _supabase
-        .from('books')
-        .select()
-        .eq('id', int.parse(bookId))
-        .single();
-    
-    final book = Book.fromJson(bookData);
-    
-    if (context.mounted) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => ActiveReadingSessionPage(
-            activeSession: activeSession,
-            book: book,
-          ),
-        ),
-      );
-    }
-  } catch (e) {
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red),
-      );
-    }
-  }
-},
-            onCancel: () async {
-              // Abandonner la session
-              try {
-                await sessionService.cancelSession(activeSession.id.toString());
-                
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Session abandonnée'),
-                      backgroundColor: Colors.orange,
-                    ),
-                  );
-                  
-                  // Continuer avec le choix de livre
-                  _showBookSourceChoice(context);
-                }
-              } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Erreur: $e'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
-              }
-            },
-          ),
-        );
-        return; // Sortir de la fonction
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur vérification session: $e'), backgroundColor: Colors.red),
-        );
-      }
-      return;
-    }
-    
-    // ✅ Pas de session en cours - continuer normalement
-    final choice = await showModalBottomSheet<String>(
-      context: context,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'Démarrer une session de lecture',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 24),
-            
-            // Option 1: Scanner une couverture
-            ListTile(
-              leading: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.deepPurple.shade50,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(Icons.camera_alt, color: Colors.deepPurple, size: 28),
-              ),
-              title: const Text(
-                'Livre physique',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              subtitle: const Text('Scanner la couverture'),
-              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-              onTap: () => Navigator.pop(context, 'scan'),
-            ),
-            
-            const SizedBox(height: 12),
-            
-            // Option 2: Livres Kindle
-            ListTile(
-              leading: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.orange.shade50,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(Icons.library_books, color: Colors.orange, size: 28),
-              ),
-              title: const Text(
-                'Livres Kindle',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              subtitle: const Text('De votre bibliothèque'),
-              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-              onTap: () => Navigator.pop(context, 'kindle'),
-            ),
-            
-            // Option 3: Ma bibliothèque (tous les livres)
-            const SizedBox(height: 12),
-            
-            ListTile(
-              leading: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.green.shade50,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(Icons.book, color: Colors.green, size: 28),
-              ),
-              title: const Text(
-                'Ma bibliothèque',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              subtitle: const Text('Tous mes livres'),
-              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-              onTap: () => Navigator.pop(context, 'library'),
-            ),
-            
-            const SizedBox(height: 12),
-          ],
-        ),
-      ),
-    );
-
-    if (choice == null || !context.mounted) return;
-
-    if (choice == 'scan') {
-      await _scanAndStartSession(context);
-    } else if (choice == 'kindle') {
-      await _selectKindleBookAndStart(context);
-    } else if (choice == 'library') {
-      await _selectFromLibraryAndStart(context);
-    }
-  }
 
   Future<void> _scanAndStartSession(BuildContext context) async {
     // 1. Scanner la couverture
@@ -340,11 +145,323 @@ class GlobalReadingSessionFAB extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return FloatingActionButton(
-      onPressed: () => _showBookSourceChoice(context),
-      backgroundColor: Theme.of(context).primaryColor,
-      child: const Icon(Icons.menu_book),
-      tooltip: 'Démarrer une session',
+    return _ExpandableFAB(
+      onScanPressed: () => _handleScan(context),
+      onKindlePressed: () => _handleKindle(context),
+      onLibraryPressed: () => _handleLibrary(context),
+      checkActiveSession: () => _checkActiveSession(context),
+    );
+  }
+
+  Future<bool> _checkActiveSession(BuildContext context) async {
+    final sessionService = ReadingSessionService();
+
+    try {
+      final activeSessions = await sessionService.getAllActiveSessions();
+
+      if (!context.mounted) return false;
+
+      if (activeSessions.isNotEmpty) {
+        final activeSession = activeSessions.first;
+
+        showDialog(
+          context: context,
+          builder: (context) => ActiveSessionDialog(
+            activeSession: activeSession,
+            onResume: () async {
+              try {
+                final bookId = activeSession.bookId;
+                final bookData = await _supabase
+                    .from('books')
+                    .select()
+                    .eq('id', int.parse(bookId))
+                    .single();
+
+                final book = Book.fromJson(bookData);
+
+                if (context.mounted) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ActiveReadingSessionPage(
+                        activeSession: activeSession,
+                        book: book,
+                      ),
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red),
+                  );
+                }
+              }
+            },
+            onCancel: () async {
+              try {
+                await sessionService.cancelSession(activeSession.id.toString());
+
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Session abandonnée'),
+                      backgroundColor: Colors.orange,
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red),
+                  );
+                }
+              }
+            },
+          ),
+        );
+        return true; // Session active trouvée
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur vérification session: $e'), backgroundColor: Colors.red),
+        );
+      }
+      return true; // Erreur, bloquer l'action
+    }
+
+    return false; // Pas de session active
+  }
+
+  Future<void> _handleScan(BuildContext context) async {
+    if (await _checkActiveSession(context)) return;
+    await _scanAndStartSession(context);
+  }
+
+  Future<void> _handleKindle(BuildContext context) async {
+    if (await _checkActiveSession(context)) return;
+    await _selectKindleBookAndStart(context);
+  }
+
+  Future<void> _handleLibrary(BuildContext context) async {
+    if (await _checkActiveSession(context)) return;
+    await _selectFromLibraryAndStart(context);
+  }
+}
+
+/// FAB Expandable avec animation
+class _ExpandableFAB extends StatefulWidget {
+  final VoidCallback onScanPressed;
+  final VoidCallback onKindlePressed;
+  final VoidCallback onLibraryPressed;
+  final Future<bool> Function() checkActiveSession;
+
+  const _ExpandableFAB({
+    required this.onScanPressed,
+    required this.onKindlePressed,
+    required this.onLibraryPressed,
+    required this.checkActiveSession,
+  });
+
+  @override
+  State<_ExpandableFAB> createState() => _ExpandableFABState();
+}
+
+class _ExpandableFABState extends State<_ExpandableFAB> with SingleTickerProviderStateMixin {
+  bool _isExpanded = false;
+  late AnimationController _animationController;
+  late Animation<double> _expandAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 250),
+    );
+    _expandAnimation = CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeInOut,
+    );
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  void _toggle() {
+    setState(() {
+      _isExpanded = !_isExpanded;
+      if (_isExpanded) {
+        _animationController.forward();
+      } else {
+        _animationController.reverse();
+      }
+    });
+  }
+
+  void _close() {
+    if (_isExpanded) {
+      setState(() {
+        _isExpanded = false;
+        _animationController.reverse();
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      alignment: Alignment.bottomRight,
+      children: [
+        // Overlay transparent pour fermer quand on clique ailleurs
+        if (_isExpanded)
+          Positioned.fill(
+            child: GestureDetector(
+              onTap: _close,
+              behavior: HitTestBehavior.opaque,
+              child: const SizedBox.expand(),
+            ),
+          ),
+
+        // Options du menu
+        Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            // Option 1: Scanner
+            _buildExpandableOption(
+              index: 2,
+              label: 'Ajouter un nouveau livre',
+              icon: Icons.camera_alt,
+              color: Colors.deepPurple,
+              onTap: () {
+                _close();
+                widget.onScanPressed();
+              },
+            ),
+            const SizedBox(height: 12),
+
+            // Option 2: Kindle
+            _buildExpandableOption(
+              index: 1,
+              label: 'Livres Kindle',
+              icon: Icons.library_books,
+              color: Colors.orange,
+              onTap: () {
+                _close();
+                widget.onKindlePressed();
+              },
+            ),
+            const SizedBox(height: 12),
+
+            // Option 3: Bibliothèque
+            _buildExpandableOption(
+              index: 0,
+              label: 'Ma bibliothèque',
+              icon: Icons.book,
+              color: Colors.green,
+              onTap: () {
+                _close();
+                widget.onLibraryPressed();
+              },
+            ),
+            const SizedBox(height: 16),
+
+            // Bouton principal
+            FloatingActionButton(
+              onPressed: _toggle,
+              backgroundColor: Theme.of(context).primaryColor,
+              child: AnimatedRotation(
+                turns: _isExpanded ? 0.125 : 0, // Rotation de 45 degrés
+                duration: const Duration(milliseconds: 250),
+                child: const Icon(Icons.add, size: 32),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildExpandableOption({
+    required int index,
+    required String label,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    final delay = index * 0.1;
+
+    return AnimatedBuilder(
+      animation: _expandAnimation,
+      builder: (context, child) {
+        final progress = Curves.easeOut.transform(
+          (_expandAnimation.value - delay).clamp(0.0, 1.0 - delay) / (1.0 - delay),
+        );
+
+        if (progress <= 0) return const SizedBox.shrink();
+
+        return Opacity(
+          opacity: progress,
+          child: Transform.translate(
+            offset: Offset(0, 20 * (1 - progress)),
+            child: child,
+          ),
+        );
+      },
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Label avec fond blanc arrondi
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontWeight: FontWeight.w500,
+                fontSize: 14,
+                color: Colors.black87,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          // Bouton circulaire coloré
+          GestureDetector(
+            onTap: onTap,
+            child: Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: color,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: color.withOpacity(0.4),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Icon(icon, color: Colors.white, size: 24),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
