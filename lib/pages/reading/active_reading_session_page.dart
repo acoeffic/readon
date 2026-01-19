@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import '../../models/reading_session.dart';
 import '../../models/book.dart';
+import '../../navigation/main_navigation.dart';
 import 'end_reading_session_page.dart';
 import 'reading_session_summary_page.dart';
 
@@ -28,6 +29,16 @@ class _ActiveReadingSessionPageState extends State<ActiveReadingSessionPage> {
   @override
   void initState() {
     super.initState();
+    // Debug pour comprendre le problème du chronomètre
+    final now = DateTime.now();
+    final startTime = widget.activeSession.startTime;
+    print('DEBUG ActiveReadingSession - DateTime.now(): $now');
+    print('DEBUG ActiveReadingSession - startTime: $startTime');
+    print('DEBUG ActiveReadingSession - startTime.isUtc: ${startTime.isUtc}');
+    print('DEBUG ActiveReadingSession - difference: ${now.difference(startTime)}');
+
+    // Calculer immédiatement le temps écoulé pour ne pas commencer à 0
+    _elapsed = now.difference(startTime);
     _startTimer();
   }
 
@@ -50,11 +61,8 @@ class _ActiveReadingSessionPageState extends State<ActiveReadingSessionPage> {
     final hours = duration.inHours;
     final minutes = duration.inMinutes % 60;
     final seconds = duration.inSeconds % 60;
-    
-    if (hours > 0) {
-      return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
-    }
-    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+
+    return '${hours.toString().padLeft(2, '0')}h${minutes.toString().padLeft(2, '0')}min${seconds.toString().padLeft(2, '0')}s';
   }
 
   Future<void> _endSession() async {
@@ -106,7 +114,10 @@ class _ActiveReadingSessionPageState extends State<ActiveReadingSessionPage> {
 
     if (confirm == true && mounted) {
       // TODO: Supprimer la session de la base de données
-      Navigator.of(context).popUntil((route) => route.isFirst);
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => const MainNavigation()),
+        (route) => false,
+      );
     }
   }
 

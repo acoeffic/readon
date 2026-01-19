@@ -1,5 +1,6 @@
-// lib/widgets/global_reading_session_fab.dart - VERSION FINALE
+// lib/widgets/global_reading_session_fab.dart - LIQUID GLASS DESIGN
 
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../services/kindle_api_service.dart' as kindle;
 import '../services/books_service.dart';
@@ -250,7 +251,7 @@ class GlobalReadingSessionFAB extends StatelessWidget {
   }
 }
 
-/// FAB Expandable avec animation
+/// FAB Expandable avec design Liquid Glass (Apple style)
 class _ExpandableFAB extends StatefulWidget {
   final VoidCallback onScanPressed;
   final VoidCallback onKindlePressed;
@@ -278,11 +279,11 @@ class _ExpandableFABState extends State<_ExpandableFAB> with SingleTickerProvide
     super.initState();
     _animationController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 250),
+      duration: const Duration(milliseconds: 450),
     );
     _expandAnimation = CurvedAnimation(
       parent: _animationController,
-      curve: Curves.easeInOut,
+      curve: Curves.easeOutCubic,
     );
   }
 
@@ -314,16 +315,29 @@ class _ExpandableFABState extends State<_ExpandableFAB> with SingleTickerProvide
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Stack(
       alignment: Alignment.bottomRight,
       children: [
-        // Overlay transparent pour fermer quand on clique ailleurs
+        // Overlay avec blur (sans fond grisé) pour fermer
         if (_isExpanded)
           Positioned.fill(
             child: GestureDetector(
               onTap: _close,
               behavior: HitTestBehavior.opaque,
-              child: const SizedBox.expand(),
+              child: AnimatedBuilder(
+                animation: _expandAnimation,
+                builder: (context, child) {
+                  return BackdropFilter(
+                    filter: ImageFilter.blur(
+                      sigmaX: 5 * _expandAnimation.value,
+                      sigmaY: 5 * _expandAnimation.value,
+                    ),
+                    child: const SizedBox.expand(),
+                  );
+                },
+              ),
             ),
           ),
 
@@ -333,74 +347,152 @@ class _ExpandableFABState extends State<_ExpandableFAB> with SingleTickerProvide
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             // Option 1: Scanner
-            _buildExpandableOption(
+            _buildLiquidGlassOption(
               index: 2,
-              label: 'Ajouter un nouveau livre',
-              icon: Icons.camera_alt,
-              color: Colors.deepPurple,
+              label: 'Nouveau livre',
+              icon: Icons.camera_alt_rounded,
+              accentColor: const Color(0xFF8B5CF6), // Violet
               onTap: () {
                 _close();
                 widget.onScanPressed();
               },
+              isDark: isDark,
             ),
             const SizedBox(height: 12),
 
             // Option 2: Kindle
-            _buildExpandableOption(
+            _buildLiquidGlassOption(
               index: 1,
               label: 'Livres Kindle',
-              icon: Icons.library_books,
-              color: Colors.orange,
+              icon: Icons.auto_stories_rounded,
+              accentColor: const Color(0xFFF59E0B), // Orange/Ambre
               onTap: () {
                 _close();
                 widget.onKindlePressed();
               },
+              isDark: isDark,
             ),
             const SizedBox(height: 12),
 
             // Option 3: Bibliothèque
-            _buildExpandableOption(
+            _buildLiquidGlassOption(
               index: 0,
               label: 'Ma bibliothèque',
-              icon: Icons.book,
-              color: Colors.green,
+              icon: Icons.menu_book_rounded,
+              accentColor: const Color(0xFF10B981), // Vert émeraude
               onTap: () {
                 _close();
                 widget.onLibraryPressed();
               },
+              isDark: isDark,
             ),
             const SizedBox(height: 16),
 
-            // Bouton principal
-            FloatingActionButton(
-              onPressed: _toggle,
-              backgroundColor: Theme.of(context).primaryColor,
-              child: AnimatedRotation(
-                turns: _isExpanded ? 0.125 : 0, // Rotation de 45 degrés
-                duration: const Duration(milliseconds: 250),
-                child: const Icon(Icons.add, size: 32),
-              ),
-            ),
+            // Bouton principal Liquid Glass
+            _buildMainLiquidGlassButton(isDark),
           ],
         ),
       ],
     );
   }
 
-  Widget _buildExpandableOption({
+  Widget _buildMainLiquidGlassButton(bool isDark) {
+    return GestureDetector(
+      onTap: _toggle,
+      child: AnimatedBuilder(
+        animation: _expandAnimation,
+        builder: (context, child) {
+          return Container(
+            width: 60,
+            height: 60,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              // Gradient de fond glass
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: isDark
+                    ? [
+                        Colors.white.withOpacity(0.2),
+                        Colors.white.withOpacity(0.05),
+                      ]
+                    : [
+                        Colors.white.withOpacity(0.8),
+                        Colors.white.withOpacity(0.4),
+                      ],
+              ),
+              // Bordure subtile avec reflet
+              border: Border.all(
+                color: isDark
+                    ? Colors.white.withOpacity(0.3)
+                    : Colors.white.withOpacity(0.8),
+                width: 1.5,
+              ),
+              // Ombres multiples pour l'effet de profondeur
+              boxShadow: [
+                // Ombre externe douce
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.15),
+                  blurRadius: 20,
+                  spreadRadius: 0,
+                  offset: const Offset(0, 8),
+                ),
+                // Ombre interne lumineuse (simulée)
+                BoxShadow(
+                  color: Colors.white.withOpacity(isDark ? 0.1 : 0.5),
+                  blurRadius: 10,
+                  spreadRadius: -5,
+                  offset: const Offset(0, -2),
+                ),
+              ],
+            ),
+            child: ClipOval(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+                child: Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.white.withOpacity(isDark ? 0.15 : 0.3),
+                        Colors.transparent,
+                      ],
+                      stops: const [0.0, 0.5],
+                    ),
+                  ),
+                  child: Center(
+                    child: Icon(
+                      Icons.menu_book_rounded,
+                      size: 28,
+                      color: isDark ? Colors.white : Colors.black87,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildLiquidGlassOption({
     required int index,
     required String label,
     required IconData icon,
-    required Color color,
+    required Color accentColor,
     required VoidCallback onTap,
+    required bool isDark,
   }) {
     final delay = index * 0.1;
 
     return AnimatedBuilder(
       animation: _expandAnimation,
       builder: (context, child) {
-        final progress = Curves.easeOut.transform(
-          (_expandAnimation.value - delay).clamp(0.0, 1.0 - delay) / (1.0 - delay),
+        final progress = Curves.easeOutCubic.transform(
+          ((_expandAnimation.value - delay) / (1.0 - delay)).clamp(0.0, 1.0),
         );
 
         if (progress <= 0) return const SizedBox.shrink();
@@ -408,59 +500,139 @@ class _ExpandableFABState extends State<_ExpandableFAB> with SingleTickerProvide
         return Opacity(
           opacity: progress,
           child: Transform.translate(
-            offset: Offset(0, 20 * (1 - progress)),
-            child: child,
+            offset: Offset(0, 30 * (1 - progress)),
+            child: Transform.scale(
+              scale: 0.8 + (0.2 * progress),
+              child: child,
+            ),
           ),
         );
       },
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Label avec fond blanc arrondi
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Text(
-              label,
-              style: const TextStyle(
-                fontWeight: FontWeight.w500,
-                fontSize: 14,
-                color: Colors.black87,
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          // Bouton circulaire coloré
-          GestureDetector(
-            onTap: onTap,
-            child: Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: color,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: color.withOpacity(0.4),
-                    blurRadius: 8,
-                    offset: const Offset(0, 4),
+      child: GestureDetector(
+        onTap: onTap,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Label avec effet Liquid Glass
+            ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: isDark
+                          ? [
+                              Colors.white.withOpacity(0.15),
+                              Colors.white.withOpacity(0.05),
+                            ]
+                          : [
+                              Colors.white.withOpacity(0.7),
+                              Colors.white.withOpacity(0.4),
+                            ],
+                    ),
+                    border: Border.all(
+                      color: isDark
+                          ? Colors.white.withOpacity(0.2)
+                          : Colors.white.withOpacity(0.6),
+                      width: 1,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
-                ],
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                      color: isDark ? Colors.white : Colors.black87,
+                      letterSpacing: -0.2,
+                    ),
+                  ),
+                ),
               ),
-              child: Icon(icon, color: Colors.white, size: 24),
             ),
-          ),
-        ],
+            const SizedBox(width: 12),
+            // Bouton icône avec Liquid Glass + accent coloré
+            ClipOval(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+                child: Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        accentColor.withOpacity(0.8),
+                        accentColor.withOpacity(0.5),
+                      ],
+                    ),
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.4),
+                      width: 1.5,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: accentColor.withOpacity(0.4),
+                        blurRadius: 12,
+                        spreadRadius: 0,
+                        offset: const Offset(0, 4),
+                      ),
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Stack(
+                    children: [
+                      // Reflet en haut
+                      Positioned(
+                        top: 4,
+                        left: 8,
+                        right: 8,
+                        child: Container(
+                          height: 12,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(10),
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                Colors.white.withOpacity(0.5),
+                                Colors.white.withOpacity(0.0),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      Center(
+                        child: Icon(
+                          icon,
+                          color: Colors.white,
+                          size: 22,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

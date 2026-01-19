@@ -38,8 +38,12 @@ dependencies:
   http: ^1.6.0
   image_picker: ^1.0.7              # Capture photo from camera/gallery
   google_mlkit_text_recognition: ^0.13.0  # OCR on-device (free)
+  mobile_scanner: ^5.1.1            # Barcode/ISBN scanning
   path_provider: ^2.1.2             # Local storage for images
   permission_handler: ^11.3.0       # Camera/storage permissions
+  intl: ^0.19.0                     # Date formatting and localization
+  share_plus: ^10.1.4               # Share content to social media
+  url_launcher: ^6.3.1              # Open URLs in browser
 
 dev_dependencies:
   flutter_test:

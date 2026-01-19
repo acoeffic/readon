@@ -4,17 +4,27 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../services/reading_session_service.dart';
 import '../../services/ocr_service.dart';
+import '../../services/books_service.dart';
+import '../../services/badges_service.dart';
+import '../../services/streak_service.dart';
 import '../../models/reading_session.dart';
+import '../../models/reading_streak.dart';
+import '../../widgets/badge_unlocked_dialog.dart';
+import '../../models/book.dart';
 import 'reading_session_summary_page.dart';
+import 'book_completed_summary_page.dart';
 
 class EndReadingSessionPage extends StatefulWidget {
   final ReadingSession activeSession;
+  final Book? book; // Optionnel, pour la page de résumé
 
   const EndReadingSessionPage({
     super.key,
     required this.activeSession,
+    this.book,
   });
 
   @override
@@ -23,17 +33,24 @@ class EndReadingSessionPage extends StatefulWidget {
 
 class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
   final ReadingSessionService _sessionService = ReadingSessionService();
+  final BooksService _booksService = BooksService();
+  final BadgesService _badgesService = BadgesService();
+  final StreakService _streakService = StreakService();
   final ImagePicker _picker = ImagePicker();
-  
+
   XFile? _imageFile;
   int? _detectedPageNumber;
   bool _isProcessing = false;
   String? _errorMessage;
   int? _manualPageNumber;
+  bool _showFinishBookAnimation = false;
+  bool _isEditingPageNumber = false;
+  final TextEditingController _pageNumberController = TextEditingController();
 
   @override
   void dispose() {
     _sessionService.dispose();
+    _pageNumberController.dispose();
     super.dispose();
   }
 
@@ -115,9 +132,45 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
     }
   }
 
+  void _enableEditMode() {
+    setState(() {
+      _isEditingPageNumber = true;
+      _pageNumberController.text = (_detectedPageNumber ?? _manualPageNumber ?? '').toString();
+    });
+  }
+
+  void _saveEditedPageNumber() {
+    final newValue = int.tryParse(_pageNumberController.text);
+    if (newValue != null && newValue > 0) {
+      if (newValue < widget.activeSession.startPage) {
+        setState(() {
+          _errorMessage = 'La page de fin ($newValue) ne peut pas être avant la page de début (${widget.activeSession.startPage}).';
+        });
+        return;
+      }
+      setState(() {
+        _manualPageNumber = newValue;
+        _detectedPageNumber = null; // Utiliser le numéro manuel au lieu du détecté
+        _isEditingPageNumber = false;
+        _errorMessage = null;
+      });
+    } else {
+      setState(() {
+        _errorMessage = 'Veuillez saisir un numéro de page valide.';
+      });
+    }
+  }
+
+  void _cancelEdit() {
+    setState(() {
+      _isEditingPageNumber = false;
+      _pageNumberController.clear();
+    });
+  }
+
   Future<void> _endSession() async {
     final pageNumber = _detectedPageNumber ?? _manualPageNumber;
-    
+
     if (pageNumber == null) {
       setState(() {
         _errorMessage = 'Veuillez capturer une photo ou saisir un numéro de page.';
@@ -149,13 +202,213 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
 
       if (!mounted) return;
 
+      // Vérifier et attribuer les badges de streak (non bloquant)
+      List<StreakBadgeLevel> newStreakBadges = [];
+      try {
+        newStreakBadges = await _streakService.checkAndAwardStreakBadges();
+      } catch (e) {
+        print('Erreur checkAndAwardStreakBadges (non bloquante): $e');
+      }
+
+      // Afficher les badges de streak débloqués
+      if (newStreakBadges.isNotEmpty && mounted) {
+        for (final badgeLevel in newStreakBadges) {
+          await showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => _StreakBadgeDialog(badgeLevel: badgeLevel),
+          );
+        }
+      }
+
       // Naviguer vers la page de résumé
-     Navigator.of(context).pop(completedSession); 
+      Navigator.of(context).pop(completedSession);
     } catch (e) {
       setState(() {
         _isProcessing = false;
         _errorMessage = 'Erreur: $e';
       });
+    }
+  }
+
+  Future<void> _finishBook() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.auto_awesome, color: Colors.amber),
+            SizedBox(width: 8),
+            Text('Terminer le livre'),
+          ],
+        ),
+        content: const Text('Félicitations! Avez-vous terminé ce livre ?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Annuler'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.amber,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Oui, terminé!'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      // Déclencher l'animation
+      setState(() => _showFinishBookAnimation = true);
+
+      // Attendre l'animation
+      await Future.delayed(const Duration(milliseconds: 2000));
+
+      setState(() => _isProcessing = true);
+
+      try {
+        final pageNumber = _detectedPageNumber ?? _manualPageNumber;
+
+        // Terminer la session avec le livre marqué comme terminé
+        final completedSession = await _sessionService.endSession(
+          sessionId: widget.activeSession.id,
+          imagePath: _imageFile!.path,
+        );
+
+        // Marquer le livre comme terminé
+        final bookIdInt = int.tryParse(widget.activeSession.bookId);
+        if (bookIdInt != null) {
+          try {
+            await _booksService.updateBookStatus(bookIdInt, 'finished');
+          } catch (e) {
+            print('Erreur updateBookStatus (non bloquante): $e');
+          }
+        }
+
+        // Créer une activité spéciale pour le livre terminé
+        try {
+          await _createBookFinishedActivity(completedSession);
+        } catch (e) {
+          print('Erreur createBookFinishedActivity (non bloquante): $e');
+        }
+
+        // Vérifier et attribuer les badges (non bloquant)
+        List<dynamic> newBadges = [];
+        try {
+          newBadges = await _badgesService.checkAndAwardBadges();
+        } catch (e) {
+          print('Erreur checkAndAwardBadges (non bloquante): $e');
+        }
+
+        // Vérifier et attribuer les badges de streak (non bloquant)
+        List<dynamic> newStreakBadges = [];
+        try {
+          newStreakBadges = await _streakService.checkAndAwardStreakBadges();
+        } catch (e) {
+          print('Erreur checkAndAwardStreakBadges (non bloquante): $e');
+        }
+
+        if (!mounted) return;
+
+        // Masquer l'animation de fin de livre
+        setState(() => _showFinishBookAnimation = false);
+
+        // Afficher les nouveaux badges débloqués
+        if (newBadges.isNotEmpty) {
+          for (final badge in newBadges) {
+            await showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (context) => BadgeUnlockedDialog(badge: badge),
+            );
+          }
+        }
+
+        // Afficher les badges de streak débloqués
+        if (newStreakBadges.isNotEmpty && mounted) {
+          for (final badgeLevel in newStreakBadges) {
+            await showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (context) => _StreakBadgeDialog(badgeLevel: badgeLevel as StreakBadgeLevel),
+            );
+          }
+        }
+
+        // Récupérer le livre pour la page de résumé
+        Book? book = widget.book;
+        if (book == null && bookIdInt != null) {
+          try {
+            book = await _booksService.getBookById(bookIdInt);
+          } catch (e) {
+            print('Erreur récupération livre: $e');
+          }
+        }
+
+        // Naviguer vers la page de résumé du livre terminé
+        if (book != null && mounted) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (context) => BookCompletedSummaryPage(
+                book: book!,
+                lastSession: completedSession,
+              ),
+            ),
+          );
+        } else {
+          // Fallback: retourner à la page précédente
+          Navigator.of(context).pop(completedSession);
+        }
+      } catch (e) {
+        setState(() {
+          _isProcessing = false;
+          _showFinishBookAnimation = false;
+          _errorMessage = 'Erreur: $e';
+        });
+      }
+    }
+  }
+
+  Future<void> _createBookFinishedActivity(ReadingSession session) async {
+    try {
+      final userId = Supabase.instance.client.auth.currentUser?.id;
+      if (userId == null) return;
+
+      // Récupérer les informations du livre
+      final bookIdInt = int.tryParse(session.bookId);
+      if (bookIdInt == null) {
+        print('Erreur: bookId invalide: ${session.bookId}');
+        return;
+      }
+      final bookResponse = await Supabase.instance.client
+          .from('books')
+          .select('title, author, cover_url')
+          .eq('id', bookIdInt)
+          .maybeSingle();
+
+      if (bookResponse == null) return;
+
+      // Créer l'activité avec le flag book_finished
+      await Supabase.instance.client.from('activities').insert({
+        'author_id': userId,
+        'type': 'book_finished',
+        'payload': {
+          'book_title': bookResponse['title'],
+          'book_author': bookResponse['author'],
+          'book_cover': bookResponse['cover_url'],
+          'pages_read': session.pagesRead,
+          'duration_minutes': session.durationMinutes,
+          'start_page': session.startPage,
+          'end_page': session.endPage,
+          'book_finished': true,
+        },
+      });
+    } catch (e) {
+      print('Erreur _createBookFinishedActivity: $e');
+      // Ne pas bloquer le flux si l'activité ne peut pas être créée
     }
   }
 
@@ -216,7 +469,9 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
+      body: Stack(
+        children: [
+          SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -352,27 +607,96 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
             ],
             
             // Résultat
-            if (_detectedPageNumber != null) ...[
+            if (_detectedPageNumber != null || _manualPageNumber != null) ...[
               const SizedBox(height: 20),
               Card(
-                color: Colors.green.shade50,
+                color: _manualPageNumber != null ? Colors.blue.shade50 : Colors.green.shade50,
                 child: Padding(
                   padding: const EdgeInsets.all(20),
                   child: Column(
                     children: [
-                      Icon(Icons.check_circle, color: Colors.green.shade700, size: 48),
+                      Icon(
+                        _manualPageNumber != null ? Icons.edit : Icons.check_circle,
+                        color: _manualPageNumber != null ? Colors.blue.shade700 : Colors.green.shade700,
+                        size: 48,
+                      ),
                       const SizedBox(height: 12),
-                      const Text('Page détectée:', style: TextStyle(fontSize: 16)),
-                      const SizedBox(height: 8),
                       Text(
-                        'Page $_detectedPageNumber',
-                        style: TextStyle(fontSize: 36, fontWeight: FontWeight.bold, color: Colors.green.shade700),
+                        _manualPageNumber != null ? 'Page corrigée:' : 'Page détectée:',
+                        style: const TextStyle(fontSize: 16),
                       ),
                       const SizedBox(height: 8),
-                      Text(
-                        'Pages lues: ${_detectedPageNumber! - widget.activeSession.startPage}',
-                        style: const TextStyle(fontSize: 16, color: Colors.grey),
-                      ),
+                      if (!_isEditingPageNumber)
+                        Column(
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  'Page ${_detectedPageNumber ?? _manualPageNumber}',
+                                  style: TextStyle(
+                                    fontSize: 36,
+                                    fontWeight: FontWeight.bold,
+                                    color: _manualPageNumber != null ? Colors.blue.shade700 : Colors.green.shade700,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                IconButton(
+                                  onPressed: _enableEditMode,
+                                  icon: const Icon(Icons.edit),
+                                  color: Colors.deepPurple,
+                                  tooltip: 'Corriger le numéro',
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Pages lues: ${(_detectedPageNumber ?? _manualPageNumber)! - widget.activeSession.startPage}',
+                              style: const TextStyle(fontSize: 16, color: Colors.grey),
+                            ),
+                          ],
+                        ),
+                      if (_isEditingPageNumber) ...[
+                        SizedBox(
+                          width: 200,
+                          child: TextField(
+                            controller: _pageNumberController,
+                            keyboardType: TextInputType.number,
+                            autofocus: true,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            decoration: InputDecoration(
+                              labelText: 'Numéro de page',
+                              border: const OutlineInputBorder(),
+                              prefixIcon: const Icon(Icons.numbers),
+                              helperText: 'Page de début: ${widget.activeSession.startPage}',
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            TextButton(
+                              onPressed: _cancelEdit,
+                              child: const Text('Annuler'),
+                            ),
+                            const SizedBox(width: 12),
+                            ElevatedButton.icon(
+                              onPressed: _saveEditedPageNumber,
+                              icon: const Icon(Icons.check),
+                              label: const Text('Valider'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.green,
+                                foregroundColor: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -415,9 +739,308 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
               ),
+              const SizedBox(height: 12),
+              ElevatedButton.icon(
+                onPressed: _isProcessing ? null : _finishBook,
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.all(16),
+                  backgroundColor: Colors.amber,
+                  foregroundColor: Colors.white,
+                ),
+                icon: const Icon(Icons.auto_awesome),
+                label: const Text(
+                  'Terminer le livre',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+              ),
             ],
           ],
         ),
+          ),
+          // Animation de confetti
+          if (_showFinishBookAnimation)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: Container(
+                  color: Colors.black26,
+                  child: Center(
+                    child: TweenAnimationBuilder<double>(
+                      tween: Tween(begin: 0.0, end: 1.0),
+                      duration: const Duration(milliseconds: 1500),
+                      builder: (context, value, child) {
+                        return Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Transform.scale(
+                              scale: value,
+                              child: const Icon(
+                                Icons.celebration,
+                                size: 120,
+                                color: Colors.amber,
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                            Opacity(
+                              opacity: value,
+                              child: const Text(
+                                'Félicitations!',
+                                style: TextStyle(
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            Opacity(
+                              opacity: value,
+                              child: const Text(
+                                'Livre terminé!',
+                                style: TextStyle(
+                                  fontSize: 24,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+// Widget pour afficher le déblocage d'un badge de streak
+class _StreakBadgeDialog extends StatefulWidget {
+  final StreakBadgeLevel badgeLevel;
+
+  const _StreakBadgeDialog({required this.badgeLevel});
+
+  @override
+  State<_StreakBadgeDialog> createState() => _StreakBadgeDialogState();
+}
+
+class _StreakBadgeDialogState extends State<_StreakBadgeDialog>
+    with TickerProviderStateMixin {
+  late AnimationController _scaleController;
+  late AnimationController _confettiController;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _scaleController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+
+    _scaleAnimation = CurvedAnimation(
+      parent: _scaleController,
+      curve: Curves.elasticOut,
+    );
+
+    _confettiController = AnimationController(
+      duration: const Duration(milliseconds: 2000),
+      vsync: this,
+    );
+
+    _scaleController.forward();
+    _confettiController.forward();
+  }
+
+  @override
+  void dispose() {
+    _scaleController.dispose();
+    _confettiController.dispose();
+    super.dispose();
+  }
+
+  Color _getBadgeColor() {
+    try {
+      final colorStr = widget.badgeLevel.color.replaceAll('#', '');
+      return Color(int.parse('FF$colorStr', radix: 16));
+    } catch (e) {
+      return Colors.orange;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _getBadgeColor();
+
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      child: Stack(
+        children: [
+          // Confetti
+          ...List.generate(20, (index) {
+            return AnimatedBuilder(
+              animation: _confettiController,
+              builder: (context, child) {
+                final startX = 0.5 + (index % 5 - 2) * 0.15;
+                final endX = startX + (index % 3 - 1) * 0.3;
+                final endY = 0.8 + (index % 4) * 0.05;
+
+                return Positioned(
+                  left: MediaQuery.of(context).size.width *
+                      (startX + (endX - startX) * _confettiController.value),
+                  top: MediaQuery.of(context).size.height *
+                      (-0.1 + endY * _confettiController.value),
+                  child: Opacity(
+                    opacity: 1.0 - _confettiController.value,
+                    child: Text(
+                      widget.badgeLevel.icon,
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                  ),
+                );
+              },
+            );
+          }),
+
+          // Contenu
+          Center(
+            child: Container(
+              padding: const EdgeInsets.all(32),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.2),
+                    blurRadius: 20,
+                    spreadRadius: 5,
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.local_fire_department, color: color, size: 28),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Badge Streak!',
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.deepPurple,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Badge animé
+                  ScaleTransition(
+                    scale: _scaleAnimation,
+                    child: Container(
+                      width: 120,
+                      height: 120,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: color.withOpacity(0.2),
+                        border: Border.all(
+                          color: color,
+                          width: 4,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: color.withOpacity(0.3),
+                            blurRadius: 20,
+                            spreadRadius: 5,
+                          ),
+                        ],
+                      ),
+                      child: Center(
+                        child: Text(
+                          widget.badgeLevel.icon,
+                          style: const TextStyle(fontSize: 60),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // Nom du badge
+                  Text(
+                    widget.badgeLevel.name,
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // Description
+                  Text(
+                    widget.badgeLevel.description,
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey[600],
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+
+                  const SizedBox(height: 8),
+
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: color.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      '${widget.badgeLevel.days} jour${widget.badgeLevel.days > 1 ? 's' : ''} consécutifs!',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: color,
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // Bouton
+                  ElevatedButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: color,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 32,
+                        vertical: 16,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                    ),
+                    child: const Text(
+                      'Continuer!',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

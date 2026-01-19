@@ -28,17 +28,24 @@ class ReadingSessionService {
       }
       
       // 3. Créer la session dans Supabase
+      final now = DateTime.now();
+      print('DEBUG startSession - DateTime.now(): $now');
+      print('DEBUG startSession - toUtc(): ${now.toUtc()}');
+      print('DEBUG startSession - toIso8601String(): ${now.toUtc().toIso8601String()}');
+
       final response = await _supabase
           .from('reading_sessions')
           .insert({
             'book_id': bookId,
             'start_page': pageNumber,
-            'start_time': DateTime.now().toIso8601String(),
+            'start_time': now.toUtc().toIso8601String(),
             'user_id': _supabase.auth.currentUser!.id,
             'start_image_path': imagePath, // Optionnel: stocker le chemin local
           })
           .select()
           .single();
+
+      print('DEBUG startSession - Response start_time: ${response['start_time']}');
       
       return ReadingSession.fromJson(response);
     } catch (e) {

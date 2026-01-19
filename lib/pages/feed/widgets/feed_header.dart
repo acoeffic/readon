@@ -3,6 +3,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../theme/app_theme.dart';
 import '../../profile/profile_page.dart';
 import '../../friends/search_users_page.dart';
+import '../../notifications/notifications_page.dart';
+import '../../../services/notifications_service.dart';
+
 
 class FeedHeader extends StatefulWidget {
   const FeedHeader({super.key});
@@ -13,6 +16,7 @@ class FeedHeader extends StatefulWidget {
 
 class _FeedHeaderState extends State<FeedHeader> {
   final supabase = Supabase.instance.client;
+  final notificationsService = NotificationsService();
   String? _avatarUrl;
   String _userName = '';
 
@@ -36,9 +40,9 @@ class _FeedHeaderState extends State<FeedHeader> {
       if (mounted) {
         setState(() {
           _avatarUrl = profile?['avatar_url'] as String?;
-          _userName = profile?['display_name'] as String? ?? 
-                      user.email?.split('@').first ?? 
-                      'Utilisateur';
+          _userName = profile?['display_name'] as String? ??
+              user.email?.split('@').first ??
+              'Utilisateur';
         });
       }
     } catch (e) {
@@ -113,13 +117,54 @@ class _FeedHeaderState extends State<FeedHeader> {
                     fontWeight: FontWeight.w700,
                   ),
             ),
-            IconButton(
-              onPressed: () {},
-              icon: const Icon(
-                Icons.notifications_none,
-                color: AppColors.white,
-                size: 28,
-              ),
+            StreamBuilder<int>(
+              stream: notificationsService.watchUnreadCount(),
+              builder: (context, snapshot) {
+                final unreadCount = snapshot.data ?? 0;
+                return Stack(
+                  children: [
+                    IconButton(
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const NotificationsPage(),
+                          ),
+                        );
+                      },
+                      icon: const Icon(
+                        Icons.notifications_none,
+                        color: Colors.white,
+                        size: 28,
+                      ),
+                    ),
+                    if (unreadCount > 0)
+                      Positioned(
+                        right: 8,
+                        top: 8,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(
+                            color: Colors.red,
+                            shape: BoxShape.circle,
+                          ),
+                          constraints: const BoxConstraints(
+                            minWidth: 16,
+                            minHeight: 16,
+                          ),
+                          child: Text(
+                            unreadCount > 9 ? '9+' : '$unreadCount',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ),
+                  ],
+                );
+              },
             ),
           ],
         ),

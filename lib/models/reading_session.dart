@@ -48,14 +48,14 @@ class ReadingSession {
       bookId: json['book_id'] as String,
       startPage: json['start_page'] as int,
       endPage: json['end_page'] as int?,
-      startTime: DateTime.parse(json['start_time'] as String),
-      endTime: json['end_time'] != null 
-          ? DateTime.parse(json['end_time'] as String) 
+      startTime: DateTime.parse(json['start_time'] as String).toLocal(),
+      endTime: json['end_time'] != null
+          ? DateTime.parse(json['end_time'] as String).toLocal()
           : null,
       startImagePath: json['start_image_path'] as String?,
       endImagePath: json['end_image_path'] as String?,
-      createdAt: DateTime.parse(json['created_at'] as String),
-      updatedAt: DateTime.parse(json['updated_at'] as String),
+      createdAt: DateTime.parse(json['created_at'] as String).toLocal(),
+      updatedAt: DateTime.parse(json['updated_at'] as String).toLocal(),
     );
   }
 

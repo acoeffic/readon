@@ -31,11 +31,14 @@ class _StartReadingSessionPageUnifiedState extends State<StartReadingSessionPage
   bool _isProcessing = false;
   String? _errorMessage;
   int? _manualPageNumber;
+  bool _isEditingPageNumber = false;
+  final TextEditingController _pageNumberController = TextEditingController();
 
   @override
   void dispose() {
     _sessionService.dispose();
     _ocrService.dispose();
+    _pageNumberController.dispose();
     super.dispose();
   }
 
@@ -111,9 +114,39 @@ class _StartReadingSessionPageUnifiedState extends State<StartReadingSessionPage
     }
   }
 
+  void _enableEditMode() {
+    setState(() {
+      _isEditingPageNumber = true;
+      _pageNumberController.text = (_detectedPageNumber ?? _manualPageNumber ?? '').toString();
+    });
+  }
+
+  void _saveEditedPageNumber() {
+    final newValue = int.tryParse(_pageNumberController.text);
+    if (newValue != null && newValue > 0) {
+      setState(() {
+        _manualPageNumber = newValue;
+        _detectedPageNumber = null; // Utiliser le numéro manuel au lieu du détecté
+        _isEditingPageNumber = false;
+        _errorMessage = null;
+      });
+    } else {
+      setState(() {
+        _errorMessage = 'Veuillez saisir un numéro de page valide.';
+      });
+    }
+  }
+
+  void _cancelEdit() {
+    setState(() {
+      _isEditingPageNumber = false;
+      _pageNumberController.clear();
+    });
+  }
+
   Future<void> _startSession() async {
     final pageNumber = _detectedPageNumber ?? _manualPageNumber;
-    
+
     if (pageNumber == null) {
       setState(() {
         _errorMessage = 'Veuillez capturer une photo ou saisir un numéro de page manuellement.';
@@ -140,7 +173,7 @@ class _StartReadingSessionPageUnifiedState extends State<StartReadingSessionPage
 
       // Retourner la session à la page précédente
       Navigator.of(context).pop(session);
-      
+
     } catch (e) {
       setState(() {
         _isProcessing = false;
@@ -325,26 +358,86 @@ class _StartReadingSessionPageUnifiedState extends State<StartReadingSessionPage
             ],
             
             // Résultat détection
-            if (_detectedPageNumber != null) ...[
+            if (_detectedPageNumber != null || _manualPageNumber != null) ...[
               const SizedBox(height: 20),
               Card(
-                color: Colors.green.shade50,
+                color: _manualPageNumber != null ? Colors.blue.shade50 : Colors.green.shade50,
                 child: Padding(
                   padding: const EdgeInsets.all(20),
                   child: Column(
                     children: [
-                      Icon(Icons.check_circle, color: Colors.green.shade700, size: 48),
-                      const SizedBox(height: 12),
-                      const Text('Page détectée:', style: TextStyle(fontSize: 16)),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Page $_detectedPageNumber',
-                        style: TextStyle(
-                          fontSize: 36,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.green.shade700,
-                        ),
+                      Icon(
+                        _manualPageNumber != null ? Icons.edit : Icons.check_circle,
+                        color: _manualPageNumber != null ? Colors.blue.shade700 : Colors.green.shade700,
+                        size: 48,
                       ),
+                      const SizedBox(height: 12),
+                      Text(
+                        _manualPageNumber != null ? 'Page corrigée:' : 'Page détectée:',
+                        style: const TextStyle(fontSize: 16),
+                      ),
+                      const SizedBox(height: 8),
+                      if (!_isEditingPageNumber)
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              'Page ${_detectedPageNumber ?? _manualPageNumber}',
+                              style: TextStyle(
+                                fontSize: 36,
+                                fontWeight: FontWeight.bold,
+                                color: _manualPageNumber != null ? Colors.blue.shade700 : Colors.green.shade700,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            IconButton(
+                              onPressed: _enableEditMode,
+                              icon: const Icon(Icons.edit),
+                              color: Colors.deepPurple,
+                              tooltip: 'Corriger le numéro',
+                            ),
+                          ],
+                        ),
+                      if (_isEditingPageNumber) ...[
+                        SizedBox(
+                          width: 200,
+                          child: TextField(
+                            controller: _pageNumberController,
+                            keyboardType: TextInputType.number,
+                            autofocus: true,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            decoration: const InputDecoration(
+                              labelText: 'Numéro de page',
+                              border: OutlineInputBorder(),
+                              prefixIcon: Icon(Icons.numbers),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            TextButton(
+                              onPressed: _cancelEdit,
+                              child: const Text('Annuler'),
+                            ),
+                            const SizedBox(width: 12),
+                            ElevatedButton.icon(
+                              onPressed: _saveEditedPageNumber,
+                              icon: const Icon(Icons.check),
+                              label: const Text('Valider'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.green,
+                                foregroundColor: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ],
                   ),
                 ),

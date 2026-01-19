@@ -103,6 +103,113 @@ class OCRService {
     return candidates.first;
   }
 
+  /// Extract ISBN from image (book cover or barcode area)
+  /// Returns ISBN-13 or ISBN-10 if found
+  Future<String?> extractISBN(String imagePath) async {
+    try {
+      final inputImage = InputImage.fromFilePath(imagePath);
+      final RecognizedText recognizedText = await _textRecognizer.processImage(inputImage);
+
+      // ISBN patterns
+      // ISBN-13: 978 or 979 followed by 10 digits (with optional hyphens/spaces)
+      // ISBN-10: 10 digits or 9 digits + X (with optional hyphens/spaces)
+
+      final RegExp isbn13Pattern = RegExp(
+        r'(?:ISBN[:\-]?\s*)?(?:97[89])[\-\s]?\d[\-\s]?\d{2}[\-\s]?\d{5,6}[\-\s]?\d',
+        caseSensitive: false,
+      );
+
+      final RegExp isbn10Pattern = RegExp(
+        r'(?:ISBN[:\-]?\s*)?\d[\-\s]?\d{2}[\-\s]?\d{5,6}[\-\s]?[\dXx]',
+        caseSensitive: false,
+      );
+
+      // Also match pure digit sequences that look like ISBNs
+      final RegExp pureIsbn13 = RegExp(r'97[89]\d{10}');
+      final RegExp pureIsbn10 = RegExp(r'\d{9}[\dXx]');
+
+      String fullText = recognizedText.text;
+
+      // Try ISBN-13 first (preferred)
+      Match? match = isbn13Pattern.firstMatch(fullText);
+      if (match != null) {
+        String isbn = _cleanISBN(match.group(0)!);
+        if (_isValidISBN13(isbn)) {
+          return isbn;
+        }
+      }
+
+      // Try pure ISBN-13
+      match = pureIsbn13.firstMatch(fullText.replaceAll(RegExp(r'[\s\-]'), ''));
+      if (match != null) {
+        String isbn = match.group(0)!;
+        if (_isValidISBN13(isbn)) {
+          return isbn;
+        }
+      }
+
+      // Try ISBN-10
+      match = isbn10Pattern.firstMatch(fullText);
+      if (match != null) {
+        String isbn = _cleanISBN(match.group(0)!);
+        if (_isValidISBN10(isbn)) {
+          return isbn;
+        }
+      }
+
+      // Try pure ISBN-10
+      match = pureIsbn10.firstMatch(fullText.replaceAll(RegExp(r'[\s\-]'), ''));
+      if (match != null) {
+        String isbn = match.group(0)!;
+        if (_isValidISBN10(isbn)) {
+          return isbn;
+        }
+      }
+
+      return null;
+    } catch (e) {
+      print('Error extracting ISBN: $e');
+      return null;
+    }
+  }
+
+  /// Clean ISBN string (remove ISBN prefix, hyphens, spaces)
+  String _cleanISBN(String isbn) {
+    return isbn
+        .toUpperCase()
+        .replaceAll(RegExp(r'ISBN[:\-]?\s*', caseSensitive: false), '')
+        .replaceAll(RegExp(r'[\s\-]'), '');
+  }
+
+  /// Validate ISBN-13 checksum
+  bool _isValidISBN13(String isbn) {
+    if (isbn.length != 13) return false;
+    if (!RegExp(r'^\d{13}$').hasMatch(isbn)) return false;
+
+    int sum = 0;
+    for (int i = 0; i < 12; i++) {
+      int digit = int.parse(isbn[i]);
+      sum += (i % 2 == 0) ? digit : digit * 3;
+    }
+    int checkDigit = (10 - (sum % 10)) % 10;
+    return checkDigit == int.parse(isbn[12]);
+  }
+
+  /// Validate ISBN-10 checksum
+  bool _isValidISBN10(String isbn) {
+    if (isbn.length != 10) return false;
+    if (!RegExp(r'^\d{9}[\dXx]$').hasMatch(isbn)) return false;
+
+    int sum = 0;
+    for (int i = 0; i < 9; i++) {
+      sum += int.parse(isbn[i]) * (10 - i);
+    }
+    int lastDigit = isbn[9].toUpperCase() == 'X' ? 10 : int.parse(isbn[9]);
+    sum += lastDigit;
+
+    return sum % 11 == 0;
+  }
+
   /// Get all detected text for debugging
   Future<String> extractAllText(String imagePath) async {
     try {

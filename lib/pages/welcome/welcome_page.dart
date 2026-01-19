@@ -92,14 +92,6 @@ class WelcomePage extends StatelessWidget {
               ),
 
               const SizedBox(height: AppSpace.m),
-            TextButton.icon(
-                onPressed: () => Navigator.of(context).pushNamed('/ocr-test'),
-                icon: const Icon(Icons.camera_alt, size: 20),
-                label: const Text('🧪 Test OCR'),
-                style: TextButton.styleFrom(
-                  foregroundColor: Colors.deepPurple,
-                ),
-              ),
             ],
           ),
         ),

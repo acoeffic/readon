@@ -8,6 +8,7 @@ import '../../widgets/back_header.dart';
 import '../auth/confirm_email_page.dart';
 import '../auth/login_page.dart';
 import '../../widgets/terms_acceptance_checkbox.dart';
+import '../auth/legal_notice_page.dart';
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});
@@ -21,6 +22,107 @@ class _SignUpPageState extends State<SignUpPage> {
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
   bool _acceptedTerms = false;
+
+  void _showEmailAlreadyExistsDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadius.l),
+          ),
+          title: const Text(
+            'Email déjà utilisé',
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 20,
+            ),
+          ),
+          content: const Text(
+            'Cette adresse email est déjà associée à un compte existant. '
+            'Souhaitez-vous réinitialiser votre mot de passe ?',
+            style: TextStyle(fontSize: 15),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text(
+                'Retour',
+                style: TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: AppColors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppRadius.m),
+                ),
+              ),
+              onPressed: () async {
+                Navigator.of(context).pop();
+                await _sendPasswordResetEmail();
+              },
+              child: const Text(
+                'Réinitialiser',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _sendPasswordResetEmail() async {
+    final email = emailController.text.trim();
+
+    try {
+      await Supabase.instance.client.auth.resetPasswordForEmail(
+        email,
+        redirectTo: 'https://nzbhmshkcwudzydeahrq.supabase.co/auth/callback',
+      );
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Email de réinitialisation envoyé. Vérifie ta boîte mail.'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 4),
+        ),
+      );
+
+      // Optionnel : rediriger vers la page de login
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const LoginPage()),
+      );
+    } on AuthException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erreur: ${e.message}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Erreur lors de l\'envoi de l\'email'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
 
   Future<void> signUp() async {
     final name = nameController.text.trim();
@@ -74,9 +176,19 @@ class _SignUpPageState extends State<SignUpPage> {
         MaterialPageRoute(builder: (_) => const ConfirmEmailPage()),
       );
     } on AuthException catch (e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(e.message)));
+      if (!mounted) return;
+
+      // Vérifier si l'email est déjà utilisé
+      if (e.message.toLowerCase().contains('already registered') ||
+          e.message.toLowerCase().contains('user already registered') ||
+          e.message.toLowerCase().contains('email already exists')) {
+        _showEmailAlreadyExistsDialog();
+      } else {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.message)));
+      }
     } catch (_) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context)
           .showSnackBar(const SnackBar(content: Text('Erreur inconnue')));
     }
@@ -177,6 +289,22 @@ class _SignUpPageState extends State<SignUpPage> {
                   child: const Text(
                     'Déjà un compte ? Se connecter',
                     style: TextStyle(color: AppColors.primary),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: AppSpace.s),
+              Center(
+                child: TextButton(
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const LegalNoticePage()),
+                  ),
+                  child: const Text(
+                    'Mentions légales',
+                    style: TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 14,
+                    ),
                   ),
                 ),
               ),

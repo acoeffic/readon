@@ -2,13 +2,19 @@
 // Page principale du flux (Feed) avec activités des amis
 
 import 'package:flutter/material.dart';
-import 'package:readon/pages/feed/widgets/action_chip.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../theme/app_theme.dart';
 import '../feed/widgets/feed_header.dart';
 import 'widgets/friend_activity_card.dart';
-import '../feed/widgets/progress_card.dart';
-import 'package:readon/pages/friends/friends_page.dart';
+import '../feed/widgets/streak_card.dart';
+import '../../services/streak_service.dart';
+import '../../models/reading_streak.dart';
+import 'streak_detail_page.dart';
+import 'widgets/continue_reading_card.dart';
+import '../../services/books_service.dart';
+import '../../models/book.dart';
+import '../reading/start_reading_session_page_unified.dart';
+import '../reading/active_reading_session_page.dart';
 
 class FeedPage extends StatefulWidget {
   const FeedPage({super.key});
@@ -19,8 +25,11 @@ class FeedPage extends StatefulWidget {
 
 class _FeedPageState extends State<FeedPage> {
   final supabase = Supabase.instance.client;
-  List<Map<String, dynamic>> sessions = [];
+  final streakService = StreakService();
+  final booksService = BooksService();
   List<Map<String, dynamic>> friendActivities = [];
+  ReadingStreak? currentStreak;
+  Map<String, dynamic>? currentReadingBook;
   bool loading = true;
 
   @override
@@ -31,7 +40,7 @@ class _FeedPageState extends State<FeedPage> {
 
   Future<void> loadFeed() async {
     setState(() => loading = true);
-    
+
     try {
       final user = supabase.auth.currentUser;
       if (user == null) {
@@ -39,37 +48,11 @@ class _FeedPageState extends State<FeedPage> {
         return;
       }
 
-      // Charger tes sessions récentes
-      final sessionRes = await supabase
-          .from('reading_sessions')
-          .select('*')
-          .eq('user_id', user.id)
-          .not('end_time', 'is', null)
-          .order('created_at', ascending: false)
-          .limit(1);
+      // Charger le streak
+      final streak = await streakService.getUserStreak();
 
-      // Récupérer les livres pour chaque session
-final sessionsWithBooks = await Future.wait(
-  (sessionRes as List).map((session) async {
-    try {
-      final sessionMap = session is Map<String, dynamic>
-          ? session
-          : Map<String, dynamic>.from(session as Map);
-      
-      final bookId = sessionMap['book_id'] as String;
-      final book = await supabase
-          .from('books')
-          .select('*')
-          .eq('id', int.parse(bookId))
-          .maybeSingle();
-      
-      return {...sessionMap, 'book': book};
-    } catch (e) {
-      print('Erreur récupération livre: $e');
-      return {...session as Map<String, dynamic>, 'book': null};
-    }
-  }),
-);
+      // Charger le dernier livre en cours
+      final currentBook = await booksService.getCurrentReadingBook();
 
       // Charger les activités de tes amis via la fonction SQL
       final activitiesRes = await supabase.rpc('get_feed', params: {
@@ -79,7 +62,8 @@ final sessionsWithBooks = await Future.wait(
       });
 
       setState(() {
-        sessions = List<Map<String, dynamic>>.from(sessionsWithBooks);
+        currentStreak = streak;
+        currentReadingBook = currentBook;
         friendActivities = List<Map<String, dynamic>>.from(activitiesRes ?? []);
         loading = false;
       });
@@ -108,13 +92,42 @@ final sessionsWithBooks = await Future.wait(
               const FeedHeader(),
               const SizedBox(height: AppSpace.l),
 
-              // 👉 Dernières sessions
-              Text(
-                'Ta dernière lecture',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: AppSpace.s),
+              // 👉 Continuer la lecture
+              if (!loading && currentReadingBook != null) ...[
+                ContinueReadingCard(
+                  book: currentReadingBook!['book'] as Book,
+                  currentPage: (currentReadingBook!['current_page'] as num).toInt(),
+                  totalPages: currentReadingBook!['total_pages'] as int?,
+                  onTap: () async {
+                    final book = currentReadingBook!['book'] as Book;
+                    final session = await Navigator.push<dynamic>(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => StartReadingSessionPageUnified(
+                          book: book,
+                        ),
+                      ),
+                    );
+                    // Si une session a été créée, naviguer vers ActiveReadingSessionPage
+                    if (session != null && mounted) {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ActiveReadingSessionPage(
+                            activeSession: session,
+                            book: book,
+                          ),
+                        ),
+                      );
+                    }
+                    // Rafraîchir le feed après la session
+                    loadFeed();
+                  },
+                ),
+                const SizedBox(height: AppSpace.l),
+              ],
 
+              // 👉 Streak de lecture
               if (loading)
                 const Center(
                   child: Padding(
@@ -122,61 +135,22 @@ final sessionsWithBooks = await Future.wait(
                     child: CircularProgressIndicator(),
                   ),
                 )
-              else if (sessions.isEmpty)
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      children: [
-                        Icon(Icons.book_outlined, size: 48, color: Colors.grey.shade400),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Aucune lecture récente',
-                          style: TextStyle(color: Colors.grey.shade600),
+              else if (currentStreak != null)
+                StreakCard(
+                  streak: currentStreak!,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => StreakDetailPage(
+                          initialStreak: currentStreak!,
                         ),
-                      ],
-                    ),
-                  ),
-                )
-              else
-                ...sessions.map((session) {
-                  final bookData = session['book'];
-                  String bookTitle = 'Livre inconnu';
-                  String bookAuthor = 'Auteur inconnu';
-                  int? totalPages;
-                  
-                  if (bookData != null) {
-                    final book = bookData is Map<String, dynamic> 
-                        ? bookData 
-                        : Map<String, dynamic>.from(bookData as Map);
-                    
-                    bookTitle = book['title']?.toString() ?? 'Livre inconnu';
-                    bookAuthor = book['author']?.toString() ?? 'Auteur inconnu';
-                    totalPages = (book['page_count'] as num?)?.toInt();
-                  }
-                  
-                  final startPage = (session['start_page'] as num?)?.toInt();
-                  final endPage = (session['end_page'] as num?)?.toInt();
-                  
-                  final pagesRead = (endPage != null && startPage != null) 
-                      ? endPage - startPage 
-                      : 0;
-                  
-                  final progress = (totalPages != null && totalPages > 0 && endPage != null)
-                      ? (endPage / totalPages).clamp(0.0, 1.0)
-                      : 0.0;
+                      ),
+                    );
+                  },
+                ),
 
-                  return ProgressCard(
-                    bookTitle: bookTitle,
-                    author: bookAuthor,
-                    progress: progress,
-                    currentPage: endPage,
-                    totalPages: totalPages,
-                    pagesRead: pagesRead,
-                  );
-                }),
-
-              const SizedBox(height: AppSpace.xl),
+              const SizedBox(height: AppSpace.l),
 
               // 👉 Activité des amis
               Row(
@@ -227,44 +201,6 @@ final sessionsWithBooks = await Future.wait(
               else
                 ...friendActivities.map((activity) => FriendActivityCard(activity: activity)),
 
-              const SizedBox(height: AppSpace.xl),
-
-              // Actions rapides
-              Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                children: [
-                  ActionChipButton(
-                    icon: Icons.book,
-                    label: 'Découvrir des livres',
-                    onTap: () {
-                      // TODO: Navigate to discover page
-                    },
-                  ),
-                  ActionChipButton(
-                    icon: Icons.people,
-                    label: 'Voir les amis',
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const FriendsPage()),
-                      );
-                    },
-                  ),
-                  ActionChipButton(
-                    icon: Icons.add,
-                    label: 'Ajouter une lecture',
-                    onTap: () {
-                      // Le FAB global gère déjà ça
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Utilisez le bouton flottant pour démarrer une lecture'),
-                        ),
-                      );
-                    },
-                  ),
-                ],
-              ),
             ],
           ),
         ),
