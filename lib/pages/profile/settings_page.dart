@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:provider/provider.dart';
 import 'dart:io';
 import '../../theme/app_theme.dart';
 import '../../widgets/back_header.dart';
+import '../../providers/theme_provider.dart';
+import '../../services/notification_service.dart';
+import 'notification_settings_page.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -241,8 +245,11 @@ if (!allowedExtensions.contains(fileExtension)) {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDark = themeProvider.isDarkMode;
+
     return Scaffold(
-      backgroundColor: AppColors.bgLight,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(AppSpace.l),
@@ -261,8 +268,8 @@ if (!allowedExtensions.contains(fileExtension)) {
                     onTap: _changeDisplayName,
                   ),
                   _SettingsItem(
-                    label: _isUploading 
-                        ? '📸 Upload en cours...' 
+                    label: _isUploading
+                        ? '📸 Upload en cours...'
                         : '📸 Changer la photo de profil',
                     onTap: _isUploading ? null : _changeProfilePicture,
                   ),
@@ -274,9 +281,18 @@ if (!allowedExtensions.contains(fileExtension)) {
               // --- Section Lecture ---
               _SettingsSection(
                 title: 'Lecture',
-                items: const [
-                  _SettingsItem(label: '🎯 Modifier l\'objectif de lecture'),
-                  _SettingsItem(label: '🔔 Notifications de progression'),
+                items: [
+                  const _SettingsItem(label: '🎯 Modifier l\'objectif de lecture'),
+                  _SettingsItem(
+                    label: '🔔 Notifications de streak',
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const NotificationSettingsPage(),
+                        ),
+                      );
+                    },
+                  ),
                 ],
               ),
 
@@ -285,9 +301,19 @@ if (!allowedExtensions.contains(fileExtension)) {
               // --- Section Apparence ---
               _SettingsSection(
                 title: 'Apparence',
-                items: const [
-                  _SettingsItem(label: '🌞 Thème clair (actif)'),
-                  _SettingsItem(label: '🌙 Thème sombre'),
+                items: [
+                  _SettingsItem(
+                    label: isDark ? '🌞 Thème clair' : '🌞 Thème clair (actif)',
+                    onTap: isDark
+                        ? () => themeProvider.setThemeMode(ThemeMode.light)
+                        : null,
+                  ),
+                  _SettingsItem(
+                    label: isDark ? '🌙 Thème sombre (actif)' : '🌙 Thème sombre',
+                    onTap: !isDark
+                        ? () => themeProvider.setThemeMode(ThemeMode.dark)
+                        : null,
+                  ),
                 ],
               ),
 
@@ -308,7 +334,7 @@ if (!allowedExtensions.contains(fileExtension)) {
                 width: double.infinity,
                 padding: const EdgeInsets.all(AppSpace.m),
                 decoration: BoxDecoration(
-                  color: AppColors.white,
+                  color: Theme.of(context).cardColor,
                   borderRadius: BorderRadius.circular(AppRadius.l),
                 ),
                 child: TextButton(
@@ -338,8 +364,11 @@ if (!allowedExtensions.contains(fileExtension)) {
                     );
 
                     if (confirm == true) {
+                      // Supprimer le token FCM avant la déconnexion
+                      await NotificationService().clearFcmToken();
+
                       await Supabase.instance.client.auth.signOut();
-                      
+
                       if (context.mounted) {
                         Navigator.of(context).pushNamedAndRemoveUntil(
                           '/welcome',
@@ -386,7 +415,7 @@ class _SettingsSection extends StatelessWidget {
           width: double.infinity,
           padding: const EdgeInsets.all(AppSpace.l),
           decoration: BoxDecoration(
-            color: AppColors.white,
+            color: Theme.of(context).cardColor,
             borderRadius: BorderRadius.circular(AppRadius.l),
           ),
           child: Column(

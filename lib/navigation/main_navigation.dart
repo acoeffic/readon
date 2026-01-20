@@ -7,6 +7,7 @@ import '../pages/books/user_books_page.dart';
 import '../pages/profile/profile_page.dart';
 import '../pages/sessions/sessions_page.dart';
 import '../pages/stats/stats_page.dart';
+import '../pages/groups/groups_page.dart';
 import '../widgets/global_reading_session_fab.dart';
 
 class MainNavigation extends StatefulWidget {
@@ -23,6 +24,7 @@ class _MainNavigationState extends State<MainNavigation> {
     FeedPage(),
     SessionsPage(),
     UserBooksPage(),
+    GroupsPage(),
     StatsPage(),
     ProfilePage(),
   ];
@@ -56,6 +58,11 @@ class _MainNavigationState extends State<MainNavigation> {
             icon: Icon(Icons.library_books_outlined),
             selectedIcon: Icon(Icons.library_books),
             label: 'Bibliothèque',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.groups_outlined),
+            selectedIcon: Icon(Icons.groups),
+            label: 'Groupes',
           ),
           NavigationDestination(
             icon: Icon(Icons.bar_chart_outlined),

@@ -15,6 +15,9 @@ import '../../services/books_service.dart';
 import '../../models/book.dart';
 import '../reading/start_reading_session_page_unified.dart';
 import '../reading/active_reading_session_page.dart';
+import '../../services/suggestions_service.dart';
+import '../../models/book_suggestion.dart';
+import '../../widgets/suggestion_card.dart';
 
 class FeedPage extends StatefulWidget {
   const FeedPage({super.key});
@@ -27,9 +30,11 @@ class _FeedPageState extends State<FeedPage> {
   final supabase = Supabase.instance.client;
   final streakService = StreakService();
   final booksService = BooksService();
+  final suggestionsService = SuggestionsService();
   List<Map<String, dynamic>> friendActivities = [];
   ReadingStreak? currentStreak;
   Map<String, dynamic>? currentReadingBook;
+  List<BookSuggestion> suggestions = [];
   bool loading = true;
 
   @override
@@ -61,10 +66,14 @@ class _FeedPageState extends State<FeedPage> {
         'p_offset': 0,
       });
 
+      // Charger les suggestions personnalisées
+      final suggestionsRes = await suggestionsService.getPersonalizedSuggestions(limit: 5);
+
       setState(() {
         currentStreak = streak;
         currentReadingBook = currentBook;
         friendActivities = List<Map<String, dynamic>>.from(activitiesRes ?? []);
+        suggestions = suggestionsRes;
         loading = false;
       });
     } catch (e) {
@@ -151,6 +160,43 @@ class _FeedPageState extends State<FeedPage> {
                 ),
 
               const SizedBox(height: AppSpace.l),
+
+              // 👉 Suggestions de lecture
+              if (!loading && suggestions.isNotEmpty) ...[
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      "Suggestions pour toi",
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpace.s),
+                SuggestionsCarousel(
+                  suggestions: suggestions,
+                  onAddToLibrary: (suggestion) async {
+                    final success = await suggestionsService.addSuggestedBookToLibrary(suggestion);
+                    if (success && mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('${suggestion.book.title} ajouté à votre bibliothèque'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                      loadFeed(); // Rafraîchir pour retirer le livre des suggestions
+                    } else if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Erreur lors de l\'ajout du livre'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  },
+                ),
+                const SizedBox(height: AppSpace.l),
+              ],
 
               // 👉 Activité des amis
               Row(

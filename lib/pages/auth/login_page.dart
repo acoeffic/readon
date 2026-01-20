@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/back_header.dart';
 import '../../navigation/main_navigation.dart';
+import '../../services/notification_service.dart';
 import 'signup_page.dart';
 import 'confirm_email_page.dart';
 
@@ -77,6 +78,9 @@ class _LoginPageState extends State<LoginPage> {
         );
         return;
       }
+
+      // Initialiser le service de notifications après la connexion
+      await NotificationService().initialize();
 
       if (!mounted) return;
 

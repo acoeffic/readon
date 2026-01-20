@@ -44,6 +44,10 @@ dependencies:
   intl: ^0.19.0                     # Date formatting and localization
   share_plus: ^10.1.4               # Share content to social media
   url_launcher: ^6.3.1              # Open URLs in browser
+  shared_preferences: ^2.2.2        # Local storage for user preferences
+  provider: ^6.1.1                  # State management
+  firebase_core: ^3.8.1             # Firebase core SDK
+  firebase_messaging: ^15.1.5       # Firebase Cloud Messaging for push notifications
 
 dev_dependencies:
   flutter_test:

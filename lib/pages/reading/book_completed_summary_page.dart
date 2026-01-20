@@ -5,6 +5,9 @@ import 'package:flutter/material.dart';
 import '../../models/book.dart';
 import '../../models/reading_session.dart';
 import '../../services/reading_session_service.dart';
+import '../../services/suggestions_service.dart';
+import '../../models/book_suggestion.dart';
+import '../../widgets/suggestion_card.dart';
 
 class BookCompletedSummaryPage extends StatefulWidget {
   final Book book;
@@ -23,8 +26,10 @@ class BookCompletedSummaryPage extends StatefulWidget {
 class _BookCompletedSummaryPageState extends State<BookCompletedSummaryPage>
     with SingleTickerProviderStateMixin {
   final ReadingSessionService _sessionService = ReadingSessionService();
+  final SuggestionsService _suggestionsService = SuggestionsService();
   BookReadingStats? _stats;
   List<ReadingSession> _sessions = [];
+  List<BookSuggestion> _suggestions = [];
   bool _isLoading = true;
   late AnimationController _animationController;
   late Animation<double> _scaleAnimation;
@@ -56,9 +61,16 @@ class _BookCompletedSummaryPageState extends State<BookCompletedSummaryPage>
       final stats = await _sessionService.getBookStats(widget.book.id.toString());
       final sessions = await _sessionService.getBookSessions(widget.book.id.toString());
 
+      // Charger les suggestions basées sur ce livre
+      final suggestions = await _suggestionsService.getPersonalizedSuggestions(
+        limit: 3,
+        basedOnBook: widget.book,
+      );
+
       setState(() {
         _stats = stats;
         _sessions = sessions.where((s) => s.endPage != null).toList();
+        _suggestions = suggestions;
         _isLoading = false;
       });
     } catch (e) {
@@ -270,6 +282,12 @@ class _BookCompletedSummaryPageState extends State<BookCompletedSummaryPage>
 
           const SizedBox(height: 24),
 
+          // Suggestions de lecture
+          if (_suggestions.isNotEmpty) ...[
+            _buildSuggestionsSection(),
+            const SizedBox(height: 24),
+          ],
+
           // Bouton retour
           ElevatedButton.icon(
             onPressed: () => Navigator.of(context).pop(),
@@ -430,6 +448,70 @@ class _BookCompletedSummaryPageState extends State<BookCompletedSummaryPage>
                   ),
                 ),
               ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSuggestionsSection() {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.auto_awesome, color: Colors.amber.shade700),
+                const SizedBox(width: 8),
+                const Text(
+                  'Que lire ensuite ?',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Suggestions basées sur votre lecture',
+              style: TextStyle(
+                fontSize: 13,
+                color: Colors.grey.shade600,
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Liste des suggestions
+            ..._suggestions.map((suggestion) => SuggestionCard(
+              suggestion: suggestion,
+              onAddToLibrary: () async {
+                final success = await _suggestionsService.addSuggestedBookToLibrary(suggestion);
+                if (success && mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('${suggestion.book.title} ajouté à votre bibliothèque'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                  // Retirer la suggestion de la liste
+                  setState(() {
+                    _suggestions.remove(suggestion);
+                  });
+                } else if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Erreur lors de l\'ajout du livre'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              },
+            )),
           ],
         ),
       ),
