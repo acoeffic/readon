@@ -88,6 +88,27 @@ class BadgesService {
     }
   }
 
+  /// Récupérer les badges d'un utilisateur par son ID
+  Future<List<UserBadge>> getUserBadgesById(String userId) async {
+    try {
+      final response = await _supabase.rpc(
+        'get_all_user_badges',
+        params: {'p_user_id': userId},
+      );
+
+      if (response == null) return [];
+
+      final List<dynamic> list = response is List ? response : [response];
+
+      return list
+          .map((item) => UserBadge.fromJson(item))
+          .toList();
+    } catch (e) {
+      print('Erreur getUserBadgesById: $e');
+      return [];
+    }
+  }
+
   /// Vérifier et attribuer les badges (après une session)
   Future<List<UserBadge>> checkAndAwardBadges() async {
     try {

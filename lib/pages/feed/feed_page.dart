@@ -91,15 +91,17 @@ class _FeedPageState extends State<FeedPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.bgLight,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: loadFeed,
-          child: ListView(
-            padding: const EdgeInsets.all(AppSpace.l),
-            children: [
-              const FeedHeader(),
-              const SizedBox(height: AppSpace.l),
+        child: Column(
+          children: [
+            const FeedHeader(),
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: loadFeed,
+                child: ListView(
+                  padding: const EdgeInsets.all(AppSpace.l),
+                  children: [
 
               // 👉 Continuer la lecture
               if (!loading && currentReadingBook != null) ...[
@@ -228,16 +230,16 @@ class _FeedPageState extends State<FeedPage> {
                     padding: const EdgeInsets.all(16),
                     child: Column(
                       children: [
-                        Icon(Icons.people_outline, size: 48, color: Colors.grey.shade400),
+                        Icon(Icons.people_outline, size: 48, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4)),
                         const SizedBox(height: 8),
                         Text(
                           'Pas encore d\'activité',
-                          style: TextStyle(color: Colors.grey.shade600),
+                          style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           'Ajoutez des amis pour voir leurs lectures!',
-                          style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                          style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
                           textAlign: TextAlign.center,
                         ),
                       ],
@@ -247,8 +249,11 @@ class _FeedPageState extends State<FeedPage> {
               else
                 ...friendActivities.map((activity) => FriendActivityCard(activity: activity)),
 
-            ],
-          ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

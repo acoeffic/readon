@@ -3,6 +3,7 @@
 
 import 'package:flutter/material.dart';
 import '../../services/notifications_service.dart';
+import '../../theme/app_theme.dart';
 
 class NotificationsPage extends StatefulWidget {
   const NotificationsPage({super.key});
@@ -45,7 +46,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
         title: const Text('Notifications'),
-        backgroundColor: Colors.deepPurple,
+        backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         actions: [
           if (_notifications.isNotEmpty)
@@ -164,7 +165,7 @@ class _NotificationCard extends StatelessWidget {
                 // Avatar de l'utilisateur
                 CircleAvatar(
                   radius: 24,
-                  backgroundColor: Colors.deepPurple.shade100,
+                  backgroundColor: AppColors.primary.withValues(alpha: 0.2),
                   backgroundImage: notification.fromUserAvatar != null &&
                           notification.fromUserAvatar!.isNotEmpty
                       ? NetworkImage(notification.fromUserAvatar!)
@@ -174,7 +175,7 @@ class _NotificationCard extends StatelessWidget {
                       ? Text(
                           notification.fromUserName[0].toUpperCase(),
                           style: TextStyle(
-                            color: Colors.deepPurple.shade700,
+                            color: AppColors.primary.withValues(alpha: 0.9),
                             fontWeight: FontWeight.bold,
                           ),
                         )

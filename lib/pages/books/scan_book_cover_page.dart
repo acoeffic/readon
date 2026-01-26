@@ -8,6 +8,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import '../../services/ocr_service.dart';
 import '../../services/google_books_service.dart';
+import '../../theme/app_theme.dart';
 
 /// Mode de scan actif
 enum ScanMode {
@@ -338,7 +339,7 @@ class _ScanBookCoverPageState extends State<ScanBookCoverPage>
         title: Text(_currentMode == ScanMode.barcode
             ? 'Scanner ISBN'
             : 'Scanner couverture'),
-        backgroundColor: Colors.deepPurple,
+        backgroundColor: AppColors.primary,
         actions: [
           IconButton(
             icon: const Icon(Icons.search),
@@ -366,7 +367,7 @@ class _ScanBookCoverPageState extends State<ScanBookCoverPage>
   /// Sélecteur de mode (onglets)
   Widget _buildModeSelector() {
     return Container(
-      color: Colors.deepPurple.shade50,
+      color: AppColors.primary.withValues(alpha: 0.12),
       child: Row(
         children: [
           Expanded(
@@ -378,7 +379,7 @@ class _ScanBookCoverPageState extends State<ScanBookCoverPage>
                   border: Border(
                     bottom: BorderSide(
                       color: _currentMode == ScanMode.barcode
-                          ? Colors.deepPurple
+                          ? AppColors.primary
                           : Colors.transparent,
                       width: 3,
                     ),
@@ -390,7 +391,7 @@ class _ScanBookCoverPageState extends State<ScanBookCoverPage>
                     Icon(
                       Icons.qr_code_scanner,
                       color: _currentMode == ScanMode.barcode
-                          ? Colors.deepPurple
+                          ? AppColors.primary
                           : Colors.grey,
                     ),
                     const SizedBox(width: 8),
@@ -401,7 +402,7 @@ class _ScanBookCoverPageState extends State<ScanBookCoverPage>
                             ? FontWeight.bold
                             : FontWeight.normal,
                         color: _currentMode == ScanMode.barcode
-                            ? Colors.deepPurple
+                            ? AppColors.primary
                             : Colors.grey,
                       ),
                     ),
@@ -419,7 +420,7 @@ class _ScanBookCoverPageState extends State<ScanBookCoverPage>
                   border: Border(
                     bottom: BorderSide(
                       color: _currentMode == ScanMode.ocr
-                          ? Colors.deepPurple
+                          ? AppColors.primary
                           : Colors.transparent,
                       width: 3,
                     ),
@@ -431,7 +432,7 @@ class _ScanBookCoverPageState extends State<ScanBookCoverPage>
                     Icon(
                       Icons.camera_alt,
                       color: _currentMode == ScanMode.ocr
-                          ? Colors.deepPurple
+                          ? AppColors.primary
                           : Colors.grey,
                     ),
                     const SizedBox(width: 8),
@@ -442,7 +443,7 @@ class _ScanBookCoverPageState extends State<ScanBookCoverPage>
                             ? FontWeight.bold
                             : FontWeight.normal,
                         color: _currentMode == ScanMode.ocr
-                            ? Colors.deepPurple
+                            ? AppColors.primary
                             : Colors.grey,
                       ),
                     ),
@@ -469,7 +470,7 @@ class _ScanBookCoverPageState extends State<ScanBookCoverPage>
               margin: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.deepPurple, width: 2),
+                border: Border.all(color: AppColors.primary, width: 2),
               ),
               clipBehavior: Clip.hardEdge,
               child: Stack(
@@ -517,7 +518,7 @@ class _ScanBookCoverPageState extends State<ScanBookCoverPage>
                             height: 100 * _pulseAnimation.value,
                             decoration: BoxDecoration(
                               border: Border.all(
-                                  color: Colors.deepPurple.withValues(alpha: 0.8),
+                                  color: AppColors.primary.withValues(alpha: 0.8),
                                   width: 2),
                               borderRadius: BorderRadius.circular(8),
                             ),
@@ -568,7 +569,7 @@ class _ScanBookCoverPageState extends State<ScanBookCoverPage>
                   icon: const Icon(Icons.refresh),
                   label: const Text('Réessayer'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.deepPurple,
+                    backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(
                         horizontal: 32, vertical: 12),
@@ -647,7 +648,7 @@ class _ScanBookCoverPageState extends State<ScanBookCoverPage>
                   label: const Text('Photo'),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.all(16),
-                    backgroundColor: Colors.deepPurple,
+                    backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
                   ),
                 ),
@@ -660,7 +661,7 @@ class _ScanBookCoverPageState extends State<ScanBookCoverPage>
                   label: const Text('Galerie'),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.all(16),
-                    backgroundColor: Colors.deepPurple.shade300,
+                    backgroundColor: AppColors.primary.withValues(alpha: 0.6),
                     foregroundColor: Colors.white,
                   ),
                 ),

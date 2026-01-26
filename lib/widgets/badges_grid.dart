@@ -7,11 +7,13 @@ import '../../../services/badges_service.dart';
 class BadgesGrid extends StatelessWidget {
   final List<UserBadge> badges;
   final VoidCallback? onViewAll;
+  final String? title;
 
   const BadgesGrid({
     super.key,
     required this.badges,
     this.onViewAll,
+    this.title,
   });
 
   @override
@@ -32,7 +34,7 @@ class BadgesGrid extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              'Mes badges',
+              title ?? 'Mes badges',
               style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontSize: 22),
             ),
             if (onViewAll != null)

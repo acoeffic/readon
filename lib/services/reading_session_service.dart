@@ -3,50 +3,61 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/reading_session.dart';
 import 'ocr_service.dart';
+import 'challenge_service.dart';
 
 class ReadingSessionService {
   final SupabaseClient _supabase = Supabase.instance.client;
   final OCRService ocrService = OCRService();
+  final ChallengeService _challengeService = ChallengeService();
   
   /// Démarrer une nouvelle session de lecture
+  /// Soit [imagePath] est fourni (OCR extraira le numéro de page),
+  /// soit [manualPageNumber] est fourni directement.
   Future<ReadingSession> startSession({
     required String bookId,
-    required String imagePath,
+    String? imagePath,
+    int? manualPageNumber,
   }) async {
     try {
-      // 1. Extraire le numéro de page avec OCR
-      final pageNumber = await ocrService.extractPageNumber(imagePath);
-      
-      if (pageNumber == null) {
-        throw Exception('Impossible de détecter le numéro de page. Réessayez avec une photo plus nette.');
+      int? pageNumber = manualPageNumber;
+
+      // Si un chemin d'image est fourni et pas de numéro manuel, extraire via OCR
+      if (pageNumber == null && imagePath != null) {
+        pageNumber = await ocrService.extractPageNumber(imagePath);
+        if (pageNumber == null) {
+          throw Exception('Impossible de détecter le numéro de page. Réessayez avec une photo plus nette.');
+        }
       }
-      
-      // 2. Vérifier qu'il n'y a pas déjà une session active pour ce livre
+
+      if (pageNumber == null) {
+        throw Exception('Veuillez fournir un numéro de page.');
+      }
+
+      // Vérifier qu'il n'y a pas déjà une session active pour ce livre
       final activeSession = await getActiveSession(bookId);
       if (activeSession != null) {
         throw Exception('Une session de lecture est déjà en cours pour ce livre.');
       }
-      
-      // 3. Créer la session dans Supabase
+
+      // Créer la session dans Supabase
       final now = DateTime.now();
-      print('DEBUG startSession - DateTime.now(): $now');
-      print('DEBUG startSession - toUtc(): ${now.toUtc()}');
-      print('DEBUG startSession - toIso8601String(): ${now.toUtc().toIso8601String()}');
+
+      final insertData = <String, dynamic>{
+        'book_id': bookId,
+        'start_page': pageNumber,
+        'start_time': now.toUtc().toIso8601String(),
+        'user_id': _supabase.auth.currentUser!.id,
+      };
+      if (imagePath != null) {
+        insertData['start_image_path'] = imagePath;
+      }
 
       final response = await _supabase
           .from('reading_sessions')
-          .insert({
-            'book_id': bookId,
-            'start_page': pageNumber,
-            'start_time': now.toUtc().toIso8601String(),
-            'user_id': _supabase.auth.currentUser!.id,
-            'start_image_path': imagePath, // Optionnel: stocker le chemin local
-          })
+          .insert(insertData)
           .select()
           .single();
 
-      print('DEBUG startSession - Response start_time: ${response['start_time']}');
-      
       return ReadingSession.fromJson(response);
     } catch (e) {
       print('Erreur startSession: $e');
@@ -55,31 +66,58 @@ class ReadingSessionService {
   }
   
   /// Terminer une session de lecture active
+  /// Soit [imagePath] est fourni (OCR extraira le numéro de page),
+  /// soit [manualPageNumber] est fourni directement.
   Future<ReadingSession> endSession({
     required String sessionId,
-    required String imagePath,
+    String? imagePath,
+    int? manualPageNumber,
   }) async {
     try {
-      // 1. Extraire le numéro de page de fin avec OCR
-      final pageNumber = await ocrService.extractPageNumber(imagePath);
-      
-      if (pageNumber == null) {
-        throw Exception('Impossible de détecter le numéro de page. Réessayez avec une photo plus nette.');
+      int? pageNumber = manualPageNumber;
+
+      // Si un chemin d'image est fourni et pas de numéro manuel, extraire via OCR
+      if (pageNumber == null && imagePath != null) {
+        pageNumber = await ocrService.extractPageNumber(imagePath);
+        if (pageNumber == null) {
+          throw Exception('Impossible de détecter le numéro de page. Réessayez avec une photo plus nette.');
+        }
       }
-      
-      // 2. Mettre à jour la session
+
+      if (pageNumber == null) {
+        throw Exception('Veuillez fournir un numéro de page.');
+      }
+
+      // Mettre à jour la session
+      final updateData = <String, dynamic>{
+        'end_page': pageNumber,
+        'end_time': DateTime.now().toIso8601String(),
+      };
+      if (imagePath != null) {
+        updateData['end_image_path'] = imagePath;
+      }
+
       final response = await _supabase
           .from('reading_sessions')
-          .update({
-            'end_page': pageNumber,
-            'end_time': DateTime.now().toIso8601String(),
-            'end_image_path': imagePath,
-          })
+          .update(updateData)
           .eq('id', sessionId)
           .select()
           .single();
-      
-      return ReadingSession.fromJson(response);
+
+      final session = ReadingSession.fromJson(response);
+
+      // Mettre à jour la progression des défis
+      try {
+        await _challengeService.updateProgressAfterSession(
+          bookId: session.bookId,
+          pagesRead: session.pagesRead,
+          durationMinutes: session.durationMinutes,
+        );
+      } catch (_) {
+        // Ne pas bloquer la fin de session si la mise à jour des défis échoue
+      }
+
+      return session;
     } catch (e) {
       print('Erreur endSession: $e');
       rethrow;
@@ -191,6 +229,55 @@ class ReadingSessionService {
     }
   }
   
+  /// Récupérer toutes les sessions de l'utilisateur avec les infos des livres
+  Future<List<Map<String, dynamic>>> getAllUserSessionsWithBook() async {
+    try {
+      // 1. Récupérer toutes les sessions
+      final sessions = await _supabase
+          .from('reading_sessions')
+          .select()
+          .eq('user_id', _supabase.auth.currentUser!.id)
+          .order('start_time', ascending: false);
+
+      final sessionsList = List<Map<String, dynamic>>.from(sessions as List);
+      if (sessionsList.isEmpty) return [];
+
+      // 2. Récupérer les book_ids uniques
+      final bookIds = sessionsList
+          .map((s) => s['book_id'] as String)
+          .toSet()
+          .map((id) => int.tryParse(id))
+          .where((id) => id != null)
+          .cast<int>()
+          .toList();
+
+      // 3. Récupérer les livres correspondants
+      Map<int, Map<String, dynamic>> booksMap = {};
+      if (bookIds.isNotEmpty) {
+        final booksResponse = await _supabase
+            .from('books')
+            .select()
+            .inFilter('id', bookIds);
+
+        for (final book in (booksResponse as List)) {
+          final bookData = Map<String, dynamic>.from(book);
+          booksMap[bookData['id'] as int] = bookData;
+        }
+      }
+
+      // 4. Combiner sessions + livres
+      for (final session in sessionsList) {
+        final bookId = int.tryParse(session['book_id'] as String);
+        session['books'] = bookId != null ? booksMap[bookId] : null;
+      }
+
+      return sessionsList;
+    } catch (e) {
+      print('Erreur getAllUserSessionsWithBook: $e');
+      return [];
+    }
+  }
+
   /// Annuler une session active
   Future<void> cancelSession(String sessionId) async {
     try {

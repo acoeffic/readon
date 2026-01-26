@@ -5,12 +5,13 @@ import 'package:flutter/material.dart';
 
 class AppColors {
   // Colors used in both themes
-  static const primary = Color(0xFF2EBFA3);
+  static const primary = Color(0xFF7FA497);
   static const error = Color(0xFFEB5757);
+  static const feedHeader = Color(0xFF7FA497);
 
   // Light theme colors
   static const accentLight = Color(0xFFE8FFFA);
-  static const bgLight = Color(0xFFF6F6F6);
+  static const bgLight = Color(0xFFF6F1EC);
   static const white = Colors.white;
   static const textPrimary = Colors.white;
   static const textSecondary = Color(0xFF6A6A6A);

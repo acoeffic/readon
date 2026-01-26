@@ -2,6 +2,7 @@
 // Card pour afficher la progression de lecture
 
 import 'package:flutter/material.dart';
+import '../../../theme/app_theme.dart';
 
 class ProgressCard extends StatelessWidget {
   final String bookTitle;
@@ -60,7 +61,7 @@ class ProgressCard extends StatelessWidget {
                 value: progress.clamp(0.0, 1.0),
                 minHeight: 8,
                 backgroundColor: Colors.grey.shade200,
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.deepPurple),
+                valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
               ),
             ),
             

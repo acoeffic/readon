@@ -2,7 +2,16 @@
   "permissions": {
     "allow": [
       "Bash(flutter analyze:*)",
-      "Bash(flutter pub get:*)"
+      "Bash(flutter pub get:*)",
+      "Bash(tree:*)",
+      "Bash(pod install:*)",
+      "Bash(flutter build:*)",
+      "Bash(flutter clean:*)",
+      "Bash(xcrun simctl:*)",
+      "Bash(flutter run:*)",
+      "Bash(flutter install:*)",
+      "Bash(grep:*)",
+      "Bash(find:*)"
     ]
   }
 }

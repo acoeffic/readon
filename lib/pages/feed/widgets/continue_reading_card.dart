@@ -34,14 +34,14 @@ class ContinueReadingCard extends StatelessWidget {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              const Color(0xFF2EBFA3), // Vert menthe primaire
-              const Color(0xFF25A68E), // Vert menthe plus foncé
+              AppColors.feedHeader,
+              AppColors.feedHeader,
             ],
           ),
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF2EBFA3).withValues(alpha: 0.3),
+              color: AppColors.feedHeader.withValues(alpha: 0.3),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),

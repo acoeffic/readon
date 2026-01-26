@@ -11,7 +11,9 @@ class WelcomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return Theme(
+      data: AppTheme.light,
+      child: Scaffold(
       backgroundColor: AppColors.bgLight,
       body: SafeArea(
         child: Padding(
@@ -96,6 +98,7 @@ class WelcomePage extends StatelessWidget {
           ),
         ),
       ),
+    ),
     );
   }
 }

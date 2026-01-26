@@ -3,6 +3,7 @@
 
 import 'package:flutter/material.dart';
 import '../../../models/reading_streak.dart';
+import '../../../theme/app_theme.dart';
 
 class StreakCard extends StatelessWidget {
   final ReadingStreak streak;
@@ -16,7 +17,7 @@ class StreakCard extends StatelessWidget {
 
   Color _getStreakColor() {
     if (streak.currentStreak >= 30) {
-      return const Color(0xFF9C27B0); // Purple
+      return AppColors.primary; // Purple
     } else if (streak.currentStreak >= 14) {
       return const Color(0xFFFF5722); // Deep Orange
     } else if (streak.currentStreak >= 7) {
@@ -184,6 +185,9 @@ class StreakCard extends StatelessWidget {
           readDate.day == date.day;
     });
 
+    // Vérifier si ce jour est frozen
+    final isFrozen = streak.isDayFrozen(date);
+
     // Vérifier si c'est aujourd'hui
     final isToday = date.year == today.year &&
         date.month == today.month &&
@@ -203,13 +207,15 @@ class StreakCard extends StatelessWidget {
                 ? Colors.transparent
                 : hasRead
                     ? activeColor
-                    : Colors.grey.shade700,
+                    : isFrozen
+                        ? const Color(0xFF5C6BC0) // Indigo pour les jours frozen
+                        : Colors.grey.shade700,
             border: Border.all(
-              color: isToday && !hasRead
+              color: isToday && !hasRead && !isFrozen
                   ? activeColor
                   : Colors.transparent,
               width: 1.5,
-              style: isToday && !hasRead ? BorderStyle.solid : BorderStyle.none,
+              style: isToday && !hasRead && !isFrozen ? BorderStyle.solid : BorderStyle.none,
             ),
           ),
           child: hasRead
@@ -220,18 +226,26 @@ class StreakCard extends StatelessWidget {
                     size: 14,
                   ),
                 )
-              : (isToday && !hasRead)
+              : isFrozen
                   ? Center(
-                      child: Container(
-                        width: 5,
-                        height: 5,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: activeColor,
-                        ),
+                      child: Icon(
+                        Icons.ac_unit_rounded,
+                        color: Colors.white,
+                        size: 14,
                       ),
                     )
-                  : null,
+                  : (isToday && !hasRead)
+                      ? Center(
+                          child: Container(
+                            width: 5,
+                            height: 5,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: activeColor,
+                            ),
+                          ),
+                        )
+                      : null,
         ),
         if (isToday) ...[
           const SizedBox(height: 1),

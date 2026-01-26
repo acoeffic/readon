@@ -19,16 +19,13 @@ class _GroupsPageState extends State<GroupsPage>
 
   List<ReadingGroup> _myGroups = [];
   List<ReadingGroup> _publicGroups = [];
-  List<GroupInvitation> _invitations = [];
-
   bool _isLoadingMyGroups = true;
   bool _isLoadingPublic = true;
-  bool _isLoadingInvitations = true;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 2, vsync: this);
     _loadData();
   }
 
@@ -42,7 +39,6 @@ class _GroupsPageState extends State<GroupsPage>
     await Future.wait([
       _loadMyGroups(),
       _loadPublicGroups(),
-      _loadInvitations(),
     ]);
   }
 
@@ -82,52 +78,6 @@ class _GroupsPageState extends State<GroupsPage>
     }
   }
 
-  Future<void> _loadInvitations() async {
-    setState(() => _isLoadingInvitations = true);
-    try {
-      final invitations = await _groupsService.getUserInvitations();
-      setState(() {
-        _invitations = invitations;
-        _isLoadingInvitations = false;
-      });
-    } catch (e) {
-      setState(() => _isLoadingInvitations = false);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur: $e')),
-        );
-      }
-    }
-  }
-
-  Future<void> _respondToInvitation(GroupInvitation invitation, bool accept) async {
-    try {
-      await _groupsService.respondToInvitation(
-        invitationId: invitation.id,
-        accept: accept,
-      );
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(accept
-                ? '✅ Vous avez rejoint ${invitation.groupName}'
-                : '❌ Invitation refusée'),
-            backgroundColor: accept ? Colors.green : Colors.orange,
-          ),
-        );
-      }
-
-      // Reload data
-      await _loadData();
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur: $e')),
-        );
-      }
-    }
-  }
 
   void _navigateToCreateGroup() async {
     final result = await Navigator.push(
@@ -154,8 +104,9 @@ class _GroupsPageState extends State<GroupsPage>
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: const Text(
-          'Groupes de lecture',
+          'Club de lecture',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -179,16 +130,6 @@ class _GroupsPageState extends State<GroupsPage>
               text: 'Découvrir',
               icon: const Icon(Icons.public),
             ),
-            Tab(
-              text: 'Invitations',
-              icon: _invitations.isEmpty
-                  ? const Icon(Icons.mail_outline)
-                  : Badge(
-                      label: Text('${_invitations.length}'),
-                      backgroundColor: AppColors.error,
-                      child: const Icon(Icons.mail),
-                    ),
-            ),
           ],
         ),
       ),
@@ -197,15 +138,15 @@ class _GroupsPageState extends State<GroupsPage>
         children: [
           _buildMyGroupsTab(),
           _buildPublicGroupsTab(),
-          _buildInvitationsTab(),
         ],
       ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _navigateToCreateGroup,
         backgroundColor: AppColors.primary,
         icon: const Icon(Icons.add, color: Colors.white),
         label: const Text(
-          'Créer un groupe',
+          'Créer un Club',
           style: TextStyle(color: Colors.white),
         ),
       ),
@@ -297,48 +238,6 @@ class _GroupsPageState extends State<GroupsPage>
     );
   }
 
-  Widget _buildInvitationsTab() {
-    if (_isLoadingInvitations) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    if (_invitations.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.mail_outline, size: 64, color: Colors.grey.shade400),
-            const SizedBox(height: AppSpace.m),
-            Text(
-              'Aucune invitation',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: AppSpace.s),
-            const Text(
-              'Les invitations apparaîtront ici',
-              style: TextStyle(color: Colors.grey),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return RefreshIndicator(
-      onRefresh: _loadInvitations,
-      child: ListView.builder(
-        padding: const EdgeInsets.all(AppSpace.m),
-        itemCount: _invitations.length,
-        itemBuilder: (context, index) {
-          final invitation = _invitations[index];
-          return _InvitationCard(
-            invitation: invitation,
-            onAccept: () => _respondToInvitation(invitation, true),
-            onReject: () => _respondToInvitation(invitation, false),
-          );
-        },
-      ),
-    );
-  }
 }
 
 class _GroupCard extends StatelessWidget {
@@ -493,86 +392,6 @@ class _GroupCard extends StatelessWidget {
               const Icon(Icons.chevron_right, color: Colors.grey),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _InvitationCard extends StatelessWidget {
-  final GroupInvitation invitation;
-  final VoidCallback onAccept;
-  final VoidCallback onReject;
-
-  const _InvitationCard({
-    required this.invitation,
-    required this.onAccept,
-    required this.onReject,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: AppSpace.m),
-      color: Theme.of(context).cardColor,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppRadius.m),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpace.m),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Icon(Icons.mail, color: AppColors.primary),
-                const SizedBox(width: AppSpace.s),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        invitation.groupName,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      Text(
-                        'Invitation de ${invitation.inviterName}',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppSpace.m),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                TextButton(
-                  onPressed: onReject,
-                  child: const Text(
-                    'Refuser',
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                ),
-                const SizedBox(width: AppSpace.s),
-                ElevatedButton(
-                  onPressed: onAccept,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                  ),
-                  child: const Text('Accepter'),
-                ),
-              ],
-            ),
-          ],
         ),
       ),
     );

@@ -103,12 +103,17 @@ class GroupsService {
     required String groupId,
     String? name,
     String? description,
+    bool clearDescription = false,
     String? coverUrl,
     bool? isPrivate,
   }) async {
     final updates = <String, dynamic>{};
     if (name != null) updates['name'] = name;
-    if (description != null) updates['description'] = description;
+    if (clearDescription) {
+      updates['description'] = null;
+    } else if (description != null) {
+      updates['description'] = description;
+    }
     if (coverUrl != null) updates['cover_url'] = coverUrl;
     if (isPrivate != null) updates['is_private'] = isPrivate;
 

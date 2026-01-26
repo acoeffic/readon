@@ -3,6 +3,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/book.dart';
 import 'google_books_service.dart';
+import 'kindle_webview_service.dart';
 
 class BooksService {
   final SupabaseClient _supabase = Supabase.instance.client;
@@ -329,6 +330,260 @@ class BooksService {
     } catch (e) {
       print('Erreur getCurrentReadingBook: $e');
       return null;
+    }
+  }
+
+  /// Importer les livres depuis l'extraction Kindle dans la bibliothèque
+  /// Enrichit chaque livre avec les métadonnées de Google Books (couverture, description)
+  Future<int> importKindleBooks(List<KindleBookProgress> kindleBooks) async {
+    int imported = 0;
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) return 0;
+
+    for (final kindleBook in kindleBooks) {
+      try {
+        // Vérifier si le livre existe déjà (par titre + source kindle)
+        final existing = await _supabase
+            .from('books')
+            .select('id, cover_url')
+            .eq('title', kindleBook.title)
+            .eq('source', 'kindle')
+            .maybeSingle();
+
+        int bookId;
+        if (existing != null) {
+          bookId = existing['id'] as int;
+          // Toujours mettre à jour avec la couverture Kindle si disponible (priorité sur Google Books)
+          if (kindleBook.coverUrl != null) {
+            await _supabase.from('books').update({'cover_url': kindleBook.coverUrl}).eq('id', bookId);
+          } else if (existing['cover_url'] == null) {
+            // Pas de couverture Kindle ni existante -> enrichir via Google Books
+            await _enrichBookWithGoogleBooks(bookId, _cleanBookTitle(kindleBook.title));
+          }
+        } else {
+          // Chercher les métadonnées sur Google Books (titre nettoyé)
+          final cleanTitle = _cleanBookTitle(kindleBook.title);
+          final metadata = await _fetchGoogleBooksMetadata(cleanTitle);
+
+          // Utiliser la couverture Kindle en priorité, sinon Google Books
+          final coverUrl = kindleBook.coverUrl ?? metadata?['cover_url'];
+
+          // Si on a un google_id, vérifier qu'il n'existe pas déjà
+          String? googleIdToUse = metadata?['google_id'];
+          if (googleIdToUse != null) {
+            final existingByGoogleId = await _supabase
+                .from('books')
+                .select('id')
+                .eq('google_id', googleIdToUse)
+                .maybeSingle();
+
+            if (existingByGoogleId != null) {
+              // Un livre avec ce google_id existe déjà, mettre à jour la couverture Kindle si disponible
+              bookId = existingByGoogleId['id'] as int;
+              if (kindleBook.coverUrl != null) {
+                await _supabase.from('books').update({'cover_url': kindleBook.coverUrl}).eq('id', bookId);
+              }
+            } else {
+              // Créer le livre avec métadonnées et google_id
+              final response = await _supabase
+                  .from('books')
+                  .insert({
+                    'title': kindleBook.title,
+                    'author': metadata?['author'] ?? kindleBook.author,
+                    'source': 'kindle',
+                    'cover_url': coverUrl,
+                    'description': metadata?['description'],
+                    'page_count': metadata?['page_count'],
+                    'google_id': googleIdToUse,
+                  })
+                  .select()
+                  .single();
+              bookId = response['id'] as int;
+            }
+          } else {
+            // Pas de google_id, créer sans
+            final response = await _supabase
+                .from('books')
+                .insert({
+                  'title': kindleBook.title,
+                  'author': metadata?['author'] ?? kindleBook.author,
+                  'source': 'kindle',
+                  'cover_url': coverUrl,
+                  'description': metadata?['description'],
+                  'page_count': metadata?['page_count'],
+                })
+                .select()
+                .single();
+            bookId = response['id'] as int;
+          }
+        }
+
+        // Déterminer le statut depuis la progression
+        String? newStatus;
+        if (kindleBook.percentComplete == 100) {
+          newStatus = 'finished';
+        } else if (kindleBook.percentComplete != null && kindleBook.percentComplete! > 0) {
+          newStatus = 'reading';
+        }
+
+        // Ajouter ou mettre à jour user_books
+        final existingUserBook = await _supabase
+            .from('user_books')
+            .select('status')
+            .eq('user_id', userId)
+            .eq('book_id', bookId)
+            .maybeSingle();
+
+        if (existingUserBook == null) {
+          await _supabase.from('user_books').insert({
+            'user_id': userId,
+            'book_id': bookId,
+            'status': newStatus ?? 'to_read',
+          });
+          imported++;
+        } else if (newStatus != null) {
+          // Mettre à jour le statut si on a une info de progression
+          final currentStatus = existingUserBook['status'] as String?;
+          // Ne pas rétrograder un livre "finished" vers "reading"
+          if (currentStatus != 'finished' || newStatus == 'finished') {
+            await _supabase
+                .from('user_books')
+                .update({'status': newStatus})
+                .eq('user_id', userId)
+                .eq('book_id', bookId);
+          }
+        }
+      } catch (e) {
+        print('Erreur import livre Kindle "${kindleBook.title}": $e');
+      }
+    }
+    return imported;
+  }
+
+  /// Marquer les livres comme terminés à partir des titres trouvés sur Reading Insights
+  /// Ces livres apparaissent dans la section "titles read" d'Amazon
+  /// Utilise une recherche floue car les titres peuvent différer entre les sources
+  /// (ex: "Ma vie sans gravité" vs "Ma vie sans gravité (French Edition)")
+  Future<int> markBooksAsFinished(List<KindleBookProgress> finishedBooks) async {
+    int updated = 0;
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) return 0;
+
+    for (final kindleBook in finishedBooks) {
+      try {
+        // Nettoyer le titre pour la recherche (enlever les suffixes d'édition)
+        final cleanTitle = _cleanBookTitle(kindleBook.title);
+
+        // Chercher le livre par titre exact d'abord
+        var book = await _supabase
+            .from('books')
+            .select('id')
+            .eq('title', kindleBook.title)
+            .eq('source', 'kindle')
+            .maybeSingle();
+
+        // Si pas trouvé, chercher par correspondance partielle
+        // (le titre stocké contient le titre de Reading Insights)
+        if (book == null && cleanTitle.length > 5) {
+          final results = await _supabase
+              .from('books')
+              .select('id, title')
+              .eq('source', 'kindle')
+              .ilike('title', '%$cleanTitle%')
+              .limit(1);
+
+          if ((results as List).isNotEmpty) {
+            book = results[0];
+          }
+        }
+
+        if (book == null) continue;
+        final bookId = book['id'] as int;
+
+        // Mettre à jour le statut dans user_books
+        final existing = await _supabase
+            .from('user_books')
+            .select('status')
+            .eq('user_id', userId)
+            .eq('book_id', bookId)
+            .maybeSingle();
+
+        if (existing != null && existing['status'] != 'finished') {
+          await _supabase
+              .from('user_books')
+              .update({'status': 'finished'})
+              .eq('user_id', userId)
+              .eq('book_id', bookId);
+          updated++;
+        }
+      } catch (e) {
+        print('Erreur markBooksAsFinished "${kindleBook.title}": $e');
+      }
+    }
+    return updated;
+  }
+
+  /// Nettoyer un titre de livre en enlevant les suffixes d'édition courants
+  String _cleanBookTitle(String title) {
+    return title
+        .replaceAll(RegExp(r'\s*\(French Edition\)\s*', caseSensitive: false), '')
+        .replaceAll(RegExp(r'\s*\(Kindle Edition\)\s*', caseSensitive: false), '')
+        .replaceAll(RegExp(r'\s*\(Edition française\)\s*', caseSensitive: false), '')
+        .replaceAll(RegExp(r'\s*\(édition française\)\s*', caseSensitive: false), '')
+        .replaceAll(RegExp(r'\s*\(English Edition\)\s*', caseSensitive: false), '')
+        .trim();
+  }
+
+  /// Chercher les métadonnées d'un livre sur Google Books par titre
+  Future<Map<String, dynamic>?> _fetchGoogleBooksMetadata(String title) async {
+    try {
+      final results = await _googleBooksService.searchBooks(title);
+      if (results.isEmpty) return null;
+
+      final book = results.first;
+      return {
+        'author': book.authorsString,
+        'cover_url': book.coverUrl,
+        'description': book.description,
+        'page_count': book.pageCount,
+        'google_id': book.id,
+      };
+    } catch (e) {
+      print('Erreur Google Books metadata pour "$title": $e');
+      return null;
+    }
+  }
+
+  /// Enrichir un livre existant avec les métadonnées Google Books
+  Future<void> _enrichBookWithGoogleBooks(int bookId, String title) async {
+    try {
+      final metadata = await _fetchGoogleBooksMetadata(title);
+      if (metadata == null) return;
+
+      final updates = <String, dynamic>{};
+      if (metadata['cover_url'] != null) updates['cover_url'] = metadata['cover_url'];
+      if (metadata['description'] != null) updates['description'] = metadata['description'];
+      if (metadata['page_count'] != null) updates['page_count'] = metadata['page_count'];
+      if (metadata['author'] != null) updates['author'] = metadata['author'];
+
+      // Vérifier que le google_id n'est pas déjà utilisé par un autre livre
+      if (metadata['google_id'] != null) {
+        final existingWithGoogleId = await _supabase
+            .from('books')
+            .select('id')
+            .eq('google_id', metadata['google_id'])
+            .maybeSingle();
+
+        if (existingWithGoogleId == null) {
+          updates['google_id'] = metadata['google_id'];
+        }
+      }
+
+      if (updates.isNotEmpty) {
+        await _supabase.from('books').update(updates).eq('id', bookId);
+      }
+    } catch (e) {
+      print('Erreur enrichissement livre $bookId: $e');
     }
   }
 }

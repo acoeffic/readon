@@ -8,6 +8,7 @@ import '../../services/reading_session_service.dart';
 import '../../services/suggestions_service.dart';
 import '../../models/book_suggestion.dart';
 import '../../widgets/suggestion_card.dart';
+import '../../theme/app_theme.dart';
 
 class BookCompletedSummaryPage extends StatefulWidget {
   final Book book;
@@ -362,7 +363,7 @@ class _BookCompletedSummaryPageState extends State<BookCompletedSummaryPage>
                     icon: Icons.repeat,
                     value: '${_stats!.sessionsCount}',
                     label: 'sessions',
-                    color: Colors.purple,
+                    color: AppColors.primary,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -536,13 +537,13 @@ class _BookCompletedSummaryPageState extends State<BookCompletedSummaryPage>
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: Colors.deepPurple.shade50,
+              color: AppColors.primary.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(
               Icons.calendar_today,
               size: 20,
-              color: Colors.deepPurple.shade700,
+              color: AppColors.primary.withValues(alpha: 0.9),
             ),
           ),
           const SizedBox(width: 12),

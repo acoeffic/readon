@@ -4,7 +4,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../models/reading_streak.dart';
+import '../../models/streak_freeze.dart';
 import '../../services/streak_service.dart';
+import '../../theme/app_theme.dart';
 
 class StreakDetailPage extends StatefulWidget {
   final ReadingStreak initialStreak;
@@ -49,7 +51,7 @@ class _StreakDetailPageState extends State<StreakDetailPage> {
 
   Color _getStreakColor() {
     if (_streak.currentStreak >= 30) {
-      return const Color(0xFF9C27B0); // Purple
+      return AppColors.primary; // Purple
     } else if (_streak.currentStreak >= 14) {
       return const Color(0xFFFF5722); // Deep Orange
     } else if (_streak.currentStreak >= 7) {
@@ -64,12 +66,12 @@ class _StreakDetailPageState extends State<StreakDetailPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: Icon(Icons.arrow_back, color: Theme.of(context).colorScheme.onSurface),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -86,6 +88,8 @@ class _StreakDetailPageState extends State<StreakDetailPage> {
                     _buildHeader(),
                     const SizedBox(height: 24),
                     _buildStreakCard(),
+                    const SizedBox(height: 16),
+                    _buildFreezeCard(),
                     const SizedBox(height: 24),
                     _buildCurrentMonthCalendar(),
                     const SizedBox(height: 24),
@@ -103,12 +107,12 @@ class _StreakDetailPageState extends State<StreakDetailPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Ton streak de lecture',
           style: TextStyle(
             fontSize: 28,
             fontWeight: FontWeight.bold,
-            color: Colors.black,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
         const SizedBox(height: 8),
@@ -116,7 +120,7 @@ class _StreakDetailPageState extends State<StreakDetailPage> {
           '${_streak.currentStreak} jours consécutifs, actif',
           style: TextStyle(
             fontSize: 16,
-            color: Colors.grey.shade600,
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
           ),
         ),
       ],
@@ -279,6 +283,197 @@ class _StreakDetailPageState extends State<StreakDetailPage> {
     );
   }
 
+  Widget _buildFreezeCard() {
+    final freezeStatus = _streak.freezeStatus;
+    final isAtRisk = _streak.isAtRisk && _streak.currentStreak > 0;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: freezeStatus?.freezeAvailable == true
+            ? const Color(0xFF1A237E).withOpacity(0.3)
+            : Theme.of(context).colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: freezeStatus?.freezeAvailable == true
+              ? const Color(0xFF5C6BC0)
+              : Colors.transparent,
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.ac_unit_rounded,
+                color: freezeStatus?.freezeAvailable == true
+                    ? const Color(0xFF5C6BC0)
+                    : Colors.grey,
+                size: 24,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Streak Freeze',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      freezeStatus?.statusMessage ?? 'Freeze disponible',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (freezeStatus?.freezeAvailable == true && isAtRisk)
+                ElevatedButton.icon(
+                  onPressed: _useFreeze,
+                  icon: const Icon(Icons.shield, size: 16),
+                  label: const Text('Protéger'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF5C6BC0),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                  ),
+                )
+              else if (freezeStatus?.freezeAvailable == true)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF5C6BC0).withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Text(
+                    '1 dispo',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF5C6BC0),
+                    ),
+                  ),
+                )
+              else
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    'Utilisé',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          if (isAtRisk && freezeStatus?.freezeAvailable == true) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.orange.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Ton streak est en danger ! Utilise ton freeze pour le protéger.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.orange.shade700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          const SizedBox(height: 8),
+          Text(
+            '1 freeze disponible par semaine. Protège ton streak si tu ne peux pas lire un jour.',
+            style: TextStyle(
+              fontSize: 11,
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _useFreeze() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.ac_unit_rounded, color: Color(0xFF5C6BC0)),
+            SizedBox(width: 12),
+            Text('Utiliser le freeze ?'),
+          ],
+        ),
+        content: const Text(
+          'Cela protégera ton streak pour hier. Tu ne pourras plus utiliser de freeze cette semaine.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Annuler'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF5C6BC0),
+            ),
+            child: const Text('Confirmer'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      final result = await _streakService.useFreeze();
+      if (mounted) {
+        if (result.success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(result.message),
+              backgroundColor: Colors.green,
+            ),
+          );
+          _loadData();
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(result.message),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
+  }
+
   Widget _buildCurrentMonthCalendar() {
     final now = DateTime.now();
     final firstDayOfMonth = DateTime(now.year, now.month, 1);
@@ -306,11 +501,11 @@ class _StreakDetailPageState extends State<StreakDetailPage> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -330,7 +525,7 @@ class _StreakDetailPageState extends State<StreakDetailPage> {
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: Colors.grey.shade600,
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                         ),
                       ),
                     ))
@@ -360,6 +555,8 @@ class _StreakDetailPageState extends State<StreakDetailPage> {
                     readDate.day == date.day;
               });
 
+              final isFrozen = _streak.isDayFrozen(date);
+
               final isToday = date.year == today.year &&
                   date.month == today.month &&
                   date.day == today.day;
@@ -371,6 +568,7 @@ class _StreakDetailPageState extends State<StreakDetailPage> {
                 hasRead,
                 isToday,
                 isFuture,
+                isFrozen,
               );
             },
           ),
@@ -379,8 +577,9 @@ class _StreakDetailPageState extends State<StreakDetailPage> {
     );
   }
 
-  Widget _buildCalendarDay(int day, bool hasRead, bool isToday, bool isFuture) {
+  Widget _buildCalendarDay(int day, bool hasRead, bool isToday, bool isFuture, bool isFrozen) {
     final color = _getStreakColor();
+    const frozenColor = Color(0xFF5C6BC0);
 
     if (isFuture) {
       return Container(
@@ -389,7 +588,7 @@ class _StreakDetailPageState extends State<StreakDetailPage> {
           '$day',
           style: TextStyle(
             fontSize: 16,
-            color: Colors.grey.shade300,
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
           ),
         ),
       );
@@ -404,6 +603,22 @@ class _StreakDetailPageState extends State<StreakDetailPage> {
         child: Center(
           child: Icon(
             Icons.local_fire_department_rounded,
+            color: Colors.white,
+            size: 20,
+          ),
+        ),
+      );
+    }
+
+    if (isFrozen) {
+      return Container(
+        decoration: const BoxDecoration(
+          color: frozenColor,
+          shape: BoxShape.circle,
+        ),
+        child: const Center(
+          child: Icon(
+            Icons.ac_unit_rounded,
             color: Colors.white,
             size: 20,
           ),
@@ -434,7 +649,7 @@ class _StreakDetailPageState extends State<StreakDetailPage> {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.grey.shade200,
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
         shape: BoxShape.circle,
       ),
       child: Center(
@@ -442,7 +657,7 @@ class _StreakDetailPageState extends State<StreakDetailPage> {
           '$day',
           style: TextStyle(
             fontSize: 14,
-            color: Colors.grey.shade500,
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
           ),
         ),
       ),
@@ -456,7 +671,7 @@ class _StreakDetailPageState extends State<StreakDetailPage> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.grey.shade100,
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -464,24 +679,24 @@ class _StreakDetailPageState extends State<StreakDetailPage> {
         children: [
           Text(
             'Tu as battu $percentage % des lecteurs réguliers.',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w600,
-              color: Colors.black,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 4),
           Row(
-            children: const [
+            children: [
               Text(
                 'Bravo! ',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
-                  color: Colors.black,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
-              Text('🎉', style: TextStyle(fontSize: 18)),
+              const Text('🎉', style: TextStyle(fontSize: 18)),
             ],
           ),
           const SizedBox(height: 12),
@@ -489,7 +704,7 @@ class _StreakDetailPageState extends State<StreakDetailPage> {
             'Continue ta lecture demain pour maintenir ton streak!',
             style: TextStyle(
               fontSize: 14,
-              color: Colors.grey.shade700,
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
             ),
           ),
         ],
@@ -498,10 +713,11 @@ class _StreakDetailPageState extends State<StreakDetailPage> {
   }
 
   Widget _buildYearCalendar() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFFB8E6D5),
+        color: isDark ? const Color(0xFF1A3D33) : const Color(0xFFB8E6D5),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -517,7 +733,7 @@ class _StreakDetailPageState extends State<StreakDetailPage> {
                 decoration: BoxDecoration(
                   color: index == 0
                       ? const Color(0xFF6DB899)
-                      : Colors.white.withOpacity(0.5),
+                      : (isDark ? Colors.white.withValues(alpha: 0.2) : Colors.white.withValues(alpha: 0.5)),
                   shape: BoxShape.circle,
                 ),
               );
@@ -531,6 +747,7 @@ class _StreakDetailPageState extends State<StreakDetailPage> {
   }
 
   Widget _buildMonthGrid() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final now = DateTime.now();
     final firstDayOfMonth = DateTime(now.year, now.month, 1);
     final lastDayOfMonth = DateTime(now.year, now.month + 1, 0);
@@ -559,10 +776,10 @@ class _StreakDetailPageState extends State<StreakDetailPage> {
                     child: Text(
                       day,
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF2C5F4F),
+                        color: isDark ? const Color(0xFFB8E6D5) : const Color(0xFF2C5F4F),
                       ),
                     ),
                   ))
@@ -605,7 +822,7 @@ class _StreakDetailPageState extends State<StreakDetailPage> {
                   fontWeight: FontWeight.w500,
                   color: hasRead
                       ? Colors.white
-                      : const Color(0xFF2C5F4F).withOpacity(0.5),
+                      : (isDark ? const Color(0xFFB8E6D5).withValues(alpha: 0.5) : const Color(0xFF2C5F4F).withValues(alpha: 0.5)),
                 ),
               ),
             );

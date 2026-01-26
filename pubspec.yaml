@@ -37,8 +37,8 @@ dependencies:
   supabase_flutter: ^2.8.1
   http: ^1.6.0
   image_picker: ^1.0.7              # Capture photo from camera/gallery
-  google_mlkit_text_recognition: ^0.13.0  # OCR on-device (free)
-  mobile_scanner: ^5.1.1            # Barcode/ISBN scanning
+  google_mlkit_text_recognition: ^0.15.0  # OCR on-device (free)
+  mobile_scanner: ^7.0.0            # Barcode/ISBN scanning
   path_provider: ^2.1.2             # Local storage for images
   permission_handler: ^11.3.0       # Camera/storage permissions
   intl: ^0.19.0                     # Date formatting and localization
@@ -46,8 +46,7 @@ dependencies:
   url_launcher: ^6.3.1              # Open URLs in browser
   shared_preferences: ^2.2.2        # Local storage for user preferences
   provider: ^6.1.1                  # State management
-  firebase_core: ^3.8.1             # Firebase core SDK
-  firebase_messaging: ^15.1.5       # Firebase Cloud Messaging for push notifications
+  webview_flutter: ^4.10.0           # WebView for Kindle auth
 
 dev_dependencies:
   flutter_test:

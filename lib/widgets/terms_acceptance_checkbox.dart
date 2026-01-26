@@ -4,6 +4,7 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import '../pages/auth/terms_of_service_page.dart';
+import '../theme/app_theme.dart';
 
 class TermsAcceptanceCheckbox extends StatelessWidget {
   final bool value;
@@ -23,7 +24,7 @@ class TermsAcceptanceCheckbox extends StatelessWidget {
         Checkbox(
           value: value,
           onChanged: onChanged,
-          activeColor: Colors.deepPurple,
+          activeColor: AppColors.primary,
         ),
         Expanded(
           child: Padding(
@@ -40,7 +41,7 @@ class TermsAcceptanceCheckbox extends StatelessWidget {
                   TextSpan(
                     text: 'Conditions Générales d\'Utilisation',
                     style: const TextStyle(
-                      color: Colors.deepPurple,
+                      color: AppColors.primary,
                       decoration: TextDecoration.underline,
                       fontWeight: FontWeight.w600,
                     ),

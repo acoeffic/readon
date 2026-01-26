@@ -7,6 +7,8 @@ import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../services/comments_service.dart';
 import '../../../services/likes_service.dart';
+import '../../../theme/app_theme.dart';
+import '../../friends/friend_profile_page.dart';
 
 class FriendActivityCard extends StatefulWidget {
   final Map<String, dynamic> activity;
@@ -196,6 +198,7 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
                      widget.activity['author_email'] as String? ??
                      'Un ami';
     final userAvatar = widget.activity['author_avatar'] as String?;
+    final authorId = widget.activity['author_id'] as String?;
     final payload = widget.activity['payload'] as Map<String, dynamic>?;
     final bookTitle = payload?['book_title'] as String?;
     final bookAuthor = payload?['book_author'] as String?;
@@ -275,72 +278,88 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
                   const SizedBox(height: 12),
                 ],
               // Header: Avatar + Nom + Temps
-              Row(
-                children: [
-                  Container(
-                    decoration: isBookFinished
-                        ? BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: Colors.amber.shade400,
-                              width: 3,
+              GestureDetector(
+                onTap: authorId != null
+                    ? () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => FriendProfilePage(
+                              userId: authorId,
+                              initialName: userName,
+                              initialAvatar: userAvatar,
                             ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.amber.withOpacity(0.3),
-                                blurRadius: 8,
-                                spreadRadius: 2,
+                          ),
+                        );
+                      }
+                    : null,
+                child: Row(
+                  children: [
+                    Container(
+                      decoration: isBookFinished
+                          ? BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: Colors.amber.shade400,
+                                width: 3,
                               ),
-                            ],
-                          )
-                        : null,
-                    child: CircleAvatar(
-                      radius: 20,
-                      backgroundColor: isBookFinished
-                          ? Colors.amber.shade100
-                          : Colors.deepPurple.shade100,
-                      backgroundImage: userAvatar != null && userAvatar.isNotEmpty
-                          ? NetworkImage(userAvatar)
-                          : null,
-                      child: userAvatar == null || userAvatar.isEmpty
-                          ? Text(
-                              userName[0].toUpperCase(),
-                              style: TextStyle(
-                                color: isBookFinished
-                                    ? Colors.amber.shade700
-                                    : Colors.deepPurple.shade700,
-                                fontWeight: FontWeight.bold,
-                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.amber.withOpacity(0.3),
+                                  blurRadius: 8,
+                                  spreadRadius: 2,
+                                ),
+                              ],
                             )
                           : null,
+                      child: CircleAvatar(
+                        radius: 20,
+                        backgroundColor: isBookFinished
+                            ? Colors.amber.shade100
+                            : AppColors.primary.withValues(alpha: 0.2),
+                        backgroundImage: userAvatar != null && userAvatar.isNotEmpty
+                            ? NetworkImage(userAvatar)
+                            : null,
+                        child: userAvatar == null || userAvatar.isEmpty
+                            ? Text(
+                                userName[0].toUpperCase(),
+                                style: TextStyle(
+                                  color: isBookFinished
+                                      ? Colors.amber.shade700
+                                      : AppColors.primary.withValues(alpha: 0.9),
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              )
+                            : null,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          userName,
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                            color: isBookFinished ? Colors.amber.shade900 : null,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            userName,
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                              color: isBookFinished ? Colors.amber.shade900 : null,
+                            ),
                           ),
-                        ),
-                        Text(
-                          _getTimeAgo(createdAt),
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: isBookFinished
-                                ? Colors.orange.shade700
-                                : Colors.grey.shade600,
+                          Text(
+                            _getTimeAgo(createdAt),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: isBookFinished
+                                  ? Colors.orange.shade700
+                                  : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
               
               const SizedBox(height: 12),
@@ -357,7 +376,7 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
                       fontSize: 14,
                       color: isBookFinished
                           ? Colors.amber.shade900
-                          : Colors.grey.shade700,
+                          : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                       fontWeight: isBookFinished ? FontWeight.w600 : FontWeight.normal,
                     ),
                   ),
@@ -371,13 +390,13 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: isBookFinished
-                        ? Colors.white
-                        : Colors.grey.shade50,
+                        ? Theme.of(context).cardColor
+                        : Theme.of(context).colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
                       color: isBookFinished
                           ? Colors.amber.shade300
-                          : Colors.grey.shade200,
+                          : Theme.of(context).dividerColor,
                       width: isBookFinished ? 2 : 1,
                     ),
                     boxShadow: isBookFinished
@@ -405,7 +424,7 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
                               return Container(
                                 width: 50,
                                 height: 70,
-                                color: Colors.grey.shade300,
+                                color: Theme.of(context).colorScheme.surfaceContainerHighest,
                                 child: const Icon(Icons.book, size: 30),
                               );
                             },
@@ -416,7 +435,7 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
                           width: 50,
                           height: 70,
                           decoration: BoxDecoration(
-                            color: Colors.grey.shade300,
+                            color: Theme.of(context).colorScheme.surfaceContainerHighest,
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: const Icon(Icons.book, size: 30),
@@ -444,7 +463,7 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
                                 bookAuthor,
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: Colors.grey.shade600,
+                                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -479,7 +498,7 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
                           Icon(
                             _isLiked ? Icons.favorite : Icons.favorite_border,
                             size: 20,
-                            color: _isLiked ? Colors.red : Colors.grey.shade600,
+                            color: _isLiked ? Colors.red : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                           ),
                           if (_likeCount > 0) ...[
                             const SizedBox(width: 4),
@@ -487,7 +506,7 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
                               '$_likeCount',
                               style: TextStyle(
                                 fontSize: 14,
-                                color: Colors.grey.shade700,
+                                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -509,7 +528,7 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
                         child: Icon(
                           Icons.share_outlined,
                           size: 20,
-                          color: Colors.grey.shade600,
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                         ),
                       ),
                     ),
@@ -519,10 +538,10 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
                   // Bouton Voir plus
                   TextButton.icon(
                     onPressed: _showDetails,
-                    icon: Icon(Icons.info_outline, size: 18, color: Colors.grey.shade600),
+                    icon: Icon(Icons.info_outline, size: 18, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
                     label: Text(
                       'Détails',
-                      style: TextStyle(color: Colors.grey.shade700),
+                      style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7)),
                     ),
                   ),
                 ],
@@ -589,22 +608,33 @@ class _DetailChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.deepPurple.shade50,
+        color: isDark
+            ? AppColors.primary.withValues(alpha: 0.3)
+            : AppColors.primary.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: Colors.deepPurple.shade700),
+          Icon(
+            icon,
+            size: 14,
+            color: isDark
+                ? AppColors.primary.withValues(alpha: 0.7)
+                : AppColors.primary.withValues(alpha: 0.9),
+          ),
           const SizedBox(width: 4),
           Text(
             label,
             style: TextStyle(
               fontSize: 12,
-              color: Colors.deepPurple.shade700,
+              color: isDark
+                  ? AppColors.primary.withValues(alpha: 0.7)
+                  : AppColors.primary.withValues(alpha: 0.9),
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -744,7 +774,7 @@ class _StatCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -763,7 +793,7 @@ class _StatCard extends StatelessWidget {
             label,
             style: TextStyle(
               fontSize: 12,
-              color: Colors.grey.shade600,
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
             ),
           ),
         ],
@@ -787,12 +817,12 @@ class _InfoRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon, size: 20, color: Colors.grey.shade600),
+        Icon(icon, size: 20, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
         const SizedBox(width: 12),
         Text(
           label,
           style: TextStyle(
-            color: Colors.grey.shade600,
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
             fontSize: 14,
           ),
         ),
@@ -882,9 +912,9 @@ class _ShareBottomSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     return SafeArea(
       child: Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        decoration: BoxDecoration(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: SingleChildScrollView(
           child: Column(
@@ -896,7 +926,7 @@ class _ShareBottomSheet extends StatelessWidget {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
+                  color: Theme.of(context).dividerColor,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -917,7 +947,7 @@ class _ShareBottomSheet extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: Colors.grey.shade800,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                     if (bookTitle != null) ...[
@@ -926,7 +956,7 @@ class _ShareBottomSheet extends StatelessWidget {
                         bookTitle!,
                     style: TextStyle(
                       fontSize: 14,
-                      color: Colors.grey.shade600,
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
                     textAlign: TextAlign.center,
                     maxLines: 1,
@@ -1014,7 +1044,7 @@ class _ShareBottomSheet extends StatelessWidget {
                       'Annuler',
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.grey.shade600,
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                       ),
                     ),
                   ),
@@ -1066,7 +1096,7 @@ class _ShareOption extends StatelessWidget {
               label,
               style: TextStyle(
                 fontSize: 11,
-                color: Colors.grey.shade700,
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -1236,7 +1266,7 @@ class _CommentsSheetState extends State<_CommentsSheet> {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(Icons.send),
-                color: Colors.deepPurple,
+                color: AppColors.primary,
                 iconSize: 28,
               ),
             ],
@@ -1278,7 +1308,7 @@ class _CommentItem extends StatelessWidget {
         children: [
           CircleAvatar(
             radius: 18,
-            backgroundColor: Colors.deepPurple.shade100,
+            backgroundColor: AppColors.primary.withValues(alpha: 0.2),
             backgroundImage: comment.authorAvatar != null && comment.authorAvatar!.isNotEmpty
                 ? NetworkImage(comment.authorAvatar!)
                 : null,
@@ -1286,7 +1316,7 @@ class _CommentItem extends StatelessWidget {
                 ? Text(
                     comment.displayName[0].toUpperCase(),
                     style: TextStyle(
-                      color: Colors.deepPurple.shade700,
+                      color: AppColors.primary.withValues(alpha: 0.9),
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
                     ),

@@ -16,7 +16,7 @@ class ActionChipButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: AppColors.white,
+      color: Theme.of(context).cardColor,
       borderRadius: BorderRadius.circular(AppRadius.pill),
       elevation: 2,
       child: InkWell(
@@ -30,7 +30,7 @@ class ActionChipButton extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: 18, color: AppColors.textPrimary),
+              Icon(icon, size: 18, color: Theme.of(context).colorScheme.onSurface),
               SizedBox(width: AppSpace.s),
               Text(
                 label,

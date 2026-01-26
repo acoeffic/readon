@@ -98,7 +98,7 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.bgLight,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(AppSpace.l),
@@ -124,7 +124,9 @@ class _ProfilePageState extends State<ProfilePage> {
                         height: 82,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: AppColors.accentLight,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? AppColors.accentDark
+                              : AppColors.accentLight,
                           image: _avatarUrl != null && _avatarUrl!.isNotEmpty
                               ? DecorationImage(
                                   image: NetworkImage(_avatarUrl!),
@@ -154,7 +156,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       Text(
                         _motivatedSince,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppColors.textSecondary,
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                           fontStyle: FontStyle.italic,
                         ),
                       ),
@@ -180,7 +182,7 @@ class _ProfilePageState extends State<ProfilePage> {
               Container(
                 padding: const EdgeInsets.all(AppSpace.l),
                 decoration: BoxDecoration(
-                  color: AppColors.white,
+                  color: Theme.of(context).cardColor,
                   borderRadius: BorderRadius.circular(AppRadius.l),
                 ),
                 child: Column(
@@ -259,7 +261,7 @@ class _ProfilePageState extends State<ProfilePage> {
               Container(
                 padding: const EdgeInsets.all(AppSpace.m),
                 decoration: BoxDecoration(
-                  color: AppColors.white,
+                  color: Theme.of(context).cardColor,
                   borderRadius: BorderRadius.circular(AppRadius.l),
                 ),
                 child: Row(
@@ -301,7 +303,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 Container(
                   padding: const EdgeInsets.all(AppSpace.l),
                   decoration: BoxDecoration(
-                    color: AppColors.white,
+                    color: Theme.of(context).cardColor,
                     borderRadius: BorderRadius.circular(AppRadius.l),
                   ),
                   child: BadgesGrid(

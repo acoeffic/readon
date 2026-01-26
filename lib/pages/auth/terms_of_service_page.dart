@@ -2,6 +2,7 @@
 // Page des Conditions Générales d'Utilisation
 
 import 'package:flutter/material.dart';
+import '../../theme/app_theme.dart';
 
 class TermsOfServicePage extends StatelessWidget {
   final bool requireAcceptance;
@@ -19,7 +20,7 @@ class TermsOfServicePage extends StatelessWidget {
       backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text('Conditions d\'utilisation'),
-        backgroundColor: Colors.deepPurple,
+        backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
       ),
       body: Column(
@@ -112,7 +113,7 @@ class TermsOfServicePage extends StatelessWidget {
                   child: ElevatedButton(
                     onPressed: onAccept,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.deepPurple,
+                      backgroundColor: AppColors.primary,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
@@ -146,7 +147,7 @@ class TermsOfServicePage extends StatelessWidget {
             style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: Colors.deepPurple,
+              color: AppColors.primary,
             ),
           ),
           const SizedBox(height: 12),

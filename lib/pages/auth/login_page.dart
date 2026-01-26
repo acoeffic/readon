@@ -6,7 +6,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/back_header.dart';
 import '../../navigation/main_navigation.dart';
-import '../../services/notification_service.dart';
 import 'signup_page.dart';
 import 'confirm_email_page.dart';
 
@@ -79,9 +78,6 @@ class _LoginPageState extends State<LoginPage> {
         return;
       }
 
-      // Initialiser le service de notifications après la connexion
-      await NotificationService().initialize();
-
       if (!mounted) return;
 
       Navigator.of(context).pushReplacement(
@@ -102,7 +98,22 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Theme(
+      data: AppTheme.light.copyWith(
+        textTheme: AppTheme.light.textTheme.copyWith(
+          bodyMedium: AppTheme.light.textTheme.bodyMedium?.copyWith(
+            color: Colors.black,
+          ),
+          titleMedium: AppTheme.light.textTheme.titleMedium?.copyWith(
+            color: Colors.black,
+          ),
+        ),
+        inputDecorationTheme: AppTheme.light.inputDecorationTheme.copyWith(
+          hintStyle: const TextStyle(color: Colors.black),
+        ),
+      ),
+      child: Scaffold(
       backgroundColor: AppColors.bgLight,
       body: SafeArea(
         child: SingleChildScrollView(
@@ -110,13 +121,17 @@ class _LoginPageState extends State<LoginPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const BackHeader(title: 'Se connecter'),
+              const BackHeader(
+                title: 'Se connecter',
+                titleColor: AppColors.primary,
+              ),
               const SizedBox(height: AppSpace.l),
               Text(
                 'Bienvenue sur ReadOn',
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                       fontSize: 28,
                       fontWeight: FontWeight.w700,
+                      color: isDark ? Colors.black : null,
                     ),
               ),
               const SizedBox(height: AppSpace.s),
@@ -213,6 +228,7 @@ class _LoginPageState extends State<LoginPage> {
           ),
         ),
       ),
+    ),
     );
   }
 }

@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 import '../../models/reading_group.dart';
+import '../../models/group_challenge.dart';
 import '../../services/groups_service.dart';
+import '../../services/challenge_service.dart';
 import 'group_members_page.dart';
+import 'group_settings_page.dart';
+import 'create_challenge_page.dart';
+import 'challenge_detail_page.dart';
 import 'package:intl/intl.dart';
 
 class GroupDetailPage extends StatefulWidget {
@@ -16,17 +21,21 @@ class GroupDetailPage extends StatefulWidget {
 
 class _GroupDetailPageState extends State<GroupDetailPage> {
   final GroupsService _groupsService = GroupsService();
+  final ChallengeService _challengeService = ChallengeService();
 
   ReadingGroup? _group;
   List<GroupActivity> _activities = [];
+  List<GroupChallenge> _challenges = [];
   bool _isLoading = true;
   bool _isLoadingActivities = true;
+  bool _isLoadingChallenges = true;
 
   @override
   void initState() {
     super.initState();
     _loadGroup();
     _loadActivities();
+    _loadChallenges();
   }
 
   Future<void> _loadGroup() async {
@@ -60,6 +69,44 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
     } catch (e) {
       setState(() => _isLoadingActivities = false);
     }
+  }
+
+  Future<void> _loadChallenges() async {
+    setState(() => _isLoadingChallenges = true);
+    try {
+      final challenges = await _challengeService.getActiveChallenges(widget.groupId);
+      setState(() {
+        _challenges = challenges;
+        _isLoadingChallenges = false;
+      });
+    } catch (e) {
+      setState(() => _isLoadingChallenges = false);
+    }
+  }
+
+  Future<void> _navigateToCreateChallenge() async {
+    final result = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CreateChallengePage(groupId: widget.groupId),
+      ),
+    );
+
+    if (result == true) _loadChallenges();
+  }
+
+  Future<void> _navigateToChallengeDetail(GroupChallenge challenge) async {
+    final result = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ChallengeDetailPage(
+          challenge: challenge,
+          isAdmin: _group?.isAdmin ?? false,
+        ),
+      ),
+    );
+
+    if (result == 'deleted') _loadChallenges();
   }
 
   Future<void> _leaveGroup() async {
@@ -121,62 +168,20 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
     );
   }
 
-  Future<void> _toggleVisibility() async {
+  Future<void> _navigateToSettings() async {
     if (_group == null) return;
 
-    final newVisibility = !_group!.isPrivate;
-    final visibilityText = newVisibility ? 'privé' : 'public';
-
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadius.l),
-        ),
-        title: Text('Rendre le groupe $visibilityText ?'),
-        content: Text(
-          newVisibility
-              ? 'Le groupe sera uniquement accessible sur invitation. Les membres actuels restent dans le groupe.'
-              : 'Le groupe sera visible par tous les utilisateurs dans la section "Découvrir".',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Annuler'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text('Rendre $visibilityText'),
-          ),
-        ],
+    final result = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => GroupSettingsPage(group: _group!),
       ),
     );
 
-    if (confirm != true) return;
-
-    try {
-      await _groupsService.updateGroup(
-        groupId: widget.groupId,
-        isPrivate: newVisibility,
-      );
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('✅ Groupe maintenant $visibilityText'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-
-      // Reload group data
-      await _loadGroup();
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur: $e')),
-        );
-      }
+    if (result == 'deleted') {
+      if (mounted) Navigator.pop(context);
+    } else {
+      _loadGroup();
     }
   }
 
@@ -228,51 +233,9 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
             ),
             actions: [
               if (_group!.isAdmin)
-                PopupMenuButton<String>(
-                  onSelected: (value) {
-                    if (value == 'members') {
-                      _navigateToMembers();
-                    } else if (value == 'visibility') {
-                      _toggleVisibility();
-                    } else if (value == 'leave') {
-                      _leaveGroup();
-                    }
-                  },
-                  itemBuilder: (context) => [
-                    const PopupMenuItem(
-                      value: 'members',
-                      child: Row(
-                        children: [
-                          Icon(Icons.people),
-                          SizedBox(width: 8),
-                          Text('Gérer les membres'),
-                        ],
-                      ),
-                    ),
-                    PopupMenuItem(
-                      value: 'visibility',
-                      child: Row(
-                        children: [
-                          Icon(_group!.isPrivate ? Icons.public : Icons.lock),
-                          const SizedBox(width: 8),
-                          Text(_group!.isPrivate ? 'Rendre public' : 'Rendre privé'),
-                        ],
-                      ),
-                    ),
-                    const PopupMenuItem(
-                      value: 'leave',
-                      child: Row(
-                        children: [
-                          Icon(Icons.exit_to_app, color: AppColors.error),
-                          SizedBox(width: 8),
-                          Text(
-                            'Quitter le groupe',
-                            style: TextStyle(color: AppColors.error),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                IconButton(
+                  icon: const Icon(Icons.settings),
+                  onPressed: _navigateToSettings,
                 )
               else
                 IconButton(
@@ -376,6 +339,54 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                       ),
                     ],
                   ),
+                  const SizedBox(height: AppSpace.xl),
+
+                  // Challenges section
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Défis actifs',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      if (_group!.isAdmin)
+                        IconButton(
+                          icon: const Icon(Icons.add_circle_outline, color: AppColors.primary),
+                          onPressed: _navigateToCreateChallenge,
+                          tooltip: 'Créer un défi',
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpace.m),
+                  if (_isLoadingChallenges)
+                    const Center(child: CircularProgressIndicator())
+                  else if (_challenges.isEmpty)
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(AppSpace.l),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).cardColor,
+                        borderRadius: BorderRadius.circular(AppRadius.m),
+                      ),
+                      child: Column(
+                        children: [
+                          Icon(Icons.flag_outlined, size: 40, color: Colors.grey.shade400),
+                          const SizedBox(height: AppSpace.s),
+                          Text(
+                            'Aucun défi actif',
+                            style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                          ),
+                        ],
+                      ),
+                    )
+                  else
+                    ..._challenges.map((challenge) => _ChallengeCard(
+                          challenge: challenge,
+                          onTap: () => _navigateToChallengeDetail(challenge),
+                        )),
                   const SizedBox(height: AppSpace.xl),
 
                   // Activities section
@@ -615,6 +626,124 @@ class _ActivityCard extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ChallengeCard extends StatelessWidget {
+  final GroupChallenge challenge;
+  final VoidCallback onTap;
+
+  const _ChallengeCard({required this.challenge, required this.onTap});
+
+  IconData _getTypeIcon() {
+    switch (challenge.type) {
+      case 'read_book':
+        return Icons.book;
+      case 'read_pages':
+        return Icons.menu_book;
+      case 'read_daily':
+        return Icons.calendar_today;
+      default:
+        return Icons.flag;
+    }
+  }
+
+  String _getTimeRemaining() {
+    final remaining = challenge.timeRemaining;
+    if (remaining.isNegative) return 'Expiré';
+    if (remaining.inDays > 0) return '${remaining.inDays}j';
+    if (remaining.inHours > 0) return '${remaining.inHours}h';
+    return '${remaining.inMinutes}min';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: AppSpace.m),
+      color: Theme.of(context).cardColor,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadius.m),
+      ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppRadius.m),
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpace.m),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(AppRadius.s),
+                ),
+                child: Icon(_getTypeIcon(), color: AppColors.primary, size: 20),
+              ),
+              const SizedBox(width: AppSpace.m),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      challenge.title,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Text(
+                          '${challenge.participantCount} participants',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            _getTimeRemaining(),
+                            style: const TextStyle(
+                              fontSize: 10,
+                              color: Colors.orange,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (challenge.userJoined) ...[
+                      const SizedBox(height: 6),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(2),
+                        child: LinearProgressIndicator(
+                          value: challenge.progressPercent,
+                          minHeight: 4,
+                          backgroundColor: Colors.grey.shade300,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            challenge.userCompleted ? Colors.green : AppColors.primary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right, color: Colors.grey, size: 20),
+            ],
+          ),
         ),
       ),
     );

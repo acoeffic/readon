@@ -3,6 +3,7 @@
 
 import 'package:flutter/material.dart';
 import '../../services/badges_service.dart';
+import '../../theme/app_theme.dart';
 
 class AllBadgesPage extends StatefulWidget {
   const AllBadgesPage({super.key});
@@ -83,10 +84,10 @@ class _AllBadgesPageState extends State<AllBadgesPage> {
     final totalCount = _allBadges.length;
 
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Mes Badges'),
-        backgroundColor: Colors.deepPurple,
+        backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         elevation: 0,
       ),
@@ -100,7 +101,10 @@ class _AllBadgesPageState extends State<AllBadgesPage> {
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [Colors.deepPurple, Colors.deepPurple.shade300],
+                      colors: [
+                        AppColors.primary,
+                        AppColors.primary.withValues(alpha: 0.8),
+                      ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
@@ -138,7 +142,7 @@ class _AllBadgesPageState extends State<AllBadgesPage> {
                 // Filtres
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  color: Colors.white,
+                  color: Theme.of(context).cardColor,
                   child: Row(
                     children: [
                       _FilterChip(
@@ -171,9 +175,9 @@ class _AllBadgesPageState extends State<AllBadgesPage> {
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.emoji_events_outlined, 
-                                   size: 64, 
-                                   color: Colors.grey.shade400),
+                              Icon(Icons.emoji_events_outlined,
+                                   size: 64,
+                                   color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4)),
                               const SizedBox(height: 16),
                               Text(
                                 _selectedFilter == 'unlocked'
@@ -181,7 +185,7 @@ class _AllBadgesPageState extends State<AllBadgesPage> {
                                     : 'Aucun badge',
                                 style: TextStyle(
                                   fontSize: 16,
-                                  color: Colors.grey.shade600,
+                                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                                 ),
                               ),
                             ],
@@ -222,13 +226,15 @@ class _FilterChip extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? Colors.deepPurple : Colors.grey.shade200,
+          color: isSelected
+              ? AppColors.primary
+              : Theme.of(context).colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(20),
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: isSelected ? Colors.white : Colors.grey.shade700,
+            color: isSelected ? Colors.white : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
           ),
         ),
@@ -255,10 +261,10 @@ class _CategorySection extends StatelessWidget {
           padding: const EdgeInsets.only(left: 4, bottom: 12, top: 8),
           child: Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: Colors.black87,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
         ),
@@ -303,17 +309,17 @@ class _BadgeCard extends StatelessWidget {
       onTap: () => _showBadgeDetails(context),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isLocked ? Colors.grey.shade300 : color.withOpacity(0.3),
+            color: isLocked ? Theme.of(context).dividerColor : color.withValues(alpha: 0.3),
             width: 2,
           ),
           boxShadow: isLocked
               ? []
               : [
                   BoxShadow(
-                    color: color.withOpacity(0.2),
+                    color: color.withValues(alpha: 0.2),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -327,9 +333,9 @@ class _BadgeCard extends StatelessWidget {
               width: 70,
               height: 70,
               decoration: BoxDecoration(
-                color: isLocked 
-                    ? Colors.grey.shade200 
-                    : color.withOpacity(0.15),
+                color: isLocked
+                    ? Theme.of(context).colorScheme.surfaceContainerHighest
+                    : color.withValues(alpha: 0.15),
                 shape: BoxShape.circle,
               ),
               child: Center(
@@ -337,14 +343,14 @@ class _BadgeCard extends StatelessWidget {
                   badge.icon,
                   style: TextStyle(
                     fontSize: 36,
-                    color: isLocked ? Colors.grey.shade400 : null,
+                    color: isLocked ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4) : null,
                   ),
                 ),
               ),
             ),
-            
+
             const SizedBox(height: 8),
-            
+
             // Badge name
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -353,7 +359,9 @@ class _BadgeCard extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
-                  color: isLocked ? Colors.grey.shade600 : Colors.black87,
+                  color: isLocked
+                      ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)
+                      : Theme.of(context).colorScheme.onSurface,
                 ),
                 textAlign: TextAlign.center,
                 maxLines: 2,
@@ -372,8 +380,8 @@ class _BadgeCard extends StatelessWidget {
                       height: 4,
                       child: LinearProgressIndicator(
                         value: badge.progressPercentage,
-                        backgroundColor: Colors.grey.shade300,
-                        valueColor: AlwaysStoppedAnimation<Color>(color.withOpacity(0.5)),
+                        backgroundColor: Theme.of(context).dividerColor,
+                        valueColor: AlwaysStoppedAnimation<Color>(color.withValues(alpha: 0.5)),
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -382,7 +390,7 @@ class _BadgeCard extends StatelessWidget {
                       '${badge.progress}/${badge.requirement}',
                       style: TextStyle(
                         fontSize: 10,
-                        color: Colors.grey.shade600,
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                       ),
                     ),
                   ],
@@ -419,12 +427,12 @@ class _BadgeCard extends StatelessWidget {
               width: 100,
               height: 100,
               decoration: BoxDecoration(
-                color: badge.isUnlocked 
-                    ? color.withOpacity(0.2) 
-                    : Colors.grey.shade200,
+                color: badge.isUnlocked
+                    ? color.withValues(alpha: 0.2)
+                    : Theme.of(context).colorScheme.surfaceContainerHighest,
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: badge.isUnlocked ? color : Colors.grey.shade400,
+                  color: badge.isUnlocked ? color : Theme.of(context).dividerColor,
                   width: 3,
                 ),
               ),
@@ -449,7 +457,7 @@ class _BadgeCard extends StatelessWidget {
               badge.description,
               style: TextStyle(
                 fontSize: 14,
-                color: Colors.grey.shade700,
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
               ),
               textAlign: TextAlign.center,
             ),
@@ -458,19 +466,21 @@ class _BadgeCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
-                  color: Colors.green.shade50,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.green.shade900.withValues(alpha: 0.3)
+                      : Colors.green.shade50,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(color: Colors.green.shade300),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.check_circle, color: Colors.green.shade700, size: 20),
+                    Icon(Icons.check_circle, color: Colors.green.shade400, size: 20),
                     const SizedBox(width: 8),
                     Text(
                       'Débloqué',
                       style: TextStyle(
-                        color: Colors.green.shade700,
+                        color: Colors.green.shade400,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -481,7 +491,7 @@ class _BadgeCard extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text(
                   'Le ${_formatDate(badge.unlockedAt!)}',
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                  style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
                 ),
               ],
             ] else ...[
@@ -489,7 +499,7 @@ class _BadgeCard extends StatelessWidget {
                 width: double.infinity,
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Column(
@@ -498,14 +508,14 @@ class _BadgeCard extends StatelessWidget {
                       'Progression',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.grey.shade700,
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     const SizedBox(height: 8),
                     LinearProgressIndicator(
                       value: badge.progressPercentage,
-                      backgroundColor: Colors.grey.shade300,
+                      backgroundColor: Theme.of(context).dividerColor,
                       valueColor: AlwaysStoppedAnimation<Color>(color),
                     ),
                     const SizedBox(height: 8),

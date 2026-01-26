@@ -6,8 +6,9 @@ import 'dart:io';
 import '../../theme/app_theme.dart';
 import '../../widgets/back_header.dart';
 import '../../providers/theme_provider.dart';
-import '../../services/notification_service.dart';
 import 'notification_settings_page.dart';
+import 'kindle_login_page.dart';
+import '../../services/kindle_webview_service.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -20,6 +21,48 @@ class _SettingsPageState extends State<SettingsPage> {
   final supabase = Supabase.instance.client;
   final ImagePicker _picker = ImagePicker();
   bool _isUploading = false;
+  String? _kindleLastSync;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadKindleSyncStatus();
+  }
+
+  Future<void> _loadKindleSyncStatus() async {
+    final lastSync = await KindleWebViewService().getLastSyncDate();
+    if (mounted) setState(() => _kindleLastSync = lastSync);
+  }
+
+  String _formatSyncDate(String isoDate) {
+    try {
+      final date = DateTime.parse(isoDate);
+      final now = DateTime.now();
+      final diff = now.difference(date);
+      if (diff.inMinutes < 60) return 'il y a ${diff.inMinutes} min';
+      if (diff.inHours < 24) return 'il y a ${diff.inHours}h';
+      if (diff.inDays < 7) return 'il y a ${diff.inDays}j';
+      return '${date.day}/${date.month}/${date.year}';
+    } catch (_) {
+      return isoDate;
+    }
+  }
+
+  Future<void> _openKindleLogin() async {
+    final result = await Navigator.of(context).push<KindleReadingData>(
+      MaterialPageRoute(builder: (context) => const KindleLoginPage()),
+    );
+
+    if (result != null && mounted) {
+      await _loadKindleSyncStatus();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Kindle synchronisé avec succès !'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
+  }
 
   Future<void> _changeProfilePicture() async {
     try {
@@ -256,7 +299,10 @@ if (!allowedExtensions.contains(fileExtension)) {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const BackHeader(title: 'Paramètres'),
+              const BackHeader(
+                title: 'Paramètres',
+                titleColor: AppColors.primary,
+              ),
               const SizedBox(height: AppSpace.l),
 
               // --- Section Profil ---
@@ -293,6 +339,25 @@ if (!allowedExtensions.contains(fileExtension)) {
                       );
                     },
                   ),
+                ],
+              ),
+
+              const SizedBox(height: AppSpace.m),
+
+              // --- Section Kindle ---
+              _SettingsSection(
+                title: 'Kindle',
+                items: [
+                  _SettingsItem(
+                    label: _kindleLastSync != null
+                        ? '📚 Resynchroniser Kindle'
+                        : '📚 Connecter Kindle',
+                    onTap: _openKindleLogin,
+                  ),
+                  if (_kindleLastSync != null)
+                    _SettingsItem(
+                      label: '✅ Dernière sync: ${_formatSyncDate(_kindleLastSync!)}',
+                    ),
                 ],
               ),
 
@@ -364,9 +429,6 @@ if (!allowedExtensions.contains(fileExtension)) {
                     );
 
                     if (confirm == true) {
-                      // Supprimer le token FCM avant la déconnexion
-                      await NotificationService().clearFcmToken();
-
                       await Supabase.instance.client.auth.signOut();
 
                       if (context.mounted) {
@@ -453,12 +515,12 @@ class _SettingsItem extends StatelessWidget {
               child: Text(
                 label,
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: onTap == null ? Colors.grey : null,
+                  color: onTap == null ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4) : null,
                 ),
               ),
             ),
             if (onTap != null)
-              Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey.shade400),
+              Icon(Icons.arrow_forward_ios, size: 16, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4)),
           ],
         ),
       ),

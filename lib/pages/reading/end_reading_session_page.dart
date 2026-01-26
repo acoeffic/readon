@@ -16,6 +16,7 @@ import '../../widgets/badge_unlocked_dialog.dart';
 import '../../models/book.dart';
 import 'reading_session_summary_page.dart';
 import 'book_completed_summary_page.dart';
+import '../../theme/app_theme.dart';
 
 class EndReadingSessionPage extends StatefulWidget {
   final ReadingSession activeSession;
@@ -185,19 +186,13 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
       return;
     }
 
-    if (_imageFile == null) {
-      setState(() {
-        _errorMessage = 'Veuillez prendre une photo de la page.';
-      });
-      return;
-    }
-
     setState(() => _isProcessing = true);
 
     try {
       final completedSession = await _sessionService.endSession(
         sessionId: widget.activeSession.id,
-        imagePath: _imageFile!.path,
+        imagePath: _imageFile?.path,
+        manualPageNumber: pageNumber,
       );
 
       if (!mounted) return;
@@ -275,7 +270,8 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
         // Terminer la session avec le livre marqué comme terminé
         final completedSession = await _sessionService.endSession(
           sessionId: widget.activeSession.id,
-          imagePath: _imageFile!.path,
+          imagePath: _imageFile?.path,
+          manualPageNumber: pageNumber,
         );
 
         // Marquer le livre comme terminé
@@ -460,7 +456,7 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Terminer la lecture'),
-        backgroundColor: Colors.deepPurple,
+        backgroundColor: AppColors.primary,
         actions: [
           IconButton(
             icon: const Icon(Icons.cancel),
@@ -478,22 +474,29 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
           children: [
             // Infos session en cours
             Card(
-              color: Colors.blue.shade50,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.blue.shade900.withValues(alpha: 0.3)
+                  : Colors.blue.shade50,
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Row(
+                    Row(
                       children: [
-                        Icon(Icons.schedule, color: Colors.blue),
-                        SizedBox(width: 8),
-                        Text('Session en cours', style: TextStyle(fontWeight: FontWeight.bold)),
+                        Icon(Icons.schedule, color: Theme.of(context).brightness == Brightness.dark ? Colors.blue.shade300 : Colors.blue),
+                        const SizedBox(width: 8),
+                        Text('Session en cours', style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).brightness == Brightness.dark ? Colors.blue.shade200 : null,
+                        )),
                       ],
                     ),
                     const SizedBox(height: 12),
-                    Text('Commencée à la page ${widget.activeSession.startPage}'),
-                    Text('Durée: ${_formatDuration(widget.activeSession.startTime)}'),
+                    Text('Commencée à la page ${widget.activeSession.startPage}',
+                      style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : null)),
+                    Text('Durée: ${_formatDuration(widget.activeSession.startTime)}',
+                      style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : null)),
                   ],
                 ),
               ),
@@ -503,23 +506,31 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
             
             // Instructions
             Card(
-              color: Colors.green.shade50,
-              child: const Padding(
-                padding: EdgeInsets.all(16),
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.green.shade900.withValues(alpha: 0.3)
+                  : Colors.green.shade50,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.info_outline, color: Colors.green),
-                        SizedBox(width: 8),
-                        Text('Instructions', style: TextStyle(fontWeight: FontWeight.bold)),
+                        Icon(Icons.info_outline, color: Theme.of(context).brightness == Brightness.dark ? Colors.green.shade300 : Colors.green),
+                        const SizedBox(width: 8),
+                        Text('Instructions', style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).brightness == Brightness.dark ? Colors.green.shade200 : null,
+                        )),
                       ],
                     ),
-                    SizedBox(height: 8),
-                    Text('1. Photographiez votre dernière page lue'),
-                    Text('2. Assurez-vous que le numéro est visible'),
-                    Text('3. Validez pour enregistrer votre progression'),
+                    const SizedBox(height: 8),
+                    Text('1. Photographiez votre dernière page lue',
+                      style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : null)),
+                    Text('2. Assurez-vous que le numéro est visible',
+                      style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : null)),
+                    Text('3. Validez pour enregistrer votre progression',
+                      style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : null)),
                   ],
                 ),
               ),
@@ -537,7 +548,7 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
                     label: const Text('Prendre Photo'),
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.all(16),
-                      backgroundColor: Colors.deepPurple,
+                      backgroundColor: AppColors.primary,
                       foregroundColor: Colors.white,
                     ),
                   ),
@@ -550,7 +561,7 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
                     label: const Text('Galerie'),
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.all(16),
-                      backgroundColor: Colors.deepPurple.shade300,
+                      backgroundColor: AppColors.primary.withValues(alpha: 0.6),
                       foregroundColor: Colors.white,
                     ),
                   ),
@@ -644,7 +655,7 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
                                 IconButton(
                                   onPressed: _enableEditMode,
                                   icon: const Icon(Icons.edit),
-                                  color: Colors.deepPurple,
+                                  color: AppColors.primary,
                                   tooltip: 'Corriger le numéro',
                                 ),
                               ],
@@ -703,10 +714,10 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
               ),
             ],
             
-            // Saisie manuelle
-            if (_imageFile != null && _detectedPageNumber == null) ...[
+            // Saisie manuelle (toujours visible si pas de numéro détecté)
+            if (_detectedPageNumber == null) ...[
               const SizedBox(height: 20),
-              const Text('Saisissez le numéro manuellement:', style: TextStyle(fontWeight: FontWeight.bold)),
+              const Text('Ou saisissez le numéro directement:', style: TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               TextField(
                 keyboardType: TextInputType.number,
@@ -723,9 +734,9 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
                 },
               ),
             ],
-            
-            // Bouton confirmer
-            if (_imageFile != null && (_detectedPageNumber != null || _manualPageNumber != null)) ...[
+
+            // Boutons confirmer (visibles dès qu'on a un numéro de page)
+            if (_detectedPageNumber != null || _manualPageNumber != null) ...[
               const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: _isProcessing ? null : _endSession,
@@ -933,7 +944,7 @@ class _StreakBadgeDialogState extends State<_StreakBadgeDialog>
                         style: TextStyle(
                           fontSize: 28,
                           fontWeight: FontWeight.bold,
-                          color: Colors.deepPurple,
+                          color: AppColors.primary,
                         ),
                       ),
                     ],

@@ -154,75 +154,113 @@ class _UserBooksPageState extends State<UserBooksPage> {
   }
 
   Widget _buildBookCard(Book book, {bool isFinished = false}) {
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: ListTile(
-        leading: Stack(
-          children: [
-            book.coverUrl != null && book.coverUrl!.isNotEmpty
-                ? ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: Image.network(
-                      book.coverUrl!,
-                      width: 50,
-                      height: 70,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return const Icon(Icons.book, size: 50);
-                      },
-                    ),
-                  )
-                : const Icon(Icons.book, size: 50),
-            if (isFinished)
-              Positioned(
-                bottom: 0,
-                right: 0,
-                child: Container(
-                  padding: const EdgeInsets.all(2),
-                  decoration: const BoxDecoration(
-                    color: Colors.green,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.check,
-                    size: 12,
-                    color: Colors.white,
-                  ),
-                ),
+    return Dismissible(
+      key: Key('book_${book.id}'),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        decoration: BoxDecoration(
+          color: Colors.red,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: const Icon(Icons.delete, color: Colors.white),
+      ),
+      confirmDismiss: (direction) async {
+        return await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Supprimer ce livre ?'),
+            content: Text('Retirer "${book.title}" de votre bibliothèque ?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Annuler'),
               ),
-          ],
-        ),
-        title: Text(book.title, maxLines: 2, overflow: TextOverflow.ellipsis),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (book.author != null)
-              Text(book.author!, maxLines: 1, overflow: TextOverflow.ellipsis),
-            Row(
-              children: [
-                Icon(
-                  book.isKindle ? Icons.cloud : Icons.camera_alt,
-                  size: 12,
-                  color: Colors.grey,
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                child: const Text('Supprimer'),
+              ),
+            ],
+          ),
+        ) ?? false;
+      },
+      onDismissed: (direction) async {
+        await _booksService.removeBookFromLibrary(book.id);
+        _loadAllBooks();
+      },
+      child: Card(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: ListTile(
+          leading: Stack(
+            children: [
+              book.coverUrl != null && book.coverUrl!.isNotEmpty
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: Image.network(
+                        book.coverUrl!,
+                        width: 50,
+                        height: 70,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return const Icon(Icons.book, size: 50);
+                        },
+                      ),
+                    )
+                  : const Icon(Icons.book, size: 50),
+              if (isFinished)
+                Positioned(
+                  bottom: 0,
+                  right: 0,
+                  child: Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: const BoxDecoration(
+                      color: Colors.green,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.check,
+                      size: 12,
+                      color: Colors.white,
+                    ),
+                  ),
                 ),
-                const SizedBox(width: 4),
-                Text(
-                  book.isKindle ? 'Kindle' : 'Scanné',
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                ),
-              ],
-            ),
-          ],
+            ],
+          ),
+          title: Text(book.title, maxLines: 2, overflow: TextOverflow.ellipsis),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (book.author != null)
+                Text(book.author!, maxLines: 1, overflow: TextOverflow.ellipsis),
+              Row(
+                children: [
+                  Icon(
+                    book.isKindle ? Icons.cloud : Icons.camera_alt,
+                    size: 12,
+                    color: Colors.grey,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    book.isKindle ? 'Kindle' : 'Scanné',
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => BookDetailPage(book: book),
+              ),
+            ).then((_) => _loadAllBooks());
+          },
         ),
-        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => BookDetailPage(book: book),
-            ),
-          ).then((_) => _loadAllBooks()); // Recharger après retour
-        },
       ),
     );
   }
@@ -315,6 +353,57 @@ class _BookDetailPageState extends State<BookDetailPage> {
     );
 
     _loadSessionData();
+  }
+
+  Future<void> _markAsFinished() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.auto_awesome, color: Colors.amber),
+            SizedBox(width: 8),
+            Text('Terminer le livre'),
+          ],
+        ),
+        content: const Text('Marquer ce livre comme terminé ?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Annuler'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.amber,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Oui, terminé !'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        await _booksService.updateBookStatus(widget.book.id, 'finished');
+        if (mounted) {
+          setState(() => _bookStatus = 'finished');
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Livre marqué comme terminé !'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red),
+          );
+        }
+      }
+    }
   }
 
   String _formatDuration(DateTime startTime) {
@@ -484,21 +573,60 @@ class _BookDetailPageState extends State<BookDetailPage> {
                   ),
                 ),
               ] else ...[
-                const Text(
-                  'Suivez votre progression de lecture en photographiant les pages de début et de fin.',
-                  style: TextStyle(color: Colors.grey),
-                ),
-                const SizedBox(height: 12),
-                ElevatedButton.icon(
-                  onPressed: _startReadingSession,
-                  icon: const Icon(Icons.play_arrow),
-                  label: const Text('Commencer une lecture'),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.all(16),
-                    backgroundColor: Theme.of(context).primaryColor,
-                    foregroundColor: Colors.white,
+                if (!_isBookFinished) ...[
+                  const Text(
+                    'Suivez votre progression en prenant une photo ou en saisissant le numéro de page.',
+                    style: TextStyle(color: Colors.grey),
                   ),
-                ),
+                  const SizedBox(height: 12),
+                  ElevatedButton.icon(
+                    onPressed: _startReadingSession,
+                    icon: const Icon(Icons.play_arrow),
+                    label: const Text('Commencer une lecture'),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.all(16),
+                      backgroundColor: Theme.of(context).primaryColor,
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    onPressed: _markAsFinished,
+                    icon: const Icon(Icons.check_circle_outline),
+                    label: const Text('Marquer comme terminé'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.all(16),
+                      foregroundColor: Colors.amber.shade800,
+                      side: BorderSide(color: Colors.amber.shade600),
+                    ),
+                  ),
+                ] else ...[
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Colors.amber.shade100, Colors.orange.shade100],
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.amber.shade300),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.emoji_events, color: Colors.amber.shade700),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Livre terminé !',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.amber.shade900,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ],
             ],
           ),

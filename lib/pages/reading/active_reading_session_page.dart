@@ -7,6 +7,7 @@ import '../../models/book.dart';
 import '../../navigation/main_navigation.dart';
 import 'end_reading_session_page.dart';
 import 'reading_session_summary_page.dart';
+import '../../theme/app_theme.dart';
 
 class ActiveReadingSessionPage extends StatefulWidget {
   final ReadingSession activeSession;
@@ -147,7 +148,7 @@ class _ActiveReadingSessionPageState extends State<ActiveReadingSessionPage> {
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Lecture en cours'),
-          backgroundColor: Colors.deepPurple,
+          backgroundColor: AppColors.primary,
         ),
         body: SafeArea(
           child: Padding(
@@ -231,7 +232,7 @@ class _ActiveReadingSessionPageState extends State<ActiveReadingSessionPage> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 30),
                           decoration: BoxDecoration(
-                            color: Colors.deepPurple.shade50,
+                            color: AppColors.primary.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
@@ -239,7 +240,7 @@ class _ActiveReadingSessionPageState extends State<ActiveReadingSessionPage> {
                             style: TextStyle(
                               fontSize: 64,
                               fontWeight: FontWeight.bold,
-                              color: Colors.deepPurple.shade700,
+                              color: AppColors.primary.withValues(alpha: 0.9),
                               fontFeatures: const [FontFeature.tabularFigures()],
                             ),
                           ),

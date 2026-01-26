@@ -3,9 +3,103 @@
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/reading_streak.dart';
+import '../models/streak_freeze.dart';
+import 'kindle_webview_service.dart';
 
 class StreakService {
   final SupabaseClient _supabase = Supabase.instance.client;
+
+  // =====================================================
+  // METHODES STREAK FREEZE
+  // =====================================================
+
+  /// Récupérer le statut du freeze pour l'utilisateur courant
+  Future<StreakFreezeStatus> getFreezeStatus() async {
+    try {
+      final result = await _supabase.rpc('get_freeze_status');
+      return StreakFreezeStatus.fromJson(result as Map<String, dynamic>);
+    } catch (e) {
+      print('Erreur getFreezeStatus: $e');
+      return StreakFreezeStatus.empty();
+    }
+  }
+
+  /// Utiliser un freeze pour protéger un jour (par défaut: hier)
+  Future<FreezeResult> useFreeze({DateTime? date, bool isAuto = false}) async {
+    try {
+      final params = <String, dynamic>{
+        'p_is_auto': isAuto,
+      };
+      if (date != null) {
+        params['p_frozen_date'] = date.toIso8601String().split('T')[0];
+      }
+
+      final result = await _supabase.rpc('use_streak_freeze', params: params);
+      return FreezeResult.fromJson(result as Map<String, dynamic>);
+    } catch (e) {
+      print('Erreur useFreeze: $e');
+      return FreezeResult(
+        success: false,
+        error: 'UNKNOWN_ERROR',
+        message: 'Une erreur est survenue: $e',
+      );
+    }
+  }
+
+  /// Récupérer les dates frozen pour un utilisateur
+  Future<List<DateTime>> getFrozenDates({String? userId}) async {
+    try {
+      final params = userId != null ? {'p_user_id': userId} : <String, dynamic>{};
+      final result = await _supabase.rpc('get_frozen_dates', params: params);
+
+      if (result == null) return [];
+
+      return (result as List)
+          .map((date) => DateTime.parse(date as String))
+          .toList();
+    } catch (e) {
+      print('Erreur getFrozenDates: $e');
+      return [];
+    }
+  }
+
+  /// Vérifie si un freeze automatique doit être utilisé
+  /// Retourne true si le freeze a été utilisé avec succès
+  /// NOTE: Pour les utilisateurs premium uniquement (à implémenter)
+  Future<bool> checkAndUseAutoFreeze({bool isPremium = false}) async {
+    if (!isPremium) return false;
+
+    try {
+      final streak = await getUserStreak();
+
+      // Si le streak est à 0, pas besoin de freeze
+      if (streak.currentStreak == 0) return false;
+
+      // Si l'utilisateur a lu aujourd'hui, pas besoin de freeze
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+
+      if (streak.lastReadDate != null) {
+        final lastRead = DateTime(
+          streak.lastReadDate!.year,
+          streak.lastReadDate!.month,
+          streak.lastReadDate!.day,
+        );
+        if (lastRead == today) return false;
+      }
+
+      // Vérifier si un freeze est disponible
+      final freezeStatus = await getFreezeStatus();
+      if (!freezeStatus.freezeAvailable) return false;
+
+      // Utiliser le freeze automatiquement pour hier
+      final result = await useFreeze(isAuto: true);
+      return result.success;
+    } catch (e) {
+      print('Erreur checkAndUseAutoFreeze: $e');
+      return false;
+    }
+  }
 
   /// Récupérer le streak actuel de l'utilisateur
   Future<ReadingStreak> getUserStreak() async {
@@ -14,7 +108,6 @@ class StreakService {
       if (userId == null) return ReadingStreak.empty();
 
       // Récupérer toutes les sessions terminées de l'utilisateur
-      // On ne garde que les dates distinctes (un jour = une session minimum)
       final response = await _supabase
           .from('reading_sessions')
           .select('end_time')
@@ -22,15 +115,15 @@ class StreakService {
           .not('end_time', 'is', null)
           .order('end_time', ascending: false);
 
-      if (response == null || (response as List).isEmpty) {
-        return ReadingStreak.empty();
-      }
+      // Récupérer les dates frozen et le statut du freeze
+      final frozenDates = await getFrozenDates();
+      final freezeStatus = await getFreezeStatus();
 
       // Extraire les dates uniques (format YYYY-MM-DD)
       final Set<String> uniqueDates = {};
       final List<DateTime> readDates = [];
 
-      for (final session in response as List) {
+      for (final session in response) {
         final endTime = session['end_time'] as String?;
         if (endTime != null) {
           final date = DateTime.parse(endTime);
@@ -45,22 +138,99 @@ class StreakService {
       // Trier les dates du plus récent au plus ancien
       readDates.sort((a, b) => b.compareTo(a));
 
-      if (readDates.isEmpty) {
-        return ReadingStreak.empty();
+      if (readDates.isEmpty && frozenDates.isEmpty) {
+        // Même sans sessions locales, vérifier le streak Kindle
+        final kindleStreak = await _getKindleStreak();
+        if (kindleStreak != null && kindleStreak.currentStreak > 0) {
+          return kindleStreak.copyWith(freezeStatus: freezeStatus);
+        }
+        return ReadingStreak.empty().copyWith(freezeStatus: freezeStatus);
       }
 
-      // Calculer le streak actuel
-      final streakData = _calculateStreak(readDates);
+      // Calculer le streak actuel (avec les dates frozen)
+      final streakData = _calculateStreakWithFreezes(readDates, frozenDates);
+
+      int currentStreak = streakData['current'] ?? 0;
+      int longestStreak = streakData['longest'] ?? 0;
+
+      // Fusionner avec le streak Kindle (prendre le max)
+      final kindleData = await KindleWebViewService().loadFromCache();
+      if (kindleData != null && kindleData.currentStreak != null) {
+        if (kindleData.currentStreak! > currentStreak) {
+          currentStreak = kindleData.currentStreak!;
+        }
+        if (kindleData.currentStreak! > longestStreak) {
+          longestStreak = kindleData.currentStreak!;
+        }
+      }
 
       return ReadingStreak(
-        currentStreak: streakData['current'] ?? 0,
-        longestStreak: streakData['longest'] ?? 0,
-        lastReadDate: readDates.first,
+        currentStreak: currentStreak,
+        longestStreak: longestStreak,
+        lastReadDate: readDates.isNotEmpty ? readDates.first : null,
         readDates: readDates,
+        frozenDates: frozenDates,
+        freezeStatus: freezeStatus,
       );
     } catch (e) {
       print('Erreur getUserStreak: $e');
       return ReadingStreak.empty();
+    }
+  }
+
+  /// Récupérer le streak d'un utilisateur par son ID
+  Future<int> getStreakForUser(String userId) async {
+    try {
+      final response = await _supabase
+          .from('reading_sessions')
+          .select('end_time')
+          .eq('user_id', userId)
+          .not('end_time', 'is', null)
+          .order('end_time', ascending: false);
+
+      if ((response as List).isEmpty) {
+        return 0;
+      }
+
+      final Set<String> uniqueDates = {};
+      final List<DateTime> readDates = [];
+
+      for (final session in response) {
+        final endTime = session['end_time'] as String?;
+        if (endTime != null) {
+          final date = DateTime.parse(endTime);
+          final dateKey = _dateToKey(date);
+          if (!uniqueDates.contains(dateKey)) {
+            uniqueDates.add(dateKey);
+            readDates.add(DateTime(date.year, date.month, date.day));
+          }
+        }
+      }
+
+      readDates.sort((a, b) => b.compareTo(a));
+      if (readDates.isEmpty) return 0;
+
+      final streakData = _calculateStreak(readDates);
+      return streakData['current'] ?? 0;
+    } catch (e) {
+      print('Erreur getStreakForUser: $e');
+      return 0;
+    }
+  }
+
+  /// Récupérer le streak depuis les données Kindle en cache
+  Future<ReadingStreak?> _getKindleStreak() async {
+    try {
+      final kindleData = await KindleWebViewService().loadFromCache();
+      if (kindleData == null || kindleData.currentStreak == null) return null;
+      return ReadingStreak(
+        currentStreak: kindleData.currentStreak!,
+        longestStreak: kindleData.currentStreak!,
+        lastReadDate: DateTime.now(),
+        readDates: [],
+      );
+    } catch (e) {
+      return null;
     }
   }
 
@@ -109,6 +279,96 @@ class StreakService {
     }
 
     // Vérifier le dernier streak
+    if (tempStreak > longestStreak) {
+      longestStreak = tempStreak;
+    }
+
+    return {
+      'current': currentStreak,
+      'longest': longestStreak,
+    };
+  }
+
+  /// Calculer le streak en tenant compte des jours frozen
+  Map<String, int> _calculateStreakWithFreezes(
+    List<DateTime> sortedReadDates,
+    List<DateTime> frozenDates,
+  ) {
+    if (sortedReadDates.isEmpty && frozenDates.isEmpty) {
+      return {'current': 0, 'longest': 0};
+    }
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    // Créer un set des dates frozen pour recherche rapide
+    final frozenSet = frozenDates
+        .map((d) => DateTime(d.year, d.month, d.day))
+        .toSet();
+
+    // Créer un set des dates de lecture pour recherche rapide
+    final readSet = sortedReadDates
+        .map((d) => DateTime(d.year, d.month, d.day))
+        .toSet();
+
+    // Combiner toutes les dates "valides" (lecture ou frozen)
+    final allValidDates = <DateTime>{...readSet, ...frozenSet};
+    final sortedValidDates = allValidDates.toList()
+      ..sort((a, b) => b.compareTo(a));
+
+    if (sortedValidDates.isEmpty) {
+      return {'current': 0, 'longest': 0};
+    }
+
+    int currentStreak = 0;
+    int longestStreak = 0;
+
+    // Calculer le streak actuel en partant d'aujourd'hui
+    DateTime checkDate = today;
+    bool isCurrentStreak = true;
+
+    while (true) {
+      final isValidDay = allValidDates.contains(checkDate);
+
+      if (isValidDay) {
+        if (isCurrentStreak) {
+          currentStreak++;
+        }
+        longestStreak = currentStreak > longestStreak ? currentStreak : longestStreak;
+        checkDate = checkDate.subtract(const Duration(days: 1));
+      } else {
+        // Jour manquant - on vérifie si c'est aujourd'hui (pas encore lu)
+        if (checkDate == today) {
+          // Pas encore lu aujourd'hui, on continue avec hier
+          checkDate = checkDate.subtract(const Duration(days: 1));
+          continue;
+        }
+        // Streak cassé
+        break;
+      }
+    }
+
+    // Calculer le longest streak historique
+    int tempStreak = 0;
+    for (int i = 0; i < sortedValidDates.length; i++) {
+      final date = sortedValidDates[i];
+      final previousDate = i > 0 ? sortedValidDates[i - 1] : null;
+
+      if (previousDate == null) {
+        tempStreak = 1;
+      } else {
+        final diff = previousDate.difference(date).inDays;
+        if (diff == 1) {
+          tempStreak++;
+        } else {
+          if (tempStreak > longestStreak) {
+            longestStreak = tempStreak;
+          }
+          tempStreak = 1;
+        }
+      }
+    }
+
     if (tempStreak > longestStreak) {
       longestStreak = tempStreak;
     }

@@ -196,7 +196,9 @@ class _SignUpPageState extends State<SignUpPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return Theme(
+      data: AppTheme.light,
+      child: Scaffold(
       backgroundColor: AppColors.bgLight,
       body: SafeArea(
         child: SingleChildScrollView(
@@ -312,6 +314,7 @@ class _SignUpPageState extends State<SignUpPage> {
           ),
         ),
       ),
+    ),
     );
   }
 }

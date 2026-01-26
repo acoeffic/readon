@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/back_header.dart';
-import '../../services/notification_service.dart';
-
 class NotificationSettingsPage extends StatefulWidget {
   const NotificationSettingsPage({super.key});
 
@@ -13,7 +11,6 @@ class NotificationSettingsPage extends StatefulWidget {
 
 class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
   final supabase = Supabase.instance.client;
-  final notificationService = NotificationService();
 
   bool _notificationsEnabled = true;
   TimeOfDay _reminderTime = const TimeOfDay(hour: 20, minute: 0);
@@ -64,9 +61,13 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
     setState(() => _notificationsEnabled = value);
 
     try {
-      await notificationService.updateNotificationPreferences(
-        enabled: value,
-      );
+      final userId = supabase.auth.currentUser?.id;
+      if (userId != null) {
+        await supabase.from('users').update({
+          'notifications_enabled': value,
+          'updated_at': DateTime.now().toIso8601String(),
+        }).eq('id', userId);
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -120,10 +121,14 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
     try {
       final timeString = '${newTime.hour.toString().padLeft(2, '0')}:${newTime.minute.toString().padLeft(2, '0')}';
 
-      await notificationService.updateNotificationPreferences(
-        enabled: _notificationsEnabled,
-        reminderTime: timeString,
-      );
+      final userId = supabase.auth.currentUser?.id;
+      if (userId != null) {
+        await supabase.from('users').update({
+          'notifications_enabled': _notificationsEnabled,
+          'notification_reminder_time': timeString,
+          'updated_at': DateTime.now().toIso8601String(),
+        }).eq('id', userId);
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -186,7 +191,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
               Text(
                 'Reste motivé avec des rappels quotidiens pour maintenir ton streak de lecture.',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Colors.grey,
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
               ),
               const SizedBox(height: AppSpace.xl),
@@ -205,8 +210,8 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                           padding: const EdgeInsets.all(AppSpace.s),
                           decoration: BoxDecoration(
                             color: _notificationsEnabled
-                                ? AppColors.primary.withOpacity(0.1)
-                                : Colors.grey.withOpacity(0.1),
+                                ? AppColors.primary.withValues(alpha: 0.1)
+                                : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(AppRadius.m),
                           ),
                           child: Icon(
@@ -215,7 +220,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                                 : Icons.notifications_off,
                             color: _notificationsEnabled
                                 ? AppColors.primary
-                                : Colors.grey,
+                                : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
                             size: 24,
                           ),
                         ),
@@ -239,7 +244,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                                     .textTheme
                                     .bodySmall
                                     ?.copyWith(
-                                      color: Colors.grey,
+                                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                                     ),
                               ),
                             ],
@@ -290,7 +295,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                                         .textTheme
                                         .bodySmall
                                         ?.copyWith(
-                                          color: Colors.grey,
+                                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                                         ),
                                   ),
                                 ],
@@ -310,7 +315,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                             Icon(
                               Icons.arrow_forward_ios,
                               size: 16,
-                              color: Colors.grey.shade400,
+                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
                             ),
                           ],
                         ),

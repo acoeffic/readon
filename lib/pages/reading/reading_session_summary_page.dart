@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import '../../models/reading_session.dart';
+import '../../theme/app_theme.dart';
 
 class ReadingSessionSummaryPage extends StatelessWidget {
   final ReadingSession session;
@@ -114,7 +115,7 @@ class ReadingSessionSummaryPage extends StatelessWidget {
                     icon: Icons.speed,
                     value: _formatPace(),
                     label: 'rythme',
-                    color: Colors.purple,
+                    color: AppColors.primary,
                   ),
                 ),
                 const SizedBox(width: 12),

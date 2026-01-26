@@ -8,6 +8,7 @@ import '../../services/reading_session_service.dart';
 import '../../services/ocr_service.dart';
 import '../../models/book.dart';
 import '../../models/reading_session.dart';
+import '../../theme/app_theme.dart';
 
 class StartReadingSessionPageUnified extends StatefulWidget {
   final Book book;
@@ -149,14 +150,7 @@ class _StartReadingSessionPageUnifiedState extends State<StartReadingSessionPage
 
     if (pageNumber == null) {
       setState(() {
-        _errorMessage = 'Veuillez capturer une photo ou saisir un numéro de page manuellement.';
-      });
-      return;
-    }
-
-    if (_imageFile == null) {
-      setState(() {
-        _errorMessage = 'Veuillez prendre une photo de la page.';
+        _errorMessage = 'Veuillez capturer une photo ou saisir un numéro de page.';
       });
       return;
     }
@@ -166,7 +160,8 @@ class _StartReadingSessionPageUnifiedState extends State<StartReadingSessionPage
     try {
       final session = await _sessionService.startSession(
         bookId: widget.book.id.toString(),
-        imagePath: _imageFile!.path,
+        imagePath: _imageFile?.path,
+        manualPageNumber: pageNumber,
       );
 
       if (!mounted) return;
@@ -187,7 +182,7 @@ class _StartReadingSessionPageUnifiedState extends State<StartReadingSessionPage
     return Scaffold(
       appBar: AppBar(
         title: const Text('Démarrer une lecture'),
-        backgroundColor: Colors.deepPurple,
+        backgroundColor: AppColors.feedHeader,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -248,23 +243,31 @@ class _StartReadingSessionPageUnifiedState extends State<StartReadingSessionPage
             
             // Instructions
             Card(
-              color: Colors.blue.shade50,
-              child: const Padding(
-                padding: EdgeInsets.all(16),
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.blue.shade900.withValues(alpha: 0.3)
+                  : Colors.blue.shade50,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.info_outline, color: Colors.blue),
-                        SizedBox(width: 8),
-                        Text('Instructions', style: TextStyle(fontWeight: FontWeight.bold)),
+                        Icon(Icons.info_outline, color: Theme.of(context).brightness == Brightness.dark ? Colors.blue.shade300 : Colors.blue),
+                        const SizedBox(width: 8),
+                        Text('Instructions', style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).brightness == Brightness.dark ? Colors.blue.shade200 : null,
+                        )),
                       ],
                     ),
-                    SizedBox(height: 8),
-                    Text('1. Photographiez la page où vous commencez'),
-                    Text('2. Assurez-vous que le numéro de page est visible'),
-                    Text('3. L\'OCR détectera automatiquement le numéro'),
+                    const SizedBox(height: 8),
+                    Text('1. Photographiez la page où vous commencez',
+                      style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : null)),
+                    Text('2. Assurez-vous que le numéro de page est visible',
+                      style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : null)),
+                    Text('3. L\'OCR détectera automatiquement le numéro',
+                      style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : null)),
                   ],
                 ),
               ),
@@ -282,7 +285,7 @@ class _StartReadingSessionPageUnifiedState extends State<StartReadingSessionPage
                     label: const Text('Prendre Photo'),
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.all(16),
-                      backgroundColor: Colors.deepPurple,
+                      backgroundColor: AppColors.feedHeader,
                       foregroundColor: Colors.white,
                     ),
                   ),
@@ -295,7 +298,7 @@ class _StartReadingSessionPageUnifiedState extends State<StartReadingSessionPage
                     label: const Text('Galerie'),
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.all(16),
-                      backgroundColor: Colors.deepPurple.shade300,
+                      backgroundColor: AppColors.feedHeader.withValues(alpha: 0.8),
                       foregroundColor: Colors.white,
                     ),
                   ),
@@ -393,7 +396,7 @@ class _StartReadingSessionPageUnifiedState extends State<StartReadingSessionPage
                             IconButton(
                               onPressed: _enableEditMode,
                               icon: const Icon(Icons.edit),
-                              color: Colors.deepPurple,
+                              color: AppColors.feedHeader,
                               tooltip: 'Corriger le numéro',
                             ),
                           ],
@@ -444,11 +447,11 @@ class _StartReadingSessionPageUnifiedState extends State<StartReadingSessionPage
               ),
             ],
             
-            // Saisie manuelle
-            if (_imageFile != null && _detectedPageNumber == null) ...[
+            // Saisie manuelle (toujours visible si pas de numéro détecté)
+            if (_detectedPageNumber == null) ...[
               const SizedBox(height: 20),
               const Text(
-                'Ou saisissez le numéro manuellement:',
+                'Ou saisissez le numéro directement:',
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
@@ -466,9 +469,9 @@ class _StartReadingSessionPageUnifiedState extends State<StartReadingSessionPage
                 },
               ),
             ],
-            
-            // Bouton confirmer
-            if (_imageFile != null && (_detectedPageNumber != null || _manualPageNumber != null)) ...[
+
+            // Bouton confirmer (visible dès qu'on a un numéro de page)
+            if (_detectedPageNumber != null || _manualPageNumber != null) ...[
               const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: _isProcessing ? null : _startSession,

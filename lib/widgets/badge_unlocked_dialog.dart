@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import '../services/badges_service.dart';
+import '../theme/app_theme.dart';
 
 class BadgeUnlockedDialog extends StatefulWidget {
   final UserBadge badge;
@@ -115,7 +116,7 @@ class _BadgeUnlockedDialogState extends State<BadgeUnlockedDialog>
                             Colors.amber,
                             Colors.orange,
                             Colors.pink,
-                            Colors.purple,
+                            AppColors.primary,
                             Colors.blue,
                           ][index % 5],
                           shape: BoxShape.circle,
@@ -152,7 +153,7 @@ class _BadgeUnlockedDialogState extends State<BadgeUnlockedDialog>
                     style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
-                      color: Colors.deepPurple,
+                      color: AppColors.primary,
                     ),
                   ),
                   const SizedBox(height: 24),

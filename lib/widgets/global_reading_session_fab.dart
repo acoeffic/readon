@@ -12,6 +12,7 @@ import '../services/google_books_service.dart';
 import '../models/book.dart';
 import 'active_session_dialog.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../theme/app_theme.dart';
 
 final _supabase = Supabase.instance.client;
 
@@ -413,19 +414,19 @@ class _ExpandableFABState extends State<_ExpandableFAB> with SingleTickerProvide
                 end: Alignment.bottomRight,
                 colors: isDark
                     ? [
-                        Colors.white.withOpacity(0.2),
-                        Colors.white.withOpacity(0.05),
+                        AppColors.primary.withValues(alpha: 0.25),
+                        AppColors.primary.withValues(alpha: 0.12),
                       ]
                     : [
-                        Colors.white.withOpacity(0.8),
-                        Colors.white.withOpacity(0.4),
+                        AppColors.primary.withValues(alpha: 0.4),
+                        AppColors.primary.withValues(alpha: 0.2),
                       ],
               ),
               // Bordure subtile avec reflet
               border: Border.all(
                 color: isDark
-                    ? Colors.white.withOpacity(0.3)
-                    : Colors.white.withOpacity(0.8),
+                    ? AppColors.primary.withValues(alpha: 0.35)
+                    : AppColors.primary.withValues(alpha: 0.6),
                 width: 1.5,
               ),
               // Ombres multiples pour l'effet de profondeur
@@ -439,7 +440,7 @@ class _ExpandableFABState extends State<_ExpandableFAB> with SingleTickerProvide
                 ),
                 // Ombre interne lumineuse (simulée)
                 BoxShadow(
-                  color: Colors.white.withOpacity(isDark ? 0.1 : 0.5),
+                  color: AppColors.primary.withValues(alpha: isDark ? 0.15 : 0.35),
                   blurRadius: 10,
                   spreadRadius: -5,
                   offset: const Offset(0, -2),
@@ -456,7 +457,7 @@ class _ExpandableFABState extends State<_ExpandableFAB> with SingleTickerProvide
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                       colors: [
-                        Colors.white.withOpacity(isDark ? 0.15 : 0.3),
+                        AppColors.primary.withValues(alpha: isDark ? 0.2 : 0.3),
                         Colors.transparent,
                       ],
                       stops: const [0.0, 0.5],
