@@ -8,6 +8,7 @@ import '../../widgets/back_header.dart';
 import '../../providers/theme_provider.dart';
 import 'notification_settings_page.dart';
 import 'kindle_login_page.dart';
+import 'reading_goals_page.dart';
 import '../../services/kindle_webview_service.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -21,17 +22,82 @@ class _SettingsPageState extends State<SettingsPage> {
   final supabase = Supabase.instance.client;
   final ImagePicker _picker = ImagePicker();
   bool _isUploading = false;
+  bool _isDeleting = false;
   String? _kindleLastSync;
+  bool _isProfilePrivate = false;
+  bool _loadingPrivacy = true;
 
   @override
   void initState() {
     super.initState();
     _loadKindleSyncStatus();
+    _loadPrivacySettings();
   }
 
   Future<void> _loadKindleSyncStatus() async {
     final lastSync = await KindleWebViewService().getLastSyncDate();
     if (mounted) setState(() => _kindleLastSync = lastSync);
+  }
+
+  Future<void> _loadPrivacySettings() async {
+    try {
+      final user = supabase.auth.currentUser;
+      if (user == null) return;
+
+      final profile = await supabase
+          .from('profiles')
+          .select('is_profile_private')
+          .eq('id', user.id)
+          .maybeSingle();
+
+      if (mounted) {
+        setState(() {
+          _isProfilePrivate = profile?['is_profile_private'] as bool? ?? false;
+          _loadingPrivacy = false;
+        });
+      }
+    } catch (e) {
+      print('Erreur _loadPrivacySettings: $e');
+      if (mounted) {
+        setState(() => _loadingPrivacy = false);
+      }
+    }
+  }
+
+  Future<void> _toggleProfilePrivacy(bool value) async {
+    try {
+      final user = supabase.auth.currentUser;
+      if (user == null) return;
+
+      await supabase
+          .from('profiles')
+          .update({'is_profile_private': value})
+          .eq('id', user.id);
+
+      setState(() => _isProfilePrivate = value);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              value
+                  ? 'Profil privé activé. Seuls tes amis verront tes statistiques.'
+                  : 'Profil public activé. Tout le monde peut voir tes statistiques.',
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   String _formatSyncDate(String isoDate) {
@@ -286,6 +352,135 @@ if (!allowedExtensions.contains(fileExtension)) {
     }
   }
 
+  Future<void> _deleteAccount() async {
+    // Dialog 1 : avertissement
+    final firstConfirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.l),
+        ),
+        title: const Text('Supprimer ton compte ?'),
+        content: const Text(
+          'Cette action est irréversible. Toutes tes données '
+          '(livres, sessions de lecture, badges, amis, groupes) '
+          'seront définitivement supprimées.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Annuler'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text(
+              'Continuer',
+              style: TextStyle(color: AppColors.error),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (firstConfirm != true) return;
+
+    // Dialog 2 : taper "SUPPRIMER" pour confirmer
+    final confirmController = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setDialogState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppRadius.l),
+              ),
+              title: const Text('Confirmer la suppression'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('Pour confirmer, tape SUPPRIMER ci-dessous :'),
+                  const SizedBox(height: AppSpace.m),
+                  TextField(
+                    controller: confirmController,
+                    autofocus: true,
+                    decoration: const InputDecoration(
+                      hintText: 'SUPPRIMER',
+                      border: OutlineInputBorder(),
+                    ),
+                    onChanged: (_) => setDialogState(() {}),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(false),
+                  child: const Text('Annuler'),
+                ),
+                TextButton(
+                  onPressed: confirmController.text == 'SUPPRIMER'
+                      ? () => Navigator.of(ctx).pop(true)
+                      : null,
+                  child: Text(
+                    'Supprimer définitivement',
+                    style: TextStyle(
+                      color: confirmController.text == 'SUPPRIMER'
+                          ? AppColors.error
+                          : Theme.of(ctx)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: 0.3),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    confirmController.dispose();
+    if (confirmed != true || !mounted) return;
+
+    // Appel RPC
+    setState(() => _isDeleting = true);
+
+    try {
+      final result = await supabase.rpc('delete_user_account');
+      final response = Map<String, dynamic>.from(result as Map);
+
+      if (response['success'] != true) {
+        throw Exception(response['message'] ?? 'Erreur inconnue');
+      }
+
+      // Déconnexion et redirection
+      try {
+        await Supabase.instance.client.auth.signOut();
+      } catch (_) {
+        // L'utilisateur n'existe plus, signOut peut échouer
+      }
+
+      if (mounted) {
+        Navigator.of(context).pushNamedAndRemoveUntil(
+          '/welcome',
+          (route) => false,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isDeleting = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur lors de la suppression : $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
@@ -324,11 +519,107 @@ if (!allowedExtensions.contains(fileExtension)) {
 
               const SizedBox(height: AppSpace.m),
 
+              // --- Section Confidentialité ---
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Confidentialité',
+                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontSize: 20),
+                  ),
+                  const SizedBox(height: AppSpace.s),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(AppSpace.l),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).cardColor,
+                      borderRadius: BorderRadius.circular(AppRadius.l),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '🔒 Profil privé',
+                                    style: Theme.of(context).textTheme.titleMedium,
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    _isProfilePrivate
+                                        ? 'Tes statistiques sont cachées'
+                                        : 'Tes statistiques sont publiques',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            if (_loadingPrivacy)
+                              const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            else
+                              Switch(
+                                value: _isProfilePrivate,
+                                onChanged: _toggleProfilePrivacy,
+                                activeTrackColor: AppColors.primary,
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: AppSpace.m),
+                        Container(
+                          padding: const EdgeInsets.all(AppSpace.m),
+                          decoration: BoxDecoration(
+                            color: AppColors.accentLight.withValues(alpha: 0.3),
+                            borderRadius: BorderRadius.circular(AppRadius.m),
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Icon(Icons.info_outline, size: 20, color: AppColors.primary),
+                              const SizedBox(width: AppSpace.s),
+                              Expanded(
+                                child: Text(
+                                  _isProfilePrivate
+                                      ? 'Les autres utilisateurs ne verront que ton nom et ta photo de profil.'
+                                      : 'Les autres utilisateurs pourront voir tes badges, livres, streak et statistiques.',
+                                  style: const TextStyle(fontSize: 12, color: AppColors.primary),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: AppSpace.m),
+
               // --- Section Lecture ---
               _SettingsSection(
                 title: 'Lecture',
                 items: [
-                  const _SettingsItem(label: '🎯 Modifier l\'objectif de lecture'),
+                  _SettingsItem(
+                    label: '🎯 Modifier l\'objectif de lecture',
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const ReadingGoalsPage(),
+                        ),
+                      );
+                    },
+                  ),
                   _SettingsItem(
                     label: '🔔 Notifications de streak',
                     onTap: () {
@@ -447,6 +738,68 @@ if (!allowedExtensions.contains(fileExtension)) {
                       fontWeight: FontWeight.w600,
                     ),
                   ),
+                ),
+              ),
+
+              const SizedBox(height: AppSpace.m),
+
+              // --- Zone de danger : Suppression du compte ---
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(AppSpace.m),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).cardColor,
+                  borderRadius: BorderRadius.circular(AppRadius.l),
+                  border: Border.all(
+                    color: AppColors.error.withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Zone de danger',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: AppColors.error,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpace.s),
+                    Text(
+                      'La suppression du compte est irréversible.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withValues(alpha: 0.6),
+                      ),
+                    ),
+                    const SizedBox(height: AppSpace.m),
+                    SizedBox(
+                      width: double.infinity,
+                      child: TextButton(
+                        onPressed: _isDeleting ? null : _deleteAccount,
+                        child: _isDeleting
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: AppColors.error,
+                                ),
+                              )
+                            : const Text(
+                                'Supprimer mon compte',
+                                style: TextStyle(
+                                  color: AppColors.error,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],

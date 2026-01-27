@@ -7,8 +7,11 @@ import '../../integrations/kindle_connect_page.dart';
 import 'settings_page.dart';
 import '../books/user_books_page.dart';
 import '../../services/badges_service.dart';
+import '../../services/goals_service.dart';
+import '../../models/reading_goal.dart';
 import '../../widgets/badges_grid.dart';
 import 'all_badges_page.dart';
+import 'reading_goals_page.dart';
 
 class ProfilePage extends StatefulWidget {
   final bool showBack;
@@ -21,17 +24,21 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage> {
   final supabase = Supabase.instance.client;
   final badgesService = BadgesService();
+  final GoalsService _goalsService = GoalsService();
   String _motivatedSince = 'Lecteur motivé';
   String _userName = 'Utilisateur';
   String? _avatarUrl;
   List<UserBadge> _badges = [];
   bool _loadingBadges = true;
+  ReadingGoal? _primaryGoal;
+  bool _loadingGoal = true;
 
   @override
   void initState() {
     super.initState();
     _loadUserInfo();
     _loadBadges();
+    _loadPrimaryGoal();
   }
 
   Future<void> _loadUserInfo() async {
@@ -70,6 +77,22 @@ class _ProfilePageState extends State<ProfilePage> {
     } catch (e) {
       print('Erreur _loadBadges: $e');
       setState(() => _loadingBadges = false);
+    }
+  }
+
+  Future<void> _loadPrimaryGoal() async {
+    setState(() => _loadingGoal = true);
+    try {
+      final goal = await _goalsService.getPrimaryGoal();
+      if (mounted) {
+        setState(() {
+          _primaryGoal = goal;
+          _loadingGoal = false;
+        });
+      }
+    } catch (e) {
+      print('Erreur _loadPrimaryGoal: $e');
+      if (mounted) setState(() => _loadingGoal = false);
     }
   }
 
@@ -255,39 +278,88 @@ class _ProfilePageState extends State<ProfilePage> {
               const SizedBox(height: AppSpace.l),
 
               // --- OBJECTIF ---
-              Text('Ton objectif 2025', style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontSize: 22)),
+              Text(
+                'Ton objectif ${DateTime.now().year}',
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontSize: 22),
+              ),
               const SizedBox(height: AppSpace.s),
 
-              Container(
-                padding: const EdgeInsets.all(AppSpace.m),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).cardColor,
-                  borderRadius: BorderRadius.circular(AppRadius.l),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
-                          Text('340 / 500 pages'),
-                          SizedBox(height: AppSpace.s),
-                          ProgressBar(value: 0.68),
-                        ],
+              if (_loadingGoal)
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(AppSpace.l),
+                    child: CircularProgressIndicator(),
+                  ),
+                )
+              else if (_primaryGoal != null)
+                Container(
+                  padding: const EdgeInsets.all(AppSpace.m),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).cardColor,
+                    borderRadius: BorderRadius.circular(AppRadius.l),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('${_primaryGoal!.goalType.emoji} ${_primaryGoal!.progressText}'),
+                            const SizedBox(height: AppSpace.s),
+                            ProgressBar(value: _primaryGoal!.progressPercent),
+                          ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: AppSpace.m),
-                    OutlinedButton(
-                      onPressed: () {},
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.primary,
-                        side: const BorderSide(color: AppColors.primary),
+                      const SizedBox(width: AppSpace.m),
+                      OutlinedButton(
+                        onPressed: () async {
+                          await Navigator.of(context).push(
+                            MaterialPageRoute(builder: (_) => const ReadingGoalsPage()),
+                          );
+                          _loadPrimaryGoal();
+                        },
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.primary,
+                          side: const BorderSide(color: AppColors.primary),
+                        ),
+                        child: const Text('Modifier'),
                       ),
-                      child: const Text('Modifier'),
-                    ),
-                  ],
+                    ],
+                  ),
+                )
+              else
+                Container(
+                  padding: const EdgeInsets.all(AppSpace.m),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).cardColor,
+                    borderRadius: BorderRadius.circular(AppRadius.l),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Aucun objectif defini',
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                          ),
+                        ),
+                      ),
+                      ElevatedButton(
+                        onPressed: () async {
+                          await Navigator.of(context).push(
+                            MaterialPageRoute(builder: (_) => const ReadingGoalsPage()),
+                          );
+                          _loadPrimaryGoal();
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                        ),
+                        child: const Text('Definir'),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
 
               const SizedBox(height: AppSpace.l),
 

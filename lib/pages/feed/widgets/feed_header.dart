@@ -247,7 +247,7 @@ class _FeedHeaderState extends State<FeedHeader> with TickerProviderStateMixin {
                             return _ActionChip(
                               icon: Icons.mail_outline_rounded,
                               label: 'Messages',
-                              showDot: unreadCount > 0,
+                              badgeCount: unreadCount,
                               onTap: () {
                                 Navigator.of(context).push(
                                   MaterialPageRoute(
@@ -380,13 +380,13 @@ class _ActionChip extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
-  final bool showDot;
+  final int badgeCount;
 
   const _ActionChip({
     required this.icon,
     required this.label,
     required this.onTap,
-    this.showDot = false,
+    this.badgeCount = 0,
   });
 
   @override
@@ -425,16 +425,16 @@ class _ActionChip extends StatelessWidget {
                   ],
                 ),
               ),
-              if (showDot)
+              if (badgeCount > 0)
                 Positioned(
-                  top: 6,
-                  right: 8,
+                  top: 4,
+                  right: 6,
                   child: Container(
-                    width: 8,
-                    height: 8,
+                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                    constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
                     decoration: BoxDecoration(
                       color: Colors.red,
-                      shape: BoxShape.circle,
+                      borderRadius: BorderRadius.circular(10),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.red.withValues(alpha: 0.3),
@@ -442,6 +442,17 @@ class _ActionChip extends StatelessWidget {
                           spreadRadius: 2,
                         ),
                       ],
+                    ),
+                    child: Center(
+                      child: Text(
+                        badgeCount > 99 ? '99+' : '$badgeCount',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          height: 1.2,
+                        ),
+                      ),
                     ),
                   ),
                 ),

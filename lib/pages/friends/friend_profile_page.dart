@@ -37,6 +37,8 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
   List<Map<String, dynamic>> _recentSessions = [];
   List<UserBadge> _badges = [];
   String? _friendshipStatus; // 'accepted', 'pending', null
+  bool _isProfilePrivate = false;
+  bool _canViewDetails = false; // true si public OU ami accepté
 
   @override
   void initState() {
@@ -47,14 +49,22 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
   }
 
   Future<void> _loadAll() async {
-    await Future.wait([
-      _loadProfile(),
-      _loadStats(),
-      _loadStreak(),
-      _loadRecentSessions(),
-      _loadBadges(),
-      _loadFriendshipStatus(),
-    ]);
+    // IMPORTANT: Charger d'abord le profil pour avoir is_profile_private
+    await _loadProfile();
+
+    // Puis charger le statut d'amitié (qui dépend de is_profile_private)
+    await _loadFriendshipStatus();
+
+    // Charger les détails uniquement si autorisé
+    if (_canViewDetails) {
+      await Future.wait([
+        _loadStats(),
+        _loadStreak(),
+        _loadRecentSessions(),
+        _loadBadges(),
+      ]);
+    }
+
     if (mounted) setState(() => _loading = false);
   }
 
@@ -62,14 +72,17 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
     try {
       final profile = await supabase
           .from('profiles')
-          .select('display_name, avatar_url, created_at')
+          .select('display_name, avatar_url, created_at, is_profile_private')
           .eq('id', widget.userId)
           .maybeSingle();
 
       if (profile != null && mounted) {
+        final isPrivate = profile['is_profile_private'] as bool? ?? false;
+
         setState(() {
           _userName = profile['display_name'] as String? ?? widget.initialName ?? 'Utilisateur';
           _avatarUrl = profile['avatar_url'] as String? ?? widget.initialAvatar;
+          _isProfilePrivate = isPrivate;
           if (profile['created_at'] != null) {
             _memberSince = _formatMemberSince(DateTime.parse(profile['created_at'] as String));
           }
@@ -113,36 +126,16 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
 
   Future<void> _loadRecentSessions() async {
     try {
-      final sessions = await supabase
-          .from('reading_sessions')
-          .select('id, start_page, end_page, start_time, end_time, book_id')
-          .eq('user_id', widget.userId)
-          .not('end_time', 'is', null)
-          .order('end_time', ascending: false)
-          .limit(5);
+      final response = await supabase.rpc(
+        'get_friend_recent_sessions',
+        params: {'p_user_id': widget.userId},
+      );
 
-      if ((sessions as List).isNotEmpty && mounted) {
-        // Enrich with book info
-        final enriched = <Map<String, dynamic>>[];
-        for (final session in sessions) {
-          final bookId = session['book_id'];
-          String? bookTitle;
-          if (bookId != null) {
-            try {
-              final book = await supabase
-                  .from('user_books')
-                  .select('title')
-                  .eq('id', bookId)
-                  .maybeSingle();
-              bookTitle = book?['title'] as String?;
-            } catch (_) {}
-          }
-          enriched.add({
-            ...Map<String, dynamic>.from(session as Map),
-            'book_title': bookTitle ?? 'Livre inconnu',
-          });
-        }
-        if (mounted) setState(() => _recentSessions = enriched);
+      if (response != null && mounted) {
+        final sessions = (response as List)
+            .map((s) => Map<String, dynamic>.from(s as Map))
+            .toList();
+        setState(() => _recentSessions = sessions);
       }
     } catch (e) {
       print('Erreur _loadRecentSessions: $e');
@@ -171,11 +164,18 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
           .limit(1);
 
       if (mounted) {
+        String? status;
         if ((result as List).isNotEmpty) {
-          setState(() => _friendshipStatus = result[0]['status'] as String?);
-        } else {
-          setState(() => _friendshipStatus = null);
+          status = result[0]['status'] as String?;
         }
+
+        setState(() {
+          _friendshipStatus = status;
+          // On peut voir les détails si:
+          // 1. Le profil est public (!_isProfilePrivate)
+          // 2. OU si on est ami accepté (status == 'accepted')
+          _canViewDetails = !_isProfilePrivate || status == 'accepted';
+        });
       }
     } catch (e) {
       print('Erreur _loadFriendshipStatus: $e');
@@ -246,6 +246,29 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
     }
   }
 
+  Future<void> _cancelFriendRequest() async {
+    try {
+      final currentUserId = supabase.auth.currentUser?.id;
+      if (currentUserId == null) return;
+
+      await supabase
+          .from('friends')
+          .delete()
+          .eq('requester_id', currentUserId)
+          .eq('addressee_id', widget.userId)
+          .eq('status', 'pending');
+
+      setState(() => _friendshipStatus = null);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Demande annulée')),
+        );
+      }
+    } catch (e) {
+      print('Erreur _cancelFriendRequest: $e');
+    }
+  }
+
   Future<void> _removeFriend() async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -313,18 +336,55 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
                     _buildHeader(),
                     const SizedBox(height: AppSpace.xl),
 
-                    // --- STATS ---
-                    _buildStats(),
-                    const SizedBox(height: AppSpace.l),
-
-                    // --- RECENT ACTIVITY ---
-                    _buildRecentActivity(),
-                    const SizedBox(height: AppSpace.l),
-
-                    // --- BADGES ---
-                    if (_badges.isNotEmpty) ...[
-                      _buildBadges(),
+                    // Si profil privé et pas ami, afficher un message
+                    if (_isProfilePrivate && !_canViewDetails) ...[
+                      Container(
+                        padding: const EdgeInsets.all(AppSpace.l),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).cardColor,
+                          borderRadius: BorderRadius.circular(AppRadius.l),
+                        ),
+                        child: Column(
+                          children: [
+                            Icon(
+                              Icons.lock_outline,
+                              size: 48,
+                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
+                            ),
+                            const SizedBox(height: AppSpace.m),
+                            Text(
+                              'Profil privé',
+                              style: Theme.of(context).textTheme.titleLarge,
+                            ),
+                            const SizedBox(height: AppSpace.s),
+                            Text(
+                              'Ce profil est privé. Ajoutez $_userName en ami pour voir ses statistiques.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                       const SizedBox(height: AppSpace.l),
+                    ],
+
+                    // Afficher les détails uniquement si autorisé
+                    if (_canViewDetails) ...[
+                      // --- STATS ---
+                      _buildStats(),
+                      const SizedBox(height: AppSpace.l),
+
+                      // --- RECENT ACTIVITY ---
+                      _buildRecentActivity(),
+                      const SizedBox(height: AppSpace.l),
+
+                      // --- BADGES ---
+                      if (_badges.isNotEmpty) ...[
+                        _buildBadges(),
+                        const SizedBox(height: AppSpace.l),
+                      ],
                     ],
 
                     // --- FRIEND ACTION ---
@@ -552,10 +612,12 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
       return SizedBox(
         width: double.infinity,
         child: OutlinedButton.icon(
-          onPressed: null,
-          icon: const Icon(Icons.hourglass_top),
-          label: const Text('Demande en attente'),
+          onPressed: _cancelFriendRequest,
+          icon: const Icon(Icons.close),
+          label: const Text('Annuler la demande'),
           style: OutlinedButton.styleFrom(
+            foregroundColor: AppColors.error,
+            side: const BorderSide(color: AppColors.error),
             padding: const EdgeInsets.symmetric(vertical: 14),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppRadius.l),

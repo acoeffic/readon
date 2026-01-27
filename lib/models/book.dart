@@ -16,6 +16,7 @@ class Book {
   final String source; // 'kindle', 'google_books', 'manual', 'scan'
   final String? publisher;
   final String language;
+  final String? genre;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -33,6 +34,7 @@ class Book {
     this.source = 'manual',
     this.publisher,
     this.language = 'fr',
+    this.genre,
     this.createdAt,
     this.updatedAt,
   });
@@ -52,6 +54,7 @@ class Book {
       source: json['source'] as String? ?? 'manual',
       publisher: json['publisher'] as String?,
       language: json['language'] as String? ?? 'fr',
+      genre: json['genre'] as String?,
       createdAt: json['created_at'] != null 
           ? DateTime.parse(json['created_at'] as String) 
           : null,
@@ -76,6 +79,7 @@ class Book {
       'source': source,
       'publisher': publisher,
       'language': language,
+      'genre': genre,
       'created_at': createdAt?.toIso8601String(),
       'updated_at': updatedAt?.toIso8601String(),
     };
@@ -96,6 +100,7 @@ class Book {
       source: 'google_books',
       publisher: googleBook.publisher,
       language: googleBook.language ?? 'fr',
+      genre: googleBook.genre,
     );
   }
 
@@ -114,6 +119,7 @@ class Book {
       'source': source,
       'publisher': publisher,
       'language': language,
+      'genre': genre,
     };
   }
 

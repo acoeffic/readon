@@ -5,7 +5,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 enum NotificationType {
   like,
-  comment;
+  comment,
+  friendRequest;
 
   static NotificationType fromString(String type) {
     switch (type) {
@@ -13,6 +14,8 @@ enum NotificationType {
         return NotificationType.like;
       case 'comment':
         return NotificationType.comment;
+      case 'friend_request':
+        return NotificationType.friendRequest;
       default:
         return NotificationType.like;
     }
@@ -73,6 +76,8 @@ class AppNotification {
         return '$fromUserName a aimé votre lecture de $bookTitle';
       case NotificationType.comment:
         return '$fromUserName a commenté votre lecture de $bookTitle';
+      case NotificationType.friendRequest:
+        return '$fromUserName vous a envoyé une demande d\'ami';
     }
   }
 
@@ -106,20 +111,40 @@ class NotificationsService {
       final userId = _supabase.auth.currentUser?.id;
       if (userId == null) return [];
 
-      final response = await _supabase.rpc(
-        'get_user_notifications',
-        params: {
-          'p_user_id': userId,
-          'p_limit': limit,
-          'p_offset': offset,
-        },
-      );
+      final response = await _supabase
+          .from('notifications')
+          .select('id, type, activity_id, from_user_id, is_read, created_at')
+          .eq('user_id', userId)
+          .order('created_at', ascending: false)
+          .range(offset, offset + limit - 1);
 
-      if (response == null) return [];
+      if (response.isEmpty) return [];
 
-      final List<dynamic> list = response is List ? response : [response];
-      
-      return list.map((item) => AppNotification.fromJson(item)).toList();
+      // Récupérer les profils des expéditeurs
+      final fromUserIds = (response as List)
+          .map((n) => n['from_user_id'] as String)
+          .toSet()
+          .toList();
+
+      final profiles = await _supabase
+          .from('profiles')
+          .select('id, display_name, avatar_url')
+          .inFilter('id', fromUserIds);
+
+      final profileMap = <String, Map<String, dynamic>>{};
+      for (final p in profiles) {
+        profileMap[p['id'] as String] = p;
+      }
+
+      return response.map((item) {
+        final fromUserId = item['from_user_id'] as String;
+        final profile = profileMap[fromUserId];
+        return AppNotification.fromJson({
+          ...item,
+          'from_user_name': profile?['display_name'] ?? 'Un utilisateur',
+          'from_user_avatar': profile?['avatar_url'],
+        });
+      }).toList();
     } catch (e) {
       print('Erreur getNotifications: $e');
       return [];
@@ -150,13 +175,19 @@ class NotificationsService {
       final userId = _supabase.auth.currentUser?.id;
       if (userId == null) return;
 
-      await _supabase.rpc(
-        'mark_notifications_as_read',
-        params: {
-          'p_user_id': userId,
-          'p_notification_ids': notificationIds,
-        },
-      );
+      if (notificationIds != null && notificationIds.isNotEmpty) {
+        await _supabase
+            .from('notifications')
+            .update({'is_read': true})
+            .eq('user_id', userId)
+            .inFilter('id', notificationIds);
+      } else {
+        await _supabase
+            .from('notifications')
+            .update({'is_read': true})
+            .eq('user_id', userId)
+            .eq('is_read', false);
+      }
     } catch (e) {
       print('Erreur markAsRead: $e');
     }

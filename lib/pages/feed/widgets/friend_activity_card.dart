@@ -7,7 +7,11 @@ import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../services/comments_service.dart';
 import '../../../services/likes_service.dart';
+import '../../../services/premium_service.dart';
+import '../../../services/reactions_service.dart';
 import '../../../theme/app_theme.dart';
+import '../../../widgets/reaction_picker.dart';
+import '../../../widgets/reaction_summary.dart';
 import '../../friends/friend_profile_page.dart';
 
 class FriendActivityCard extends StatefulWidget {
@@ -25,14 +29,24 @@ class FriendActivityCard extends StatefulWidget {
 class _FriendActivityCardState extends State<FriendActivityCard> {
   final supabase = Supabase.instance.client;
   final likesService = LikesService();
+  final reactionsService = ReactionsService();
+  final premiumService = PremiumService();
   bool _isLiked = false;
   int _likeCount = 0;
   bool _isLoading = false;
+
+  // Réactions avancées (premium)
+  Map<String, int> _reactionCounts = {};
+  List<String> _userReactions = [];
+  bool _isPremium = false;
+  final GlobalKey _likeButtonKey = GlobalKey();
 
   @override
   void initState() {
     super.initState();
     _loadLikeStatus();
+    _loadReactions();
+    _checkPremium();
   }
 
   Future<void> _loadLikeStatus() async {
@@ -46,6 +60,97 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
       });
     } catch (e) {
       print('Erreur _loadLikeStatus: $e');
+    }
+  }
+
+  Future<void> _loadReactions() async {
+    try {
+      final activityId = widget.activity['id'] as int;
+      final data = await reactionsService.getActivityReactions(activityId);
+      if (!mounted) return;
+      setState(() {
+        _reactionCounts = (data['counts'] as Map<String, int>?) ?? {};
+        _userReactions = (data['userReactions'] as List<String>?) ?? [];
+      });
+    } catch (e) {
+      print('Erreur _loadReactions: $e');
+    }
+  }
+
+  Future<void> _checkPremium() async {
+    try {
+      final premium = await premiumService.isPremium();
+      if (!mounted) return;
+      setState(() => _isPremium = premium);
+    } catch (e) {
+      print('Erreur _checkPremium: $e');
+    }
+  }
+
+  void _onLikeLongPress() {
+    if (!_isPremium) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Les réactions avancées sont réservées aux membres Premium ✨'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
+    final renderBox = _likeButtonKey.currentContext?.findRenderObject() as RenderBox?;
+    if (renderBox == null) return;
+
+    ReactionPicker.show(
+      context: context,
+      anchorBox: renderBox,
+      selectedReactions: _userReactions,
+      onReactionSelected: _toggleReaction,
+    );
+  }
+
+  Future<void> _toggleReaction(String reactionType) async {
+    final activityId = widget.activity['id'] as int;
+    final wasReacted = _userReactions.contains(reactionType);
+    final previousCounts = Map<String, int>.from(_reactionCounts);
+    final previousUserReactions = List<String>.from(_userReactions);
+
+    // Optimistic update
+    setState(() {
+      if (wasReacted) {
+        _userReactions.remove(reactionType);
+        _reactionCounts[reactionType] = (_reactionCounts[reactionType] ?? 1) - 1;
+        if ((_reactionCounts[reactionType] ?? 0) <= 0) {
+          _reactionCounts.remove(reactionType);
+        }
+      } else {
+        _userReactions.add(reactionType);
+        _reactionCounts[reactionType] = (_reactionCounts[reactionType] ?? 0) + 1;
+      }
+    });
+
+    try {
+      if (wasReacted) {
+        await reactionsService.removeReaction(activityId, reactionType);
+      } else {
+        await reactionsService.addReaction(activityId, reactionType);
+      }
+    } catch (e) {
+      print('Erreur toggleReaction: $e');
+      // Revert on error
+      setState(() {
+        _reactionCounts = previousCounts;
+        _userReactions = previousUserReactions;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -483,13 +588,24 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
               
               const SizedBox(height: 12),
 
+              // Réactions avancées (premium)
+              if (_reactionCounts.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: ReactionSummary(
+                    reactionCounts: _reactionCounts,
+                    userReactions: _userReactions,
+                  ),
+                ),
+
               // Actions: Like + Partage + Détails
               Row(
                 children: [
-                  // Bouton Like
-                  InkWell(
+                  // Bouton Like (tap = like, long press = réactions premium)
+                  GestureDetector(
+                    key: _likeButtonKey,
                     onTap: _toggleLike,
-                    borderRadius: BorderRadius.circular(20),
+                    onLongPress: _onLikeLongPress,
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       child: Row(

@@ -11,7 +11,11 @@
       "Bash(flutter run:*)",
       "Bash(flutter install:*)",
       "Bash(grep:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(xargs:*)",
+      "Bash(wc:*)",
+      "Bash(ls:*)",
+      "Bash(cat:*)"
     ]
   }
 }

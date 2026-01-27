@@ -485,47 +485,106 @@ class KindleWebViewService {
         // Fonction pour extraire titre et auteur depuis le texte visible d'un conteneur
         function extractBookInfo(container, img) {
           var result = { title: null, author: null };
-          var texts = [];
 
-          // Collecter tous les textes visibles dans le conteneur (hors image)
+          // Utiliser l'attribut alt de l'image comme indice pour le titre
+          var imgAlt = (img.getAttribute('alt') || '').trim();
+
+          // Collecter tous les textes visibles avec leurs styles
           var allElements = container.querySelectorAll('span, p, div, h1, h2, h3, h4, h5, a, strong, b, em');
-          allElements.forEach(function(el) {
-            // Ignorer si contient l'image
-            if (el.contains(img) || el.tagName === 'IMG') return;
+          var textElements = [];
 
-            // Ignorer les conteneurs trop grands (qui contiennent d'autres éléments texte)
+          allElements.forEach(function(el) {
+            if (el.contains(img) || el.tagName === 'IMG') return;
             if (el.querySelectorAll('span, p, div, h1, h2, h3, h4, h5, a').length > 2) return;
 
             var text = (el.innerText || el.textContent || '').trim();
-            // Nettoyer les retours à la ligne
             text = text.split('\\n').map(function(l) { return l.trim(); }).filter(function(l) { return l.length > 0; })[0] || '';
 
-            if (text.length >= 2 && text.length < 200) {
-              var lower = text.toLowerCase();
-              // Filtrer les textes de navigation/UI
-              if (lower === 'kindle' || lower === 'downloaded' || lower === 'download' ||
-                  lower === 'read now' || lower === 'read' || lower === 'more' ||
-                  lower.includes('filter') || lower.includes('sort') ||
-                  lower.includes('sign in') || lower.includes('skip') ||
-                  text.match(/^\\d+\\s*%\$/) || text.match(/^\\d+\$/)) {
-                return;
-              }
+            if (text.length < 2 || text.length >= 200) return;
 
-              // Éviter les doublons dans la liste de textes
-              if (!texts.includes(text)) {
-                texts.push(text);
-              }
+            var lower = text.toLowerCase();
+            // Filtrer les textes de navigation/UI (liste étendue)
+            if (lower === 'kindle' || lower === 'downloaded' || lower === 'download' ||
+                lower === 'read now' || lower === 'read' || lower === 'more' ||
+                lower === 'sample' || lower === 'new' || lower === 'delete' ||
+                lower === 'deliver' || lower === 'return' || lower === 'buy' ||
+                lower === 'open' || lower === 'remove' || lower === 'go to' ||
+                lower === 'not started' || lower === 'lire' || lower === 'ouvrir' ||
+                lower === 'supprimer' || lower === 'retourner' || lower === 'acheter' ||
+                lower.includes('filter') || lower.includes('sort') ||
+                lower.includes('sign in') || lower.includes('skip') ||
+                lower.includes('sync') || lower.includes('archive') ||
+                lower.includes('manage') || lower.includes('settings') ||
+                text.match(/^\\d+\\s*%\$/) || text.match(/^\\d+\$/)) {
+              return;
+            }
+
+            // Récupérer le style calculé pour les heuristiques
+            var style = window.getComputedStyle(el);
+            var fontSize = parseFloat(style.fontSize) || 14;
+            var hasByPrefix = /^(by|par|de)\\s+/i.test(text);
+
+            // Éviter les doublons
+            var isDuplicate = false;
+            for (var i = 0; i < textElements.length; i++) {
+              if (textElements[i].text === text) { isDuplicate = true; break; }
+            }
+            if (!isDuplicate) {
+              textElements.push({
+                text: text,
+                fontSize: fontSize,
+                hasByPrefix: hasByPrefix
+              });
             }
           });
 
-          // Le premier texte non-trivial est généralement le titre
-          // Le second est souvent l'auteur
-          if (texts.length > 0) {
-            result.title = texts[0];
-            if (texts.length > 1) {
-              // L'auteur est souvent le 2e texte distinct
-              result.author = texts[1];
+          // Stratégie 1 : Chercher un préfixe explicite "By" / "par" / "de"
+          var byElement = null;
+          for (var i = 0; i < textElements.length; i++) {
+            if (textElements[i].hasByPrefix) { byElement = textElements[i]; break; }
+          }
+          if (byElement) {
+            result.author = byElement.text.replace(/^(by|par|de)\\s+/i, '').trim();
+            for (var i = 0; i < textElements.length; i++) {
+              if (!textElements[i].hasByPrefix) { result.title = textElements[i].text; break; }
             }
+            return result;
+          }
+
+          // Stratégie 2 : Utiliser le alt de l'image pour identifier le titre
+          // puis l'auteur est le texte restant le plus probable
+          if (imgAlt.length > 3) {
+            var altLower = imgAlt.toLowerCase();
+            var foundTitle = false;
+            for (var i = 0; i < textElements.length; i++) {
+              var tLower = textElements[i].text.toLowerCase();
+              if (tLower === altLower || altLower.includes(tLower) || tLower.includes(altLower)) {
+                result.title = textElements[i].text;
+                foundTitle = true;
+                // L'auteur est le prochain texte différent du titre
+                for (var j = 0; j < textElements.length; j++) {
+                  if (j !== i) { result.author = textElements[j].text; break; }
+                }
+                break;
+              }
+            }
+            if (foundTitle) return result;
+          }
+
+          // Stratégie 3 : Heuristique par taille de police
+          // Le titre est généralement le texte le plus grand
+          if (textElements.length >= 2) {
+            var sorted = textElements.slice().sort(function(a, b) { return b.fontSize - a.fontSize; });
+            result.title = sorted[0].text;
+            // L'auteur est le texte avec une taille plus petite
+            for (var i = 1; i < sorted.length; i++) {
+              if (sorted[i].text.length >= 3) {
+                result.author = sorted[i].text;
+                break;
+              }
+            }
+          } else if (textElements.length === 1) {
+            result.title = textElements[0].text;
           }
 
           return result;
@@ -612,6 +671,41 @@ class KindleWebViewService {
         var titlesMatch = bodyText.match(/(\\d+)\\s*titles?\\s*read/i);
         var titleCount = titlesMatch ? parseInt(titlesMatch[1]) : 0;
 
+        // Fonction utilitaire pour trouver l'auteur près d'un lien produit
+        function findAuthorNearLink(linkEl) {
+          // Remonter au conteneur parent du livre
+          var container = linkEl;
+          for (var p = 0; p < 5; p++) {
+            if (!container.parentElement) break;
+            container = container.parentElement;
+            // Un bon conteneur a du texte et n'est pas trop grand
+            if (container.children.length >= 2 && container.children.length <= 15) {
+              var texts = [];
+              container.querySelectorAll('span, p, div, a, strong, em').forEach(function(el) {
+                if (el.contains(linkEl) && el !== linkEl) return;
+                var t = (el.innerText || el.textContent || '').trim();
+                t = t.split('\\n')[0].trim();
+                if (t.length >= 3 && t.length < 150) {
+                  var lower = t.toLowerCase();
+                  if (lower === 'kindle' || lower === 'read' || lower === 'read now' ||
+                      lower.includes('amazon') || lower.includes('sign') ||
+                      lower.includes('cart') || /^\\d+\$/.test(t) || /^\\d+\\s*%\$/.test(t)) return;
+                  if (texts.indexOf(t) === -1) texts.push(t);
+                }
+              });
+              // Chercher un texte avec préfixe "By" / "par"
+              for (var i = 0; i < texts.length; i++) {
+                if (/^(by|par|de)\\s+/i.test(texts[i])) {
+                  return texts[i].replace(/^(by|par|de)\\s+/i, '').trim();
+                }
+              }
+              // Sinon le 2e texte distinct (le 1er est souvent le titre)
+              if (texts.length >= 2) return texts[1];
+            }
+          }
+          return null;
+        }
+
         // Méthode 1 : Extraire depuis les liens produit Amazon
         // Couvre /dp/, /gp/product/, et les ASINs (/B0...)
         var linkSelectors = 'a[href*="/dp/"], a[href*="/gp/product/"], a[href*="/B0"]';
@@ -625,7 +719,8 @@ class KindleWebViewService {
             var alt = img.alt.trim();
             if (alt.length > 3 && alt.length < 200 && !seen.has(alt.toLowerCase())) {
               seen.add(alt.toLowerCase());
-              books.push({ title: alt, author: null, percentComplete: 100 });
+              var author = findAuthorNearLink(a);
+              books.push({ title: alt, author: author, percentComplete: 100 });
             }
           } else {
             var text = a.textContent.trim();
@@ -636,7 +731,8 @@ class KindleWebViewService {
                 !text.toLowerCase().includes('cart') &&
                 !seen.has(text.toLowerCase())) {
               seen.add(text.toLowerCase());
-              books.push({ title: text, author: null, percentComplete: 100 });
+              var author = findAuthorNearLink(a);
+              books.push({ title: text, author: author, percentComplete: 100 });
             }
           }
         });

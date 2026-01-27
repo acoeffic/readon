@@ -179,7 +179,7 @@ class BooksService {
 
       final response = await _supabase
           .from('user_books')
-          .select('book_id, status, books(*)')
+          .select('book_id, status, is_hidden, books(*)')
           .eq('user_id', userId)
           .order('created_at', ascending: false);
 
@@ -187,6 +187,7 @@ class BooksService {
         return {
           'book': Book.fromJson(item['books']),
           'status': item['status'] as String? ?? 'to_read',
+          'is_hidden': item['is_hidden'] as bool? ?? false,
         };
       }).toList();
     } catch (e) {
@@ -232,6 +233,21 @@ class BooksService {
           .eq('book_id', bookId);
     } catch (e) {
       print('Erreur removeBookFromLibrary: $e');
+      rethrow;
+    }
+  }
+
+  /// Masquer ou afficher un livre vis-à-vis des autres utilisateurs
+  Future<void> toggleBookHidden(int bookId, bool isHidden) async {
+    try {
+      final userId = _supabase.auth.currentUser!.id;
+      await _supabase
+          .from('user_books')
+          .update({'is_hidden': isHidden})
+          .eq('user_id', userId)
+          .eq('book_id', bookId);
+    } catch (e) {
+      print('Erreur toggleBookHidden: $e');
       rethrow;
     }
   }
@@ -395,6 +411,7 @@ class BooksService {
                     'description': metadata?['description'],
                     'page_count': metadata?['page_count'],
                     'google_id': googleIdToUse,
+                    'genre': metadata?['genre'],
                   })
                   .select()
                   .single();
@@ -411,6 +428,7 @@ class BooksService {
                   'cover_url': coverUrl,
                   'description': metadata?['description'],
                   'page_count': metadata?['page_count'],
+                  'genre': metadata?['genre'],
                 })
                 .select()
                 .single();
@@ -541,12 +559,15 @@ class BooksService {
       if (results.isEmpty) return null;
 
       final book = results.first;
+      // Filtrer 'Auteur inconnu' qui est la valeur par défaut quand aucun auteur n'est trouvé
+      final author = book.authorsString;
       return {
-        'author': book.authorsString,
+        'author': (author != 'Auteur inconnu') ? author : null,
         'cover_url': book.coverUrl,
         'description': book.description,
         'page_count': book.pageCount,
         'google_id': book.id,
+        'genre': book.genre,
       };
     } catch (e) {
       print('Erreur Google Books metadata pour "$title": $e');
@@ -565,6 +586,7 @@ class BooksService {
       if (metadata['description'] != null) updates['description'] = metadata['description'];
       if (metadata['page_count'] != null) updates['page_count'] = metadata['page_count'];
       if (metadata['author'] != null) updates['author'] = metadata['author'];
+      if (metadata['genre'] != null) updates['genre'] = metadata['genre'];
 
       // Vérifier que le google_id n'est pas déjà utilisé par un autre livre
       if (metadata['google_id'] != null) {

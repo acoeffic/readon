@@ -158,6 +158,16 @@ class _SignUpPageState extends State<SignUpPage> {
 
       final user = res.user;
 
+      // Avec "Confirm email" activé, Supabase retourne un user
+      // avec identities vide si l'email est déjà pris
+      if (user != null &&
+          user.identities != null &&
+          user.identities!.isEmpty) {
+        if (!mounted) return;
+        _showEmailAlreadyExistsDialog();
+        return;
+      }
+
       if (user != null && res.session != null) {
         await supabase.from('profiles').upsert({
           'id': user.id,
@@ -207,7 +217,40 @@ class _SignUpPageState extends State<SignUpPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const BackHeader(title: 'Créer un compte'),
-              const SizedBox(height: AppSpace.xl),
+              const SizedBox(height: AppSpace.l),
+
+              // Logo ReadOn
+              Center(
+                child: Column(
+                  children: [
+                    Container(
+                      width: 100,
+                      height: 100,
+                      decoration: BoxDecoration(
+                        color: AppColors.accentLight.withOpacity(0.6),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Center(
+                        child: Icon(
+                          Icons.menu_book_rounded,
+                          color: AppColors.primary,
+                          size: 52,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: AppSpace.s),
+                    Text(
+                      'ReadOn',
+                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                            color: AppColors.primary,
+                            fontSize: 26,
+                            fontWeight: FontWeight.w700,
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: AppSpace.l),
 
               Text(
                 'Rejoins ReadOn',

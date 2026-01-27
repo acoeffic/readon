@@ -4,6 +4,7 @@
 import 'package:flutter/material.dart';
 import '../../services/notifications_service.dart';
 import '../../theme/app_theme.dart';
+import '../friends/friend_requests_page.dart';
 
 class NotificationsPage extends StatefulWidget {
   const NotificationsPage({super.key});
@@ -120,6 +121,8 @@ class _NotificationCard extends StatelessWidget {
         return Icons.favorite;
       case NotificationType.comment:
         return Icons.comment;
+      case NotificationType.friendRequest:
+        return Icons.person_add;
     }
   }
 
@@ -129,6 +132,8 @@ class _NotificationCard extends StatelessWidget {
         return Colors.red;
       case NotificationType.comment:
         return Colors.blue;
+      case NotificationType.friendRequest:
+        return Colors.orange;
     }
   }
 
@@ -152,10 +157,13 @@ class _NotificationCard extends StatelessWidget {
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
           onTap: () {
-            // TODO: Navigate to activity details
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Voir l\'activité (à implémenter)')),
-            );
+            if (notification.type == NotificationType.friendRequest) {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const FriendRequestsPage(),
+                ),
+              );
+            }
           },
           child: Padding(
             padding: const EdgeInsets.all(12),

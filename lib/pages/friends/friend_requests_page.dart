@@ -35,13 +35,44 @@ class _FriendRequestsPageState extends State<FriendRequestsPage> {
     }
 
     try {
-      final data = await supabase.rpc('get_friend_requests', params: {
-        'uid': user.id,
-      });
+      // Récupérer les demandes pending où je suis le destinataire
+      final friendsData = await supabase
+          .from('friends')
+          .select('id, requester_id')
+          .eq('addressee_id', user.id)
+          .eq('status', 'pending');
 
-      final list = (data as List)
-          .map((e) => Map<String, dynamic>.from(e as Map))
-          .toList();
+      if ((friendsData as List).isEmpty) {
+        if (!mounted) return;
+        setState(() {
+          _requests = [];
+          _loading = false;
+          _error = null;
+        });
+        return;
+      }
+
+      // Récupérer les profils des demandeurs
+      final requesterIds = friendsData.map((f) => f['requester_id'] as String).toList();
+      final profiles = await supabase
+          .from('profiles')
+          .select('id, display_name, email')
+          .inFilter('id', requesterIds);
+
+      final profileMap = <String, Map<String, dynamic>>{};
+      for (final p in (profiles as List)) {
+        profileMap[p['id'] as String] = Map<String, dynamic>.from(p);
+      }
+
+      final list = friendsData.map((f) {
+        final requesterId = f['requester_id'] as String;
+        final profile = profileMap[requesterId];
+        return {
+          'request_id': f['id'],
+          'display_name': profile?['display_name'] ?? 'Utilisateur',
+          'email': profile?['email'] ?? '',
+        };
+      }).toList();
 
       if (!mounted) return;
       setState(() {
@@ -49,7 +80,8 @@ class _FriendRequestsPageState extends State<FriendRequestsPage> {
         _loading = false;
         _error = null;
       });
-    } catch (_) {
+    } catch (e) {
+      print('Erreur _loadRequests: $e');
       if (!mounted) return;
       setState(() {
         _error = "Impossible de récupérer les demandes";
@@ -64,10 +96,17 @@ class _FriendRequestsPageState extends State<FriendRequestsPage> {
     setState(() => _processing.add(requestId));
 
     try {
-      await supabase.rpc('respond_friend_request', params: {
-        'rid': requestId,
-        'accept': accept,
-      });
+      if (accept) {
+        await supabase
+            .from('friends')
+            .update({'status': 'accepted'})
+            .eq('id', requestId);
+      } else {
+        await supabase
+            .from('friends')
+            .delete()
+            .eq('id', requestId);
+      }
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

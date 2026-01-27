@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../services/books_service.dart';
 import '../../models/book.dart';
 import '../../services/reading_session_service.dart';
@@ -19,14 +20,12 @@ class _UserBooksPageState extends State<UserBooksPage> {
   bool _isLoading = true;
 
   // Livres séparés par statut
-  List<Book> get _readingBooks => _booksWithStatus
+  List<Map<String, dynamic>> get _readingBooksData => _booksWithStatus
       .where((item) => item['status'] == 'reading' || item['status'] == 'to_read')
-      .map((item) => item['book'] as Book)
       .toList();
 
-  List<Book> get _finishedBooks => _booksWithStatus
+  List<Map<String, dynamic>> get _finishedBooksData => _booksWithStatus
       .where((item) => item['status'] == 'finished')
-      .map((item) => item['book'] as Book)
       .toList();
 
   @override
@@ -96,23 +95,30 @@ class _UserBooksPageState extends State<UserBooksPage> {
     return ListView(
       children: [
         // Section: En cours / À lire
-        if (_readingBooks.isNotEmpty) ...[
+        if (_readingBooksData.isNotEmpty) ...[
           _buildSectionHeader(
             'En cours',
             Icons.auto_stories,
-            _readingBooks.length,
+            _readingBooksData.length,
           ),
-          ..._readingBooks.map((book) => _buildBookCard(book)),
+          ..._readingBooksData.map((item) => _buildBookCard(
+                item['book'] as Book,
+                isHidden: item['is_hidden'] as bool? ?? false,
+              )),
         ],
 
         // Section: Terminés
-        if (_finishedBooks.isNotEmpty) ...[
+        if (_finishedBooksData.isNotEmpty) ...[
           _buildSectionHeader(
             'Terminés',
             Icons.check_circle,
-            _finishedBooks.length,
+            _finishedBooksData.length,
           ),
-          ..._finishedBooks.map((book) => _buildBookCard(book, isFinished: true)),
+          ..._finishedBooksData.map((item) => _buildBookCard(
+                item['book'] as Book,
+                isFinished: true,
+                isHidden: item['is_hidden'] as bool? ?? false,
+              )),
         ],
       ],
     );
@@ -153,7 +159,7 @@ class _UserBooksPageState extends State<UserBooksPage> {
     );
   }
 
-  Widget _buildBookCard(Book book, {bool isFinished = false}) {
+  Widget _buildBookCard(Book book, {bool isFinished = false, bool isHidden = false}) {
     return Dismissible(
       key: Key('book_${book.id}'),
       direction: DismissDirection.endToStart,
@@ -227,6 +233,23 @@ class _UserBooksPageState extends State<UserBooksPage> {
                     ),
                   ),
                 ),
+              if (isHidden)
+                Positioned(
+                  top: 0,
+                  right: 0,
+                  child: Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: const BoxDecoration(
+                      color: Colors.orange,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.visibility_off,
+                      size: 12,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
             ],
           ),
           title: Text(book.title, maxLines: 2, overflow: TextOverflow.ellipsis),
@@ -287,6 +310,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
   ReadingSession? _activeSession;
   BookReadingStats? _stats;
   String? _bookStatus;
+  bool _isHidden = false;
   bool _isLoading = true;
 
   bool get _isBookFinished => _bookStatus == 'finished';
@@ -314,10 +338,24 @@ class _BookDetailPageState extends State<BookDetailPage> {
       String? status = widget.initialStatus;
       status ??= await _booksService.getBookStatus(widget.book.id);
 
+      // Charger le statut de visibilité
+      final userId = Supabase.instance.client.auth.currentUser?.id;
+      bool hidden = false;
+      if (userId != null) {
+        final userBookData = await Supabase.instance.client
+            .from('user_books')
+            .select('is_hidden')
+            .eq('user_id', userId)
+            .eq('book_id', widget.book.id)
+            .maybeSingle();
+        hidden = userBookData?['is_hidden'] as bool? ?? false;
+      }
+
       setState(() {
         _activeSession = activeSession;
         _stats = stats;
         _bookStatus = status;
+        _isHidden = hidden;
         _isLoading = false;
       });
     } catch (e) {
@@ -353,6 +391,29 @@ class _BookDetailPageState extends State<BookDetailPage> {
     );
 
     _loadSessionData();
+  }
+
+  Future<void> _toggleHidden() async {
+    final newValue = !_isHidden;
+    try {
+      await _booksService.toggleBookHidden(widget.book.id, newValue);
+      setState(() => _isHidden = newValue);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(newValue
+                ? 'Livre masqué des autres utilisateurs'
+                : 'Livre visible pour les autres utilisateurs'),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 
   Future<void> _markAsFinished() async {
@@ -422,6 +483,16 @@ class _BookDetailPageState extends State<BookDetailPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.book.title),
+        actions: [
+          IconButton(
+            icon: Icon(
+              _isHidden ? Icons.visibility_off : Icons.visibility,
+              color: _isHidden ? Colors.orange : null,
+            ),
+            tooltip: _isHidden ? 'Livre masqué aux autres' : 'Masquer ce livre',
+            onPressed: _toggleHidden,
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         child: Column(

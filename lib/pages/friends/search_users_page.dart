@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/back_header.dart';
+import '../../widgets/user_search_card.dart';
 import '../../models/reading_group.dart';
+import '../../models/user_search_result.dart';
 import '../groups/group_detail_page.dart';
+import 'friend_profile_page.dart';
 
 class SearchUsersPage extends StatefulWidget {
   const SearchUsersPage({super.key});
@@ -14,8 +17,9 @@ class SearchUsersPage extends StatefulWidget {
 
 class _SearchUsersPageState extends State<SearchUsersPage> {
   final _controller = TextEditingController();
-  List<Map<String, dynamic>> _userResults = [];
+  List<UserSearchResult> _userResults = [];
   List<ReadingGroup> _groupResults = [];
+  Map<String, bool> _pendingRequests = {}; // user_id -> isPending
   bool _loading = false;
   int _selectedTab = 0; // 0 = Amis, 1 = Groupes
 
@@ -37,17 +41,59 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
 
     try {
       if (_selectedTab == 0) {
-        final data = await supabase
+        // Recherche de base des utilisateurs
+        final basicData = await supabase
             .from('profiles')
             .select('id, display_name, email')
             .or('display_name.ilike.$pattern,email.ilike.$pattern')
             .limit(20);
 
         if (!mounted) return;
+
+        // Récupérer les données enrichies pour chaque utilisateur
+        final enrichedUsers = <UserSearchResult>[];
+        for (final user in (basicData as List)) {
+          try {
+            final userId = user['id'] as String;
+            final displayName = user['display_name'] as String? ?? user['email'] as String? ?? 'Utilisateur';
+
+            print('🔍 Récupération données pour: $displayName ($userId)');
+
+            final enrichedData = await supabase.rpc(
+              'get_user_search_data',
+              params: {'p_user_id': userId},
+            );
+
+            print('📦 Données reçues pour $displayName: $enrichedData');
+
+            if (enrichedData != null) {
+              final userResult = UserSearchResult.fromJson(
+                Map<String, dynamic>.from(enrichedData as Map),
+              );
+              print('✅ $displayName - isPrivate: ${userResult.isProfilePrivate}');
+              enrichedUsers.add(userResult);
+            } else {
+              print('⚠️ enrichedData est NULL pour $displayName');
+            }
+          } catch (e, stackTrace) {
+            print('❌ Erreur enrichissement utilisateur: $e');
+            print('📍 Stack trace: $stackTrace');
+            // En cas d'erreur, ajouter avec les données de base uniquement
+            enrichedUsers.add(UserSearchResult(
+              id: user['id'] as String,
+              displayName: user['display_name'] as String? ?? user['email'] as String? ?? 'Utilisateur',
+              email: user['email'] as String?,
+              isProfilePrivate: true, // Par défaut, traiter comme privé en cas d'erreur
+            ));
+          }
+        }
+
+        // Vérifier les demandes d'amitié existantes
+        await _checkPendingRequests(enrichedUsers.map((u) => u.id).toList());
+
+        if (!mounted) return;
         setState(() {
-          _userResults = (data as List)
-              .map((e) => Map<String, dynamic>.from(e as Map))
-              .toList();
+          _userResults = enrichedUsers;
           _loading = false;
         });
       } else {
@@ -81,17 +127,54 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
     }
   }
 
-  Future<void> _addFriend(Map<String, dynamic> user) async {
+  Future<void> _checkPendingRequests(List<String> userIds) async {
+    if (userIds.isEmpty) return;
+
     final currentUser = Supabase.instance.client.auth.currentUser;
-    final targetId = user['id'] as String?;
+    if (currentUser == null) return;
+
+    try {
+      final client = Supabase.instance.client;
+
+      // Construire la requête OR pour tous les utilisateurs
+      final orConditions = userIds.map((userId) =>
+        'and(requester_id.eq.${currentUser.id},addressee_id.eq.$userId),and(requester_id.eq.$userId,addressee_id.eq.${currentUser.id})'
+      ).join(',');
+
+      final existing = await client
+          .from('friends')
+          .select('addressee_id, requester_id, status')
+          .or(orConditions);
+
+      final pendingMap = <String, bool>{};
+      for (final friendship in (existing as List)) {
+        final addresseeId = friendship['addressee_id'] as String;
+        final requesterId = friendship['requester_id'] as String;
+        final status = friendship['status'] as String?;
+
+        final friendId = addresseeId == currentUser.id ? requesterId : addresseeId;
+        pendingMap[friendId] = status == 'pending' || status == 'accepted';
+      }
+
+      setState(() => _pendingRequests = pendingMap);
+    } catch (e) {
+      print('Erreur _checkPendingRequests: $e');
+    }
+  }
+
+  Future<void> _addFriend(UserSearchResult user) async {
+    final currentUser = Supabase.instance.client.auth.currentUser;
+    final targetId = user.id;
 
     if (currentUser == null) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Connecte-toi pour ajouter un ami')),
       );
       return;
     }
-    if (targetId == null || targetId == currentUser.id) {
+    if (targetId == currentUser.id) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Utilisateur invalide')),
       );
@@ -111,6 +194,7 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
 
       if ((existing as List).isNotEmpty) {
         final status = (existing.first as Map)['status'] as String? ?? 'en attente';
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Relation déjà $status')),
         );
@@ -123,14 +207,43 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
         'status': 'pending',
       });
 
+      setState(() => _pendingRequests[targetId] = true);
+
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Invitation envoyée')),
       );
-    } catch (_) {
+    } catch (e) {
+      print('Erreur _addFriend: $e');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Impossible d\'ajouter cet ami')),
+      );
+    }
+  }
+
+  Future<void> _cancelFriendRequest(UserSearchResult user) async {
+    final currentUser = Supabase.instance.client.auth.currentUser;
+    if (currentUser == null) return;
+
+    try {
+      await Supabase.instance.client
+          .from('friends')
+          .delete()
+          .eq('requester_id', currentUser.id)
+          .eq('addressee_id', user.id)
+          .eq('status', 'pending');
+
+      setState(() => _pendingRequests.remove(user.id));
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Demande annulée')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Impossible d\'annuler la demande')),
       );
     }
   }
@@ -272,49 +385,137 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
 
     return ListView.separated(
       itemCount: _userResults.length,
-      separatorBuilder: (_, __) => const SizedBox(height: AppSpace.s),
+      separatorBuilder: (_, __) => const SizedBox(height: AppSpace.xs),
       itemBuilder: (context, index) {
         final user = _userResults[index];
-        final name = (user['display_name'] ?? user['email']) as String? ?? '';
-        final email = user['email'] as String? ?? '';
+        final isPending = _pendingRequests[user.id] ?? false;
 
-        return Container(
-          padding: const EdgeInsets.all(AppSpace.m),
-          decoration: BoxDecoration(
-            color: AppColors.white,
-            borderRadius: BorderRadius.circular(AppRadius.l),
-            border: Border.all(color: AppColors.border),
-          ),
-          child: Row(
-            children: [
-              CircleAvatar(
-                backgroundColor: AppColors.accentLight,
-                child: Text(
-                  name.isNotEmpty ? name[0].toUpperCase() : '?',
-                  style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700),
-                ),
-              ),
-              const SizedBox(width: AppSpace.m),
-
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(name, style: Theme.of(context).textTheme.titleMedium),
-                    const SizedBox(height: AppSpace.xs),
-                    Text(email, style: Theme.of(context).textTheme.bodyMedium),
-                  ],
-                ),
-              ),
-
-              TextButton(
-                onPressed: () => _addFriend(user),
-                child: const Text('Ajouter', style: TextStyle(color: AppColors.primary)),
-              ),
-            ],
-          ),
-        );
+        return _buildSimpleUserItem(user, isPending);
       },
+    );
+  }
+
+  Widget _buildSimpleUserItem(UserSearchResult user, bool isPending) {
+    return GestureDetector(
+      onTap: () => _showUserDetailsModal(user, isPending),
+      child: Container(
+        padding: const EdgeInsets.all(AppSpace.m),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(AppRadius.m),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Row(
+          children: [
+            // Avatar
+            CircleAvatar(
+              radius: 24,
+              backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+              backgroundImage: user.avatarUrl != null
+                  ? NetworkImage(user.avatarUrl!)
+                  : null,
+              child: user.avatarUrl == null
+                  ? Text(
+                      user.displayName[0].toUpperCase(),
+                      style: const TextStyle(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 18,
+                      ),
+                    )
+                  : null,
+            ),
+            const SizedBox(width: AppSpace.m),
+
+            // Nom + indicateur privé
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    user.displayName,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  if (user.isProfilePrivate) ...[
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        Icon(Icons.lock, size: 12, color: Colors.grey.shade600),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Profil privé',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            ),
+
+            // Flèche pour indiquer qu'on peut cliquer
+            Icon(Icons.chevron_right, color: Colors.grey.shade400),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showUserDetailsModal(UserSearchResult user, bool isPending) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.85,
+        ),
+        decoration: const BoxDecoration(
+          color: AppColors.bgLight,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.l)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Barre de fermeture
+            Container(
+              margin: const EdgeInsets.only(top: 12, bottom: 8),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+
+            // Carte détaillée
+            Flexible(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(AppSpace.l),
+                child: UserSearchCard(
+                  user: user,
+                  isRequestPending: isPending,
+                  onAddFriend: () {
+                    _addFriend(user);
+                    Navigator.pop(context);
+                  },
+                  onCancelRequest: () {
+                    _cancelFriendRequest(user);
+                    Navigator.pop(context);
+                  },
+                  onTap: null,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -353,7 +554,7 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
             child: Row(
               children: [
                 CircleAvatar(
-                  backgroundColor: AppColors.primary.withOpacity(0.1),
+                  backgroundColor: AppColors.primary.withValues(alpha: 0.1),
                   backgroundImage: group.coverUrl != null
                       ? NetworkImage(group.coverUrl!)
                       : null,
