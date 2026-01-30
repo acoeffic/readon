@@ -2,14 +2,18 @@
 
 import 'package:flutter/material.dart';
 import '../../models/reading_session.dart';
+import '../../models/trophy.dart';
+import '../../widgets/trophy_card.dart';
 import '../../theme/app_theme.dart';
 
 class ReadingSessionSummaryPage extends StatelessWidget {
   final ReadingSession session;
+  final Trophy? trophy;
 
   const ReadingSessionSummaryPage({
     super.key,
     required this.session,
+    this.trophy,
   });
 
   String _formatDuration(int minutes) {
@@ -46,40 +50,40 @@ class ReadingSessionSummaryPage extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            // Icône succès
-            Container(
-              width: 120,
-              height: 120,
-              decoration: BoxDecoration(
-                color: Colors.green.shade50,
-                shape: BoxShape.circle,
+            // Trophée ou icône succès par défaut
+            if (trophy != null) ...[
+              TrophyCard(trophy: trophy!),
+            ] else ...[
+              Container(
+                width: 120,
+                height: 120,
+                decoration: BoxDecoration(
+                  color: Colors.green.shade50,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.check_circle,
+                  size: 80,
+                  color: Colors.green.shade700,
+                ),
               ),
-              child: Icon(
-                Icons.check_circle,
-                size: 80,
-                color: Colors.green.shade700,
+              const SizedBox(height: 24),
+              const Text(
+                'Bravo !',
+                style: TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-            ),
-            
-            const SizedBox(height: 24),
-            
-            const Text(
-              'Bravo !',
-              style: TextStyle(
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
+              const SizedBox(height: 8),
+              Text(
+                'Session de lecture terminée',
+                style: TextStyle(
+                  fontSize: 18,
+                  color: Colors.grey.shade600,
+                ),
               ),
-            ),
-            
-            const SizedBox(height: 8),
-            
-            Text(
-              'Session de lecture terminée',
-              style: TextStyle(
-                fontSize: 18,
-                color: Colors.grey.shade600,
-              ),
-            ),
+            ],
             
             const SizedBox(height: 32),
             

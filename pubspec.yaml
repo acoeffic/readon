@@ -47,6 +47,8 @@ dependencies:
   shared_preferences: ^2.2.2        # Local storage for user preferences
   provider: ^6.1.1                  # State management
   webview_flutter: ^4.10.0           # WebView for Kindle auth
+  webview_flutter_wkwebview: ^3.16.0 # iOS WebView implementation
+  webview_flutter_android: ^4.3.0    # Android WebView implementation
 
 dev_dependencies:
   flutter_test:

@@ -14,7 +14,11 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
 
   bool _notificationsEnabled = true;
   TimeOfDay _reminderTime = const TimeOfDay(hour: 20, minute: 0);
+  // Jours sélectionnés : index 0=Lundi, 6=Dimanche (tous actifs par défaut)
+  List<bool> _selectedDays = List.filled(7, true);
   bool _isLoading = true;
+
+  static const _dayLabels = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
 
   @override
   void initState() {
@@ -28,8 +32,8 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
       if (userId == null) return;
 
       final response = await supabase
-          .from('users')
-          .select('notifications_enabled, notification_reminder_time')
+          .from('profiles')
+          .select('notifications_enabled, notification_reminder_time, notification_days')
           .eq('id', userId)
           .maybeSingle();
 
@@ -48,6 +52,17 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
             }
           }
 
+          final days = response['notification_days'] as List<dynamic>?;
+          if (days != null && days.isNotEmpty) {
+            _selectedDays = List.filled(7, false);
+            for (final d in days) {
+              final index = (d as int) - 1; // 1-7 → 0-6
+              if (index >= 0 && index < 7) {
+                _selectedDays[index] = true;
+              }
+            }
+          }
+
           _isLoading = false;
         });
       }
@@ -63,7 +78,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
     try {
       final userId = supabase.auth.currentUser?.id;
       if (userId != null) {
-        await supabase.from('users').update({
+        await supabase.from('profiles').update({
           'notifications_enabled': value,
           'updated_at': DateTime.now().toIso8601String(),
         }).eq('id', userId);
@@ -123,7 +138,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
 
       final userId = supabase.auth.currentUser?.id;
       if (userId != null) {
-        await supabase.from('users').update({
+        await supabase.from('profiles').update({
           'notifications_enabled': _notificationsEnabled,
           'notification_reminder_time': timeString,
           'updated_at': DateTime.now().toIso8601String(),
@@ -139,6 +154,42 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
         );
       }
     } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _toggleDay(int index) async {
+    final updated = List<bool>.from(_selectedDays);
+    updated[index] = !updated[index];
+
+    // Empêcher de tout désélectionner
+    if (!updated.contains(true)) return;
+
+    setState(() => _selectedDays = updated);
+
+    try {
+      final userId = supabase.auth.currentUser?.id;
+      if (userId != null) {
+        final daysList = <int>[];
+        for (var i = 0; i < 7; i++) {
+          if (updated[i]) daysList.add(i + 1); // 0-6 → 1-7
+        }
+        await supabase.from('profiles').update({
+          'notification_days': daysList,
+          'updated_at': DateTime.now().toIso8601String(),
+        }).eq('id', userId);
+      }
+    } catch (e) {
+      setState(() {
+        _selectedDays[index] = !_selectedDays[index];
+      });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -259,6 +310,82 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                     ),
                     if (_notificationsEnabled) ...[
                       const Divider(height: AppSpace.l),
+                      // Sélection des jours
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(AppSpace.s),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(AppRadius.m),
+                            ),
+                            child: const Icon(
+                              Icons.calendar_today,
+                              color: AppColors.primary,
+                              size: 24,
+                            ),
+                          ),
+                          const SizedBox(width: AppSpace.m),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Jours de rappel',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .titleMedium
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                ),
+                                Text(
+                                  'Quels jours veux-tu être notifié ?',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.copyWith(
+                                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                                      ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: AppSpace.m),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: List.generate(7, (index) {
+                          final selected = _selectedDays[index];
+                          return GestureDetector(
+                            onTap: () => _toggleDay(index),
+                            child: Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: selected
+                                    ? AppColors.primary
+                                    : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.08),
+                                borderRadius: BorderRadius.circular(AppRadius.m),
+                              ),
+                              alignment: Alignment.center,
+                              child: Text(
+                                _dayLabels[index],
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: selected
+                                      ? Colors.white
+                                      : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                                ),
+                              ),
+                            ),
+                          );
+                        }),
+                      ),
+                      const Divider(height: AppSpace.l),
+                      // Heure du rappel
                       InkWell(
                         onTap: _changeReminderTime,
                         child: Row(
@@ -360,7 +487,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Tu recevras une notification quotidienne pour te rappeler de lire et maintenir ton streak.',
+                            'Tu recevras une notification les jours sélectionnés pour te rappeler de lire et maintenir ton streak.',
                             style: Theme.of(context)
                                 .textTheme
                                 .bodySmall

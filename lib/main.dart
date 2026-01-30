@@ -1,9 +1,22 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:webview_flutter/webview_flutter.dart';
+import 'package:webview_flutter_android/webview_flutter_android.dart';
+import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
 import 'app.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialiser la plateforme WebView
+  if (WebViewPlatform.instance == null) {
+    if (defaultTargetPlatform == TargetPlatform.iOS) {
+      WebViewPlatform.instance = WebKitWebViewPlatform();
+    } else if (defaultTargetPlatform == TargetPlatform.android) {
+      WebViewPlatform.instance = AndroidWebViewPlatform();
+    }
+  }
 
   // Initialiser Supabase
   await Supabase.initialize(

@@ -10,9 +10,12 @@ import '../../services/ocr_service.dart';
 import '../../services/books_service.dart';
 import '../../services/badges_service.dart';
 import '../../services/streak_service.dart';
+import '../../services/trophy_service.dart';
 import '../../models/reading_session.dart';
 import '../../models/reading_streak.dart';
+import '../../models/trophy.dart';
 import '../../widgets/badge_unlocked_dialog.dart';
+import '../../widgets/trophy_card.dart';
 import '../../models/book.dart';
 import 'reading_session_summary_page.dart';
 import 'book_completed_summary_page.dart';
@@ -37,6 +40,7 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
   final BooksService _booksService = BooksService();
   final BadgesService _badgesService = BadgesService();
   final StreakService _streakService = StreakService();
+  final TrophyService _trophyService = TrophyService();
   final ImagePicker _picker = ImagePicker();
 
   XFile? _imageFile;
@@ -197,12 +201,29 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
 
       if (!mounted) return;
 
+      // Sélectionner le trophée contextuel
+      final trophy = _trophyService.selectTrophy(completedSession);
+
       // Vérifier et attribuer les badges de streak (non bloquant)
       List<StreakBadgeLevel> newStreakBadges = [];
       try {
         newStreakBadges = await _streakService.checkAndAwardStreakBadges();
       } catch (e) {
         print('Erreur checkAndAwardStreakBadges (non bloquante): $e');
+      }
+
+      // Vérifier et attribuer les trophées débloquables (non bloquant)
+      List<Trophy> newUnlockableTrophies = [];
+      try {
+        final streak = await _streakService.getUserStreak();
+        final activeBookCount = await _getActiveBookCount();
+        newUnlockableTrophies = await _trophyService.checkUnlockableTrophies(
+          session: completedSession,
+          currentStreak: streak.currentStreak,
+          activeBookCount: activeBookCount,
+        );
+      } catch (e) {
+        print('Erreur checkUnlockableTrophies (non bloquante): $e');
       }
 
       // Afficher les badges de streak débloqués
@@ -216,13 +237,49 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
         }
       }
 
-      // Naviguer vers la page de résumé
-      Navigator.of(context).pop(completedSession);
+      // Afficher les trophées débloquables nouvellement gagnés
+      if (newUnlockableTrophies.isNotEmpty && mounted) {
+        for (final t in newUnlockableTrophies) {
+          await showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => TrophyUnlockedDialog(trophy: t),
+          );
+        }
+      }
+
+      // Naviguer vers la page de résumé avec le trophée
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => ReadingSessionSummaryPage(
+              session: completedSession,
+              trophy: trophy,
+            ),
+          ),
+        );
+      }
     } catch (e) {
       setState(() {
         _isProcessing = false;
         _errorMessage = 'Erreur: $e';
       });
+    }
+  }
+
+  Future<int> _getActiveBookCount() async {
+    try {
+      final userId = Supabase.instance.client.auth.currentUser?.id;
+      if (userId == null) return 0;
+      final response = await Supabase.instance.client
+          .from('user_books')
+          .select('id')
+          .eq('user_id', userId)
+          .eq('status', 'reading');
+      return (response as List).length;
+    } catch (e) {
+      print('Erreur _getActiveBookCount: $e');
+      return 0;
     }
   }
 
@@ -291,6 +348,9 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
           print('Erreur createBookFinishedActivity (non bloquante): $e');
         }
 
+        // Sélectionner le trophée contextuel
+        final trophy = _trophyService.selectTrophy(completedSession);
+
         // Vérifier et attribuer les badges (non bloquant)
         List<dynamic> newBadges = [];
         try {
@@ -305,6 +365,20 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
           newStreakBadges = await _streakService.checkAndAwardStreakBadges();
         } catch (e) {
           print('Erreur checkAndAwardStreakBadges (non bloquante): $e');
+        }
+
+        // Vérifier et attribuer les trophées débloquables (non bloquant)
+        List<Trophy> newUnlockableTrophies = [];
+        try {
+          final streak = await _streakService.getUserStreak();
+          final activeBookCount = await _getActiveBookCount();
+          newUnlockableTrophies = await _trophyService.checkUnlockableTrophies(
+            session: completedSession,
+            currentStreak: streak.currentStreak,
+            activeBookCount: activeBookCount,
+          );
+        } catch (e) {
+          print('Erreur checkUnlockableTrophies (non bloquante): $e');
         }
 
         if (!mounted) return;
@@ -334,6 +408,17 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
           }
         }
 
+        // Afficher les trophées débloquables nouvellement gagnés
+        if (newUnlockableTrophies.isNotEmpty && mounted) {
+          for (final t in newUnlockableTrophies) {
+            await showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (context) => TrophyUnlockedDialog(trophy: t),
+            );
+          }
+        }
+
         // Récupérer le livre pour la page de résumé
         Book? book = widget.book;
         if (book == null && bookIdInt != null) {
@@ -355,8 +440,15 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
             ),
           );
         } else {
-          // Fallback: retourner à la page précédente
-          Navigator.of(context).pop(completedSession);
+          // Fallback: page de résumé avec trophée
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (context) => ReadingSessionSummaryPage(
+                session: completedSession,
+                trophy: trophy,
+              ),
+            ),
+          );
         }
       } catch (e) {
         setState(() {

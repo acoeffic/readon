@@ -14,6 +14,7 @@ interface User {
   username: string
   fcm_token: string
   notification_reminder_time: string
+  notification_days: number[] | null
   current_streak: number
 }
 
@@ -104,7 +105,7 @@ serve(async (req) => {
     // Récupérer les utilisateurs avec notifications activées
     const { data: users, error: usersError } = await supabase
       .from('users')
-      .select('id, username, fcm_token, notification_reminder_time, current_streak')
+      .select('id, username, fcm_token, notification_reminder_time, notification_days, current_streak')
       .eq('notifications_enabled', true)
       .not('fcm_token', 'is', null)
 
@@ -139,9 +140,20 @@ serve(async (req) => {
 
     console.log(`📖 ${usersWhoReadToday.size} utilisateur(s) ont déjà lu aujourd'hui`)
 
-    // Filtrer les utilisateurs qui n'ont pas encore lu
+    // Jour actuel : 1=Lundi, 7=Dimanche (ISO 8601)
+    const now = new Date()
+    const jsDay = now.getDay() // 0=Dimanche, 1=Lundi, ..., 6=Samedi
+    const isoDay = jsDay === 0 ? 7 : jsDay // Convertir en 1=Lundi, 7=Dimanche
+
+    // Filtrer les utilisateurs qui :
+    // - n'ont pas encore lu aujourd'hui
+    // - ont le jour actuel dans leurs jours de notification sélectionnés
     const usersToNotify = users.filter(
-      (user: User) => !usersWhoReadToday.has(user.id)
+      (user: User) => {
+        if (usersWhoReadToday.has(user.id)) return false
+        const days = user.notification_days ?? [1, 2, 3, 4, 5, 6, 7]
+        return days.includes(isoDay)
+      }
     )
 
     console.log(`🔔 ${usersToNotify.length} notification(s) à envoyer`)

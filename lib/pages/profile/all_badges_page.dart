@@ -73,6 +73,8 @@ class _AllBadgesPageState extends State<AllBadgesPage> {
         return '🚀 Vitesse de Lecture';
       case 'reading_duration':
         return '⏱️ Durée de Lecture';
+      case 'trophy':
+        return '🏆 Trophées';
       default:
         return category;
     }
