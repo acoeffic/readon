@@ -206,6 +206,7 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
     );
 
     if (confirm != true) return;
+    if (!mounted) return;
 
     // Double confirmation
     final doubleConfirm = await showDialog<bool>(
@@ -304,7 +305,7 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                                 width: 120,
                                 height: 120,
                                 decoration: BoxDecoration(
-                                  color: AppColors.primary.withOpacity(0.1),
+                                  color: AppColors.primary.withValues(alpha:0.1),
                                   borderRadius: BorderRadius.circular(AppRadius.l),
                                   image: _currentCoverUrl != null
                                       ? DecorationImage(
@@ -395,7 +396,7 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                           borderRadius: BorderRadius.circular(AppRadius.m),
                           border: Border.all(
                             color: _isPrivate
-                                ? Colors.orange.withOpacity(0.5)
+                                ? Colors.orange.withValues(alpha:0.5)
                                 : Colors.transparent,
                           ),
                         ),
@@ -436,7 +437,7 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                                 setState(() => _isPrivate = value);
                                 _onFieldChanged();
                               },
-                              activeColor: Colors.orange,
+                              activeThumbColor: Colors.orange,
                             ),
                           ],
                         ),

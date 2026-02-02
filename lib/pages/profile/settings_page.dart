@@ -6,10 +6,13 @@ import 'dart:io';
 import '../../theme/app_theme.dart';
 import '../../widgets/back_header.dart';
 import '../../providers/theme_provider.dart';
+import '../../providers/subscription_provider.dart';
 import 'notification_settings_page.dart';
 import 'kindle_login_page.dart';
 import 'reading_goals_page.dart';
+import 'upgrade_page.dart';
 import '../../services/kindle_webview_service.dart';
+import '../auth/auth_gate.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -57,7 +60,7 @@ class _SettingsPageState extends State<SettingsPage> {
         });
       }
     } catch (e) {
-      print('Erreur _loadPrivacySettings: $e');
+      debugPrint('Erreur _loadPrivacySettings: $e');
       if (mounted) {
         setState(() => _loadingPrivacy = false);
       }
@@ -121,6 +124,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
     if (result != null && mounted) {
       await _loadKindleSyncStatus();
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Kindle synchronisé avec succès !'),
@@ -182,7 +186,7 @@ class _SettingsPageState extends State<SettingsPage> {
       }
 
       // VALIDATION: Vérifier que c'est bien une image
-      final fileExtension = image.path.split('.').last.toLowerCase();;
+      final fileExtension = image.path.split('.').last.toLowerCase();
 final allowedExtensions = ['jpg', 'jpeg', 'png', 'webp'];
 
 if (!allowedExtensions.contains(fileExtension)) {
@@ -220,7 +224,7 @@ if (!allowedExtensions.contains(fileExtension)) {
           }
         }
       } catch (e) {
-        print('Erreur suppression ancien avatar: $e');
+        debugPrint('Erreur suppression ancien avatar: $e');
         // Continue quand même avec l'upload
       }
 
@@ -255,7 +259,7 @@ if (!allowedExtensions.contains(fileExtension)) {
         );
       }
     } catch (e) {
-      print('Erreur upload photo: $e');
+      debugPrint('Erreur upload photo: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -288,7 +292,7 @@ if (!allowedExtensions.contains(fileExtension)) {
 
       controller.text = profile?['display_name'] ?? '';
     } catch (e) {
-      print('Erreur récupération nom: $e');
+      debugPrint('Erreur récupération nom: $e');
     }
 
     if (!mounted) return;
@@ -383,6 +387,7 @@ if (!allowedExtensions.contains(fileExtension)) {
     );
 
     if (firstConfirm != true) return;
+    if (!mounted) return;
 
     // Dialog 2 : taper "SUPPRIMER" pour confirmer
     final confirmController = TextEditingController();
@@ -462,8 +467,8 @@ if (!allowedExtensions.contains(fileExtension)) {
       }
 
       if (mounted) {
-        Navigator.of(context).pushNamedAndRemoveUntil(
-          '/welcome',
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const AuthGate()),
           (route) => false,
         );
       }
@@ -516,6 +521,35 @@ if (!allowedExtensions.contains(fileExtension)) {
                   ),
                 ],
               ),
+
+              const SizedBox(height: AppSpace.m),
+
+              // --- Section Abonnement ---
+              Builder(builder: (context) {
+                final sub = context.watch<SubscriptionProvider>();
+                final String subLabel;
+                if (sub.isPremium) {
+                  final expStr = sub.expiresAt != null
+                      ? '${sub.expiresAt!.day}/${sub.expiresAt!.month}/${sub.expiresAt!.year}'
+                      : '';
+                  subLabel = sub.isTrial
+                      ? 'Essai gratuit${expStr.isNotEmpty ? ' (jusqu\'au $expStr)' : ''}'
+                      : 'Premium actif${expStr.isNotEmpty ? ' (jusqu\'au $expStr)' : ''}';
+                } else {
+                  subLabel = 'Passer à Premium';
+                }
+                return _SettingsSection(
+                  title: 'Abonnement',
+                  items: [
+                    _SettingsItem(
+                      label: sub.isPremium ? subLabel : 'Passer à Premium',
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const UpgradePage()),
+                      ),
+                    ),
+                  ],
+                );
+              }),
 
               const SizedBox(height: AppSpace.m),
 
@@ -579,7 +613,9 @@ if (!allowedExtensions.contains(fileExtension)) {
                         Container(
                           padding: const EdgeInsets.all(AppSpace.m),
                           decoration: BoxDecoration(
-                            color: AppColors.accentLight.withValues(alpha: 0.3),
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? AppColors.accentDark.withValues(alpha: 0.3)
+                                : AppColors.accentLight.withValues(alpha: 0.3),
                             borderRadius: BorderRadius.circular(AppRadius.m),
                           ),
                           child: Row(
@@ -723,8 +759,8 @@ if (!allowedExtensions.contains(fileExtension)) {
                       await Supabase.instance.client.auth.signOut();
 
                       if (context.mounted) {
-                        Navigator.of(context).pushNamedAndRemoveUntil(
-                          '/welcome',
+                        Navigator.of(context).pushAndRemoveUntil(
+                          MaterialPageRoute(builder: (_) => const AuthGate()),
                           (route) => false,
                         );
                       }

@@ -45,7 +45,7 @@ class _UserBooksPageState extends State<UserBooksPage> {
         _isLoading = false;
       });
     } catch (e) {
-      print('Erreur _loadAllBooks: $e');
+      debugPrint('Erreur _loadAllBooks: $e');
       setState(() => _isLoading = false);
     }
   }
@@ -142,7 +142,7 @@ class _UserBooksPageState extends State<UserBooksPage> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
             decoration: BoxDecoration(
-              color: Theme.of(context).primaryColor.withOpacity(0.1),
+              color: Theme.of(context).primaryColor.withValues(alpha:0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
@@ -268,7 +268,7 @@ class _UserBooksPageState extends State<UserBooksPage> {
                   const SizedBox(width: 4),
                   Text(
                     book.isKindle ? 'Kindle' : 'Scanné',
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                    style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
                   ),
                 ],
               ),
@@ -359,7 +359,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
         _isLoading = false;
       });
     } catch (e) {
-      print('Erreur loadSessionData: $e');
+      debugPrint('Erreur loadSessionData: $e');
       setState(() => _isLoading = false);
     }
   }
@@ -525,7 +525,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
                   return Container(
                     height: 180,
                     width: 120,
-                    color: Colors.grey.shade300,
+                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
                     child: const Icon(Icons.book, size: 60),
                   );
                 },
@@ -549,7 +549,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
                     widget.book.author!,
                     style: TextStyle(
                       fontSize: 16,
-                      color: Colors.grey.shade700,
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                     ),
                   ),
                 const SizedBox(height: 16),
@@ -558,12 +558,12 @@ class _BookDetailPageState extends State<BookDetailPage> {
                     Icon(
                       widget.book.isKindle ? Icons.cloud : Icons.camera_alt,
                       size: 16,
-                      color: Colors.grey.shade600,
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
                     const SizedBox(width: 4),
                     Text(
                       widget.book.isKindle ? 'Livre Kindle' : 'Livre scanné',
-                      style: TextStyle(color: Colors.grey.shade600),
+                      style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
                     ),
                   ],
                 ),
@@ -571,7 +571,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
                   const SizedBox(height: 4),
                   Text(
                     '${widget.book.pageCount} pages',
-                    style: TextStyle(color: Colors.grey.shade600),
+                    style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
                   ),
                 ],
               ],
@@ -610,7 +610,9 @@ class _BookDetailPageState extends State<BookDetailPage> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.blue.shade50,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.blue.shade900.withValues(alpha: 0.3)
+                        : Colors.blue.shade50,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Column(
@@ -832,7 +834,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
           const SizedBox(height: 12),
           Text(
             widget.book.description!,
-            style: TextStyle(color: Colors.grey.shade700),
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7)),
           ),
         ],
       ),

@@ -23,7 +23,6 @@ class StreakDetailPage extends StatefulWidget {
 class _StreakDetailPageState extends State<StreakDetailPage> {
   final StreakService _streakService = StreakService();
   late ReadingStreak _streak;
-  Map<String, int> _readingHistory = {};
   bool _isLoading = true;
 
   @override
@@ -36,15 +35,14 @@ class _StreakDetailPageState extends State<StreakDetailPage> {
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
     try {
-      final history = await _streakService.getReadingHistory();
+      await _streakService.getReadingHistory();
       final streak = await _streakService.getUserStreak();
       setState(() {
-        _readingHistory = history;
         _streak = streak;
         _isLoading = false;
       });
     } catch (e) {
-      print('Erreur lors du chargement: $e');
+      debugPrint('Erreur lors du chargement: $e');
       setState(() => _isLoading = false);
     }
   }
@@ -291,7 +289,7 @@ class _StreakDetailPageState extends State<StreakDetailPage> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: freezeStatus?.freezeAvailable == true
-            ? const Color(0xFF1A237E).withOpacity(0.3)
+            ? const Color(0xFF1A237E).withValues(alpha:0.3)
             : Theme.of(context).colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
@@ -331,7 +329,7 @@ class _StreakDetailPageState extends State<StreakDetailPage> {
                       freezeStatus?.statusMessage ?? 'Freeze disponible',
                       style: TextStyle(
                         fontSize: 13,
-                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha:0.6),
                       ),
                     ),
                   ],
@@ -353,7 +351,7 @@ class _StreakDetailPageState extends State<StreakDetailPage> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF5C6BC0).withOpacity(0.2),
+                    color: const Color(0xFF5C6BC0).withValues(alpha:0.2),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: const Text(
@@ -369,7 +367,7 @@ class _StreakDetailPageState extends State<StreakDetailPage> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
-                    color: Colors.grey.withOpacity(0.2),
+                    color: Colors.grey.withValues(alpha:0.2),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
@@ -388,7 +386,7 @@ class _StreakDetailPageState extends State<StreakDetailPage> {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: Colors.orange.withOpacity(0.1),
+                color: Colors.orange.withValues(alpha:0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
@@ -413,7 +411,7 @@ class _StreakDetailPageState extends State<StreakDetailPage> {
             '1 freeze disponible par semaine. Protège ton streak si tu ne peux pas lire un jour.',
             style: TextStyle(
               fontSize: 11,
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha:0.5),
             ),
           ),
         ],
@@ -666,7 +664,7 @@ class _StreakDetailPageState extends State<StreakDetailPage> {
 
   Widget _buildMotivationCard() {
     // Calculer un pourcentage fictif (vous pouvez le calculer réellement)
-    final percentage = _streak.readDates.length > 0 ? 93 : 0;
+    final percentage = _streak.readDates.isNotEmpty ? 93 : 0;
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -832,7 +830,4 @@ class _StreakDetailPageState extends State<StreakDetailPage> {
     );
   }
 
-  String _dateToKey(DateTime date) {
-    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-  }
 }

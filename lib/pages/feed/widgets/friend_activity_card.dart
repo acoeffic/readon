@@ -7,9 +7,11 @@ import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../services/comments_service.dart';
 import '../../../services/likes_service.dart';
-import '../../../services/premium_service.dart';
 import '../../../services/reactions_service.dart';
+import '../../../models/feature_flags.dart';
+import '../../../providers/subscription_provider.dart';
 import '../../../theme/app_theme.dart';
+import 'package:provider/provider.dart';
 import '../../../widgets/reaction_picker.dart';
 import '../../../widgets/reaction_summary.dart';
 import '../../friends/friend_profile_page.dart';
@@ -30,7 +32,6 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
   final supabase = Supabase.instance.client;
   final likesService = LikesService();
   final reactionsService = ReactionsService();
-  final premiumService = PremiumService();
   bool _isLiked = false;
   int _likeCount = 0;
   bool _isLoading = false;
@@ -38,7 +39,6 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
   // Réactions avancées (premium)
   Map<String, int> _reactionCounts = {};
   List<String> _userReactions = [];
-  bool _isPremium = false;
   final GlobalKey _likeButtonKey = GlobalKey();
 
   @override
@@ -46,7 +46,6 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
     super.initState();
     _loadLikeStatus();
     _loadReactions();
-    _checkPremium();
   }
 
   Future<void> _loadLikeStatus() async {
@@ -59,7 +58,7 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
         _isLiked = likeInfo['hasLiked'] as bool;
       });
     } catch (e) {
-      print('Erreur _loadLikeStatus: $e');
+      debugPrint('Erreur _loadLikeStatus: $e');
     }
   }
 
@@ -73,25 +72,15 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
         _userReactions = (data['userReactions'] as List<String>?) ?? [];
       });
     } catch (e) {
-      print('Erreur _loadReactions: $e');
-    }
-  }
-
-  Future<void> _checkPremium() async {
-    try {
-      final premium = await premiumService.isPremium();
-      if (!mounted) return;
-      setState(() => _isPremium = premium);
-    } catch (e) {
-      print('Erreur _checkPremium: $e');
+      debugPrint('Erreur _loadReactions: $e');
     }
   }
 
   void _onLikeLongPress() {
-    if (!_isPremium) {
+    if (!FeatureFlags.isUnlocked(context, Feature.advancedReactions)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Les réactions avancées sont réservées aux membres Premium ✨'),
+          content: Text('Les réactions avancées sont réservées aux membres Premium'),
           duration: Duration(seconds: 2),
         ),
       );
@@ -136,7 +125,7 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
         await reactionsService.addReaction(activityId, reactionType);
       }
     } catch (e) {
-      print('Erreur toggleReaction: $e');
+      debugPrint('Erreur toggleReaction: $e');
       // Revert on error
       setState(() {
         _reactionCounts = previousCounts;
@@ -180,7 +169,7 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
         await likesService.likeActivity(activityId);
       }
     } catch (e) {
-      print('Erreur toggle like: $e');
+      debugPrint('Erreur toggle like: $e');
       // Revert on error
       setState(() {
         _isLiked = wasLiked;
@@ -354,7 +343,7 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
                           borderRadius: BorderRadius.circular(20),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.amber.withOpacity(0.3),
+                              color: Colors.amber.withValues(alpha:0.3),
                               blurRadius: 8,
                               spreadRadius: 2,
                             ),
@@ -410,7 +399,7 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.amber.withOpacity(0.3),
+                                  color: Colors.amber.withValues(alpha:0.3),
                                   blurRadius: 8,
                                   spreadRadius: 2,
                                 ),
@@ -507,7 +496,7 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
                     boxShadow: isBookFinished
                         ? [
                             BoxShadow(
-                              color: Colors.amber.withOpacity(0.2),
+                              color: Colors.amber.withValues(alpha:0.2),
                               blurRadius: 8,
                               spreadRadius: 1,
                             ),
@@ -1202,7 +1191,7 @@ class _ShareOption extends StatelessWidget {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
+                color: color.withValues(alpha:0.1),
                 shape: BoxShape.circle,
               ),
               child: Icon(icon, color: color, size: 22),

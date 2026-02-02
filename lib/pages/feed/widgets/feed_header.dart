@@ -66,7 +66,7 @@ class _FeedHeaderState extends State<FeedHeader> with TickerProviderStateMixin {
         });
       }
     } catch (e) {
-      print('Erreur _loadUserProfile: $e');
+      debugPrint('Erreur _loadUserProfile: $e');
     }
   }
 

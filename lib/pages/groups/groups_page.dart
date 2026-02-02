@@ -269,7 +269,7 @@ class _GroupCard extends StatelessWidget {
               // Group avatar
               CircleAvatar(
                 radius: 30,
-                backgroundColor: AppColors.primary.withOpacity(0.1),
+                backgroundColor: AppColors.primary.withValues(alpha:0.1),
                 backgroundImage: group.coverUrl != null
                     ? NetworkImage(group.coverUrl!)
                     : null,
@@ -303,7 +303,7 @@ class _GroupCard extends StatelessWidget {
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.orange.withOpacity(0.2),
+                              color: Colors.orange.withValues(alpha:0.2),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: const Row(
@@ -330,7 +330,7 @@ class _GroupCard extends StatelessWidget {
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: AppColors.primary.withOpacity(0.2),
+                              color: AppColors.primary.withValues(alpha:0.2),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: const Text(
@@ -350,7 +350,7 @@ class _GroupCard extends StatelessWidget {
                         group.description!,
                         style: TextStyle(
                           fontSize: 13,
-                          color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
+                          color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha:0.7),
                         ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,

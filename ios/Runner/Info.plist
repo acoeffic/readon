@@ -49,6 +49,8 @@
 	<string>ReadOn a besoin d'accéder à votre caméra pour scanner les pages de vos livres et détecter automatiquement les numéros de page.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>ReadOn a besoin d'accéder à vos photos pour sélectionner des images de pages de livre à analyser.</string>
-	
+	<key>NSContactsUsageDescription</key>
+	<string>ReadOn utilise vos contacts pour trouver vos amis qui utilisent déjà l'application.</string>
+
 </dict>
 </plist>

@@ -36,7 +36,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
       // Marquer toutes comme lues après chargement
       await notificationsService.markAllAsRead();
     } catch (e) {
-      print('Erreur _loadNotifications: $e');
+      debugPrint('Erreur _loadNotifications: $e');
       setState(() => _isLoading = false);
     }
   }
@@ -44,7 +44,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Notifications'),
         backgroundColor: AppColors.primary,
@@ -55,6 +55,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
               icon: const Icon(Icons.done_all),
               onPressed: () async {
                 await notificationsService.markAllAsRead();
+                if (!context.mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Toutes lues')),
                 );
@@ -73,14 +74,14 @@ class _NotificationsPageState extends State<NotificationsPage> {
                       Icon(
                         Icons.notifications_none,
                         size: 80,
-                        color: Colors.grey.shade400,
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
                       ),
                       const SizedBox(height: 16),
                       Text(
                         'Aucune notification',
                         style: TextStyle(
                           fontSize: 18,
-                          color: Colors.grey.shade600,
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -89,7 +90,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                         'Vous serez notifié des likes et commentaires',
                         style: TextStyle(
                           fontSize: 14,
-                          color: Colors.grey.shade500,
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -142,11 +143,15 @@ class _NotificationCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: notification.isRead ? Colors.white : Colors.blue.shade50,
+        color: notification.isRead
+            ? Theme.of(context).cardColor
+            : Theme.of(context).brightness == Brightness.dark
+                ? Colors.blue.shade900.withValues(alpha: 0.3)
+                : Colors.blue.shade50,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha:0.05),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -224,14 +229,14 @@ class _NotificationCard extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: Colors.grey.shade100,
+                            color: Theme.of(context).colorScheme.surfaceContainerHighest,
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
                             notification.commentContent!,
                             style: TextStyle(
                               fontSize: 13,
-                              color: Colors.grey.shade700,
+                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                               fontStyle: FontStyle.italic,
                             ),
                             maxLines: 2,
@@ -245,7 +250,7 @@ class _NotificationCard extends StatelessWidget {
                         notification.timeAgo,
                         style: TextStyle(
                           fontSize: 12,
-                          color: Colors.grey.shade600,
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                         ),
                       ),
                     ],

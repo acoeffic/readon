@@ -227,7 +227,7 @@ class _SignUpPageState extends State<SignUpPage> {
                       width: 100,
                       height: 100,
                       decoration: BoxDecoration(
-                        color: AppColors.accentLight.withOpacity(0.6),
+                        color: AppColors.accentLight.withValues(alpha:0.6),
                         shape: BoxShape.circle,
                       ),
                       child: const Center(

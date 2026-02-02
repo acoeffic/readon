@@ -1,5 +1,6 @@
 // lib/services/suggestions_service.dart
 
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/book.dart';
 import '../models/book_suggestion.dart';
@@ -71,7 +72,7 @@ class SuggestionsService {
 
       return suggestions;
     } catch (e) {
-      print('Erreur getPersonalizedSuggestions: $e');
+      debugPrint('Erreur getPersonalizedSuggestions: $e');
       return [];
     }
   }
@@ -120,7 +121,7 @@ class SuggestionsService {
 
       return books;
     } catch (e) {
-      print('Erreur _getSuggestionsFromFriends: $e');
+      debugPrint('Erreur _getSuggestionsFromFriends: $e');
       return [];
     }
   }
@@ -149,7 +150,7 @@ class SuggestionsService {
         );
       }).toList();
     } catch (e) {
-      print('Erreur _getSuggestionsFromSameAuthor: $e');
+      debugPrint('Erreur _getSuggestionsFromSameAuthor: $e');
       return [];
     }
   }
@@ -189,7 +190,7 @@ class SuggestionsService {
         );
       }).toList();
     } catch (e) {
-      print('Erreur _getGoogleBooksSuggestions: $e');
+      debugPrint('Erreur _getGoogleBooksSuggestions: $e');
       return [];
     }
   }
@@ -239,7 +240,7 @@ class SuggestionsService {
 
       return suggestions.take(limit).toList();
     } catch (e) {
-      print('Erreur _getSuggestionsFromHistory: $e');
+      debugPrint('Erreur _getSuggestionsFromHistory: $e');
       return [];
     }
   }
@@ -265,7 +266,7 @@ class SuggestionsService {
         );
       }).toList();
     } catch (e) {
-      print('Erreur _getTrendingSuggestions: $e');
+      debugPrint('Erreur _getTrendingSuggestions: $e');
       return [];
     }
   }
@@ -281,7 +282,7 @@ class SuggestionsService {
 
       return suggestions.where((s) => !userBookIds.contains(s.book.id)).toList();
     } catch (e) {
-      print('Erreur _filterOutUserBooks: $e');
+      debugPrint('Erreur _filterOutUserBooks: $e');
       return suggestions;
     }
   }
@@ -319,7 +320,7 @@ class SuggestionsService {
 
       return true;
     } catch (e) {
-      print('Erreur addSuggestedBookToLibrary: $e');
+      debugPrint('Erreur addSuggestedBookToLibrary: $e');
       return false;
     }
   }

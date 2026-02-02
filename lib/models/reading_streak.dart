@@ -118,23 +118,17 @@ class ReadingStreak {
 
   /// Retourne le badge de streak le plus élevé débloqué
   StreakBadgeLevel? get highestBadge {
-    if (currentStreak >= 30) return StreakBadgeLevel.month;
-    if (currentStreak >= 14) return StreakBadgeLevel.twoWeeks;
-    if (currentStreak >= 7) return StreakBadgeLevel.week;
-    if (currentStreak >= 3) return StreakBadgeLevel.threeDays;
-    if (currentStreak >= 1) return StreakBadgeLevel.oneDay;
+    for (final level in StreakBadgeLevel.values.reversed) {
+      if (currentStreak >= level.days) return level;
+    }
     return null;
   }
 
   /// Retourne tous les badges de streak débloqués
   List<StreakBadgeLevel> get unlockedBadges {
-    final badges = <StreakBadgeLevel>[];
-    if (currentStreak >= 1) badges.add(StreakBadgeLevel.oneDay);
-    if (currentStreak >= 3) badges.add(StreakBadgeLevel.threeDays);
-    if (currentStreak >= 7) badges.add(StreakBadgeLevel.week);
-    if (currentStreak >= 14) badges.add(StreakBadgeLevel.twoWeeks);
-    if (currentStreak >= 30) badges.add(StreakBadgeLevel.month);
-    return badges;
+    return StreakBadgeLevel.values
+        .where((level) => currentStreak >= level.days)
+        .toList();
   }
 
   /// Message de motivation basé sur le streak actuel
@@ -178,46 +172,26 @@ class ReadingStreak {
 
 /// Niveaux de badges pour les streaks
 enum StreakBadgeLevel {
-  oneDay(1, 'Premier Jour', '📖', '#FFB74D'),
-  threeDays(3, '3 Jours', '🔥', '#FF9800'),
-  week(7, 'Une Semaine', '⭐', '#FFC107'),
-  twoWeeks(14, '2 Semaines', '💎', '#FF5722'),
-  month(30, 'Un Mois', '👑', '#9C27B0');
+  threeDays(3, 'Premier Pas', '👣', '#FFB74D', false),
+  week(7, 'Une Semaine', '📅', '#FF9800', false),
+  twoWeeks(14, 'Deux Semaines', '🔥', '#FFC107', false),
+  month(30, 'Un Mois', '🌟', '#FF5722', false),
+  twoMonths(60, 'Incassable', '💎', '#9C27B0', false),
+  // Premium
+  quarter(90, 'Trimestre Parfait', '🔥', '#FFD700', true),
+  halfYear(180, 'Semi-Annuel', '💎', '#FFC107', true),
+  year(365, 'Année Complète', '👑', '#FF9800', true),
+  legendary(500, 'Streak Légendaire', '🏆', '#E91E63', true);
 
   final int days;
   final String name;
   final String icon;
   final String color;
+  final bool isPremium;
 
-  const StreakBadgeLevel(this.days, this.name, this.icon, this.color);
+  const StreakBadgeLevel(this.days, this.name, this.icon, this.color, this.isPremium);
 
-  String get description {
-    switch (this) {
-      case StreakBadgeLevel.oneDay:
-        return 'Lire 1 jour';
-      case StreakBadgeLevel.threeDays:
-        return 'Lire 3 jours d\'affilée';
-      case StreakBadgeLevel.week:
-        return 'Lire 7 jours consécutifs';
-      case StreakBadgeLevel.twoWeeks:
-        return 'Lire 14 jours consécutifs';
-      case StreakBadgeLevel.month:
-        return 'Lire 30 jours d\'affilée';
-    }
-  }
+  String get description => 'Streak de $days jours';
 
-  String get badgeId {
-    switch (this) {
-      case StreakBadgeLevel.oneDay:
-        return 'streak_1_day';
-      case StreakBadgeLevel.threeDays:
-        return 'streak_3_days';
-      case StreakBadgeLevel.week:
-        return 'streak_7_days';
-      case StreakBadgeLevel.twoWeeks:
-        return 'streak_14_days';
-      case StreakBadgeLevel.month:
-        return 'streak_30_days';
-    }
-  }
+  String get badgeId => 'streak_${days}_days';
 }

@@ -52,13 +52,13 @@ class UserSearchCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(AppSpace.m),
         decoration: BoxDecoration(
-          color: AppColors.white,
+          color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(AppRadius.l),
-          border: Border.all(color: AppColors.border),
+          border: Border.all(color: Theme.of(context).dividerColor),
         ),
         child: Row(
           children: [
-            _buildAvatar(60),
+            _buildAvatar(context, 60),
             const SizedBox(width: AppSpace.m),
             Expanded(
               child: Column(
@@ -74,13 +74,13 @@ class UserSearchCard extends StatelessWidget {
                   const SizedBox(height: AppSpace.xs),
                   Row(
                     children: [
-                      Icon(Icons.lock, size: 14, color: Colors.grey.shade600),
+                      Icon(Icons.lock, size: 14, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
                       const SizedBox(width: 4),
                       Text(
                         'Profil privé',
                         style: TextStyle(
                           fontSize: 12,
-                          color: Colors.grey.shade600,
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                           fontStyle: FontStyle.italic,
                         ),
                       ),
@@ -102,9 +102,9 @@ class UserSearchCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(AppSpace.l),
         decoration: BoxDecoration(
-          color: AppColors.white,
+          color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(AppRadius.l),
-          border: Border.all(color: AppColors.border),
+          border: Border.all(color: Theme.of(context).dividerColor),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -112,7 +112,7 @@ class UserSearchCard extends StatelessWidget {
             // En-tête avec avatar, nom et bouton
             Row(
               children: [
-                _buildAvatar(64),
+                _buildAvatar(context, 64),
                 const SizedBox(width: AppSpace.m),
                 Expanded(
                   child: Column(
@@ -131,7 +131,7 @@ class UserSearchCard extends StatelessWidget {
                           'Membre depuis ${_formatMemberSince(user.memberSince!)}',
                           style: TextStyle(
                             fontSize: 12,
-                            color: Colors.grey.shade600,
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                             fontStyle: FontStyle.italic,
                           ),
                         ),
@@ -147,12 +147,12 @@ class UserSearchCard extends StatelessWidget {
 
             // Badges récents
             if (user.recentBadges != null && user.recentBadges!.isNotEmpty) ...[
-              const Text(
+              Text(
                 'Badges récents',
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: Colors.black87,
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.87),
                 ),
               ),
               const SizedBox(height: AppSpace.s),
@@ -201,25 +201,25 @@ class UserSearchCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(AppSpace.m),
               decoration: BoxDecoration(
-                color: AppColors.bgLight,
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(AppRadius.m),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _buildStatItem(
+                  _buildStatItem(context,
                     Icons.book_outlined,
                     '${user.booksFinished ?? 0}',
                     'Livres',
                   ),
-                  Container(width: 1, height: 30, color: AppColors.border),
-                  _buildStatItem(
+                  Container(width: 1, height: 30, color: Theme.of(context).dividerColor),
+                  _buildStatItem(context,
                     Icons.local_fire_department,
                     '${user.currentStreak ?? 0}',
                     'Streak',
                   ),
-                  Container(width: 1, height: 30, color: AppColors.border),
-                  _buildStatItem(
+                  Container(width: 1, height: 30, color: Theme.of(context).dividerColor),
+                  _buildStatItem(context,
                     Icons.people_outline,
                     '${user.friendsCount ?? 0}',
                     'Amis',
@@ -233,14 +233,14 @@ class UserSearchCard extends StatelessWidget {
               const SizedBox(height: AppSpace.l),
               Row(
                 children: [
-                  Icon(Icons.auto_stories, size: 16, color: Colors.grey.shade600),
+                  Icon(Icons.auto_stories, size: 16, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
                   const SizedBox(width: AppSpace.xs),
                   Text(
                     'En cours:',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: Colors.grey.shade700,
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                     ),
                   ),
                   const SizedBox(width: 4),
@@ -265,13 +265,15 @@ class UserSearchCard extends StatelessWidget {
     );
   }
 
-  Widget _buildAvatar(double size) {
+  Widget _buildAvatar(BuildContext context, double size) {
     return Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: AppColors.accentLight,
+        color: Theme.of(context).brightness == Brightness.dark
+            ? AppColors.accentDark
+            : AppColors.accentLight,
         image: user.avatarUrl != null && user.avatarUrl!.isNotEmpty
             ? DecorationImage(
                 image: NetworkImage(user.avatarUrl!),
@@ -296,24 +298,24 @@ class UserSearchCard extends StatelessWidget {
     );
   }
 
-  Widget _buildStatItem(IconData icon, String value, String label) {
+  Widget _buildStatItem(BuildContext context, IconData icon, String value, String label) {
     return Column(
       children: [
         Icon(icon, color: AppColors.primary, size: 20),
         const SizedBox(height: 4),
         Text(
           value,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,
-            color: Colors.black87,
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.87),
           ),
         ),
         Text(
           label,
           style: TextStyle(
             fontSize: 10,
-            color: Colors.grey.shade600,
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
           ),
         ),
       ],
@@ -330,20 +332,20 @@ class UserSearchCard extends StatelessWidget {
             vertical: AppSpace.s,
           ),
           decoration: BoxDecoration(
-            color: Colors.grey.shade200,
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
             borderRadius: BorderRadius.circular(AppRadius.pill),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.close, size: 16, color: Colors.grey.shade600),
+              Icon(Icons.close, size: 16, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
               const SizedBox(width: 4),
               Text(
                 'Annuler',
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: Colors.grey.shade700,
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                 ),
               ),
             ],

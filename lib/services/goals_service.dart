@@ -1,5 +1,6 @@
 // lib/services/goals_service.dart
 
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/reading_goal.dart';
 import 'streak_service.dart';
@@ -40,7 +41,7 @@ class GoalsService {
 
       return goals;
     } catch (e) {
-      print('Erreur getActiveGoalsWithProgress: $e');
+      debugPrint('Erreur getActiveGoalsWithProgress: $e');
       return [];
     }
   }
@@ -83,7 +84,7 @@ class GoalsService {
 
       return ReadingGoal.fromJson(response);
     } catch (e) {
-      print('Erreur setGoal: $e');
+      debugPrint('Erreur setGoal: $e');
       rethrow;
     }
   }
@@ -99,7 +100,7 @@ class GoalsService {
           })
           .eq('id', goalId);
     } catch (e) {
-      print('Erreur removeGoal: $e');
+      debugPrint('Erreur removeGoal: $e');
       rethrow;
     }
   }
@@ -138,7 +139,7 @@ class GoalsService {
         await _supabase.from('reading_goals').insert(rows);
       }
     } catch (e) {
-      print('Erreur saveAllGoals: $e');
+      debugPrint('Erreur saveAllGoals: $e');
       rethrow;
     }
   }

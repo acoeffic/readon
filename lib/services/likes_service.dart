@@ -1,6 +1,7 @@
 // lib/services/likes_service.dart
 // Service pour gérer les likes sur les activités
 
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class LikesService {
@@ -17,7 +18,7 @@ class LikesService {
         'user_id': userId,
       });
     } catch (e) {
-      print('Erreur likeActivity: $e');
+      debugPrint('Erreur likeActivity: $e');
       rethrow;
     }
   }
@@ -34,7 +35,7 @@ class LikesService {
           .eq('activity_id', activityId)
           .eq('user_id', userId);
     } catch (e) {
-      print('Erreur unlikeActivity: $e');
+      debugPrint('Erreur unlikeActivity: $e');
       rethrow;
     }
   }
@@ -49,7 +50,7 @@ class LikesService {
 
       return (response as List).length;
     } catch (e) {
-      print('Erreur getLikeCount: $e');
+      debugPrint('Erreur getLikeCount: $e');
       return 0;
     }
   }
@@ -69,7 +70,7 @@ class LikesService {
 
       return response != null;
     } catch (e) {
-      print('Erreur hasLiked: $e');
+      debugPrint('Erreur hasLiked: $e');
       return false;
     }
   }
@@ -77,8 +78,6 @@ class LikesService {
   /// Récupérer les infos de like d'une activité (count + user liked)
   Future<Map<String, dynamic>> getActivityLikeInfo(int activityId) async {
     try {
-      final userId = _supabase.auth.currentUser?.id;
-      
       final likeCountFuture = getLikeCount(activityId);
       final hasLikedFuture = hasLiked(activityId);
       
@@ -89,7 +88,7 @@ class LikesService {
         'hasLiked': results[1] as bool,
       };
     } catch (e) {
-      print('Erreur getActivityLikeInfo: $e');
+      debugPrint('Erreur getActivityLikeInfo: $e');
       return {'count': 0, 'hasLiked': false};
     }
   }

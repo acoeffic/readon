@@ -223,7 +223,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                       fit: BoxFit.cover,
                     )
                   : Container(
-                      color: AppColors.primary.withOpacity(0.3),
+                      color: AppColors.primary.withValues(alpha:0.3),
                       child: const Icon(
                         Icons.group,
                         size: 80,
@@ -270,7 +270,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                             vertical: 6,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.orange.withOpacity(0.2),
+                            color: Colors.orange.withValues(alpha:0.2),
                             borderRadius: BorderRadius.circular(16),
                           ),
                           child: const Row(
@@ -296,7 +296,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                             vertical: 6,
                           ),
                           decoration: BoxDecoration(
-                            color: AppColors.primary.withOpacity(0.2),
+                            color: AppColors.primary.withValues(alpha:0.2),
                             borderRadius: BorderRadius.circular(16),
                           ),
                           child: const Text(
@@ -316,7 +316,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                       _group!.description!,
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.grey.shade700,
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                       ),
                     ),
                   ],
@@ -373,11 +373,11 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                       ),
                       child: Column(
                         children: [
-                          Icon(Icons.flag_outlined, size: 40, color: Colors.grey.shade400),
+                          Icon(Icons.flag_outlined, size: 40, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4)),
                           const SizedBox(height: AppSpace.s),
                           Text(
                             'Aucun défi actif',
-                            style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                            style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6), fontSize: 14),
                           ),
                         ],
                       ),
@@ -431,14 +431,14 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                               Icon(
                                 Icons.auto_stories_outlined,
                                 size: 64,
-                                color: Colors.grey.shade400,
+                                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
                               ),
                               const SizedBox(height: AppSpace.m),
                               Text(
                                 'Aucune activité',
                                 style: TextStyle(
                                   fontSize: 16,
-                                  color: Colors.grey.shade600,
+                                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                                 ),
                               ),
                               const SizedBox(height: 4),
@@ -446,7 +446,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                                 'Les activités des membres apparaîtront ici',
                                 style: TextStyle(
                                   fontSize: 13,
-                                  color: Colors.grey.shade500,
+                                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
                                 ),
                               ),
                             ],
@@ -512,7 +512,7 @@ class _StatCard extends StatelessWidget {
                 label,
                 style: TextStyle(
                   fontSize: 12,
-                  color: Colors.grey.shade600,
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
               ),
             ],
@@ -581,7 +581,7 @@ class _ActivityCard extends StatelessWidget {
           children: [
             CircleAvatar(
               radius: 20,
-              backgroundColor: AppColors.primary.withOpacity(0.1),
+              backgroundColor: AppColors.primary.withValues(alpha:0.1),
               backgroundImage: activity.userAvatar != null
                   ? NetworkImage(activity.userAvatar!)
                   : null,
@@ -619,7 +619,7 @@ class _ActivityCard extends StatelessWidget {
                     _formatDate(activity.createdAt),
                     style: TextStyle(
                       fontSize: 12,
-                      color: Colors.grey.shade600,
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
                   ),
                 ],
@@ -677,7 +677,7 @@ class _ChallengeCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
+                  color: AppColors.primary.withValues(alpha:0.1),
                   borderRadius: BorderRadius.circular(AppRadius.s),
                 ),
                 child: Icon(_getTypeIcon(), color: AppColors.primary, size: 20),
@@ -703,14 +703,14 @@ class _ChallengeCard extends StatelessWidget {
                           '${challenge.participantCount} participants',
                           style: TextStyle(
                             fontSize: 12,
-                            color: Colors.grey.shade600,
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                           ),
                         ),
                         const SizedBox(width: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                           decoration: BoxDecoration(
-                            color: Colors.orange.withOpacity(0.1),
+                            color: Colors.orange.withValues(alpha:0.1),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
@@ -731,7 +731,7 @@ class _ChallengeCard extends StatelessWidget {
                         child: LinearProgressIndicator(
                           value: challenge.progressPercent,
                           minHeight: 4,
-                          backgroundColor: Colors.grey.shade300,
+                          backgroundColor: Theme.of(context).colorScheme.outlineVariant,
                           valueColor: AlwaysStoppedAnimation<Color>(
                             challenge.userCompleted ? Colors.green : AppColors.primary,
                           ),
@@ -741,7 +741,7 @@ class _ChallengeCard extends StatelessWidget {
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right, color: Colors.grey, size: 20),
+              Icon(Icons.chevron_right, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4), size: 20),
             ],
           ),
         ),

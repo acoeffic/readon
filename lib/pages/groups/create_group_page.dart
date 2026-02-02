@@ -23,7 +23,6 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
 
   bool _isPrivate = false;
   bool _isCreating = false;
-  String? _coverUrl;
   File? _coverImage;
 
   @override
@@ -101,7 +100,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
           .from('profiles')
           .getPublicUrl(filePath);
     } catch (e) {
-      print('Erreur upload image: $e');
+      debugPrint('Erreur upload image: $e');
       return null;
     }
   }
@@ -173,7 +172,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                       width: 120,
                       height: 120,
                       decoration: BoxDecoration(
-                        color: AppColors.primary.withOpacity(0.1),
+                        color: AppColors.primary.withValues(alpha:0.1),
                         borderRadius: BorderRadius.circular(AppRadius.l),
                         image: _coverImage != null
                             ? DecorationImage(
@@ -196,7 +195,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                                   'Ajouter une photo',
                                   style: TextStyle(
                                     fontSize: 12,
-                                    color: AppColors.primary.withOpacity(0.8),
+                                    color: AppColors.primary.withValues(alpha:0.8),
                                   ),
                                 ),
                               ],
@@ -246,7 +245,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                     borderRadius: BorderRadius.circular(AppRadius.m),
                     border: Border.all(
                       color: _isPrivate
-                          ? Colors.orange.withOpacity(0.5)
+                          ? Colors.orange.withValues(alpha:0.5)
                           : Colors.transparent,
                     ),
                   ),
@@ -284,7 +283,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                       Switch(
                         value: _isPrivate,
                         onChanged: (value) => setState(() => _isPrivate = value),
-                        activeColor: Colors.orange,
+                        activeThumbColor: Colors.orange,
                       ),
                     ],
                   ),
@@ -295,7 +294,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                 Container(
                   padding: const EdgeInsets.all(AppSpace.m),
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.1),
+                    color: AppColors.primary.withValues(alpha:0.1),
                     borderRadius: BorderRadius.circular(AppRadius.m),
                   ),
                   child: Row(
@@ -312,7 +311,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                           'En tant que créateur, vous serez automatiquement administrateur du groupe et pourrez inviter d\'autres membres.',
                           style: TextStyle(
                             fontSize: 13,
-                            color: AppColors.primary.withOpacity(0.9),
+                            color: AppColors.primary.withValues(alpha:0.9),
                           ),
                         ),
                       ),

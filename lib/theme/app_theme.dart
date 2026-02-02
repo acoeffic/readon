@@ -93,7 +93,6 @@ class AppTheme {
       seedColor: AppColors.primary,
       brightness: Brightness.dark,
       surface: AppColors.surfaceDark,
-      background: AppColors.bgDark,
     ),
     useMaterial3: true,
     textTheme: const TextTheme(

@@ -243,6 +243,35 @@ class _ScanBookCoverPageState extends State<ScanBookCoverPage>
     }
   }
 
+  /// Nettoie le texte OCR pour en extraire une requête pertinente
+  String _cleanOCRQuery(String rawText) {
+    final lines = rawText
+        .split('\n')
+        .map((l) => l.trim())
+        .where((l) => l.isNotEmpty)
+        .where((l) => l.length > 2) // Ignorer lignes trop courtes
+        .where((l) => !RegExp(r'^\d[\d\s\-\./:]*$').hasMatch(l)) // Ignorer dates/numéros purs
+        .where((l) {
+          // Ignorer les noms d'éditeurs/collections courants
+          final lower = l.toLowerCase();
+          const noise = [
+            'texto', 'folio', 'poche', 'pocket', 'j\'ai lu', 'livre de poche',
+            'gallimard', 'hachette', 'flammarion', 'albin michel', 'seuil',
+            'grasset', 'actes sud', 'points', 'babel', 'edition', 'édition',
+            'editions', 'éditions', 'collection', 'isbn', 'roman', 'essai',
+            'prix', 'best-seller', 'bestseller', 'www.', 'http',
+          ];
+          return !noise.any((n) => lower == n || lower.startsWith('$n '));
+        })
+        .toList();
+
+    if (lines.isEmpty) return rawText.trim();
+
+    // Prendre les 2 lignes les plus longues (probablement titre + auteur)
+    final sorted = List<String>.from(lines)..sort((a, b) => b.length.compareTo(a.length));
+    return sorted.take(2).join(' ');
+  }
+
   /// Rechercher sur Google Books avec le texte OCR
   Future<void> _searchOnGoogleBooks(String query) async {
     setState(() {
@@ -251,11 +280,26 @@ class _ScanBookCoverPageState extends State<ScanBookCoverPage>
     });
 
     try {
-      // Nettoyer le query (prendre les premières lignes)
-      final lines = query.split('\n').where((l) => l.trim().isNotEmpty).take(3);
-      final searchQuery = lines.join(' ');
+      final cleanQuery = _cleanOCRQuery(query);
+      debugPrint('OCR search query: "$cleanQuery"');
 
-      final results = await _googleBooksService.searchBooks(searchQuery);
+      var results = await _googleBooksService.searchBooks(cleanQuery);
+
+      // Si pas de résultat, essayer avec seulement la ligne la plus longue (titre probable)
+      if (results.isEmpty) {
+        final fallbackLines = query
+            .split('\n')
+            .map((l) => l.trim())
+            .where((l) => l.length > 3)
+            .toList();
+        if (fallbackLines.isNotEmpty) {
+          // Essayer la ligne la plus longue seule
+          fallbackLines.sort((a, b) => b.length.compareTo(a.length));
+          final fallbackQuery = fallbackLines.first;
+          debugPrint('OCR fallback query: "$fallbackQuery"');
+          results = await _googleBooksService.searchBooks(fallbackQuery);
+        }
+      }
 
       setState(() {
         _searchResults = results;

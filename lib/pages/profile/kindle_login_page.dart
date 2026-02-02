@@ -141,11 +141,11 @@ class _KindleLoginPageState extends State<KindleLoginPage> {
         final result = await _controller.runJavaScriptReturningResult(
           KindleWebViewService.checkLibraryLoadedScript,
         );
-        print('Kindle check ($i): $result');
+        debugPrint('Kindle check ($i): $result');
         final resultStr = result.toString();
         if (resultStr.contains('"loaded":true')) return true;
       } catch (e) {
-        print('Kindle check error: $e');
+        debugPrint('Kindle check error: $e');
       }
       await Future.delayed(const Duration(milliseconds: 500));
     }
@@ -161,7 +161,7 @@ class _KindleLoginPageState extends State<KindleLoginPage> {
 
       // Attendre que la SPA charge les livres (poll synchrone depuis Dart)
       final loaded = await _waitForLibraryLoaded();
-      print('Kindle Library loaded: $loaded');
+      debugPrint('Kindle Library loaded: $loaded');
 
       if (mounted) {
         setState(() => _statusMessage = 'Chargement de la bibliothèque...');
@@ -183,16 +183,20 @@ class _KindleLoginPageState extends State<KindleLoginPage> {
       final result = await _controller.runJavaScriptReturningResult(
         KindleWebViewService.extractKindleLibraryScript,
       );
-      print('=== KINDLE LIBRARY RESULT ===');
-      print(result.toString());
+      debugPrint('=== KINDLE LIBRARY RESULT ===');
+      debugPrint(result.toString());
 
       var books = _service.parseKindleLibraryResult(result.toString());
-      print('Kindle Library: ${books.length} livres extraits');
+      debugPrint('Kindle Library: ${books.length} livres extraits');
 
       if (books.isNotEmpty) {
         // Sauvegarder en cache local (sera utilisé par _extractStreaks)
         final tempData = KindleReadingData(books: books);
         await _service.saveLocally(tempData);
+
+        // Détecter si c'est le premier sync Kindle
+        final lastSync = await _service.getLastSyncDate();
+        final isFirstSync = lastSync == null;
 
         // Importer dans la bibliothèque Supabase
         if (mounted) {
@@ -200,8 +204,8 @@ class _KindleLoginPageState extends State<KindleLoginPage> {
         }
 
         final booksService = BooksService();
-        final imported = await booksService.importKindleBooks(books);
-        print('Kindle: $imported nouveaux livres importés');
+        final imported = await booksService.importKindleBooks(books, isFirstSync: isFirstSync);
+        debugPrint('Kindle: $imported nouveaux livres importés (firstSync: $isFirstSync)');
 
         if (mounted) {
           setState(() => _statusMessage = '${books.length} livres récupérés ! Streaks...');
@@ -215,7 +219,7 @@ class _KindleLoginPageState extends State<KindleLoginPage> {
       // Étape 2 : Naviguer vers Reading Insights pour les streaks
       await _controller.loadRequest(Uri.parse(_readingInsightsUrl));
     } catch (e) {
-      print('Kindle library extraction error: $e');
+      debugPrint('Kindle library extraction error: $e');
       // En cas d'erreur, tenter quand même les streaks
       if (mounted) {
         setState(() => _statusMessage = 'Erreur livres. Streaks...');
@@ -239,8 +243,8 @@ class _KindleLoginPageState extends State<KindleLoginPage> {
       final result = await _controller.runJavaScriptReturningResult(
         KindleWebViewService.extractionScript,
       );
-      print('=== KINDLE STREAK RESULT ===');
-      print(result.toString());
+      debugPrint('=== KINDLE STREAK RESULT ===');
+      debugPrint(result.toString());
 
       final data = _service.parseExtractionResult(result.toString());
 
@@ -248,7 +252,7 @@ class _KindleLoginPageState extends State<KindleLoginPage> {
       if (data != null && data.books.isNotEmpty) {
         final booksService = BooksService();
         final markedFinished = await booksService.markBooksAsFinished(data.books);
-        print('Kindle: $markedFinished livres marqués comme terminés');
+        debugPrint('Kindle: $markedFinished livres marqués comme terminés');
       }
 
       // Charger les livres déjà extraits du cache (étape 1)
@@ -272,7 +276,7 @@ class _KindleLoginPageState extends State<KindleLoginPage> {
       try {
         await _service.saveToSupabase(finalData);
       } catch (e) {
-        print('Kindle: Supabase save failed (non-critical): $e');
+        debugPrint('Kindle: Supabase save failed (non-critical): $e');
       }
 
       if (mounted) {
@@ -290,7 +294,7 @@ class _KindleLoginPageState extends State<KindleLoginPage> {
         }
       }
     } catch (e) {
-      print('Kindle streak extraction error: $e');
+      debugPrint('Kindle streak extraction error: $e');
       if (mounted) {
         setState(() {
           _statusMessage = 'Erreur streaks: $e';
@@ -331,8 +335,8 @@ class _KindleLoginPageState extends State<KindleLoginPage> {
               vertical: AppSpace.s,
             ),
             color: _loginDetected
-                ? AppColors.primary.withOpacity(0.1)
-                : Colors.orange.withOpacity(0.1),
+                ? AppColors.primary.withValues(alpha:0.1)
+                : Colors.orange.withValues(alpha:0.1),
             child: Row(
               children: [
                 Icon(

@@ -81,7 +81,7 @@ class _FriendRequestsPageState extends State<FriendRequestsPage> {
         _error = null;
       });
     } catch (e) {
-      print('Erreur _loadRequests: $e');
+      debugPrint('Erreur _loadRequests: $e');
       if (!mounted) return;
       setState(() {
         _error = "Impossible de récupérer les demandes";
@@ -127,7 +127,7 @@ class _FriendRequestsPageState extends State<FriendRequestsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.bgLight,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(AppSpace.l),
@@ -168,14 +168,16 @@ class _FriendRequestsPageState extends State<FriendRequestsPage> {
                       return Container(
                         padding: const EdgeInsets.all(AppSpace.m),
                         decoration: BoxDecoration(
-                          color: AppColors.white,
+                          color: Theme.of(context).cardColor,
                           borderRadius: BorderRadius.circular(AppRadius.l),
-                          border: Border.all(color: AppColors.border),
+                          border: Border.all(color: Theme.of(context).dividerColor),
                         ),
                         child: Row(
                           children: [
                             CircleAvatar(
-                              backgroundColor: AppColors.accentLight,
+                              backgroundColor: Theme.of(context).brightness == Brightness.dark
+                                  ? AppColors.accentDark
+                                  : AppColors.accentLight,
                               child: Text(
                                 name.isNotEmpty ? name[0].toUpperCase() : '?',
                                 style: const TextStyle(color: AppColors.primary),

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../theme/app_theme.dart';
+import 'find_contacts_friends_page.dart';
 import 'friend_requests_page.dart';
+import 'search_users_page.dart';
 
 class FriendsPage extends StatefulWidget {
   const FriendsPage({super.key});
@@ -18,7 +20,7 @@ class _FriendsPageState extends State<FriendsPage> {
   @override
   void initState() {
     super.initState();
-    print('🚀 FriendsPage initState appelé !');
+    debugPrint('🚀 FriendsPage initState appelé !');
     _loadFriends();
   }
 
@@ -35,18 +37,18 @@ class _FriendsPageState extends State<FriendsPage> {
     }
 
     try {
-      print('🔍 Chargement des amis pour user: ${user.id}');
+      debugPrint('🔍 Chargement des amis pour user: ${user.id}');
       final data = await supabase.rpc('get_friends', params: {'uid': user.id});
       
-      print('📦 Données brutes reçues: $data');
-      print('📦 Type de données: ${data.runtimeType}');
+      debugPrint('📦 Données brutes reçues: $data');
+      debugPrint('📦 Type de données: ${data.runtimeType}');
 
       final list = (data as List)
           .map((e) => Map<String, dynamic>.from(e as Map))
           .toList();
 
-      print('✅ Nombre d\'amis trouvés: ${list.length}');
-      print('📋 Liste des amis: $list');
+      debugPrint('✅ Nombre d\'amis trouvés: ${list.length}');
+      debugPrint('📋 Liste des amis: $list');
 
       if (!mounted) return;
       setState(() {
@@ -55,7 +57,7 @@ class _FriendsPageState extends State<FriendsPage> {
         _error = null;
       });
     } catch (e) {
-      print('❌ Erreur: $e');
+      debugPrint('❌ Erreur: $e');
       if (!mounted) return;
       setState(() {
         _error = 'Erreur lors du chargement: $e';
@@ -82,7 +84,7 @@ class _FriendsPageState extends State<FriendsPage> {
 
       await _loadFriends();
     } catch (e) {
-      print('❌ Erreur suppression ami: $e');
+      debugPrint('❌ Erreur suppression ami: $e');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Impossible de retirer cet ami: $e')),
@@ -93,11 +95,29 @@ class _FriendsPageState extends State<FriendsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.bgLight,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: AppColors.bgLight,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         title: const Text('Mes amis'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.contact_phone, color: AppColors.primary),
+            tooltip: 'Trouver des amis',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                    builder: (_) => const FindContactsFriendsPage()),
+              );
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.search, color: AppColors.primary),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const SearchUsersPage()),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.mail_outline, color: AppColors.primary),
             onPressed: () {
@@ -176,14 +196,18 @@ class _FriendsPageState extends State<FriendsPage> {
                     return Container(
                       padding: const EdgeInsets.all(AppSpace.m),
                       decoration: BoxDecoration(
-                        color: AppColors.white,
+                        color: Theme.of(context).cardColor,
                         borderRadius: BorderRadius.circular(AppRadius.l),
-                        border: Border.all(color: AppColors.border),
+                        border: Border.all(
+                          color: Theme.of(context).dividerColor,
+                        ),
                       ),
                       child: Row(
                         children: [
                           CircleAvatar(
-                            backgroundColor: AppColors.accentLight,
+                            backgroundColor: Theme.of(context).brightness == Brightness.dark
+                                ? AppColors.accentDark
+                                : AppColors.accentLight,
                             child: Text(
                               name.isNotEmpty ? name[0].toUpperCase() : '?',
                               style: const TextStyle(color: AppColors.primary),

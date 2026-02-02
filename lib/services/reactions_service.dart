@@ -1,6 +1,7 @@
 // lib/services/reactions_service.dart
 // Service pour gérer les réactions avancées sur les activités
 
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ReactionType {
@@ -57,7 +58,7 @@ class ReactionsService {
         'reaction_type': reactionType,
       });
     } catch (e) {
-      print('Erreur addReaction: $e');
+      debugPrint('Erreur addReaction: $e');
       rethrow;
     }
   }
@@ -75,7 +76,7 @@ class ReactionsService {
           .eq('user_id', userId)
           .eq('reaction_type', reactionType);
     } catch (e) {
-      print('Erreur removeReaction: $e');
+      debugPrint('Erreur removeReaction: $e');
       rethrow;
     }
   }
@@ -105,7 +106,7 @@ class ReactionsService {
         'total': (data['total'] as num?)?.toInt() ?? 0,
       };
     } catch (e) {
-      print('Erreur getActivityReactions: $e');
+      debugPrint('Erreur getActivityReactions: $e');
       return {'counts': <String, int>{}, 'userReactions': <String>[], 'total': 0};
     }
   }

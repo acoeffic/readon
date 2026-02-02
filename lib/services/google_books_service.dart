@@ -1,54 +1,56 @@
 // lib/services/google_books_service.dart
 
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 class GoogleBooksService {
   static const String _baseUrl = 'https://www.googleapis.com/books/v1/volumes';
-  
-  /// Rechercher des livres via Google Books API
-  /// Essaie d'abord avec langRestrict=fr, puis sans restriction si aucun résultat
-  Future<List<GoogleBook>> searchBooks(String query, {bool langRestrict = true}) async {
+  static const String _apiKey = 'AIzaSyBfeOIQFzc9nGtinVmBGQoAB0fpyOCsBgg';
+
+  /// Rechercher des livres via Google Books API (1 seul appel)
+  Future<List<GoogleBook>> searchBooks(String query, {bool langRestrict = false}) async {
     try {
       final langParam = langRestrict ? '&langRestrict=fr' : '';
-      final uri = Uri.parse('$_baseUrl?q=${Uri.encodeComponent(query)}&maxResults=10$langParam');
+      final uri = Uri.parse('$_baseUrl?q=${Uri.encodeComponent(query)}&maxResults=10$langParam&key=$_apiKey');
       final response = await http.get(uri);
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final items = data['items'] as List<dynamic>?;
 
-        if (items == null || items.isEmpty) {
-          // Retry sans restriction de langue si la première recherche échoue
-          if (langRestrict) {
-            return searchBooks(query, langRestrict: false);
-          }
-          return [];
-        }
-
+        if (items == null || items.isEmpty) return [];
         return items.map((item) => GoogleBook.fromJson(item)).toList();
       } else {
-        print('Erreur Google Books API: ${response.statusCode}');
+        debugPrint('Erreur Google Books API: ${response.statusCode}');
         return [];
       }
     } catch (e) {
-      print('Erreur searchBooks: $e');
+      debugPrint('Erreur searchBooks: $e');
       return [];
     }
   }
-  
-  /// Rechercher par ISBN
+
+  /// Rechercher par ISBN (1 appel, pas de restriction de langue)
   Future<GoogleBook?> searchByISBN(String isbn) async {
     try {
-      final books = await searchBooks('isbn:$isbn');
-      return books.isNotEmpty ? books.first : null;
+      final uri = Uri.parse('$_baseUrl?q=isbn:${Uri.encodeComponent(isbn)}&maxResults=1&key=$_apiKey');
+      final response = await http.get(uri);
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final items = data['items'] as List<dynamic>?;
+        if (items == null || items.isEmpty) return null;
+        return GoogleBook.fromJson(items.first);
+      }
+      return null;
     } catch (e) {
-      print('Erreur searchByISBN: $e');
+      debugPrint('Erreur searchByISBN: $e');
       return null;
     }
   }
-  
-  /// Rechercher par titre et auteur
+
+  /// Rechercher par titre et auteur (1 appel)
   Future<List<GoogleBook>> searchByTitleAuthor(String title, String author) async {
     final query = 'intitle:$title+inauthor:$author';
     return searchBooks(query);

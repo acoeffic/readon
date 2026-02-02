@@ -1,13 +1,46 @@
 // pages/auth/confirm_email_page.dart
 // Écran de confirmation d'email (après inscription)
 
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/back_header.dart';
-import 'login_page.dart';
+import 'auth_gate.dart';
 
-class ConfirmEmailPage extends StatelessWidget {
+class ConfirmEmailPage extends StatefulWidget {
   const ConfirmEmailPage({super.key});
+
+  @override
+  State<ConfirmEmailPage> createState() => _ConfirmEmailPageState();
+}
+
+class _ConfirmEmailPageState extends State<ConfirmEmailPage> {
+  StreamSubscription<AuthState>? _authSub;
+
+  @override
+  void initState() {
+    super.initState();
+    // Ecouter les changements d'auth (deep link apres confirmation)
+    _authSub = Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+      if (data.event == AuthChangeEvent.signedIn && mounted) {
+        _goToAuthGate();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _authSub?.cancel();
+    super.dispose();
+  }
+
+  void _goToAuthGate() {
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const AuthGate()),
+      (route) => false,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,7 +58,7 @@ class ConfirmEmailPage extends StatelessWidget {
               const SizedBox(height: AppSpace.xl),
 
               Icon(Icons.mark_email_read,
-                  size: 90, color: AppColors.primary.withOpacity(0.9)),
+                  size: 90, color: AppColors.primary.withValues(alpha:0.9)),
 
               const SizedBox(height: AppSpace.l),
               Text(
@@ -57,13 +90,9 @@ class ConfirmEmailPage extends StatelessWidget {
                       borderRadius: BorderRadius.circular(AppRadius.l),
                     ),
                   ),
-                  onPressed: () {
-                    Navigator.of(context).pushReplacement(
-                      MaterialPageRoute(builder: (_) => const LoginPage()),
-                    );
-                  },
+                  onPressed: _goToAuthGate,
                   child: const Text(
-                    'Retour à la connexion',
+                    'J\'ai confirmé mon email',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                   ),
                 ),

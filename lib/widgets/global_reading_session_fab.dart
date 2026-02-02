@@ -238,16 +238,19 @@ class GlobalReadingSessionFAB extends StatelessWidget {
 
   Future<void> _handleScan(BuildContext context) async {
     if (await _checkActiveSession(context)) return;
+    if (!context.mounted) return;
     await _scanAndStartSession(context);
   }
 
   Future<void> _handleKindle(BuildContext context) async {
     if (await _checkActiveSession(context)) return;
+    if (!context.mounted) return;
     await _selectKindleBookAndStart(context);
   }
 
   Future<void> _handleLibrary(BuildContext context) async {
     if (await _checkActiveSession(context)) return;
+    if (!context.mounted) return;
     await _selectFromLibraryAndStart(context);
   }
 }
@@ -433,7 +436,7 @@ class _ExpandableFABState extends State<_ExpandableFAB> with SingleTickerProvide
               boxShadow: [
                 // Ombre externe douce
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.15),
+                  color: Colors.black.withValues(alpha:0.15),
                   blurRadius: 20,
                   spreadRadius: 0,
                   offset: const Offset(0, 8),
@@ -528,23 +531,23 @@ class _ExpandableFABState extends State<_ExpandableFAB> with SingleTickerProvide
                       end: Alignment.bottomRight,
                       colors: isDark
                           ? [
-                              Colors.white.withOpacity(0.15),
-                              Colors.white.withOpacity(0.05),
+                              Colors.white.withValues(alpha:0.15),
+                              Colors.white.withValues(alpha:0.05),
                             ]
                           : [
-                              Colors.white.withOpacity(0.7),
-                              Colors.white.withOpacity(0.4),
+                              Colors.white.withValues(alpha:0.7),
+                              Colors.white.withValues(alpha:0.4),
                             ],
                     ),
                     border: Border.all(
                       color: isDark
-                          ? Colors.white.withOpacity(0.2)
-                          : Colors.white.withOpacity(0.6),
+                          ? Colors.white.withValues(alpha:0.2)
+                          : Colors.white.withValues(alpha:0.6),
                       width: 1,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
+                        color: Colors.black.withValues(alpha:0.1),
                         blurRadius: 10,
                         offset: const Offset(0, 4),
                       ),
@@ -576,23 +579,23 @@ class _ExpandableFABState extends State<_ExpandableFAB> with SingleTickerProvide
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                       colors: [
-                        accentColor.withOpacity(0.8),
-                        accentColor.withOpacity(0.5),
+                        accentColor.withValues(alpha:0.8),
+                        accentColor.withValues(alpha:0.5),
                       ],
                     ),
                     border: Border.all(
-                      color: Colors.white.withOpacity(0.4),
+                      color: Colors.white.withValues(alpha:0.4),
                       width: 1.5,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: accentColor.withOpacity(0.4),
+                        color: accentColor.withValues(alpha:0.4),
                         blurRadius: 12,
                         spreadRadius: 0,
                         offset: const Offset(0, 4),
                       ),
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
+                        color: Colors.black.withValues(alpha:0.1),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
                       ),
@@ -613,8 +616,8 @@ class _ExpandableFABState extends State<_ExpandableFAB> with SingleTickerProvide
                               begin: Alignment.topCenter,
                               end: Alignment.bottomCenter,
                               colors: [
-                                Colors.white.withOpacity(0.5),
-                                Colors.white.withOpacity(0.0),
+                                Colors.white.withValues(alpha:0.5),
+                                Colors.white.withValues(alpha:0.0),
                               ],
                             ),
                           ),

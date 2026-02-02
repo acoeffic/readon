@@ -61,8 +61,8 @@ class StreakCard extends StatelessWidget {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                const Color(0xFF2C3E50).withOpacity(0.7),
-                const Color(0xFF34495E).withOpacity(0.7),
+                const Color(0xFF2C3E50).withValues(alpha:0.7),
+                const Color(0xFF34495E).withValues(alpha:0.7),
               ],
             ),
           ),
@@ -101,7 +101,7 @@ class StreakCard extends StatelessWidget {
                   Container(
                     height: 20,
                     width: 1,
-                    color: Colors.grey.shade700.withOpacity(0.5),
+                    color: Colors.grey.shade700.withValues(alpha:0.5),
                     margin: const EdgeInsets.symmetric(horizontal: 8),
                   ),
                   // Streak record

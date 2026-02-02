@@ -75,7 +75,7 @@ class _BookCompletedSummaryPageState extends State<BookCompletedSummaryPage>
         _isLoading = false;
       });
     } catch (e) {
-      print('Erreur loadData: $e');
+      debugPrint('Erreur loadData: $e');
       setState(() => _isLoading = false);
     }
   }
@@ -199,7 +199,7 @@ class _BookCompletedSummaryPageState extends State<BookCompletedSummaryPage>
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.3),
+                      color: Colors.black.withValues(alpha:0.3),
                       blurRadius: 20,
                       offset: const Offset(0, 10),
                     ),
@@ -217,7 +217,7 @@ class _BookCompletedSummaryPageState extends State<BookCompletedSummaryPage>
                             return Container(
                               height: 180,
                               width: 120,
-                              color: Colors.grey.shade300,
+                              color: Theme.of(context).colorScheme.surfaceContainerHighest,
                               child: const Icon(Icons.book, size: 60),
                             );
                           },
@@ -225,7 +225,7 @@ class _BookCompletedSummaryPageState extends State<BookCompletedSummaryPage>
                       : Container(
                           height: 180,
                           width: 120,
-                          color: Colors.grey.shade300,
+                          color: Theme.of(context).colorScheme.surfaceContainerHighest,
                           child: const Icon(Icons.book, size: 60),
                         ),
                 ),
@@ -383,7 +383,9 @@ class _BookCompletedSummaryPageState extends State<BookCompletedSummaryPage>
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.amber.shade50,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.amber.shade900.withValues(alpha: 0.3)
+                    : Colors.amber.shade50,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: Colors.amber.shade200),
               ),
@@ -422,7 +424,7 @@ class _BookCompletedSummaryPageState extends State<BookCompletedSummaryPage>
           children: [
             Row(
               children: [
-                Icon(Icons.history, color: Colors.grey.shade700),
+                Icon(Icons.history, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7)),
                 const SizedBox(width: 8),
                 const Text(
                   'Historique des sessions',
@@ -444,7 +446,7 @@ class _BookCompletedSummaryPageState extends State<BookCompletedSummaryPage>
                 child: Text(
                   '+ ${_sessions.length - 10} autres sessions',
                   style: TextStyle(
-                    color: Colors.grey.shade600,
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                     fontStyle: FontStyle.italic,
                   ),
                 ),
@@ -482,7 +484,7 @@ class _BookCompletedSummaryPageState extends State<BookCompletedSummaryPage>
               'Suggestions basées sur votre lecture',
               style: TextStyle(
                 fontSize: 13,
-                color: Colors.grey.shade600,
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
               ),
             ),
             const SizedBox(height: 16),
@@ -527,9 +529,11 @@ class _BookCompletedSummaryPageState extends State<BookCompletedSummaryPage>
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
+        color: Theme.of(context).brightness == Brightness.dark
+            ? Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5)
+            : Colors.grey.shade50,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: Theme.of(context).dividerColor),
       ),
       child: Row(
         children: [
@@ -564,7 +568,7 @@ class _BookCompletedSummaryPageState extends State<BookCompletedSummaryPage>
                   'Pages ${session.startPage} → ${session.endPage}',
                   style: TextStyle(
                     fontSize: 13,
-                    color: Colors.grey.shade600,
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
                 ),
               ],
@@ -630,7 +634,7 @@ class _StatBox extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha:0.1),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -650,7 +654,7 @@ class _StatBox extends StatelessWidget {
             label,
             style: TextStyle(
               fontSize: 12,
-              color: Colors.grey.shade600,
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
             ),
           ),
         ],

@@ -69,7 +69,9 @@ class _AddBookPageState extends State<AddBookPage> {
           if (decoded is Map<String, dynamic>) {
             final results = decoded['results'];
             if (results is List) parsedResults = results;
-          } else if (decoded is List) parsedResults = decoded;
+          } else if (decoded is List) {
+          parsedResults = decoded;
+        }
         } catch (_) {}
       }
 

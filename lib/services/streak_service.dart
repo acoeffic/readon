@@ -1,6 +1,7 @@
 // lib/services/streak_service.dart
 // Service pour gérer les streaks de lecture
 
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/reading_streak.dart';
 import '../models/streak_freeze.dart';
@@ -19,7 +20,7 @@ class StreakService {
       final result = await _supabase.rpc('get_freeze_status');
       return StreakFreezeStatus.fromJson(result as Map<String, dynamic>);
     } catch (e) {
-      print('Erreur getFreezeStatus: $e');
+      debugPrint('Erreur getFreezeStatus: $e');
       return StreakFreezeStatus.empty();
     }
   }
@@ -37,7 +38,7 @@ class StreakService {
       final result = await _supabase.rpc('use_streak_freeze', params: params);
       return FreezeResult.fromJson(result as Map<String, dynamic>);
     } catch (e) {
-      print('Erreur useFreeze: $e');
+      debugPrint('Erreur useFreeze: $e');
       return FreezeResult(
         success: false,
         error: 'UNKNOWN_ERROR',
@@ -58,7 +59,7 @@ class StreakService {
           .map((date) => DateTime.parse(date as String))
           .toList();
     } catch (e) {
-      print('Erreur getFrozenDates: $e');
+      debugPrint('Erreur getFrozenDates: $e');
       return [];
     }
   }
@@ -96,7 +97,7 @@ class StreakService {
       final result = await useFreeze(isAuto: true);
       return result.success;
     } catch (e) {
-      print('Erreur checkAndUseAutoFreeze: $e');
+      debugPrint('Erreur checkAndUseAutoFreeze: $e');
       return false;
     }
   }
@@ -173,7 +174,7 @@ class StreakService {
         freezeStatus: freezeStatus,
       );
     } catch (e) {
-      print('Erreur getUserStreak: $e');
+      debugPrint('Erreur getUserStreak: $e');
       return ReadingStreak.empty();
     }
   }
@@ -213,7 +214,7 @@ class StreakService {
       final streakData = _calculateStreak(readDates);
       return streakData['current'] ?? 0;
     } catch (e) {
-      print('Erreur getStreakForUser: $e');
+      debugPrint('Erreur getStreakForUser: $e');
       return 0;
     }
   }
@@ -418,7 +419,7 @@ class StreakService {
 
       return newBadges;
     } catch (e) {
-      print('Erreur checkAndAwardStreakBadges: $e');
+      debugPrint('Erreur checkAndAwardStreakBadges: $e');
       return [];
     }
   }
@@ -443,7 +444,7 @@ class StreakService {
         });
       }
     } catch (e) {
-      print('Erreur _ensureBadgeExists: $e');
+      debugPrint('Erreur _ensureBadgeExists: $e');
     }
   }
 
@@ -477,7 +478,7 @@ class StreakService {
 
       return history;
     } catch (e) {
-      print('Erreur getReadingHistory: $e');
+      debugPrint('Erreur getReadingHistory: $e');
       return {};
     }
   }

@@ -1,5 +1,6 @@
 // lib/services/books_service.dart
 
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/book.dart';
 import 'google_books_service.dart';
@@ -55,7 +56,7 @@ class BooksService {
 
       return book;
     } catch (e) {
-      print('Erreur addBookFromGoogleBooks: $e');
+      debugPrint('Erreur addBookFromGoogleBooks: $e');
       rethrow;
     }
   }
@@ -102,7 +103,7 @@ class BooksService {
       await _addToUserBooks(book.id);
       return book;
     } catch (e) {
-      print('Erreur addBookManually: $e');
+      debugPrint('Erreur addBookManually: $e');
       rethrow;
     }
   }
@@ -131,7 +132,7 @@ class BooksService {
         'status': 'to_read', // ou 'reading', 'finished'
       });
     } catch (e) {
-      print('Erreur _addToUserBooks: $e');
+      debugPrint('Erreur _addToUserBooks: $e');
       rethrow;
     }
   }
@@ -147,7 +148,7 @@ class BooksService {
 
       return Book.fromJson(response);
     } catch (e) {
-      print('Erreur getBookById: $e');
+      debugPrint('Erreur getBookById: $e');
       rethrow;
     }
   }
@@ -167,7 +168,7 @@ class BooksService {
           .map((item) => Book.fromJson(item['books']))
           .toList();
     } catch (e) {
-      print('Erreur getUserBooks: $e');
+      debugPrint('Erreur getUserBooks: $e');
       return [];
     }
   }
@@ -191,7 +192,7 @@ class BooksService {
         };
       }).toList();
     } catch (e) {
-      print('Erreur getUserBooksWithStatus: $e');
+      debugPrint('Erreur getUserBooksWithStatus: $e');
       return [];
     }
   }
@@ -211,7 +212,7 @@ class BooksService {
 
       return response?['status'] as String?;
     } catch (e) {
-      print('Erreur getBookStatus: $e');
+      debugPrint('Erreur getBookStatus: $e');
       return null;
     }
   }
@@ -232,7 +233,7 @@ class BooksService {
           .eq('user_id', userId)
           .eq('book_id', bookId);
     } catch (e) {
-      print('Erreur removeBookFromLibrary: $e');
+      debugPrint('Erreur removeBookFromLibrary: $e');
       rethrow;
     }
   }
@@ -247,7 +248,7 @@ class BooksService {
           .eq('user_id', userId)
           .eq('book_id', bookId);
     } catch (e) {
-      print('Erreur toggleBookHidden: $e');
+      debugPrint('Erreur toggleBookHidden: $e');
       rethrow;
     }
   }
@@ -281,7 +282,7 @@ class BooksService {
         });
       }
     } catch (e) {
-      print('Erreur updateBookStatus: $e');
+      debugPrint('Erreur updateBookStatus: $e');
       rethrow;
     }
   }
@@ -313,7 +314,7 @@ class BooksService {
           .order('created_at', ascending: false)
           .limit(10); // Prendre les 10 dernières pour trouver un livre non terminé
 
-      if (sessions == null || (sessions as List).isEmpty) return null;
+      if ((sessions as List).isEmpty) return null;
 
       // Trouver la première session dont le livre n'est pas terminé
       for (final session in sessions) {
@@ -325,7 +326,7 @@ class BooksService {
 
         final bookId = int.tryParse(bookIdStr);
         if (bookId == null) {
-          print('Erreur: bookId invalide: $bookIdStr');
+          debugPrint('Erreur: bookId invalide: $bookIdStr');
           continue;
         }
 
@@ -344,14 +345,16 @@ class BooksService {
       // Aucun livre en cours trouvé
       return null;
     } catch (e) {
-      print('Erreur getCurrentReadingBook: $e');
+      debugPrint('Erreur getCurrentReadingBook: $e');
       return null;
     }
   }
 
   /// Importer les livres depuis l'extraction Kindle dans la bibliothèque
   /// Enrichit chaque livre avec les métadonnées de Google Books (couverture, description)
-  Future<int> importKindleBooks(List<KindleBookProgress> kindleBooks) async {
+  /// Si [isFirstSync] est true, tous les livres sauf les 2 premiers (plus récents)
+  /// sont marqués comme terminés avec kindle_auto_finished = true
+  Future<int> importKindleBooks(List<KindleBookProgress> kindleBooks, {bool isFirstSync = false}) async {
     int imported = 0;
     final userId = _supabase.auth.currentUser?.id;
     if (userId == null) return 0;
@@ -361,7 +364,7 @@ class BooksService {
         // Vérifier si le livre existe déjà (par titre + source kindle)
         final existing = await _supabase
             .from('books')
-            .select('id, cover_url')
+            .select('id, cover_url, author')
             .eq('title', kindleBook.title)
             .eq('source', 'kindle')
             .maybeSingle();
@@ -374,12 +377,16 @@ class BooksService {
             await _supabase.from('books').update({'cover_url': kindleBook.coverUrl}).eq('id', bookId);
           } else if (existing['cover_url'] == null) {
             // Pas de couverture Kindle ni existante -> enrichir via Google Books
-            await _enrichBookWithGoogleBooks(bookId, _cleanBookTitle(kindleBook.title));
+            await _enrichBookWithGoogleBooks(bookId, _cleanBookTitle(kindleBook.title), kindleAuthor: kindleBook.author);
+          }
+          // Ré-enrichir les livres existants sans auteur
+          if (existing['author'] == null) {
+            await _enrichBookWithGoogleBooks(bookId, _cleanBookTitle(kindleBook.title), kindleAuthor: kindleBook.author);
           }
         } else {
-          // Chercher les métadonnées sur Google Books (titre nettoyé)
+          // Chercher les métadonnées sur Google Books (titre nettoyé + auteur Kindle si disponible)
           final cleanTitle = _cleanBookTitle(kindleBook.title);
-          final metadata = await _fetchGoogleBooksMetadata(cleanTitle);
+          final metadata = await _fetchGoogleBooksMetadata(cleanTitle, kindleAuthor: kindleBook.author);
 
           // Utiliser la couverture Kindle en priorité, sinon Google Books
           final coverUrl = kindleBook.coverUrl ?? metadata?['cover_url'];
@@ -438,10 +445,25 @@ class BooksService {
 
         // Déterminer le statut depuis la progression
         String? newStatus;
-        if (kindleBook.percentComplete == 100) {
-          newStatus = 'finished';
-        } else if (kindleBook.percentComplete != null && kindleBook.percentComplete! > 0) {
-          newStatus = 'reading';
+        bool autoFinished = false;
+
+        if (isFirstSync) {
+          // Premier sync : les 2 premiers livres (les plus récents) restent en "reading",
+          // tous les autres sont auto-marqués comme "finished"
+          final index = kindleBooks.indexOf(kindleBook);
+          if (index < 2) {
+            newStatus = 'reading';
+          } else {
+            newStatus = 'finished';
+            autoFinished = true;
+          }
+        } else {
+          // Sync normal : basé sur la progression Kindle
+          if (kindleBook.percentComplete == 100) {
+            newStatus = 'finished';
+          } else if (kindleBook.percentComplete != null && kindleBook.percentComplete! > 0) {
+            newStatus = 'reading';
+          }
         }
 
         // Ajouter ou mettre à jour user_books
@@ -457,6 +479,7 @@ class BooksService {
             'user_id': userId,
             'book_id': bookId,
             'status': newStatus ?? 'to_read',
+            if (autoFinished) 'kindle_auto_finished': true,
           });
           imported++;
         } else if (newStatus != null) {
@@ -466,13 +489,16 @@ class BooksService {
           if (currentStatus != 'finished' || newStatus == 'finished') {
             await _supabase
                 .from('user_books')
-                .update({'status': newStatus})
+                .update({
+                  'status': newStatus,
+                  if (autoFinished) 'kindle_auto_finished': true,
+                })
                 .eq('user_id', userId)
                 .eq('book_id', bookId);
           }
         }
       } catch (e) {
-        print('Erreur import livre Kindle "${kindleBook.title}": $e');
+        debugPrint('Erreur import livre Kindle "${kindleBook.title}": $e');
       }
     }
     return imported;
@@ -535,7 +561,7 @@ class BooksService {
           updated++;
         }
       } catch (e) {
-        print('Erreur markBooksAsFinished "${kindleBook.title}": $e');
+        debugPrint('Erreur markBooksAsFinished "${kindleBook.title}": $e');
       }
     }
     return updated;
@@ -552,33 +578,55 @@ class BooksService {
         .trim();
   }
 
-  /// Chercher les métadonnées d'un livre sur Google Books par titre
-  Future<Map<String, dynamic>?> _fetchGoogleBooksMetadata(String title) async {
+  /// Chercher les métadonnées d'un livre sur Google Books par titre (et auteur optionnel)
+  Future<Map<String, dynamic>?> _fetchGoogleBooksMetadata(String title, {String? kindleAuthor}) async {
     try {
-      final results = await _googleBooksService.searchBooks(title);
-      if (results.isEmpty) return null;
+      List<GoogleBook> results;
 
-      final book = results.first;
-      // Filtrer 'Auteur inconnu' qui est la valeur par défaut quand aucun auteur n'est trouvé
-      final author = book.authorsString;
-      return {
-        'author': (author != 'Auteur inconnu') ? author : null,
-        'cover_url': book.coverUrl,
-        'description': book.description,
-        'page_count': book.pageCount,
-        'google_id': book.id,
-        'genre': book.genre,
-      };
+      // Stratégie 1 : Si on a l'auteur Kindle, chercher avec titre + auteur
+      if (kindleAuthor != null && kindleAuthor.isNotEmpty) {
+        results = await _googleBooksService.searchByTitleAuthor(title, kindleAuthor);
+        if (results.isNotEmpty) {
+          return _googleBookToMetadata(results.first);
+        }
+      }
+
+      // Stratégie 2 : Chercher avec intitle: pour un matching plus précis
+      results = await _googleBooksService.searchBooks('intitle:$title');
+      if (results.isNotEmpty) {
+        return _googleBookToMetadata(results.first);
+      }
+
+      // Stratégie 3 : Chercher avec le titre brut (plus large)
+      results = await _googleBooksService.searchBooks(title);
+      if (results.isNotEmpty) {
+        return _googleBookToMetadata(results.first);
+      }
+
+      return null;
     } catch (e) {
-      print('Erreur Google Books metadata pour "$title": $e');
+      debugPrint('Erreur Google Books metadata pour "$title": $e');
       return null;
     }
   }
 
+  /// Convertir un GoogleBook en map de métadonnées
+  Map<String, dynamic> _googleBookToMetadata(GoogleBook book) {
+    final author = book.authorsString;
+    return {
+      'author': (author != 'Auteur inconnu') ? author : null,
+      'cover_url': book.coverUrl,
+      'description': book.description,
+      'page_count': book.pageCount,
+      'google_id': book.id,
+      'genre': book.genre,
+    };
+  }
+
   /// Enrichir un livre existant avec les métadonnées Google Books
-  Future<void> _enrichBookWithGoogleBooks(int bookId, String title) async {
+  Future<void> _enrichBookWithGoogleBooks(int bookId, String title, {String? kindleAuthor}) async {
     try {
-      final metadata = await _fetchGoogleBooksMetadata(title);
+      final metadata = await _fetchGoogleBooksMetadata(title, kindleAuthor: kindleAuthor);
       if (metadata == null) return;
 
       final updates = <String, dynamic>{};
@@ -605,7 +653,7 @@ class BooksService {
         await _supabase.from('books').update(updates).eq('id', bookId);
       }
     } catch (e) {
-      print('Erreur enrichissement livre $bookId: $e');
+      debugPrint('Erreur enrichissement livre $bookId: $e');
     }
   }
 }

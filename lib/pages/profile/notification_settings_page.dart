@@ -304,7 +304,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                         Switch(
                           value: _notificationsEnabled,
                           onChanged: _toggleNotifications,
-                          activeColor: AppColors.primary,
+                          activeThumbColor: AppColors.primary,
                         ),
                       ],
                     ),
@@ -393,7 +393,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                             Container(
                               padding: const EdgeInsets.all(AppSpace.s),
                               decoration: BoxDecoration(
-                                color: AppColors.primary.withOpacity(0.1),
+                                color: AppColors.primary.withValues(alpha:0.1),
                                 borderRadius: BorderRadius.circular(AppRadius.m),
                               ),
                               child: const Icon(
@@ -456,10 +456,10 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
               Container(
                 padding: const EdgeInsets.all(AppSpace.l),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
+                  color: AppColors.primary.withValues(alpha:0.1),
                   borderRadius: BorderRadius.circular(AppRadius.l),
                   border: Border.all(
-                    color: AppColors.primary.withOpacity(0.2),
+                    color: AppColors.primary.withValues(alpha:0.2),
                     width: 1,
                   ),
                 ),
@@ -492,7 +492,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                                 .textTheme
                                 .bodySmall
                                 ?.copyWith(
-                                  color: AppColors.primary.withOpacity(0.8),
+                                  color: AppColors.primary.withValues(alpha:0.8),
                                 ),
                           ),
                         ],

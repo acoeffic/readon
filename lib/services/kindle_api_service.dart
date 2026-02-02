@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 class KindleApiService {
@@ -9,7 +10,7 @@ class KindleApiService {
       final response = await http.get(Uri.parse('$baseUrl/health'));
       return response.statusCode == 200;
     } catch (e) {
-      print('Erreur health check: $e');
+      debugPrint('Erreur health check: $e');
       return false;
     }
   }
@@ -31,7 +32,7 @@ class KindleApiService {
         throw Exception('Erreur sync: ${response.body}');
       }
     } catch (e) {
-      print('Erreur syncKindle: $e');
+      debugPrint('Erreur syncKindle: $e');
       rethrow;
     }
   }
@@ -48,7 +49,7 @@ class KindleApiService {
         throw Exception('Erreur getBooks: ${response.statusCode}');
       }
     } catch (e) {
-      print('Erreur getBooks: $e');
+      debugPrint('Erreur getBooks: $e');
       return [];
     }
   }
@@ -63,7 +64,7 @@ class KindleApiService {
         return null;
       }
     } catch (e) {
-      print('Erreur getStats: $e');
+      debugPrint('Erreur getStats: $e');
       return null;
     }
   }

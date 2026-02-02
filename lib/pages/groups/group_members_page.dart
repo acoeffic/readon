@@ -334,7 +334,7 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
                                 ),
                                 child: ListTile(
                                   leading: CircleAvatar(
-                                    backgroundColor: AppColors.primary.withOpacity(0.1),
+                                    backgroundColor: AppColors.primary.withValues(alpha:0.1),
                                     backgroundImage: member.userAvatar != null
                                         ? NetworkImage(member.userAvatar!)
                                         : null,
@@ -367,7 +367,7 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
                                             vertical: 2,
                                           ),
                                           decoration: BoxDecoration(
-                                            color: Colors.blue.withOpacity(0.2),
+                                            color: Colors.blue.withValues(alpha:0.2),
                                             borderRadius: BorderRadius.circular(12),
                                           ),
                                           child: const Text(

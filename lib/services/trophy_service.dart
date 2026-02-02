@@ -1,6 +1,7 @@
 // lib/services/trophy_service.dart
 // Service pour la sélection et l'attribution des trophées de lecture
 
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/trophy.dart';
 import '../models/reading_session.dart';
@@ -138,7 +139,7 @@ class TrophyService {
 
       return newTrophies;
     } catch (e) {
-      print('Erreur checkUnlockableTrophies: $e');
+      debugPrint('Erreur checkUnlockableTrophies: $e');
       return [];
     }
   }
@@ -162,7 +163,7 @@ class TrophyService {
       final currentBucket = _getTimeBucket(session.startTime.hour);
       return !existingBuckets.contains(currentBucket);
     } catch (e) {
-      print('Erreur _isNewTimeBucket: $e');
+      debugPrint('Erreur _isNewTimeBucket: $e');
       return false;
     }
   }
@@ -186,10 +187,10 @@ class TrophyService {
       await _supabase.from('user_badges').insert({
         'user_id': userId,
         'badge_id': type.id,
-        'earned_at': DateTime.now().toIso8601String(),
+        'unlocked_at': DateTime.now().toIso8601String(),
       });
     } catch (e) {
-      print('Erreur _awardTrophy: $e');
+      debugPrint('Erreur _awardTrophy: $e');
     }
   }
 
@@ -210,10 +211,11 @@ class TrophyService {
           'icon': type.icon,
           'color': '#7FA497',
           'category': 'trophy',
+          'requirement': 1,
         });
       }
     } catch (e) {
-      print('Erreur _ensureTrophyExists: $e');
+      debugPrint('Erreur _ensureTrophyExists: $e');
     }
   }
 }

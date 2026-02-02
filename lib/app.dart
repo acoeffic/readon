@@ -1,16 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'theme/app_theme.dart';
-import 'pages/welcome/welcome_page.dart';
+import 'pages/auth/auth_gate.dart';
 import 'providers/theme_provider.dart';
+import 'providers/subscription_provider.dart';
 
 class ReadOnApp extends StatelessWidget {
   const ReadOnApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => ThemeProvider(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(create: (_) => SubscriptionProvider()),
+      ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, _) {
           return MaterialApp(
@@ -19,10 +23,7 @@ class ReadOnApp extends StatelessWidget {
             theme: AppTheme.light,
             darkTheme: AppTheme.dark,
             themeMode: themeProvider.themeMode,
-            home: const WelcomePage(),
-            routes: {
-              '/welcome': (context) => const WelcomePage(),
-            },
+            home: const AuthGate(),
           );
         },
       ),

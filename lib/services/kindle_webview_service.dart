@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -571,7 +572,23 @@ class KindleWebViewService {
             if (foundTitle) return result;
           }
 
-          // Stratégie 3 : Heuristique par taille de police
+          // Stratégie 3 : Si l'image a un alt, l'utiliser directement comme titre
+          // et prendre le premier texte restant (qui n'est pas le titre) comme auteur
+          if (imgAlt.length > 3) {
+            result.title = imgAlt;
+            for (var i = 0; i < textElements.length; i++) {
+              var tLower = textElements[i].text.toLowerCase();
+              // Ignorer le texte qui ressemble au titre
+              if (tLower === imgAlt.toLowerCase()) continue;
+              if (textElements[i].text.length >= 3) {
+                result.author = textElements[i].text;
+                break;
+              }
+            }
+            if (result.author) return result;
+          }
+
+          // Stratégie 4 : Heuristique par taille de police
           // Le titre est généralement le texte le plus grand
           if (textElements.length >= 2) {
             var sorted = textElements.slice().sort(function(a, b) { return b.fontSize - a.fontSize; });
@@ -865,7 +882,7 @@ class KindleWebViewService {
       }
       final json = jsonDecode(cleaned) as Map<String, dynamic>;
       final booksList = json['books'] as List<dynamic>? ?? [];
-      print('Kindle Library: ${booksList.length} livres extraits');
+      debugPrint('Kindle Library: ${booksList.length} livres extraits');
       return booksList.map((b) {
         final map = b as Map<String, dynamic>;
         return KindleBookProgress(
@@ -876,7 +893,7 @@ class KindleWebViewService {
         );
       }).toList();
     } catch (e) {
-      print('Error parsing Kindle Library: $e');
+      debugPrint('Error parsing Kindle Library: $e');
       return [];
     }
   }
@@ -893,7 +910,7 @@ class KindleWebViewService {
       final list = jsonDecode(cleaned) as List<dynamic>;
       return list.map((e) => e as int).toList();
     } catch (e) {
-      print('Error parsing years list: $e');
+      debugPrint('Error parsing years list: $e');
       return [];
     }
   }
@@ -919,7 +936,7 @@ class KindleWebViewService {
         );
       }).toList();
     } catch (e) {
-      print('Error parsing books for $year: $e');
+      debugPrint('Error parsing books for $year: $e');
       return [];
     }
   }
@@ -979,13 +996,13 @@ class KindleWebViewService {
 
       final json = jsonDecode(cleaned) as Map<String, dynamic>;
       if (json.containsKey('error')) {
-        print('Kindle extraction error: ${json['error']}');
+        debugPrint('Kindle extraction error: ${json['error']}');
         return null;
       }
 
       return KindleReadingData.fromJson(json);
     } catch (e) {
-      print('Error parsing Kindle data: $e');
+      debugPrint('Error parsing Kindle data: $e');
       return null;
     }
   }

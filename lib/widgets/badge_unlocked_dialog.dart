@@ -22,6 +22,7 @@ class _BadgeUnlockedDialogState extends State<BadgeUnlockedDialog>
   late AnimationController _scaleController;
   late AnimationController _rotationController;
   late AnimationController _confettiController;
+  late AnimationController? _shimmerController;
   late Animation<double> _scaleAnimation;
   late Animation<double> _rotationAnimation;
 
@@ -60,6 +61,16 @@ class _BadgeUnlockedDialogState extends State<BadgeUnlockedDialog>
       vsync: this,
     );
 
+    // Shimmer pour badges secrets
+    if (widget.badge.isSecret) {
+      _shimmerController = AnimationController(
+        duration: const Duration(milliseconds: 1500),
+        vsync: this,
+      )..repeat();
+    } else {
+      _shimmerController = null;
+    }
+
     // Démarrer les animations
     _scaleController.forward();
     _rotationController.forward();
@@ -71,6 +82,7 @@ class _BadgeUnlockedDialogState extends State<BadgeUnlockedDialog>
     _scaleController.dispose();
     _rotationController.dispose();
     _confettiController.dispose();
+    _shimmerController?.dispose();
     super.dispose();
   }
 
@@ -83,8 +95,17 @@ class _BadgeUnlockedDialogState extends State<BadgeUnlockedDialog>
     }
   }
 
+  String get _dialogTitle {
+    if (widget.badge.isSecret) return 'Badge Secret Révélé!';
+    if (widget.badge.isPremium) return 'Badge Premium!';
+    return 'Nouveau Badge!';
+  }
+
   @override
   Widget build(BuildContext context) {
+    final color = _getBadgeColor();
+    final isSecret = widget.badge.isSecret;
+
     return Dialog(
       backgroundColor: Colors.transparent,
       child: Stack(
@@ -108,20 +129,25 @@ class _BadgeUnlockedDialogState extends State<BadgeUnlockedDialog>
                     angle: rotation * _confettiController.value,
                     child: Opacity(
                       opacity: 1.0 - _confettiController.value,
-                      child: Container(
-                        width: 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          color: [
-                            Colors.amber,
-                            Colors.orange,
-                            Colors.pink,
-                            AppColors.primary,
-                            Colors.blue,
-                          ][index % 5],
-                          shape: BoxShape.circle,
-                        ),
-                      ),
+                      child: isSecret
+                          ? Text(
+                              ['🕵️', '✨', '🔮', '⭐', '💫'][index % 5],
+                              style: const TextStyle(fontSize: 16),
+                            )
+                          : Container(
+                              width: 8,
+                              height: 8,
+                              decoration: BoxDecoration(
+                                color: [
+                                  Colors.amber,
+                                  Colors.orange,
+                                  Colors.pink,
+                                  AppColors.primary,
+                                  Colors.blue,
+                                ][index % 5],
+                                shape: BoxShape.circle,
+                              ),
+                            ),
                     ),
                   ),
                 );
@@ -134,11 +160,13 @@ class _BadgeUnlockedDialogState extends State<BadgeUnlockedDialog>
             child: Container(
               padding: const EdgeInsets.all(32),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
+                    color: isSecret
+                        ? Colors.purple.withValues(alpha: 0.3)
+                        : Colors.black.withValues(alpha: 0.2),
                     blurRadius: 20,
                     spreadRadius: 5,
                   ),
@@ -147,13 +175,19 @@ class _BadgeUnlockedDialogState extends State<BadgeUnlockedDialog>
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  // Premium crown
+                  if (widget.badge.isPremium) ...[
+                    const Text('👑', style: TextStyle(fontSize: 24)),
+                    const SizedBox(height: 8),
+                  ],
+
                   // Titre
-                  const Text(
-                    'Nouveau Badge!',
+                  Text(
+                    _dialogTitle,
                     style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.primary,
+                      color: isSecret ? Colors.purple : AppColors.primary,
                     ),
                   ),
                   const SizedBox(height: 24),
@@ -171,17 +205,23 @@ class _BadgeUnlockedDialogState extends State<BadgeUnlockedDialog>
                             height: 120,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: _getBadgeColor().withOpacity(0.2),
+                              color: _getBadgeColor().withValues(alpha: 0.2),
                               border: Border.all(
                                 color: _getBadgeColor(),
                                 width: 4,
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: _getBadgeColor().withOpacity(0.3),
+                                  color: _getBadgeColor().withValues(alpha: 0.3),
                                   blurRadius: 20,
                                   spreadRadius: 5,
                                 ),
+                                if (isSecret)
+                                  BoxShadow(
+                                    color: Colors.purple.withValues(alpha: 0.2),
+                                    blurRadius: 30,
+                                    spreadRadius: 10,
+                                  ),
                               ],
                             ),
                             child: Center(
@@ -216,7 +256,7 @@ class _BadgeUnlockedDialogState extends State<BadgeUnlockedDialog>
                       widget.badge.description,
                       style: TextStyle(
                         fontSize: 16,
-                        color: Colors.grey[600],
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                       ),
                       textAlign: TextAlign.center,
                     ),

@@ -56,7 +56,7 @@ class _ReadingGoalsPageState extends State<ReadingGoalsPage> {
         setState(() => _isLoading = false);
       }
     } catch (e) {
-      print('Erreur _loadExistingGoals: $e');
+      debugPrint('Erreur _loadExistingGoals: $e');
       if (mounted) setState(() => _isLoading = false);
     }
   }

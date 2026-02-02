@@ -20,6 +20,8 @@ import '../../models/book.dart';
 import 'reading_session_summary_page.dart';
 import 'book_completed_summary_page.dart';
 import '../../theme/app_theme.dart';
+import '../../services/contacts_service.dart';
+import '../friends/contacts_suggestion_page.dart';
 
 class EndReadingSessionPage extends StatefulWidget {
   final ReadingSession activeSession;
@@ -204,12 +206,32 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
       // Sélectionner le trophée contextuel
       final trophy = _trophyService.selectTrophy(completedSession);
 
+      // Vérifier et attribuer les badges standard (non bloquant)
+      List<dynamic> newBadges = [];
+      try {
+        newBadges = await _badgesService.checkAndAwardBadges();
+      } catch (e) {
+        debugPrint('Erreur checkAndAwardBadges (non bloquante): $e');
+      }
+
+      // Vérifier les badges secrets (côté client, basés sur l'heure)
+      List<dynamic> newSecretBadges = [];
+      try {
+        newSecretBadges = await _badgesService.checkSecretBadges(
+          sessionStartTime: widget.activeSession.startTime,
+          sessionEndTime: completedSession.endTime,
+          bookFinished: false,
+        );
+      } catch (e) {
+        debugPrint('Erreur checkSecretBadges (non bloquante): $e');
+      }
+
       // Vérifier et attribuer les badges de streak (non bloquant)
       List<StreakBadgeLevel> newStreakBadges = [];
       try {
         newStreakBadges = await _streakService.checkAndAwardStreakBadges();
       } catch (e) {
-        print('Erreur checkAndAwardStreakBadges (non bloquante): $e');
+        debugPrint('Erreur checkAndAwardStreakBadges (non bloquante): $e');
       }
 
       // Vérifier et attribuer les trophées débloquables (non bloquant)
@@ -223,7 +245,29 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
           activeBookCount: activeBookCount,
         );
       } catch (e) {
-        print('Erreur checkUnlockableTrophies (non bloquante): $e');
+        debugPrint('Erreur checkUnlockableTrophies (non bloquante): $e');
+      }
+
+      // Afficher les badges standard débloqués
+      if (newBadges.isNotEmpty && mounted) {
+        for (final badge in newBadges) {
+          await showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => BadgeUnlockedDialog(badge: badge),
+          );
+        }
+      }
+
+      // Afficher les badges secrets débloqués
+      if (newSecretBadges.isNotEmpty && mounted) {
+        for (final badge in newSecretBadges) {
+          await showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => BadgeUnlockedDialog(badge: badge),
+          );
+        }
       }
 
       // Afficher les badges de streak débloqués
@@ -248,16 +292,36 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
         }
       }
 
-      // Naviguer vers la page de résumé avec le trophée
+      // Vérifier si c'est la première session → afficher suggestion contacts
       if (mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (context) => ReadingSessionSummaryPage(
-              session: completedSession,
-              trophy: trophy,
+        final contactsService = ContactsService();
+        final hasCompleted = await contactsService.hasCompletedFirstSession();
+        final hasSeen = await contactsService.hasSeenContactsPrompt();
+
+        if (!hasCompleted && !hasSeen) {
+          await contactsService.markFirstSessionCompleted();
+          if (!mounted) return;
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (context) => ContactsSuggestionPage(
+                session: completedSession,
+                trophy: trophy,
+                isBookCompleted: false,
+              ),
             ),
-          ),
-        );
+          );
+        } else {
+          if (!hasCompleted) await contactsService.markFirstSessionCompleted();
+          if (!mounted) return;
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (context) => ReadingSessionSummaryPage(
+                session: completedSession,
+                trophy: trophy,
+              ),
+            ),
+          );
+        }
       }
     } catch (e) {
       setState(() {
@@ -278,7 +342,7 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
           .eq('status', 'reading');
       return (response as List).length;
     } catch (e) {
-      print('Erreur _getActiveBookCount: $e');
+      debugPrint('Erreur _getActiveBookCount: $e');
       return 0;
     }
   }
@@ -337,7 +401,7 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
           try {
             await _booksService.updateBookStatus(bookIdInt, 'finished');
           } catch (e) {
-            print('Erreur updateBookStatus (non bloquante): $e');
+            debugPrint('Erreur updateBookStatus (non bloquante): $e');
           }
         }
 
@@ -345,7 +409,7 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
         try {
           await _createBookFinishedActivity(completedSession);
         } catch (e) {
-          print('Erreur createBookFinishedActivity (non bloquante): $e');
+          debugPrint('Erreur createBookFinishedActivity (non bloquante): $e');
         }
 
         // Sélectionner le trophée contextuel
@@ -356,7 +420,19 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
         try {
           newBadges = await _badgesService.checkAndAwardBadges();
         } catch (e) {
-          print('Erreur checkAndAwardBadges (non bloquante): $e');
+          debugPrint('Erreur checkAndAwardBadges (non bloquante): $e');
+        }
+
+        // Vérifier les badges secrets (côté client, basés sur l'heure)
+        List<dynamic> newSecretBadges = [];
+        try {
+          newSecretBadges = await _badgesService.checkSecretBadges(
+            sessionStartTime: widget.activeSession.startTime,
+            sessionEndTime: completedSession.endTime,
+            bookFinished: true,
+          );
+        } catch (e) {
+          debugPrint('Erreur checkSecretBadges (non bloquante): $e');
         }
 
         // Vérifier et attribuer les badges de streak (non bloquant)
@@ -364,7 +440,7 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
         try {
           newStreakBadges = await _streakService.checkAndAwardStreakBadges();
         } catch (e) {
-          print('Erreur checkAndAwardStreakBadges (non bloquante): $e');
+          debugPrint('Erreur checkAndAwardStreakBadges (non bloquante): $e');
         }
 
         // Vérifier et attribuer les trophées débloquables (non bloquant)
@@ -378,7 +454,7 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
             activeBookCount: activeBookCount,
           );
         } catch (e) {
-          print('Erreur checkUnlockableTrophies (non bloquante): $e');
+          debugPrint('Erreur checkUnlockableTrophies (non bloquante): $e');
         }
 
         if (!mounted) return;
@@ -389,6 +465,17 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
         // Afficher les nouveaux badges débloqués
         if (newBadges.isNotEmpty) {
           for (final badge in newBadges) {
+            await showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (context) => BadgeUnlockedDialog(badge: badge),
+            );
+          }
+        }
+
+        // Afficher les badges secrets débloqués
+        if (newSecretBadges.isNotEmpty && mounted) {
+          for (final badge in newSecretBadges) {
             await showDialog(
               context: context,
               barrierDismissible: false,
@@ -425,30 +512,51 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
           try {
             book = await _booksService.getBookById(bookIdInt);
           } catch (e) {
-            print('Erreur récupération livre: $e');
+            debugPrint('Erreur récupération livre: $e');
           }
         }
 
-        // Naviguer vers la page de résumé du livre terminé
-        if (book != null && mounted) {
+        // Vérifier si c'est la première session → afficher suggestion contacts
+        if (!mounted) return;
+        final contactsService = ContactsService();
+        final hasCompleted = await contactsService.hasCompletedFirstSession();
+        final hasSeen = await contactsService.hasSeenContactsPrompt();
+
+        if (!hasCompleted && !hasSeen) {
+          await contactsService.markFirstSessionCompleted();
+          if (!mounted) return;
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(
-              builder: (context) => BookCompletedSummaryPage(
-                book: book!,
-                lastSession: completedSession,
+              builder: (context) => ContactsSuggestionPage(
+                session: completedSession,
+                trophy: trophy,
+                book: book,
+                isBookCompleted: true,
               ),
             ),
           );
         } else {
-          // Fallback: page de résumé avec trophée
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(
-              builder: (context) => ReadingSessionSummaryPage(
-                session: completedSession,
-                trophy: trophy,
+          if (!hasCompleted) await contactsService.markFirstSessionCompleted();
+          if (!mounted) return;
+          if (book != null) {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(
+                builder: (context) => BookCompletedSummaryPage(
+                  book: book!,
+                  lastSession: completedSession,
+                ),
               ),
-            ),
-          );
+            );
+          } else {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(
+                builder: (context) => ReadingSessionSummaryPage(
+                  session: completedSession,
+                  trophy: trophy,
+                ),
+              ),
+            );
+          }
         }
       } catch (e) {
         setState(() {
@@ -468,7 +576,7 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
       // Récupérer les informations du livre
       final bookIdInt = int.tryParse(session.bookId);
       if (bookIdInt == null) {
-        print('Erreur: bookId invalide: ${session.bookId}');
+        debugPrint('Erreur: bookId invalide: ${session.bookId}');
         return;
       }
       final bookResponse = await Supabase.instance.client
@@ -495,7 +603,7 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
         },
       });
     } catch (e) {
-      print('Erreur _createBookFinishedActivity: $e');
+      debugPrint('Erreur _createBookFinishedActivity: $e');
       // Ne pas bloquer le flux si l'activité ne peut pas être créée
     }
   }
@@ -525,6 +633,7 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
         if (!mounted) return;
         Navigator.of(context).pop();
       } catch (e) {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red),
         );
@@ -681,7 +790,9 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
             // Error
             if (_errorMessage != null && !_isProcessing)
               Card(
-                color: Colors.orange.shade50,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.orange.shade900.withValues(alpha: 0.3)
+                    : Colors.orange.shade50,
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Row(
@@ -713,7 +824,11 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
             if (_detectedPageNumber != null || _manualPageNumber != null) ...[
               const SizedBox(height: 20),
               Card(
-                color: _manualPageNumber != null ? Colors.blue.shade50 : Colors.green.shade50,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? (_manualPageNumber != null
+                        ? Colors.blue.shade900.withValues(alpha: 0.3)
+                        : Colors.green.shade900.withValues(alpha: 0.3))
+                    : (_manualPageNumber != null ? Colors.blue.shade50 : Colors.green.shade50),
                 child: Padding(
                   padding: const EdgeInsets.all(20),
                   child: Column(
@@ -1013,11 +1128,11 @@ class _StreakBadgeDialogState extends State<_StreakBadgeDialog>
             child: Container(
               padding: const EdgeInsets.all(32),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).colorScheme.surfaceContainerHigh,
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
+                    color: Colors.black.withValues(alpha:0.2),
                     blurRadius: 20,
                     spreadRadius: 5,
                   ),
@@ -1051,14 +1166,14 @@ class _StreakBadgeDialogState extends State<_StreakBadgeDialog>
                       height: 120,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: color.withOpacity(0.2),
+                        color: color.withValues(alpha:0.2),
                         border: Border.all(
                           color: color,
                           width: 4,
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: color.withOpacity(0.3),
+                            color: color.withValues(alpha:0.3),
                             blurRadius: 20,
                             spreadRadius: 5,
                           ),
@@ -1102,7 +1217,7 @@ class _StreakBadgeDialogState extends State<_StreakBadgeDialog>
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     decoration: BoxDecoration(
-                      color: color.withOpacity(0.1),
+                      color: color.withValues(alpha:0.1),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(

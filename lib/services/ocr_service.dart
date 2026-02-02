@@ -1,5 +1,6 @@
 // lib/services/ocr_service.dart
 
+import 'package:flutter/foundation.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 
 class OCRService {
@@ -19,7 +20,7 @@ class OCRService {
       
       return pageNumber;
     } catch (e) {
-      print('OCR Error: $e');
+      debugPrint('OCR Error: $e');
       return null;
     }
   }
@@ -168,7 +169,7 @@ class OCRService {
 
       return null;
     } catch (e) {
-      print('Error extracting ISBN: $e');
+      debugPrint('Error extracting ISBN: $e');
       return null;
     }
   }
@@ -245,7 +246,7 @@ class OCRService {
       
       return blocks;
     } catch (e) {
-      print('Error extracting text blocks: $e');
+      debugPrint('Error extracting text blocks: $e');
       return [];
     }
   }

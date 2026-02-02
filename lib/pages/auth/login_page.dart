@@ -5,7 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../theme/app_theme.dart';
 import '../../widgets/back_header.dart';
-import '../../navigation/main_navigation.dart';
+import 'auth_gate.dart';
 import 'signup_page.dart';
 import 'confirm_email_page.dart';
 
@@ -72,6 +72,7 @@ class _LoginPageState extends State<LoginPage> {
       );
 
       if (res.session == null) {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Connexion impossible')),
         );
@@ -80,10 +81,9 @@ class _LoginPageState extends State<LoginPage> {
 
       if (!mounted) return;
 
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (context) => const MainNavigation(),
-        ),
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const AuthGate()),
+        (route) => false,
       );
     } on AuthException catch (e) {
       if (!mounted) return;

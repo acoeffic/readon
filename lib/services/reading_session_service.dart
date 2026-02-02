@@ -1,5 +1,6 @@
 // lib/services/reading_session_service.dart
 
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/reading_session.dart';
 import 'ocr_service.dart';
@@ -60,7 +61,7 @@ class ReadingSessionService {
 
       return ReadingSession.fromJson(response);
     } catch (e) {
-      print('Erreur startSession: $e');
+      debugPrint('Erreur startSession: $e');
       rethrow;
     }
   }
@@ -119,7 +120,7 @@ class ReadingSessionService {
 
       return session;
     } catch (e) {
-      print('Erreur endSession: $e');
+      debugPrint('Erreur endSession: $e');
       rethrow;
     }
   }
@@ -139,7 +140,7 @@ class ReadingSessionService {
       
       return ReadingSession.fromJson(response);
     } catch (e) {
-      print('Erreur getActiveSession: $e');
+      debugPrint('Erreur getActiveSession: $e');
       return null;
     }
   }
@@ -158,7 +159,7 @@ class ReadingSessionService {
           .map((json) => ReadingSession.fromJson(json))
           .toList();
     } catch (e) {
-      print('Erreur getAllActiveSessions: $e');
+      debugPrint('Erreur getAllActiveSessions: $e');
       return [];
     }
   }
@@ -177,7 +178,7 @@ class ReadingSessionService {
           .map((json) => ReadingSession.fromJson(json))
           .toList();
     } catch (e) {
-      print('Erreur getBookSessions: $e');
+      debugPrint('Erreur getBookSessions: $e');
       return [];
     }
   }
@@ -217,7 +218,7 @@ class ReadingSessionService {
         avgMinutesPerPage: avgMinutesPerPage,
       );
     } catch (e) {
-      print('Erreur getBookStats: $e');
+      debugPrint('Erreur getBookStats: $e');
       return BookReadingStats(
         totalPagesRead: 0,
         totalMinutesRead: 0,
@@ -273,7 +274,7 @@ class ReadingSessionService {
 
       return sessionsList;
     } catch (e) {
-      print('Erreur getAllUserSessionsWithBook: $e');
+      debugPrint('Erreur getAllUserSessionsWithBook: $e');
       return [];
     }
   }
@@ -286,7 +287,7 @@ class ReadingSessionService {
           .delete()
           .eq('id', sessionId);
     } catch (e) {
-      print('Erreur cancelSession: $e');
+      debugPrint('Erreur cancelSession: $e');
       rethrow;
     }
   }

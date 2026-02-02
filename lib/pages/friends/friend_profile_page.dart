@@ -89,7 +89,7 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
         });
       }
     } catch (e) {
-      print('Erreur _loadProfile: $e');
+      debugPrint('Erreur _loadProfile: $e');
     }
   }
 
@@ -111,7 +111,7 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
         });
       }
     } catch (e) {
-      print('Erreur _loadStats: $e');
+      debugPrint('Erreur _loadStats: $e');
     }
   }
 
@@ -120,7 +120,7 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
       final streak = await streakService.getStreakForUser(widget.userId);
       if (mounted) setState(() => _currentStreak = streak);
     } catch (e) {
-      print('Erreur _loadStreak: $e');
+      debugPrint('Erreur _loadStreak: $e');
     }
   }
 
@@ -138,7 +138,7 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
         setState(() => _recentSessions = sessions);
       }
     } catch (e) {
-      print('Erreur _loadRecentSessions: $e');
+      debugPrint('Erreur _loadRecentSessions: $e');
     }
   }
 
@@ -147,7 +147,7 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
       final badges = await badgesService.getUserBadgesById(widget.userId);
       if (mounted) setState(() => _badges = badges);
     } catch (e) {
-      print('Erreur _loadBadges: $e');
+      debugPrint('Erreur _loadBadges: $e');
     }
   }
 
@@ -178,7 +178,7 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
         });
       }
     } catch (e) {
-      print('Erreur _loadFriendshipStatus: $e');
+      debugPrint('Erreur _loadFriendshipStatus: $e');
     }
   }
 
@@ -242,7 +242,7 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
         );
       }
     } catch (e) {
-      print('Erreur _addFriend: $e');
+      debugPrint('Erreur _addFriend: $e');
     }
   }
 
@@ -265,7 +265,7 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
         );
       }
     } catch (e) {
-      print('Erreur _cancelFriendRequest: $e');
+      debugPrint('Erreur _cancelFriendRequest: $e');
     }
   }
 
@@ -301,7 +301,7 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
         );
       }
     } catch (e) {
-      print('Erreur _removeFriend: $e');
+      debugPrint('Erreur _removeFriend: $e');
     }
   }
 

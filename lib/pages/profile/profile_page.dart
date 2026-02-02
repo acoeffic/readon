@@ -62,7 +62,7 @@ class _ProfilePageState extends State<ProfilePage> {
         _motivatedSince = _getMotivatedSince(DateTime.parse(user.createdAt));
       });
     } catch (e) {
-      print('Erreur _loadUserInfo: $e');
+      debugPrint('Erreur _loadUserInfo: $e');
     }
   }
 
@@ -75,7 +75,7 @@ class _ProfilePageState extends State<ProfilePage> {
         _loadingBadges = false;
       });
     } catch (e) {
-      print('Erreur _loadBadges: $e');
+      debugPrint('Erreur _loadBadges: $e');
       setState(() => _loadingBadges = false);
     }
   }
@@ -91,7 +91,7 @@ class _ProfilePageState extends State<ProfilePage> {
         });
       }
     } catch (e) {
-      print('Erreur _loadPrimaryGoal: $e');
+      debugPrint('Erreur _loadPrimaryGoal: $e');
       if (mounted) setState(() => _loadingGoal = false);
     }
   }
@@ -201,47 +201,31 @@ class _ProfilePageState extends State<ProfilePage> {
 
               const SizedBox(height: AppSpace.l),
 
-              // --- STATISTIQUES ---
-              Container(
-                padding: const EdgeInsets.all(AppSpace.l),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).cardColor,
-                  borderRadius: BorderRadius.circular(AppRadius.l),
+              // --- BADGES ---
+              if (_loadingBadges)
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(20),
+                    child: CircularProgressIndicator(),
+                  ),
+                )
+              else
+                Container(
+                  padding: const EdgeInsets.all(AppSpace.l),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).cardColor,
+                    borderRadius: BorderRadius.circular(AppRadius.l),
+                  ),
+                  child: BadgesGrid(
+                    badges: _badges,
+                    onViewAll: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const AllBadgesPage()),
+                      );
+                    },
+                  ),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Statistiques', style: Theme.of(context).textTheme.titleMedium),
-                    const SizedBox(height: AppSpace.s),
-                    Row(
-                      children: const [
-                        Text('📚 12 Livres terminés'),
-                        SizedBox(width: AppSpace.m),
-                        Text('⏱️ 48 Heures'),
-                        SizedBox(width: AppSpace.m),
-                        Text('🔥 6 J'),
-                      ],
-                    ),
-                    const SizedBox(height: AppSpace.m),
-                    Row(
-                      children: List.generate(
-                        5,
-                        (i) => Padding(
-                          padding: EdgeInsets.only(right: i == 4 ? 0 : AppSpace.s),
-                          child: Container(
-                            width: 12 + (i % 2 == 0 ? 4 : 0),
-                            height: 28 + (i % 2 == 0 ? 6 : 0),
-                            decoration: BoxDecoration(
-                              color: AppColors.primary,
-                              borderRadius: BorderRadius.circular(AppRadius.s),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
 
               const SizedBox(height: AppSpace.l),
 
@@ -363,31 +347,6 @@ class _ProfilePageState extends State<ProfilePage> {
 
               const SizedBox(height: AppSpace.l),
 
-              // --- BADGES ---
-              if (_loadingBadges)
-                const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(20),
-                    child: CircularProgressIndicator(),
-                  ),
-                )
-              else
-                Container(
-                  padding: const EdgeInsets.all(AppSpace.l),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).cardColor,
-                    borderRadius: BorderRadius.circular(AppRadius.l),
-                  ),
-                  child: BadgesGrid(
-  badges: _badges,
-  onViewAll: () {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const AllBadgesPage()),
-    );
-  },
-),
-                ),
             ],
           ),
         ),

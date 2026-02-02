@@ -1,38 +1,21 @@
 // lib/services/premium_service.dart
-// Service pour gérer le statut premium de l'utilisateur
+// @Deprecated: Utiliser SubscriptionService à la place.
+// Ce fichier sert de bridge pendant la migration.
 
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'subscription_service.dart';
 
+@Deprecated('Utiliser SubscriptionService à la place')
 class PremiumService {
-  final SupabaseClient _supabase = Supabase.instance.client;
+  final SubscriptionService _subscriptionService = SubscriptionService();
 
-  // Cache local du statut premium
-  bool? _cachedPremiumStatus;
-  DateTime? _cacheTimestamp;
-  static const _cacheDuration = Duration(minutes: 5);
-
-  /// Vérifier si l'utilisateur est premium (avec cache)
+  /// Vérifier si l'utilisateur est premium
+  /// Redirige vers SubscriptionService.isPremium()
   Future<bool> isPremium() async {
-    if (_cachedPremiumStatus != null && _cacheTimestamp != null) {
-      if (DateTime.now().difference(_cacheTimestamp!) < _cacheDuration) {
-        return _cachedPremiumStatus!;
-      }
-    }
-
-    try {
-      final result = await _supabase.rpc('check_premium_status');
-      _cachedPremiumStatus = result['is_premium'] as bool? ?? false;
-      _cacheTimestamp = DateTime.now();
-      return _cachedPremiumStatus!;
-    } catch (e) {
-      print('Erreur isPremium: $e');
-      return false;
-    }
+    return _subscriptionService.isPremium();
   }
 
-  /// Invalider le cache (après un achat par exemple)
+  /// Invalider le cache — no-op, géré par RevenueCat
   void invalidateCache() {
-    _cachedPremiumStatus = null;
-    _cacheTimestamp = null;
+    // RevenueCat gère son propre cache
   }
 }

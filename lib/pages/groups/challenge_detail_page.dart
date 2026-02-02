@@ -225,7 +225,7 @@ class _ChallengeDetailPageState extends State<ChallengeDetailPage> {
                               Container(
                                 padding: const EdgeInsets.all(10),
                                 decoration: BoxDecoration(
-                                  color: AppColors.primary.withOpacity(0.1),
+                                  color: AppColors.primary.withValues(alpha:0.1),
                                   borderRadius: BorderRadius.circular(AppRadius.m),
                                 ),
                                 child: Icon(
@@ -254,8 +254,8 @@ class _ChallengeDetailPageState extends State<ChallengeDetailPage> {
                                       ),
                                       decoration: BoxDecoration(
                                         color: challenge.isActive
-                                            ? Colors.green.withOpacity(0.1)
-                                            : Colors.red.withOpacity(0.1),
+                                            ? Colors.green.withValues(alpha:0.1)
+                                            : Colors.red.withValues(alpha:0.1),
                                         borderRadius: BorderRadius.circular(12),
                                       ),
                                       child: Text(
@@ -282,7 +282,7 @@ class _ChallengeDetailPageState extends State<ChallengeDetailPage> {
                               challenge.description!,
                               style: TextStyle(
                                 fontSize: 14,
-                                color: Colors.grey.shade600,
+                                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                               ),
                             ),
                           ],
@@ -291,13 +291,13 @@ class _ChallengeDetailPageState extends State<ChallengeDetailPage> {
                           const SizedBox(height: AppSpace.s),
                           Row(
                             children: [
-                              Icon(Icons.flag, size: 16, color: Colors.grey.shade600),
+                              Icon(Icons.flag, size: 16, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
                               const SizedBox(width: 8),
                               Text(
                                 _getTargetDescription(),
                                 style: TextStyle(
                                   fontSize: 14,
-                                  color: Colors.grey.shade700,
+                                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
@@ -371,12 +371,12 @@ class _ChallengeDetailPageState extends State<ChallengeDetailPage> {
                               Icon(
                                 Icons.people_outline,
                                 size: 48,
-                                color: Colors.grey.shade400,
+                                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
                               ),
                               const SizedBox(height: AppSpace.m),
                               Text(
                                 'Aucun participant',
-                                style: TextStyle(color: Colors.grey.shade600),
+                                style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
                               ),
                             ],
                           ),
@@ -438,7 +438,7 @@ class _ChallengeDetailPageState extends State<ChallengeDetailPage> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
-                    color: Colors.green.withOpacity(0.1),
+                    color: Colors.green.withValues(alpha:0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Text(
@@ -458,7 +458,7 @@ class _ChallengeDetailPageState extends State<ChallengeDetailPage> {
             child: LinearProgressIndicator(
               value: percent,
               minHeight: 8,
-              backgroundColor: Colors.grey.shade300,
+              backgroundColor: Theme.of(context).colorScheme.outlineVariant,
               valueColor: AlwaysStoppedAnimation<Color>(
                 challenge.userCompleted ? Colors.green : AppColors.primary,
               ),
@@ -469,7 +469,7 @@ class _ChallengeDetailPageState extends State<ChallengeDetailPage> {
             progressLabel,
             style: TextStyle(
               fontSize: 13,
-              color: Colors.grey.shade600,
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
             ),
           ),
         ],
@@ -500,7 +500,7 @@ class _ChallengeDetailPageState extends State<ChallengeDetailPage> {
           children: [
             CircleAvatar(
               radius: 18,
-              backgroundColor: AppColors.primary.withOpacity(0.1),
+              backgroundColor: AppColors.primary.withValues(alpha:0.1),
               backgroundImage: participant.userAvatar != null
                   ? NetworkImage(participant.userAvatar!)
                   : null,
@@ -533,7 +533,7 @@ class _ChallengeDetailPageState extends State<ChallengeDetailPage> {
                     child: LinearProgressIndicator(
                       value: percent,
                       minHeight: 4,
-                      backgroundColor: Colors.grey.shade300,
+                      backgroundColor: Theme.of(context).colorScheme.outlineVariant,
                       valueColor: AlwaysStoppedAnimation<Color>(
                         participant.completed ? Colors.green : AppColors.primary,
                       ),
@@ -550,7 +550,7 @@ class _ChallengeDetailPageState extends State<ChallengeDetailPage> {
                 '${(percent * 100).toInt()}%',
                 style: TextStyle(
                   fontSize: 12,
-                  color: Colors.grey.shade600,
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                   fontWeight: FontWeight.w600,
                 ),
               ),

@@ -33,10 +33,10 @@ class _ActiveReadingSessionPageState extends State<ActiveReadingSessionPage> {
     // Debug pour comprendre le problème du chronomètre
     final now = DateTime.now();
     final startTime = widget.activeSession.startTime;
-    print('DEBUG ActiveReadingSession - DateTime.now(): $now');
-    print('DEBUG ActiveReadingSession - startTime: $startTime');
-    print('DEBUG ActiveReadingSession - startTime.isUtc: ${startTime.isUtc}');
-    print('DEBUG ActiveReadingSession - difference: ${now.difference(startTime)}');
+    debugPrint('DEBUG ActiveReadingSession - DateTime.now(): $now');
+    debugPrint('DEBUG ActiveReadingSession - startTime: $startTime');
+    debugPrint('DEBUG ActiveReadingSession - startTime.isUtc: ${startTime.isUtc}');
+    debugPrint('DEBUG ActiveReadingSession - difference: ${now.difference(startTime)}');
 
     // Calculer immédiatement le temps écoulé pour ne pas commencer à 0
     _elapsed = now.difference(startTime);
@@ -124,8 +124,10 @@ class _ActiveReadingSessionPageState extends State<ActiveReadingSessionPage> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async {
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
         final confirm = await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
@@ -143,7 +145,9 @@ class _ActiveReadingSessionPageState extends State<ActiveReadingSessionPage> {
             ],
           ),
         );
-        return confirm ?? false;
+        if (confirm == true && context.mounted) {
+          Navigator.pop(context);
+        }
       },
       child: Scaffold(
         appBar: AppBar(
@@ -174,7 +178,7 @@ class _ActiveReadingSessionPageState extends State<ActiveReadingSessionPage> {
                                 return Container(
                                   width: 60,
                                   height: 90,
-                                  color: Colors.grey.shade300,
+                                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
                                   child: const Icon(Icons.book, size: 30),
                                 );
                               },
@@ -200,7 +204,7 @@ class _ActiveReadingSessionPageState extends State<ActiveReadingSessionPage> {
                                   widget.book.author!,
                                   style: TextStyle(
                                     fontSize: 14,
-                                    color: Colors.grey.shade600,
+                                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                                   ),
                                 ),
                               ],
@@ -220,11 +224,11 @@ class _ActiveReadingSessionPageState extends State<ActiveReadingSessionPage> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Text(
+                        Text(
                           'Temps de lecture',
                           style: TextStyle(
                             fontSize: 20,
-                            color: Colors.grey,
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
                           ),
                         ),
                         const SizedBox(height: 16),
@@ -250,9 +254,9 @@ class _ActiveReadingSessionPageState extends State<ActiveReadingSessionPage> {
                         
                         Text(
                           'Page de départ: ${widget.activeSession.startPage}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 18,
-                            color: Colors.grey,
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
                           ),
                         ),
                       ],

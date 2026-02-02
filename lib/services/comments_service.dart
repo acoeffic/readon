@@ -1,5 +1,6 @@
 // lib/services/comments_service.dart
 
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class Comment {
@@ -57,7 +58,7 @@ class CommentsService {
           .map((item) => Comment.fromJson(item))
           .toList();
     } catch (e) {
-      print('Erreur getComments: $e');
+      debugPrint('Erreur getComments: $e');
       return [];
     }
   }
@@ -95,7 +96,7 @@ class CommentsService {
 
       return Comment.fromJson(enriched);
     } catch (e) {
-      print('Erreur addComment: $e');
+      debugPrint('Erreur addComment: $e');
       return null;
     }
   }
@@ -117,7 +118,7 @@ class CommentsService {
 
       return true;
     } catch (e) {
-      print('Erreur updateComment: $e');
+      debugPrint('Erreur updateComment: $e');
       return false;
     }
   }
@@ -132,7 +133,7 @@ class CommentsService {
 
       return true;
     } catch (e) {
-      print('Erreur deleteComment: $e');
+      debugPrint('Erreur deleteComment: $e');
       return false;
     }
   }

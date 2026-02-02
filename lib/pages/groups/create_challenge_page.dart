@@ -248,7 +248,7 @@ class _CreateChallengePageState extends State<CreateChallengePage> {
       style: TextStyle(
         fontSize: 14,
         fontWeight: FontWeight.w600,
-        color: Colors.grey.shade500,
+        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
         letterSpacing: 0.5,
       ),
     );
@@ -275,7 +275,7 @@ class _CreateChallengePageState extends State<CreateChallengePage> {
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
             color: isSelected
-                ? AppColors.primary.withOpacity(0.15)
+                ? AppColors.primary.withValues(alpha:0.15)
                 : Theme.of(context).cardColor,
             borderRadius: BorderRadius.circular(AppRadius.m),
             border: Border.all(
@@ -287,7 +287,7 @@ class _CreateChallengePageState extends State<CreateChallengePage> {
             children: [
               Icon(
                 icon,
-                color: isSelected ? AppColors.primary : Colors.grey,
+                color: isSelected ? AppColors.primary : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
                 size: 24,
               ),
               const SizedBox(height: 4),
@@ -296,7 +296,7 @@ class _CreateChallengePageState extends State<CreateChallengePage> {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                  color: isSelected ? AppColors.primary : Colors.grey,
+                  color: isSelected ? AppColors.primary : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
                 ),
               ),
             ],
@@ -334,8 +334,8 @@ class _CreateChallengePageState extends State<CreateChallengePage> {
               borderRadius: BorderRadius.circular(AppRadius.m),
               border: Border.all(
                 color: _selectedBook != null
-                    ? AppColors.primary.withOpacity(0.5)
-                    : Colors.grey.withOpacity(0.3),
+                    ? AppColors.primary.withValues(alpha:0.5)
+                    : Colors.grey.withValues(alpha:0.3),
               ),
             ),
             child: _selectedBook != null
@@ -369,22 +369,22 @@ class _CreateChallengePageState extends State<CreateChallengePage> {
                                 _selectedBook!.author!,
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: Colors.grey.shade600,
+                                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                                 ),
                               ),
                           ],
                         ),
                       ),
-                      const Icon(Icons.chevron_right, color: Colors.grey),
+                      Icon(Icons.chevron_right, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4)),
                     ],
                   )
                 : Row(
                     children: [
-                      Icon(Icons.search, color: Colors.grey.shade500),
+                      Icon(Icons.search, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
                       const SizedBox(width: AppSpace.m),
                       Text(
                         'Rechercher un livre...',
-                        style: TextStyle(color: Colors.grey.shade500),
+                        style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
                       ),
                     ],
                   ),
@@ -496,9 +496,9 @@ class _CreateChallengePageState extends State<CreateChallengePage> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Expire le',
-                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                      style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
                     ),
                     Text(
                       '${_formatDate(_endsAt)} (${_getDurationLabel()})',
@@ -510,7 +510,7 @@ class _CreateChallengePageState extends State<CreateChallengePage> {
                   ],
                 ),
                 const Spacer(),
-                const Icon(Icons.chevron_right, color: Colors.grey),
+                Icon(Icons.chevron_right, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4)),
               ],
             ),
           ),
@@ -529,7 +529,7 @@ class _CreateChallengePageState extends State<CreateChallengePage> {
           padding: const EdgeInsets.symmetric(vertical: 8),
           decoration: BoxDecoration(
             color: isSelected
-                ? AppColors.primary.withOpacity(0.15)
+                ? AppColors.primary.withValues(alpha:0.15)
                 : Theme.of(context).cardColor,
             borderRadius: BorderRadius.circular(AppRadius.s),
             border: Border.all(
@@ -542,7 +542,7 @@ class _CreateChallengePageState extends State<CreateChallengePage> {
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                color: isSelected ? AppColors.primary : Colors.grey,
+                color: isSelected ? AppColors.primary : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
               ),
             ),
           ),
@@ -742,10 +742,10 @@ class _BookListTile extends StatelessWidget {
                 width: 32,
                 height: 48,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
+                errorBuilder: (context, __, ___) => Container(
                   width: 32,
                   height: 48,
-                  color: Colors.grey.shade300,
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
                   child: const Icon(Icons.book, size: 16),
                 ),
               ),
@@ -754,7 +754,7 @@ class _BookListTile extends StatelessWidget {
               width: 32,
               height: 48,
               decoration: BoxDecoration(
-                color: Colors.grey.shade300,
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(4),
               ),
               child: const Icon(Icons.book, size: 16),

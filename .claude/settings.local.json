@@ -15,7 +15,9 @@
       "Bash(xargs:*)",
       "Bash(wc:*)",
       "Bash(ls:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(git -C /Users/acoeffic/readon log --oneline --all -- \"supabase/migrations/*friends*\")",
+      "Bash(git -C:*)"
     ]
   }
 }

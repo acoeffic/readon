@@ -1,8 +1,8 @@
-// lib/pages/profile/widgets/badges_grid.dart
+// lib/widgets/badges_grid.dart
 // Widget pour afficher la grille de badges
 
 import 'package:flutter/material.dart';
-import '../../../services/badges_service.dart';
+import '../services/badges_service.dart';
 
 class BadgesGrid extends StatelessWidget {
   final List<UserBadge> badges;
@@ -80,10 +80,10 @@ class BadgeItem extends StatelessWidget {
             width: 80,
             height: 80,
             decoration: BoxDecoration(
-              color: badge.isUnlocked ? color.withOpacity(0.2) : Colors.grey.shade200,
+              color: badge.isUnlocked ? color.withValues(alpha:0.2) : Theme.of(context).colorScheme.surfaceContainerHighest,
               shape: BoxShape.circle,
               border: Border.all(
-                color: badge.isUnlocked ? color : Colors.grey.shade400,
+                color: badge.isUnlocked ? color : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
                 width: 3,
               ),
             ),
@@ -92,7 +92,7 @@ class BadgeItem extends StatelessWidget {
                 badge.icon,
                 style: TextStyle(
                   fontSize: 36,
-                  color: badge.isUnlocked ? null : Colors.grey.shade400,
+                  color: badge.isUnlocked ? null : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
                 ),
               ),
             ),
@@ -105,7 +105,7 @@ class BadgeItem extends StatelessWidget {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: badge.isUnlocked ? Colors.black : Colors.grey.shade600,
+                color: badge.isUnlocked ? Theme.of(context).colorScheme.onSurface : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
               ),
               textAlign: TextAlign.center,
               maxLines: 2,
@@ -118,7 +118,7 @@ class BadgeItem extends StatelessWidget {
               width: 80,
               child: LinearProgressIndicator(
                 value: badge.progressPercentage,
-                backgroundColor: Colors.grey.shade300,
+                backgroundColor: Theme.of(context).colorScheme.outlineVariant,
                 valueColor: AlwaysStoppedAnimation<Color>(color),
               ),
             ),
@@ -127,7 +127,7 @@ class BadgeItem extends StatelessWidget {
               badge.progressText,
               style: TextStyle(
                 fontSize: 10,
-                color: Colors.grey.shade600,
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
               ),
             ),
           ],
@@ -150,10 +150,10 @@ class BadgeItem extends StatelessWidget {
               width: 100,
               height: 100,
               decoration: BoxDecoration(
-                color: badge.isUnlocked ? color.withOpacity(0.2) : Colors.grey.shade200,
+                color: badge.isUnlocked ? color.withValues(alpha:0.2) : Theme.of(context).colorScheme.surfaceContainerHighest,
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: badge.isUnlocked ? color : Colors.grey.shade400,
+                  color: badge.isUnlocked ? color : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
                   width: 3,
                 ),
               ),
@@ -178,7 +178,7 @@ class BadgeItem extends StatelessWidget {
               badge.description,
               style: TextStyle(
                 fontSize: 14,
-                color: Colors.grey.shade700,
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
               ),
               textAlign: TextAlign.center,
             ),
@@ -187,7 +187,9 @@ class BadgeItem extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
-                  color: Colors.green.shade50,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.green.shade900.withValues(alpha: 0.3)
+                      : Colors.green.shade50,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(color: Colors.green.shade300),
                 ),
@@ -209,14 +211,16 @@ class BadgeItem extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 'Le ${_formatDate(badge.unlockedAt!)}',
-                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
               ),
             ] else ...[
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.blue.shade900.withValues(alpha: 0.3)
+                      : Colors.blue.shade50,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Column(
@@ -225,14 +229,14 @@ class BadgeItem extends StatelessWidget {
                       'Progression',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.grey.shade700,
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     const SizedBox(height: 8),
                     LinearProgressIndicator(
                       value: badge.progressPercentage,
-                      backgroundColor: Colors.grey.shade300,
+                      backgroundColor: Theme.of(context).colorScheme.outlineVariant,
                       valueColor: AlwaysStoppedAnimation<Color>(color),
                     ),
                     const SizedBox(height: 8),

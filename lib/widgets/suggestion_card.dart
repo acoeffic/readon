@@ -59,7 +59,7 @@ class SuggestionCard extends StatelessWidget {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: _getTypeColor().withOpacity(0.1),
+                        color: _getTypeColor().withValues(alpha:0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Row(

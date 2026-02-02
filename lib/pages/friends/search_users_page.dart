@@ -57,27 +57,27 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
             final userId = user['id'] as String;
             final displayName = user['display_name'] as String? ?? user['email'] as String? ?? 'Utilisateur';
 
-            print('🔍 Récupération données pour: $displayName ($userId)');
+            debugPrint('🔍 Récupération données pour: $displayName ($userId)');
 
             final enrichedData = await supabase.rpc(
               'get_user_search_data',
               params: {'p_user_id': userId},
             );
 
-            print('📦 Données reçues pour $displayName: $enrichedData');
+            debugPrint('📦 Données reçues pour $displayName: $enrichedData');
 
             if (enrichedData != null) {
               final userResult = UserSearchResult.fromJson(
                 Map<String, dynamic>.from(enrichedData as Map),
               );
-              print('✅ $displayName - isPrivate: ${userResult.isProfilePrivate}');
+              debugPrint('✅ $displayName - isPrivate: ${userResult.isProfilePrivate}');
               enrichedUsers.add(userResult);
             } else {
-              print('⚠️ enrichedData est NULL pour $displayName');
+              debugPrint('⚠️ enrichedData est NULL pour $displayName');
             }
           } catch (e, stackTrace) {
-            print('❌ Erreur enrichissement utilisateur: $e');
-            print('📍 Stack trace: $stackTrace');
+            debugPrint('❌ Erreur enrichissement utilisateur: $e');
+            debugPrint('📍 Stack trace: $stackTrace');
             // En cas d'erreur, ajouter avec les données de base uniquement
             enrichedUsers.add(UserSearchResult(
               id: user['id'] as String,
@@ -158,7 +158,7 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
 
       setState(() => _pendingRequests = pendingMap);
     } catch (e) {
-      print('Erreur _checkPendingRequests: $e');
+      debugPrint('Erreur _checkPendingRequests: $e');
     }
   }
 
@@ -214,7 +214,7 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
         const SnackBar(content: Text('Invitation envoyée')),
       );
     } catch (e) {
-      print('Erreur _addFriend: $e');
+      debugPrint('Erreur _addFriend: $e');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Impossible d\'ajouter cet ami')),
@@ -268,25 +268,25 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.bgLight,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(AppSpace.l),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const BackHeader(
+              BackHeader(
                 title: 'Rechercher',
-                titleColor: Color(0xFF1A1A1A),
+                titleColor: Theme.of(context).colorScheme.onSurface,
               ),
               const SizedBox(height: AppSpace.m),
 
               // Tab toggle
               Container(
                 decoration: BoxDecoration(
-                  color: AppColors.white,
+                  color: Theme.of(context).cardColor,
                   borderRadius: BorderRadius.circular(AppRadius.l),
-                  border: Border.all(color: AppColors.border),
+                  border: Border.all(color: Theme.of(context).dividerColor),
                 ),
                 padding: const EdgeInsets.all(4),
                 child: Row(
@@ -401,9 +401,9 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
       child: Container(
         padding: const EdgeInsets.all(AppSpace.m),
         decoration: BoxDecoration(
-          color: AppColors.white,
+          color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(AppRadius.m),
-          border: Border.all(color: AppColors.border),
+          border: Border.all(color: Theme.of(context).dividerColor),
         ),
         child: Row(
           children: [
@@ -443,13 +443,13 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
                     const SizedBox(height: 2),
                     Row(
                       children: [
-                        Icon(Icons.lock, size: 12, color: Colors.grey.shade600),
+                        Icon(Icons.lock, size: 12, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
                         const SizedBox(width: 4),
                         Text(
                           'Profil privé',
                           style: TextStyle(
                             fontSize: 11,
-                            color: Colors.grey.shade600,
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                           ),
                         ),
                       ],
@@ -476,9 +476,9 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
         constraints: BoxConstraints(
           maxHeight: MediaQuery.of(context).size.height * 0.85,
         ),
-        decoration: const BoxDecoration(
-          color: AppColors.bgLight,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.l)),
+        decoration: BoxDecoration(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(AppRadius.l)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -489,7 +489,7 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.grey.shade300,
+                color: Theme.of(context).dividerColor,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -547,9 +547,9 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
           child: Container(
             padding: const EdgeInsets.all(AppSpace.m),
             decoration: BoxDecoration(
-              color: AppColors.white,
+              color: Theme.of(context).cardColor,
               borderRadius: BorderRadius.circular(AppRadius.l),
-              border: Border.all(color: AppColors.border),
+              border: Border.all(color: Theme.of(context).dividerColor),
             ),
             child: Row(
               children: [
@@ -586,7 +586,7 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
                         '${group.memberCount ?? 0} membre${(group.memberCount ?? 0) > 1 ? 's' : ''}',
                         style: TextStyle(
                           fontSize: 12,
-                          color: Colors.grey.shade600,
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                         ),
                       ),
                     ],

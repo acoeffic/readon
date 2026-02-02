@@ -1,6 +1,7 @@
 // lib/services/notifications_service.dart
 // Service pour gérer les notifications (likes et commentaires)
 
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 enum NotificationType {
@@ -146,7 +147,7 @@ class NotificationsService {
         });
       }).toList();
     } catch (e) {
-      print('Erreur getNotifications: $e');
+      debugPrint('Erreur getNotifications: $e');
       return [];
     }
   }
@@ -164,7 +165,7 @@ class NotificationsService {
 
       return (response as num?)?.toInt() ?? 0;
     } catch (e) {
-      print('Erreur getUnreadCount: $e');
+      debugPrint('Erreur getUnreadCount: $e');
       return 0;
     }
   }
@@ -189,7 +190,7 @@ class NotificationsService {
             .eq('is_read', false);
       }
     } catch (e) {
-      print('Erreur markAsRead: $e');
+      debugPrint('Erreur markAsRead: $e');
     }
   }
 
