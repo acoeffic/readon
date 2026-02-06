@@ -11,6 +11,7 @@ import '../pages/books/scan_book_cover_page.dart';
 import '../services/google_books_service.dart';
 import '../models/book.dart';
 import 'active_session_dialog.dart';
+import 'cached_book_cover.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../theme/app_theme.dart';
 
@@ -697,12 +698,12 @@ class _UnifiedBookSelectorSheetState extends State<_UnifiedBookSelectorSheet> {
                       return Card(
                         margin: const EdgeInsets.only(bottom: 8),
                         child: ListTile(
-                          leading: book.coverUrl != null && book.coverUrl!.isNotEmpty
-                              ? ClipRRect(
-                                  borderRadius: BorderRadius.circular(4),
-                                  child: Image.network(book.coverUrl!, width: 40, height: 60, fit: BoxFit.cover),
-                                )
-                              : const Icon(Icons.book, size: 40),
+                          leading: CachedBookCover(
+                            imageUrl: book.coverUrl,
+                            width: 40,
+                            height: 60,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
                           title: Text(book.title, maxLines: 2, overflow: TextOverflow.ellipsis),
                           subtitle: book.author != null ? Text(book.author!, maxLines: 1, overflow: TextOverflow.ellipsis) : null,
                           trailing: const Icon(Icons.arrow_forward_ios, size: 16),

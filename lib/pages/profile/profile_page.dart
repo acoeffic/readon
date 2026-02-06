@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/progress_bar.dart';
+import '../../widgets/cached_profile_avatar.dart';
 import '../friends/friends_page.dart';
-import '../../integrations/kindle_connect_page.dart';
 import 'settings_page.dart';
 import '../books/user_books_page.dart';
 import '../../services/badges_service.dart';
@@ -141,34 +141,16 @@ class _ProfilePageState extends State<ProfilePage> {
 
                   Column(
                     children: [
-                      // Avatar avec photo ou initiale
-                      Container(
-                        width: 82,
-                        height: 82,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? AppColors.accentDark
-                              : AppColors.accentLight,
-                          image: _avatarUrl != null && _avatarUrl!.isNotEmpty
-                              ? DecorationImage(
-                                  image: NetworkImage(_avatarUrl!),
-                                  fit: BoxFit.cover,
-                                )
-                              : null,
-                        ),
-                        child: _avatarUrl == null || _avatarUrl!.isEmpty
-                            ? Center(
-                                child: Text(
-                                  _userName.isNotEmpty ? _userName[0].toUpperCase() : '?',
-                                  style: const TextStyle(
-                                    fontSize: 36,
-                                    fontWeight: FontWeight.bold,
-                                    color: AppColors.primary,
-                                  ),
-                                ),
-                              )
-                            : null,
+                      // Avatar avec photo ou initiale (avec cache)
+                      CachedProfileAvatar(
+                        imageUrl: _avatarUrl,
+                        userName: _userName,
+                        radius: 41,
+                        backgroundColor: Theme.of(context).brightness == Brightness.dark
+                            ? AppColors.accentDark
+                            : AppColors.accentLight,
+                        textColor: AppColors.primary,
+                        fontSize: 36,
                       ),
                       const SizedBox(height: AppSpace.s),
                       Text(
@@ -245,17 +227,6 @@ class _ProfilePageState extends State<ProfilePage> {
                 label: 'Ma bibliothèque',
                 onPressed: () => Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const UserBooksPage()),
-                ),
-              ),
-
-              const SizedBox(height: AppSpace.m),
-
-              _navButton(
-                context,
-                label: 'Synchroniser mon compte Kindle',
-                icon: Icons.cloud_sync_outlined,
-                onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const KindleConnectPage()),
                 ),
               ),
 

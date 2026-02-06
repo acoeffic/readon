@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../theme/app_theme.dart';
 import '../../../models/book.dart';
+import '../../../widgets/cached_book_cover.dart';
 
 class StepFirstSession extends StatelessWidget {
   final Book? selectedBook;
@@ -21,19 +22,12 @@ class StepFirstSession extends StatelessWidget {
       child: Column(
         children: [
           const Spacer(),
-          if (selectedBook?.coverUrl != null)
-            ClipRRect(
-              borderRadius: BorderRadius.circular(AppRadius.m),
-              child: Image.network(
-                selectedBook!.coverUrl!,
-                width: 140,
-                height: 210,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => _buildPlaceholder(),
-              ),
-            )
-          else
-            _buildPlaceholder(),
+          CachedBookCover(
+            imageUrl: selectedBook?.coverUrl,
+            width: 140,
+            height: 210,
+            borderRadius: BorderRadius.circular(AppRadius.m),
+          ),
           const SizedBox(height: AppSpace.l),
           if (selectedBook != null) ...[
             Text(
@@ -94,20 +88,6 @@ class StepFirstSession extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildPlaceholder() {
-    return Container(
-      width: 140,
-      height: 210,
-      decoration: BoxDecoration(
-        color: Colors.grey.shade300,
-        borderRadius: BorderRadius.circular(AppRadius.m),
-      ),
-      child: const Center(
-        child: Icon(Icons.book, color: Colors.grey, size: 48),
       ),
     );
   }

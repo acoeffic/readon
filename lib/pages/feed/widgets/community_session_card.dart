@@ -3,6 +3,8 @@
 
 import 'package:flutter/material.dart';
 import '../../../theme/app_theme.dart';
+import '../../../widgets/cached_book_cover.dart';
+import '../../../widgets/cached_profile_avatar.dart';
 
 class CommunitySessionCard extends StatelessWidget {
   final Map<String, dynamic> session;
@@ -63,22 +65,13 @@ class CommunitySessionCard extends StatelessWidget {
             // Header: Avatar + Nom + Temps + Badge communaute
             Row(
               children: [
-                CircleAvatar(
+                CachedProfileAvatar(
+                  imageUrl: avatarUrl,
+                  userName: displayName,
                   radius: 18,
                   backgroundColor: AppColors.primary.withValues(alpha: 0.2),
-                  backgroundImage: avatarUrl != null && avatarUrl.isNotEmpty
-                      ? NetworkImage(avatarUrl)
-                      : null,
-                  child: avatarUrl == null || avatarUrl.isEmpty
-                      ? Text(
-                          displayName[0].toUpperCase(),
-                          style: TextStyle(
-                            color: AppColors.primary.withValues(alpha: 0.9),
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                          ),
-                        )
-                      : null,
+                  textColor: AppColors.primary.withValues(alpha: 0.9),
+                  fontSize: 14,
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -168,38 +161,12 @@ class CommunitySessionCard extends StatelessWidget {
                 ),
                 child: Row(
                   children: [
-                    if (bookCover != null && bookCover.isNotEmpty)
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(4),
-                        child: Image.network(
-                          bookCover,
-                          width: 40,
-                          height: 56,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Container(
-                              width: 40,
-                              height: 56,
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .surfaceContainerHighest,
-                              child: const Icon(Icons.book, size: 24),
-                            );
-                          },
-                        ),
-                      )
-                    else
-                      Container(
-                        width: 40,
-                        height: 56,
-                        decoration: BoxDecoration(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .surfaceContainerHighest,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: const Icon(Icons.book, size: 24),
-                      ),
+                    CachedBookCover(
+                      imageUrl: bookCover,
+                      width: 40,
+                      height: 56,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Column(

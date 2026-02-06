@@ -230,15 +230,22 @@ class ReadingSessionService {
     }
   }
   
-  /// Récupérer toutes les sessions de l'utilisateur avec les infos des livres
-  Future<List<Map<String, dynamic>>> getAllUserSessionsWithBook() async {
+  /// Récupérer les sessions de l'utilisateur avec pagination
+  /// [limit] : nombre de sessions par page (défaut 20)
+  /// [offset] : décalage pour la pagination (défaut 0)
+  /// Retourne les sessions avec leurs infos de livre
+  Future<List<Map<String, dynamic>>> getSessionsPaginated({
+    int limit = 20,
+    int offset = 0,
+  }) async {
     try {
-      // 1. Récupérer toutes les sessions
+      // 1. Récupérer les sessions paginées
       final sessions = await _supabase
           .from('reading_sessions')
           .select()
           .eq('user_id', _supabase.auth.currentUser!.id)
-          .order('start_time', ascending: false);
+          .order('start_time', ascending: false)
+          .range(offset, offset + limit - 1);
 
       final sessionsList = List<Map<String, dynamic>>.from(sessions as List);
       if (sessionsList.isEmpty) return [];
@@ -274,9 +281,15 @@ class ReadingSessionService {
 
       return sessionsList;
     } catch (e) {
-      debugPrint('Erreur getAllUserSessionsWithBook: $e');
+      debugPrint('Erreur getSessionsPaginated: $e');
       return [];
     }
+  }
+
+  /// Récupérer toutes les sessions de l'utilisateur avec les infos des livres
+  /// DEPRECATED: Utiliser getSessionsPaginated pour de meilleures performances
+  Future<List<Map<String, dynamic>>> getAllUserSessionsWithBook() async {
+    return getSessionsPaginated(limit: 200, offset: 0);
   }
 
   /// Annuler une session active

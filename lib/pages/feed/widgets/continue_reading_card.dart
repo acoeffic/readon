@@ -4,6 +4,7 @@
 import 'package:flutter/material.dart';
 import '../../../models/book.dart';
 import '../../../theme/app_theme.dart';
+import '../../../widgets/cached_book_cover.dart';
 
 class ContinueReadingCard extends StatelessWidget {
   final Book book;
@@ -62,33 +63,11 @@ class ContinueReadingCard extends StatelessWidget {
                       // Couverture
                       Hero(
                         tag: 'book_cover_${book.id}',
-                        child: ClipRRect(
+                        child: CachedBookCover(
+                          imageUrl: book.coverUrl,
+                          width: 80,
+                          height: 120,
                           borderRadius: BorderRadius.circular(8),
-                          child: Container(
-                            width: 80,
-                            height: 120,
-                            color: Colors.grey.shade200,
-                            child: book.coverUrl != null && book.coverUrl!.isNotEmpty
-                                ? Image.network(
-                                    book.coverUrl!,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (context, error, stackTrace) {
-                                      return Container(
-                                        color: Colors.grey.shade300,
-                                        child: Icon(
-                                          Icons.book,
-                                          size: 40,
-                                          color: Colors.grey.shade600,
-                                        ),
-                                      );
-                                    },
-                                  )
-                                : Icon(
-                                    Icons.book,
-                                    size: 40,
-                                    color: Colors.grey.shade600,
-                                  ),
-                          ),
                         ),
                       ),
                       // Barre de progression au bas de la couverture
@@ -189,6 +168,20 @@ class ContinueReadingCard extends StatelessWidget {
                               fontSize: 14,
                             ),
                             maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+
+                        // Résumé du livre
+                        if (book.description != null && book.description!.isNotEmpty) ...[
+                          const SizedBox(height: 6),
+                          Text(
+                            book.description!,
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.6),
+                              fontSize: 12,
+                            ),
+                            maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ],

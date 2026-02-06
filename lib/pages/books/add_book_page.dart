@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/back_header.dart';
+import '../../widgets/cached_book_cover.dart';
 
 class AddBookPage extends StatefulWidget {
   const AddBookPage({super.key});
@@ -234,13 +235,12 @@ class _AddBookPageState extends State<AddBookPage> {
                   (book) => Padding(
                     padding: const EdgeInsets.only(bottom: AppSpace.s),
                     child: ListTile(
-                      leading: (book['cover_url'] as String?) != null
-                          ? Image.network(
-                              book['cover_url'],
-                              width: 40,
-                              fit: BoxFit.cover,
-                            )
-                          : const Icon(Icons.menu_book_outlined),
+                      leading: CachedBookCover(
+                        imageUrl: book['cover_url'] as String?,
+                        width: 40,
+                        height: 60,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
                       title: Text(book['title'] ?? 'Sans titre'),
                       subtitle: Text(book['author'] ?? ''),
                       trailing: TextButton(

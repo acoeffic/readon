@@ -4,6 +4,7 @@ import '../../theme/app_theme.dart';
 import '../../services/badges_service.dart';
 import '../../services/streak_service.dart';
 import '../../widgets/badges_grid.dart';
+import '../../widgets/cached_profile_avatar.dart';
 
 class FriendProfilePage extends StatefulWidget {
   final String userId;
@@ -400,33 +401,15 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
   Widget _buildHeader() {
     return Column(
       children: [
-        Container(
-          width: 100,
-          height: 100,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: Theme.of(context).brightness == Brightness.dark
-                ? AppColors.accentDark
-                : AppColors.accentLight,
-            image: _avatarUrl != null && _avatarUrl!.isNotEmpty
-                ? DecorationImage(
-                    image: NetworkImage(_avatarUrl!),
-                    fit: BoxFit.cover,
-                  )
-                : null,
-          ),
-          child: _avatarUrl == null || _avatarUrl!.isEmpty
-              ? Center(
-                  child: Text(
-                    _userName.isNotEmpty ? _userName[0].toUpperCase() : '?',
-                    style: const TextStyle(
-                      fontSize: 42,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                )
-              : null,
+        CachedProfileAvatar(
+          imageUrl: _avatarUrl,
+          userName: _userName,
+          radius: 50,
+          backgroundColor: Theme.of(context).brightness == Brightness.dark
+              ? AppColors.accentDark
+              : AppColors.accentLight,
+          textColor: AppColors.primary,
+          fontSize: 42,
         ),
         const SizedBox(height: AppSpace.m),
         Text(

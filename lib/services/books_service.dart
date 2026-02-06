@@ -173,8 +173,13 @@ class BooksService {
     }
   }
 
-  /// Récupérer tous les livres de l'utilisateur avec leur statut
-  Future<List<Map<String, dynamic>>> getUserBooksWithStatus() async {
+  /// Récupérer les livres de l'utilisateur avec pagination
+  /// [limit] : nombre de livres par page (défaut 20)
+  /// [offset] : décalage pour la pagination (défaut 0)
+  Future<List<Map<String, dynamic>>> getUserBooksWithStatusPaginated({
+    int limit = 20,
+    int offset = 0,
+  }) async {
     try {
       final userId = _supabase.auth.currentUser!.id;
 
@@ -182,7 +187,8 @@ class BooksService {
           .from('user_books')
           .select('book_id, status, is_hidden, books(*)')
           .eq('user_id', userId)
-          .order('created_at', ascending: false);
+          .order('created_at', ascending: false)
+          .range(offset, offset + limit - 1);
 
       return (response as List).map((item) {
         return {
@@ -192,9 +198,15 @@ class BooksService {
         };
       }).toList();
     } catch (e) {
-      debugPrint('Erreur getUserBooksWithStatus: $e');
+      debugPrint('Erreur getUserBooksWithStatusPaginated: $e');
       return [];
     }
+  }
+
+  /// Récupérer tous les livres de l'utilisateur avec leur statut
+  /// DEPRECATED: Utiliser getUserBooksWithStatusPaginated pour de meilleures performances
+  Future<List<Map<String, dynamic>>> getUserBooksWithStatus() async {
+    return getUserBooksWithStatusPaginated(limit: 500, offset: 0);
   }
 
   /// Récupérer le statut d'un livre pour l'utilisateur courant
@@ -312,7 +324,7 @@ class BooksService {
           .eq('user_id', userId)
           .not('end_time', 'is', null)
           .order('created_at', ascending: false)
-          .limit(10); // Prendre les 10 dernières pour trouver un livre non terminé
+          .limit(10);
 
       if ((sessions as List).isEmpty) return null;
 
@@ -324,16 +336,23 @@ class BooksService {
         // Vérifier si ce livre est terminé
         if (finishedBookIds.contains(bookIdStr)) continue;
 
+        // Récupérer les infos du livre séparément
         final bookId = int.tryParse(bookIdStr);
-        if (bookId == null) {
-          debugPrint('Erreur: bookId invalide: $bookIdStr');
+        if (bookId == null) continue;
+
+        final bookData = await _supabase
+            .from('books')
+            .select('id, title, author, cover_url, page_count, google_id, genre, isbn, description, publisher, published_date, language, source')
+            .eq('id', bookId)
+            .maybeSingle();
+
+        if (bookData == null) {
+          debugPrint('Erreur: livre non trouvé pour book_id: $bookIdStr');
           continue;
         }
 
         final currentPage = (session['end_page'] as num?)?.toInt() ?? 0;
-
-        // Récupérer les infos du livre
-        final book = await getBookById(bookId);
+        final book = Book.fromJson(bookData);
 
         return {
           'book': book,
@@ -565,6 +584,178 @@ class BooksService {
       }
     }
     return updated;
+  }
+
+  /// Mettre à jour le genre d'un livre
+  Future<void> updateBookGenre(int bookId, String genre) async {
+    try {
+      await _supabase
+          .from('books')
+          .update({'genre': genre})
+          .eq('id', bookId);
+    } catch (e) {
+      debugPrint('Erreur updateBookGenre: $e');
+      rethrow;
+    }
+  }
+
+  /// Enrichir les auteurs manquants pour tous les livres de l'utilisateur
+  /// Retourne le nombre de livres mis à jour
+  Future<int> enrichMissingAuthors() async {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) return 0;
+
+    try {
+      final response = await _supabase
+          .from('user_books')
+          .select('book_id, books(id, title, author)')
+          .eq('user_id', userId);
+
+      final booksWithoutAuthor = (response as List).where((item) {
+        final book = item['books'] as Map<String, dynamic>?;
+        if (book == null) return false;
+        final author = book['author'] as String?;
+        return author == null || author.isEmpty || author == 'Auteur inconnu';
+      }).toList();
+
+      if (booksWithoutAuthor.isEmpty) return 0;
+
+      int updated = 0;
+      for (final item in booksWithoutAuthor) {
+        final book = item['books'] as Map<String, dynamic>;
+        final bookId = book['id'] as int;
+        final title = book['title'] as String;
+
+        try {
+          final metadata = await _fetchGoogleBooksMetadata(
+            _cleanBookTitle(title),
+          );
+          final author = metadata?['author'] as String?;
+
+          if (author != null) {
+            await _supabase
+                .from('books')
+                .update({'author': author})
+                .eq('id', bookId);
+            updated++;
+          }
+        } catch (e) {
+          debugPrint('Erreur enrichissement auteur pour "$title": $e');
+        }
+      }
+
+      return updated;
+    } catch (e) {
+      debugPrint('Erreur enrichMissingAuthors: $e');
+      return 0;
+    }
+  }
+
+  /// Enrichir les descriptions manquantes pour tous les livres de l'utilisateur
+  /// Retourne le nombre de livres mis à jour
+  Future<int> enrichMissingDescriptions() async {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) return 0;
+
+    try {
+      final response = await _supabase
+          .from('user_books')
+          .select('book_id, books(id, title, author, description)')
+          .eq('user_id', userId);
+
+      final booksWithoutDescription = (response as List).where((item) {
+        final book = item['books'] as Map<String, dynamic>?;
+        if (book == null) return false;
+        final description = book['description'] as String?;
+        return description == null || description.isEmpty;
+      }).toList();
+
+      if (booksWithoutDescription.isEmpty) return 0;
+
+      int updated = 0;
+      for (final item in booksWithoutDescription) {
+        final book = item['books'] as Map<String, dynamic>;
+        final bookId = book['id'] as int;
+        final title = book['title'] as String;
+        final author = book['author'] as String?;
+
+        try {
+          final metadata = await _fetchGoogleBooksMetadata(
+            _cleanBookTitle(title),
+            kindleAuthor: author,
+          );
+          final description = metadata?['description'] as String?;
+
+          if (description != null && description.isNotEmpty) {
+            await _supabase
+                .from('books')
+                .update({'description': description})
+                .eq('id', bookId);
+            updated++;
+          }
+        } catch (e) {
+          debugPrint('Erreur enrichissement description pour "$title": $e');
+        }
+      }
+
+      return updated;
+    } catch (e) {
+      debugPrint('Erreur enrichMissingDescriptions: $e');
+      return 0;
+    }
+  }
+
+  /// Enrichir les genres manquants pour tous les livres de l'utilisateur
+  /// Retourne le nombre de livres mis à jour
+  Future<int> enrichMissingGenres() async {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) return 0;
+
+    try {
+      // Récupérer les livres de l'utilisateur sans genre
+      final response = await _supabase
+          .from('user_books')
+          .select('book_id, books(id, title, author, google_id, genre)')
+          .eq('user_id', userId);
+
+      final booksWithoutGenre = (response as List).where((item) {
+        final book = item['books'] as Map<String, dynamic>?;
+        return book != null && book['genre'] == null;
+      }).toList();
+
+      if (booksWithoutGenre.isEmpty) return 0;
+
+      int updated = 0;
+      for (final item in booksWithoutGenre) {
+        final book = item['books'] as Map<String, dynamic>;
+        final bookId = book['id'] as int;
+        final title = book['title'] as String;
+        final author = book['author'] as String?;
+
+        try {
+          final metadata = await _fetchGoogleBooksMetadata(
+            _cleanBookTitle(title),
+            kindleAuthor: author,
+          );
+          final genre = metadata?['genre'] as String?;
+
+          if (genre != null) {
+            await _supabase
+                .from('books')
+                .update({'genre': genre})
+                .eq('id', bookId);
+            updated++;
+          }
+        } catch (e) {
+          debugPrint('Erreur enrichissement genre pour "$title": $e');
+        }
+      }
+
+      return updated;
+    } catch (e) {
+      debugPrint('Erreur enrichMissingGenres: $e');
+      return 0;
+    }
   }
 
   /// Nettoyer un titre de livre en enlevant les suffixes d'édition courants

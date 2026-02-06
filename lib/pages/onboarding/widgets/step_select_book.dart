@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../theme/app_theme.dart';
 import '../../../models/book.dart';
+import '../../../widgets/cached_book_cover.dart';
 
 class StepSelectBook extends StatelessWidget {
   final List<Book> books;
@@ -72,19 +73,11 @@ class StepSelectBook extends StatelessWidget {
                     ),
                     child: Row(
                       children: [
-                        ClipRRect(
-                          borderRadius:
-                              BorderRadius.circular(AppRadius.s),
-                          child: book.coverUrl != null
-                              ? Image.network(
-                                  book.coverUrl!,
-                                  width: 45,
-                                  height: 65,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) =>
-                                      _placeholderCover(),
-                                )
-                              : _placeholderCover(),
+                        CachedBookCover(
+                          imageUrl: book.coverUrl,
+                          width: 45,
+                          height: 65,
+                          borderRadius: BorderRadius.circular(AppRadius.s),
                         ),
                         const SizedBox(width: AppSpace.m),
                         Expanded(
@@ -204,17 +197,6 @@ class StepSelectBook extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _placeholderCover() {
-    return Container(
-      width: 45,
-      height: 65,
-      color: Colors.grey.shade300,
-      child: const Center(
-        child: Icon(Icons.book, color: Colors.grey, size: 22),
       ),
     );
   }

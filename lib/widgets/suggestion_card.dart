@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import '../models/book_suggestion.dart';
 import '../theme/app_theme.dart';
+import 'cached_book_cover.dart';
 
 class SuggestionCard extends StatelessWidget {
   final BookSuggestion suggestion;
@@ -31,19 +32,11 @@ class SuggestionCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Couverture du livre
-              ClipRRect(
+              CachedBookCover(
+                imageUrl: book.coverUrl,
+                width: 60,
+                height: 90,
                 borderRadius: BorderRadius.circular(8),
-                child: book.coverUrl != null
-                    ? Image.network(
-                        book.coverUrl!,
-                        width: 60,
-                        height: 90,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return _buildPlaceholderCover(context);
-                        },
-                      )
-                    : _buildPlaceholderCover(context),
               ),
               const SizedBox(width: AppSpace.m),
 
@@ -106,6 +99,20 @@ class SuggestionCard extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
+
+                    // Résumé du livre
+                    if (book.description != null && book.description!.isNotEmpty) ...[
+                      const SizedBox(height: AppSpace.xs),
+                      Text(
+                        book.description!,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                     const SizedBox(height: AppSpace.xs),
 
                     // Raison de la suggestion
@@ -134,22 +141,6 @@ class SuggestionCard extends StatelessWidget {
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildPlaceholderCover(BuildContext context) {
-    return Container(
-      width: 60,
-      height: 90,
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Icon(
-        Icons.book,
-        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
-        size: 30,
       ),
     );
   }

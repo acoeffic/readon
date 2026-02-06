@@ -8,6 +8,7 @@ enum Feature {
   advancedStats,
   customThemes,
   premiumBadges,
+  streakHistory,
 }
 
 class FeatureFlags {
@@ -17,6 +18,7 @@ class FeatureFlags {
     Feature.advancedStats,
     Feature.customThemes,
     Feature.premiumBadges,
+    Feature.streakHistory,
   };
 
   /// Vérifie si une feature est disponible
@@ -43,6 +45,8 @@ class FeatureFlags {
         return 'Thèmes personnalisés';
       case Feature.premiumBadges:
         return 'Badges Premium';
+      case Feature.streakHistory:
+        return 'Historique du streak';
     }
   }
 
@@ -58,6 +62,8 @@ class FeatureFlags {
         return 'Personnalise l\'apparence de ton application';
       case Feature.premiumBadges:
         return 'Débloquez 65+ badges exclusifs, animés et secrets';
+      case Feature.streakHistory:
+        return 'Navigue dans tout ton historique de lecture mois par mois';
     }
   }
 
@@ -73,6 +79,8 @@ class FeatureFlags {
         return Icons.palette;
       case Feature.premiumBadges:
         return Icons.workspace_premium;
+      case Feature.streakHistory:
+        return Icons.calendar_month;
     }
   }
 }

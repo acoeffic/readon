@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../theme/app_theme.dart';
 import '../../models/reading_group.dart';
 import '../../models/group_challenge.dart';
@@ -218,9 +219,17 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
             backgroundColor: AppColors.primary,
             flexibleSpace: FlexibleSpaceBar(
               background: _group!.coverUrl != null
-                  ? Image.network(
-                      _group!.coverUrl!,
+                  ? CachedNetworkImage(
+                      imageUrl: _group!.coverUrl!,
                       fit: BoxFit.cover,
+                      placeholder: (context, url) => Container(
+                        color: AppColors.primary.withValues(alpha: 0.3),
+                        child: const Center(child: CircularProgressIndicator()),
+                      ),
+                      errorWidget: (context, url, error) => Container(
+                        color: AppColors.primary.withValues(alpha: 0.3),
+                        child: const Icon(Icons.group, size: 80, color: Colors.white),
+                      ),
                     )
                   : Container(
                       color: AppColors.primary.withValues(alpha:0.3),

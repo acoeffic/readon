@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/back_header.dart';
+import '../../widgets/cached_book_cover.dart';
 import '../../models/book.dart';
 import '../../services/challenge_service.dart';
 import '../../services/books_service.dart';
@@ -341,16 +342,12 @@ class _CreateChallengePageState extends State<CreateChallengePage> {
             child: _selectedBook != null
                 ? Row(
                     children: [
-                      if (_selectedBook!.coverUrl != null)
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(4),
-                          child: Image.network(
-                            _selectedBook!.coverUrl!,
-                            width: 40,
-                            height: 56,
-                            fit: BoxFit.cover,
-                          ),
-                        ),
+                      CachedBookCover(
+                        imageUrl: _selectedBook!.coverUrl,
+                        width: 40,
+                        height: 56,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
                       const SizedBox(width: AppSpace.m),
                       Expanded(
                         child: Column(
@@ -734,31 +731,12 @@ class _BookListTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(vertical: 4),
-      leading: coverUrl != null
-          ? ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: Image.network(
-                coverUrl!,
-                width: 32,
-                height: 48,
-                fit: BoxFit.cover,
-                errorBuilder: (context, __, ___) => Container(
-                  width: 32,
-                  height: 48,
-                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                  child: const Icon(Icons.book, size: 16),
-                ),
-              ),
-            )
-          : Container(
-              width: 32,
-              height: 48,
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: const Icon(Icons.book, size: 16),
-            ),
+      leading: CachedBookCover(
+        imageUrl: coverUrl,
+        width: 32,
+        height: 48,
+        borderRadius: BorderRadius.circular(4),
+      ),
       title: Text(
         title,
         maxLines: 1,

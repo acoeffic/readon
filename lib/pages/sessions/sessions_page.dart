@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/reading_session.dart';
 import '../../models/book.dart';
 import '../../services/reading_session_service.dart';
+import '../../widgets/cached_book_cover.dart';
 import 'session_detail_page.dart';
 
 class SessionsPage extends StatefulWidget {
@@ -13,21 +14,72 @@ class SessionsPage extends StatefulWidget {
 
 class _SessionsPageState extends State<SessionsPage> {
   final ReadingSessionService _sessionService = ReadingSessionService();
+  final ScrollController _scrollController = ScrollController();
+
   List<Map<String, dynamic>> _sessionsData = [];
   bool _isLoading = true;
+  bool _isLoadingMore = false;
+  bool _hasMore = true;
+
+  static const int _pageSize = 20;
+  int _currentOffset = 0;
 
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_onScroll);
     _loadSessions();
   }
 
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      _loadMoreSessions();
+    }
+  }
+
   Future<void> _loadSessions() async {
-    setState(() => _isLoading = true);
-    final data = await _sessionService.getAllUserSessionsWithBook();
+    setState(() {
+      _isLoading = true;
+      _currentOffset = 0;
+      _hasMore = true;
+    });
+
+    final data = await _sessionService.getSessionsPaginated(
+      limit: _pageSize,
+      offset: 0,
+    );
+
     setState(() {
       _sessionsData = data;
       _isLoading = false;
+      _hasMore = data.length >= _pageSize;
+      _currentOffset = data.length;
+    });
+  }
+
+  Future<void> _loadMoreSessions() async {
+    if (_isLoadingMore || !_hasMore) return;
+
+    setState(() => _isLoadingMore = true);
+
+    final data = await _sessionService.getSessionsPaginated(
+      limit: _pageSize,
+      offset: _currentOffset,
+    );
+
+    setState(() {
+      _sessionsData.addAll(data);
+      _isLoadingMore = false;
+      _hasMore = data.length >= _pageSize;
+      _currentOffset += data.length;
     });
   }
 
@@ -74,9 +126,22 @@ class _SessionsPageState extends State<SessionsPage> {
     final grouped = _groupSessionsByDate(_sessionsData);
 
     return ListView.builder(
+      controller: _scrollController,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      itemCount: grouped.length,
+      itemCount: grouped.length + (_isLoadingMore || _hasMore ? 1 : 0),
       itemBuilder: (context, index) {
+        // Loading indicator at the end
+        if (index >= grouped.length) {
+          return Padding(
+            padding: const EdgeInsets.all(16),
+            child: Center(
+              child: _isLoadingMore
+                  ? const CircularProgressIndicator()
+                  : const SizedBox.shrink(),
+            ),
+          );
+        }
+
         final group = grouped[index];
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -126,17 +191,11 @@ class _SessionsPageState extends State<SessionsPage> {
           child: Row(
           children: [
             // Cover du livre
-            ClipRRect(
+            CachedBookCover(
+              imageUrl: book?.coverUrl,
+              width: 48,
+              height: 68,
               borderRadius: BorderRadius.circular(6),
-              child: book?.coverUrl != null
-                  ? Image.network(
-                      book!.coverUrl!,
-                      width: 48,
-                      height: 68,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _buildPlaceholderCover(),
-                    )
-                  : _buildPlaceholderCover(),
             ),
             const SizedBox(width: 12),
             // Infos session
@@ -222,18 +281,6 @@ class _SessionsPageState extends State<SessionsPage> {
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildPlaceholderCover() {
-    return Container(
-      width: 48,
-      height: 68,
-      decoration: BoxDecoration(
-        color: Colors.grey.shade200,
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Icon(Icons.book, color: Colors.grey.shade400),
     );
   }
 

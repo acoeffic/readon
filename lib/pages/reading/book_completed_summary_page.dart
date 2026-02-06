@@ -9,6 +9,7 @@ import '../../services/suggestions_service.dart';
 import '../../models/book_suggestion.dart';
 import '../../widgets/suggestion_card.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/cached_book_cover.dart';
 
 class BookCompletedSummaryPage extends StatefulWidget {
   final Book book;
@@ -205,29 +206,11 @@ class _BookCompletedSummaryPageState extends State<BookCompletedSummaryPage>
                     ),
                   ],
                 ),
-                child: ClipRRect(
+                child: CachedBookCover(
+                  imageUrl: widget.book.coverUrl,
+                  width: 120,
+                  height: 180,
                   borderRadius: BorderRadius.circular(12),
-                  child: widget.book.coverUrl != null && widget.book.coverUrl!.isNotEmpty
-                      ? Image.network(
-                          widget.book.coverUrl!,
-                          height: 180,
-                          width: 120,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Container(
-                              height: 180,
-                              width: 120,
-                              color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                              child: const Icon(Icons.book, size: 60),
-                            );
-                          },
-                        )
-                      : Container(
-                          height: 180,
-                          width: 120,
-                          color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                          child: const Icon(Icons.book, size: 60),
-                        ),
                 ),
               ),
             ),

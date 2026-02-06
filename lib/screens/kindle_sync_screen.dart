@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../services/kindle_api_service.dart';
 
 class KindleSyncScreen extends StatefulWidget {
@@ -235,7 +236,13 @@ class _KindleSyncScreenState extends State<KindleSyncScreen> {
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: ListTile(
         leading: book.cover.isNotEmpty
-            ? Image.network(book.cover, width: 50, fit: BoxFit.cover)
+            ? CachedNetworkImage(
+                imageUrl: book.cover,
+                width: 50,
+                fit: BoxFit.cover,
+                placeholder: (context, url) => const Icon(Icons.book, size: 50),
+                errorWidget: (context, url, error) => const Icon(Icons.book, size: 50),
+              )
             : const Icon(Icons.book, size: 50),
         title: Text(book.title, maxLines: 2, overflow: TextOverflow.ellipsis),
         subtitle: Text(book.author),

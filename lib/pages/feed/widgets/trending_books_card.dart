@@ -3,6 +3,7 @@
 
 import 'package:flutter/material.dart';
 import '../../../theme/app_theme.dart';
+import '../../../widgets/cached_book_cover.dart';
 
 class TrendingBooksCard extends StatelessWidget {
   final List<Map<String, dynamic>> books;
@@ -87,19 +88,11 @@ class _TrendingBookItem extends StatelessWidget {
               // Rank badge + Cover
               Stack(
                 children: [
-                  ClipRRect(
+                  CachedBookCover(
+                    imageUrl: coverUrl,
+                    width: 124,
+                    height: 110,
                     borderRadius: BorderRadius.circular(AppRadius.s),
-                    child: coverUrl != null && coverUrl!.isNotEmpty
-                        ? Image.network(
-                            coverUrl!,
-                            width: 124,
-                            height: 110,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return _coverPlaceholder(context);
-                            },
-                          )
-                        : _coverPlaceholder(context),
                   ),
                   Positioned(
                     top: 4,
@@ -180,15 +173,4 @@ class _TrendingBookItem extends StatelessWidget {
     );
   }
 
-  Widget _coverPlaceholder(BuildContext context) {
-    return Container(
-      width: 124,
-      height: 110,
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(AppRadius.s),
-      ),
-      child: const Icon(Icons.book, size: 40),
-    );
-  }
 }

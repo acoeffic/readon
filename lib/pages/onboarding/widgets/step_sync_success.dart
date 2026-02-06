@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import '../../../theme/app_theme.dart';
 import '../../../models/book.dart';
+import '../../../widgets/cached_book_cover.dart';
 
 class StepSyncSuccess extends StatelessWidget {
   final int bookCount;
@@ -66,18 +67,11 @@ class StepSyncSuccess extends StatelessWidget {
                   final book = books[index];
                   return Padding(
                     padding: const EdgeInsets.only(right: AppSpace.s),
-                    child: ClipRRect(
+                    child: CachedBookCover(
+                      imageUrl: book.coverUrl,
+                      width: 80,
+                      height: 120,
                       borderRadius: BorderRadius.circular(AppRadius.s),
-                      child: book.coverUrl != null
-                          ? Image.network(
-                              book.coverUrl!,
-                              width: 80,
-                              height: 120,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) =>
-                                  _buildPlaceholderCover(),
-                            )
-                          : _buildPlaceholderCover(),
                     ),
                   );
                 },
@@ -151,17 +145,6 @@ class StepSyncSuccess extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildPlaceholderCover() {
-    return Container(
-      width: 80,
-      height: 120,
-      color: Colors.grey.shade300,
-      child: const Center(
-        child: Icon(Icons.book, color: Colors.grey, size: 28),
       ),
     );
   }

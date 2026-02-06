@@ -43,7 +43,7 @@ dependencies:
   mobile_scanner: ^7.0.0            # Barcode/ISBN scanning
   path_provider: ^2.1.2             # Local storage for images
   permission_handler: ^11.3.0       # Camera/storage permissions
-  intl: ^0.19.0                     # Date formatting and localization
+  intl: ^0.20.2                     # Date formatting and localization
   share_plus: ^10.1.4               # Share content to social media
   url_launcher: ^6.3.1              # Open URLs in browser
   shared_preferences: ^2.2.2        # Local storage for user preferences
@@ -55,6 +55,7 @@ dependencies:
   crypto: ^3.0.6                     # SHA256 hashing
   purchases_flutter: ^8.1.0           # RevenueCat subscriptions
   lottie: ^3.3.1                      # Lottie animations for badges
+  cached_network_image: ^3.4.1        # Image caching for book covers
 
 dev_dependencies:
   flutter_test:

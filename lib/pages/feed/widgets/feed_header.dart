@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../theme/app_theme.dart';
 import '../../profile/profile_page.dart';
 import '../../friends/search_users_page.dart';
@@ -199,9 +200,29 @@ class _FeedHeaderState extends State<FeedHeader> with TickerProviderStateMixin {
                               height: 48,
                               color: Colors.white,
                               child: _avatarUrl != null && _avatarUrl!.isNotEmpty
-                                  ? Image.network(
-                                      _avatarUrl!,
+                                  ? CachedNetworkImage(
+                                      imageUrl: _avatarUrl!,
                                       fit: BoxFit.cover,
+                                      placeholder: (context, url) => Center(
+                                        child: Text(
+                                          _userName.isNotEmpty ? _userName[0].toUpperCase() : '?',
+                                          style: const TextStyle(
+                                            color: AppColors.primary,
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 20,
+                                          ),
+                                        ),
+                                      ),
+                                      errorWidget: (context, url, error) => Center(
+                                        child: Text(
+                                          _userName.isNotEmpty ? _userName[0].toUpperCase() : '?',
+                                          style: const TextStyle(
+                                            color: AppColors.primary,
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 20,
+                                          ),
+                                        ),
+                                      ),
                                     )
                                   : Center(
                                       child: Text(

@@ -454,6 +454,7 @@ class StreakService {
   }
 
   /// Récupérer l'historique des lectures par jour (pour un calendrier)
+  /// Limité aux 365 derniers jours pour éviter les problèmes de performance
   Future<Map<String, int>> getReadingHistory() async {
     try {
       final userId = _supabase.auth.currentUser?.id;
@@ -463,7 +464,9 @@ class StreakService {
           .from('reading_sessions')
           .select('end_time')
           .eq('user_id', userId)
-          .not('end_time', 'is', null);
+          .not('end_time', 'is', null)
+          .order('end_time', ascending: false)
+          .limit(1000);
 
       final Map<String, int> history = {};
 

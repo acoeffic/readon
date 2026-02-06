@@ -4,6 +4,7 @@ import '../../../models/book.dart';
 import '../../../services/books_service.dart';
 import '../../../services/google_books_service.dart';
 import '../../books/scan_book_cover_page.dart';
+import '../../../widgets/cached_book_cover.dart';
 
 class StepManualAdd extends StatefulWidget {
   final ValueChanged<Book> onBookAdded;
@@ -251,21 +252,11 @@ class _StepManualAddState extends State<StepManualAdd> {
               final book = widget.addedBooks[index];
               return ListTile(
                 contentPadding: EdgeInsets.zero,
-                leading: ClipRRect(
+                leading: CachedBookCover(
+                  imageUrl: book.coverUrl,
+                  width: 40,
+                  height: 60,
                   borderRadius: BorderRadius.circular(AppRadius.s),
-                  child: book.coverUrl != null
-                      ? Image.network(
-                          book.coverUrl!,
-                          width: 40,
-                          height: 60,
-                          fit: BoxFit.cover,
-                        )
-                      : Container(
-                          width: 40,
-                          height: 60,
-                          color: Colors.grey.shade300,
-                          child: const Icon(Icons.book, size: 20),
-                        ),
                 ),
                 title: Text(
                   book.title,
@@ -308,21 +299,11 @@ class _SearchResultTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(vertical: AppSpace.xs),
-      leading: ClipRRect(
+      leading: CachedBookCover(
+        imageUrl: googleBook.coverUrl,
+        width: 40,
+        height: 60,
         borderRadius: BorderRadius.circular(AppRadius.s),
-        child: googleBook.coverUrl != null
-            ? Image.network(
-                googleBook.coverUrl!,
-                width: 40,
-                height: 60,
-                fit: BoxFit.cover,
-              )
-            : Container(
-                width: 40,
-                height: 60,
-                color: Colors.grey.shade300,
-                child: const Icon(Icons.book, size: 20),
-              ),
       ),
       title: Text(
         googleBook.title,

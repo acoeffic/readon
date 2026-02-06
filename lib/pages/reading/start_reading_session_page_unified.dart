@@ -9,6 +9,7 @@ import '../../services/ocr_service.dart';
 import '../../models/book.dart';
 import '../../models/reading_session.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/cached_book_cover.dart';
 
 class StartReadingSessionPageUnified extends StatefulWidget {
   final Book book;
@@ -195,24 +196,12 @@ class _StartReadingSessionPageUnifiedState extends State<StartReadingSessionPage
                 padding: const EdgeInsets.all(16),
                 child: Row(
                   children: [
-                    if (widget.book.coverUrl != null && widget.book.coverUrl!.isNotEmpty)
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Image.network(
-                          widget.book.coverUrl!,
-                          width: 60,
-                          height: 90,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Container(
-                              width: 60,
-                              height: 90,
-                              color: Colors.grey.shade300,
-                              child: const Icon(Icons.book, size: 30),
-                            );
-                          },
-                        ),
-                      ),
+                    CachedBookCover(
+                      imageUrl: widget.book.coverUrl,
+                      width: 60,
+                      height: 90,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                     const SizedBox(width: 16),
                     Expanded(
                       child: Column(

@@ -6,6 +6,7 @@ import '../../services/reading_session_service.dart';
 import '../../models/reading_session.dart';
 import '../reading/start_reading_session_page_unified.dart';
 import '../reading/end_reading_session_page.dart';
+import '../../widgets/cached_book_cover.dart';
 
 class UserBooksPage extends StatefulWidget {
   const UserBooksPage({super.key});
@@ -16,8 +17,19 @@ class UserBooksPage extends StatefulWidget {
 
 class _UserBooksPageState extends State<UserBooksPage> {
   final BooksService _booksService = BooksService();
+  final ScrollController _scrollController = ScrollController();
+
   List<Map<String, dynamic>> _booksWithStatus = [];
   bool _isLoading = true;
+  bool _isLoadingMore = false;
+  bool _hasMore = true;
+  bool _isEnrichingGenres = false;
+  bool _isEnrichingAuthors = false;
+  String _viewMode = 'status'; // 'status' ou 'genre'
+  String? _selectedGenre; // null = tous les genres
+
+  static const int _pageSize = 30;
+  int _currentOffset = 0;
 
   // Livres séparés par statut
   List<Map<String, dynamic>> get _readingBooksData => _booksWithStatus
@@ -28,27 +40,127 @@ class _UserBooksPageState extends State<UserBooksPage> {
       .where((item) => item['status'] == 'finished')
       .toList();
 
+  Map<String, List<Map<String, dynamic>>> get _booksByGenre {
+    final Map<String, List<Map<String, dynamic>>> grouped = {};
+    for (final item in _booksWithStatus) {
+      final book = item['book'] as Book;
+      final genre = book.genre ?? 'Autre';
+      grouped.putIfAbsent(genre, () => []);
+      grouped[genre]!.add(item);
+    }
+    final sortedKeys = grouped.keys.toList()
+      ..sort((a, b) {
+        if (a == 'Autre') return 1;
+        if (b == 'Autre') return -1;
+        return a.compareTo(b);
+      });
+    return Map.fromEntries(
+      sortedKeys.map((k) => MapEntry(k, grouped[k]!)),
+    );
+  }
+
   @override
   void initState() {
     super.initState();
-    _loadAllBooks();
+    _scrollController.addListener(_onScroll);
+    _loadBooks();
   }
 
-  Future<void> _loadAllBooks() async {
-    setState(() => _isLoading = true);
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      _loadMoreBooks();
+    }
+  }
+
+  Future<void> _loadBooks() async {
+    setState(() {
+      _isLoading = true;
+      _currentOffset = 0;
+      _hasMore = true;
+    });
 
     try {
-      final booksWithStatus = await _booksService.getUserBooksWithStatus();
+      final booksWithStatus = await _booksService.getUserBooksWithStatusPaginated(
+        limit: _pageSize,
+        offset: 0,
+      );
 
       setState(() {
         _booksWithStatus = booksWithStatus;
         _isLoading = false;
+        _hasMore = booksWithStatus.length >= _pageSize;
+        _currentOffset = booksWithStatus.length;
       });
+
+      // Enrichir automatiquement les descriptions manquantes en arrière-plan
+      _autoEnrichDescriptions();
     } catch (e) {
-      debugPrint('Erreur _loadAllBooks: $e');
+      debugPrint('Erreur _loadBooks: $e');
       setState(() => _isLoading = false);
     }
   }
+
+  /// Enrichit automatiquement les descriptions manquantes sans bloquer l'UI
+  Future<void> _autoEnrichDescriptions() async {
+    // Vérifier s'il y a des livres sans description
+    final hasMissing = _booksWithStatus.any((item) {
+      final description = (item['book'] as Book).description;
+      return description == null || description.isEmpty;
+    });
+
+    if (!hasMissing) return;
+
+    try {
+      final count = await _booksService.enrichMissingDescriptions();
+      if (count > 0 && mounted) {
+        // Recharger les livres pour afficher les nouvelles descriptions
+        final booksWithStatus = await _booksService.getUserBooksWithStatusPaginated(
+          limit: _pageSize,
+          offset: 0,
+        );
+        setState(() {
+          _booksWithStatus = booksWithStatus;
+          _currentOffset = booksWithStatus.length;
+        });
+      }
+    } catch (e) {
+      debugPrint('Erreur auto-enrichissement descriptions: $e');
+    }
+  }
+
+  Future<void> _loadMoreBooks() async {
+    if (_isLoadingMore || !_hasMore) return;
+
+    setState(() => _isLoadingMore = true);
+
+    try {
+      final moreBooks = await _booksService.getUserBooksWithStatusPaginated(
+        limit: _pageSize,
+        offset: _currentOffset,
+      );
+
+      setState(() {
+        _booksWithStatus.addAll(moreBooks);
+        _isLoadingMore = false;
+        _hasMore = moreBooks.length >= _pageSize;
+        _currentOffset += moreBooks.length;
+      });
+    } catch (e) {
+      debugPrint('Erreur _loadMoreBooks: $e');
+      setState(() => _isLoadingMore = false);
+    }
+  }
+
+  /// Alias pour compatibilité avec le code existant
+  Future<void> _loadAllBooks() => _loadBooks();
 
   @override
   Widget build(BuildContext context) {
@@ -68,7 +180,39 @@ class _UserBooksPageState extends State<UserBooksPage> {
           ? const Center(child: CircularProgressIndicator())
           : _booksWithStatus.isEmpty
               ? _buildEmptyState()
-              : _buildBooksListWithSections(),
+              : RefreshIndicator(
+                  onRefresh: _loadBooks,
+                  child: Column(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                        child: SegmentedButton<String>(
+                          segments: const [
+                            ButtonSegment(
+                              value: 'status',
+                              label: Text('Statut'),
+                              icon: Icon(Icons.playlist_add_check),
+                            ),
+                            ButtonSegment(
+                              value: 'genre',
+                              label: Text('Genre'),
+                              icon: Icon(Icons.category),
+                            ),
+                          ],
+                          selected: {_viewMode},
+                          onSelectionChanged: (newSelection) {
+                            setState(() => _viewMode = newSelection.first);
+                          },
+                        ),
+                      ),
+                      Expanded(
+                        child: _viewMode == 'status'
+                            ? _buildBooksListWithSections()
+                            : _buildBooksListByGenre(),
+                      ),
+                    ],
+                  ),
+                ),
     );
   }
 
@@ -91,9 +235,193 @@ class _UserBooksPageState extends State<UserBooksPage> {
     );
   }
 
+  Future<void> _enrichGenres() async {
+    setState(() => _isEnrichingGenres = true);
+    try {
+      final count = await _booksService.enrichMissingGenres();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(count > 0
+                ? '$count livre${count > 1 ? 's' : ''} classifié${count > 1 ? 's' : ''}'
+                : 'Aucun genre trouvé'),
+          ),
+        );
+        if (count > 0) _loadAllBooks();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Erreur lors de la classification')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isEnrichingGenres = false);
+    }
+  }
+
+  Future<void> _enrichAuthors() async {
+    setState(() => _isEnrichingAuthors = true);
+    try {
+      final count = await _booksService.enrichMissingAuthors();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(count > 0
+                ? 'Auteur trouvé pour $count livre${count > 1 ? 's' : ''}'
+                : 'Aucun auteur trouvé'),
+          ),
+        );
+        if (count > 0) _loadAllBooks();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Erreur lors de la recherche des auteurs')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isEnrichingAuthors = false);
+    }
+  }
+
+  bool get _hasBooksWithoutAuthor => _booksWithStatus.any(
+    (item) {
+      final author = (item['book'] as Book).author;
+      return author == null || author.isEmpty || author == 'Auteur inconnu';
+    },
+  );
+
+  Widget _buildEnrichAuthorsButton() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      child: OutlinedButton.icon(
+        onPressed: _isEnrichingAuthors ? null : _enrichAuthors,
+        icon: _isEnrichingAuthors
+            ? const SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(Icons.person_search),
+        label: Text(_isEnrichingAuthors
+            ? 'Recherche en cours...'
+            : 'Rechercher les auteurs manquants'),
+      ),
+    );
+  }
+
+  Widget _buildGenreChips() {
+    final grouped = _booksByGenre;
+    return SizedBox(
+      height: 44,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: FilterChip(
+              selected: _selectedGenre == null,
+              label: Text('Tous (${_booksWithStatus.length})'),
+              avatar: _selectedGenre == null ? null : const Icon(Icons.library_books, size: 16),
+              onSelected: (_) => setState(() => _selectedGenre = null),
+            ),
+          ),
+          ...grouped.entries.map((entry) => Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: FilterChip(
+                  selected: _selectedGenre == entry.key,
+                  label: Text('${entry.key} (${entry.value.length})'),
+                  avatar: _selectedGenre == entry.key
+                      ? null
+                      : Icon(_genreIcon(entry.key), size: 16),
+                  onSelected: (_) => setState(() {
+                    _selectedGenre = _selectedGenre == entry.key ? null : entry.key;
+                  }),
+                ),
+              )),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBooksListByGenre() {
+    final grouped = _booksByGenre;
+    final hasUnclassified = _booksWithStatus.any(
+      (item) => (item['book'] as Book).genre == null,
+    );
+
+    // Filtrer si un genre est sélectionné
+    final filteredEntries = _selectedGenre != null
+        ? grouped.entries.where((e) => e.key == _selectedGenre)
+        : grouped.entries;
+
+    return Column(
+      children: [
+        _buildGenreChips(),
+        const SizedBox(height: 4),
+        Expanded(
+          child: ListView(
+            controller: _scrollController,
+            children: [
+              if (_hasBooksWithoutAuthor) _buildEnrichAuthorsButton(),
+              if (hasUnclassified && _selectedGenre == null)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                  child: OutlinedButton.icon(
+                    onPressed: _isEnrichingGenres ? null : _enrichGenres,
+                    icon: _isEnrichingGenres
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.auto_fix_high),
+                    label: Text(_isEnrichingGenres
+                        ? 'Classification en cours...'
+                        : 'Classifier les livres sans genre'),
+                  ),
+                ),
+              for (final entry in filteredEntries) ...[
+                if (_selectedGenre == null)
+                  _buildSectionHeader(
+                    entry.key,
+                    _genreIcon(entry.key),
+                    entry.value.length,
+                  ),
+                ...entry.value.map((item) {
+                  final book = item['book'] as Book;
+                  final status = item['status'] as String?;
+                  return _buildBookCard(
+                    book,
+                    isFinished: status == 'finished',
+                    isHidden: item['is_hidden'] as bool? ?? false,
+                  );
+                }),
+              ],
+              // Loading indicator
+              if (_isLoadingMore || _hasMore)
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Center(
+                    child: _isLoadingMore
+                        ? const CircularProgressIndicator()
+                        : const SizedBox.shrink(),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildBooksListWithSections() {
     return ListView(
+      controller: _scrollController,
       children: [
+        if (_hasBooksWithoutAuthor) _buildEnrichAuthorsButton(),
         // Section: En cours / À lire
         if (_readingBooksData.isNotEmpty) ...[
           _buildSectionHeader(
@@ -120,8 +448,60 @@ class _UserBooksPageState extends State<UserBooksPage> {
                 isHidden: item['is_hidden'] as bool? ?? false,
               )),
         ],
+
+        // Loading indicator
+        if (_isLoadingMore || _hasMore)
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Center(
+              child: _isLoadingMore
+                  ? const CircularProgressIndicator()
+                  : const SizedBox.shrink(),
+            ),
+          ),
       ],
     );
+  }
+
+  IconData _genreIcon(String genre) {
+    const icons = {
+      'Science-Fiction': Icons.rocket_launch,
+      'Fantasy': Icons.auto_awesome,
+      'Thriller': Icons.psychology,
+      'Policier': Icons.search,
+      'Horreur': Icons.nights_stay,
+      'Romance': Icons.favorite,
+      'Biographie': Icons.person,
+      'Histoire': Icons.history_edu,
+      'Historique': Icons.history_edu,
+      'Philosophie': Icons.school,
+      'Développement personnel': Icons.trending_up,
+      'Psychologie': Icons.psychology_alt,
+      'Sciences': Icons.science,
+      'Informatique': Icons.computer,
+      'Technologie': Icons.devices,
+      'Business / Économie': Icons.show_chart,
+      'Roman': Icons.auto_stories,
+      'Roman littéraire': Icons.auto_stories,
+      'BD / Comics': Icons.burst_mode,
+      'Manga': Icons.burst_mode,
+      'Poésie': Icons.edit_note,
+      'Cuisine': Icons.restaurant,
+      'Voyage': Icons.flight,
+      'Humour': Icons.sentiment_very_satisfied,
+      'Jeunesse': Icons.child_care,
+      'Young Adult': Icons.child_care,
+      'Non-fiction': Icons.menu_book,
+      'Sport': Icons.sports,
+      'Santé': Icons.health_and_safety,
+      'Art': Icons.palette,
+      'Musique': Icons.music_note,
+      'Religion': Icons.church,
+      'Politique': Icons.account_balance,
+      'Société': Icons.groups,
+      'Autre': Icons.bookmark,
+    };
+    return icons[genre] ?? Icons.bookmark;
   }
 
   Widget _buildSectionHeader(String title, IconData icon, int count) {
@@ -202,20 +582,12 @@ class _UserBooksPageState extends State<UserBooksPage> {
         child: ListTile(
           leading: Stack(
             children: [
-              book.coverUrl != null && book.coverUrl!.isNotEmpty
-                  ? ClipRRect(
-                      borderRadius: BorderRadius.circular(4),
-                      child: Image.network(
-                        book.coverUrl!,
-                        width: 50,
-                        height: 70,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return const Icon(Icons.book, size: 50);
-                        },
-                      ),
-                    )
-                  : const Icon(Icons.book, size: 50),
+              CachedBookCover(
+                imageUrl: book.coverUrl,
+                width: 50,
+                height: 70,
+                borderRadius: BorderRadius.circular(4),
+              ),
               if (isFinished)
                 Positioned(
                   bottom: 0,
@@ -256,8 +628,21 @@ class _UserBooksPageState extends State<UserBooksPage> {
           subtitle: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (book.author != null)
+              if (book.author != null && book.author!.isNotEmpty && book.author != 'Auteur inconnu')
                 Text(book.author!, maxLines: 1, overflow: TextOverflow.ellipsis),
+              if (book.description != null && book.description!.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text(
+                  book.description!,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 4),
               Row(
                 children: [
                   Icon(
@@ -310,8 +695,47 @@ class _BookDetailPageState extends State<BookDetailPage> {
   ReadingSession? _activeSession;
   BookReadingStats? _stats;
   String? _bookStatus;
+  String? _currentGenre;
   bool _isHidden = false;
   bool _isLoading = true;
+
+  static const List<String> _availableGenres = [
+    'Roman',
+    'Roman littéraire',
+    'Science-Fiction',
+    'Fantasy',
+    'Thriller',
+    'Policier',
+    'Horreur',
+    'Romance',
+    'Biographie',
+    'Histoire',
+    'Historique',
+    'Philosophie',
+    'Développement personnel',
+    'Psychologie',
+    'Sciences',
+    'Informatique',
+    'Technologie',
+    'Business',
+    'Économie',
+    'Politique',
+    'Société',
+    'Religion',
+    'Art',
+    'Musique',
+    'Cuisine',
+    'Santé',
+    'Voyage',
+    'Sport',
+    'Jeunesse',
+    'Young Adult',
+    'BD / Comics',
+    'Manga',
+    'Poésie',
+    'Humour',
+    'Non-fiction',
+  ];
 
   bool get _isBookFinished => _bookStatus == 'finished';
 
@@ -355,6 +779,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
         _activeSession = activeSession;
         _stats = stats;
         _bookStatus = status;
+        _currentGenre = widget.book.genre;
         _isHidden = hidden;
         _isLoading = false;
       });
@@ -414,6 +839,93 @@ class _BookDetailPageState extends State<BookDetailPage> {
         );
       }
     }
+  }
+
+  void _showGenrePicker() {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Text(
+                'Choisir le genre',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ),
+            ..._availableGenres.map((genre) => ListTile(
+                  leading: Icon(
+                    _genreIcon(genre),
+                    color: genre == _currentGenre
+                        ? Theme.of(context).primaryColor
+                        : null,
+                  ),
+                  title: Text(genre),
+                  trailing: genre == _currentGenre
+                      ? Icon(Icons.check, color: Theme.of(context).primaryColor)
+                      : null,
+                  onTap: () async {
+                    final messenger = ScaffoldMessenger.of(context);
+                    Navigator.pop(context);
+                    try {
+                      await _booksService.updateBookGenre(
+                          widget.book.id, genre);
+                      if (mounted) setState(() => _currentGenre = genre);
+                    } catch (e) {
+                      messenger.showSnackBar(
+                        const SnackBar(
+                            content: Text('Erreur lors de la mise à jour')),
+                      );
+                    }
+                  },
+                )),
+          ],
+        ),
+      ),
+    );
+  }
+
+  IconData _genreIcon(String genre) {
+    const icons = {
+      'Science-Fiction': Icons.rocket_launch,
+      'Fantasy': Icons.auto_awesome,
+      'Thriller': Icons.psychology,
+      'Policier': Icons.search,
+      'Horreur': Icons.nights_stay,
+      'Romance': Icons.favorite,
+      'Biographie': Icons.person,
+      'Histoire': Icons.history_edu,
+      'Historique': Icons.history_edu,
+      'Philosophie': Icons.school,
+      'Développement personnel': Icons.trending_up,
+      'Psychologie': Icons.psychology_alt,
+      'Sciences': Icons.science,
+      'Informatique': Icons.computer,
+      'Technologie': Icons.devices,
+      'Business': Icons.show_chart,
+      'Économie': Icons.show_chart,
+      'Roman': Icons.auto_stories,
+      'Roman littéraire': Icons.auto_stories,
+      'BD / Comics': Icons.burst_mode,
+      'Manga': Icons.burst_mode,
+      'Poésie': Icons.edit_note,
+      'Cuisine': Icons.restaurant,
+      'Voyage': Icons.flight,
+      'Humour': Icons.sentiment_very_satisfied,
+      'Jeunesse': Icons.child_care,
+      'Young Adult': Icons.child_care,
+      'Non-fiction': Icons.menu_book,
+      'Sport': Icons.sports,
+      'Santé': Icons.health_and_safety,
+      'Art': Icons.palette,
+      'Musique': Icons.music_note,
+      'Religion': Icons.church,
+      'Politique': Icons.account_balance,
+      'Société': Icons.groups,
+    };
+    return icons[genre] ?? Icons.bookmark;
   }
 
   Future<void> _markAsFinished() async {
@@ -513,24 +1025,12 @@ class _BookDetailPageState extends State<BookDetailPage> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (widget.book.coverUrl != null && widget.book.coverUrl!.isNotEmpty)
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: Image.network(
-                widget.book.coverUrl!,
-                height: 180,
-                width: 120,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    height: 180,
-                    width: 120,
-                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                    child: const Icon(Icons.book, size: 60),
-                  );
-                },
-              ),
-            ),
+          CachedBookCover(
+            imageUrl: widget.book.coverUrl,
+            height: 180,
+            width: 120,
+            borderRadius: BorderRadius.circular(8),
+          ),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
@@ -544,7 +1044,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                if (widget.book.author != null)
+                if (widget.book.author != null && widget.book.author!.isNotEmpty && widget.book.author != 'Auteur inconnu')
                   Text(
                     widget.book.author!,
                     style: TextStyle(
@@ -574,6 +1074,48 @@ class _BookDetailPageState extends State<BookDetailPage> {
                     style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
                   ),
                 ],
+                const SizedBox(height: 8),
+                GestureDetector(
+                  onTap: _showGenrePicker,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: _currentGenre != null
+                          ? Theme.of(context).primaryColor.withValues(alpha: 0.1)
+                          : Theme.of(context).colorScheme.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: _currentGenre != null
+                            ? Theme.of(context).primaryColor.withValues(alpha: 0.3)
+                            : Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          _currentGenre != null
+                              ? _genreIcon(_currentGenre!)
+                              : Icons.add,
+                          size: 14,
+                          color: _currentGenre != null
+                              ? Theme.of(context).primaryColor
+                              : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          _currentGenre ?? 'Ajouter un genre',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: _currentGenre != null
+                                ? Theme.of(context).primaryColor
+                                : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ],
             ),
           ),

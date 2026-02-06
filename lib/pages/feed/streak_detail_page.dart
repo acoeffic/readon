@@ -1,10 +1,14 @@
 // lib/pages/feed/streak_detail_page.dart
 // Page détaillée avec calendrier des streaks de lecture
 
+import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+import '../../models/feature_flags.dart';
 import '../../models/reading_streak.dart';
 import '../../models/streak_freeze.dart';
+import '../../pages/profile/upgrade_page.dart';
+import '../../providers/subscription_provider.dart';
 import '../../services/streak_service.dart';
 import '../../theme/app_theme.dart';
 
@@ -24,12 +28,50 @@ class _StreakDetailPageState extends State<StreakDetailPage> {
   final StreakService _streakService = StreakService();
   late ReadingStreak _streak;
   bool _isLoading = true;
+  List<DateTime> _months = [];
+  int _currentMonthIndex = 0;
+
+  static const _frenchMonths = [
+    'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+    'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre',
+  ];
 
   @override
   void initState() {
     super.initState();
     _streak = widget.initialStreak;
+    _initMonths();
     _loadData();
+  }
+
+  void _initMonths() {
+    final now = DateTime.now();
+    final currentMonth = DateTime(now.year, now.month, 1);
+
+    // Trouver la date la plus ancienne parmi readDates et frozenDates
+    DateTime? earliest;
+    if (_streak.readDates.isNotEmpty) {
+      final sortedRead = List<DateTime>.from(_streak.readDates)..sort();
+      earliest = sortedRead.first;
+    }
+    if (_streak.frozenDates.isNotEmpty) {
+      final sortedFrozen = List<DateTime>.from(_streak.frozenDates)..sort();
+      if (earliest == null || sortedFrozen.first.isBefore(earliest)) {
+        earliest = sortedFrozen.first;
+      }
+    }
+
+    earliest ??= currentMonth;
+    final startMonth = DateTime(earliest.year, earliest.month, 1);
+
+    _months = [];
+    DateTime m = startMonth;
+    while (!m.isAfter(currentMonth)) {
+      _months.add(m);
+      m = DateTime(m.year, m.month + 1, 1);
+    }
+
+    _currentMonthIndex = _months.length - 1;
   }
 
   Future<void> _loadData() async {
@@ -39,6 +81,7 @@ class _StreakDetailPageState extends State<StreakDetailPage> {
       final streak = await _streakService.getUserStreak();
       setState(() {
         _streak = streak;
+        _initMonths();
         _isLoading = false;
       });
     } catch (e) {
@@ -89,11 +132,9 @@ class _StreakDetailPageState extends State<StreakDetailPage> {
                     const SizedBox(height: 16),
                     _buildFreezeCard(),
                     const SizedBox(height: 24),
-                    _buildCurrentMonthCalendar(),
+                    _buildCalendar(),
                     const SizedBox(height: 24),
                     _buildMotivationCard(),
-                    const SizedBox(height: 24),
-                    _buildYearCalendar(),
                   ],
                 ),
               ),
@@ -472,31 +513,28 @@ class _StreakDetailPageState extends State<StreakDetailPage> {
     }
   }
 
-  Widget _buildCurrentMonthCalendar() {
-    final now = DateTime.now();
-    final firstDayOfMonth = DateTime(now.year, now.month, 1);
-    final lastDayOfMonth = DateTime(now.year, now.month + 1, 0);
-    final today = DateTime(now.year, now.month, now.day);
-
-    // Calculer le jour de départ (lundi = 0, dimanche = 6)
-    // DateTime.weekday: lundi = 1, dimanche = 7
-    // On veut: lundi = 0, dimanche = 6
-    int startWeekday = firstDayOfMonth.weekday - 1;
-
-    // Créer les jours du mois
-    final List<DateTime?> days = [];
-
-    // Ajouter des jours vides au début
-    for (int i = 0; i < startWeekday; i++) {
-      days.add(null);
+  void _goToPreviousMonth() {
+    if (_currentMonthIndex > 0) {
+      setState(() => _currentMonthIndex--);
     }
+  }
 
-    // Ajouter tous les jours du mois
-    for (int day = 1; day <= lastDayOfMonth.day; day++) {
-      days.add(DateTime(now.year, now.month, day));
+  void _goToNextMonth() {
+    if (_currentMonthIndex < _months.length - 1) {
+      setState(() => _currentMonthIndex++);
     }
+  }
 
-    return Container(
+  Widget _buildCalendar() {
+    if (_months.isEmpty) return const SizedBox();
+
+    final isPremium = context.watch<SubscriptionProvider>().isPremium;
+    final month = _months[_currentMonthIndex];
+    final monthLabel = '${_frenchMonths[month.month - 1]} ${month.year}';
+    final canGoPrev = _currentMonthIndex > 0;
+    final canGoNext = _currentMonthIndex < _months.length - 1;
+
+    final calendarContent = Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
@@ -511,6 +549,39 @@ class _StreakDetailPageState extends State<StreakDetailPage> {
       ),
       child: Column(
         children: [
+          // Navigation mois
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              IconButton(
+                onPressed: isPremium && canGoPrev ? _goToPreviousMonth : null,
+                icon: Icon(
+                  Icons.chevron_left,
+                  color: canGoPrev
+                      ? Theme.of(context).colorScheme.onSurface
+                      : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.2),
+                ),
+              ),
+              Text(
+                monthLabel,
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+              ),
+              IconButton(
+                onPressed: isPremium && canGoNext ? _goToNextMonth : null,
+                icon: Icon(
+                  Icons.chevron_right,
+                  color: canGoNext
+                      ? Theme.of(context).colorScheme.onSurface
+                      : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.2),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
           // Labels des jours
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -530,48 +601,183 @@ class _StreakDetailPageState extends State<StreakDetailPage> {
                 .toList(),
           ),
           const SizedBox(height: 16),
-          // Grille du calendrier
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 7,
-              childAspectRatio: 1,
-              crossAxisSpacing: 8,
-              mainAxisSpacing: 8,
-            ),
-            itemCount: days.length,
-            itemBuilder: (context, index) {
-              final date = days[index];
-              if (date == null) {
-                return const SizedBox();
-              }
-
-              final hasRead = _streak.readDates.any((readDate) {
-                return readDate.year == date.year &&
-                    readDate.month == date.month &&
-                    readDate.day == date.day;
-              });
-
-              final isFrozen = _streak.isDayFrozen(date);
-
-              final isToday = date.year == today.year &&
-                  date.month == today.month &&
-                  date.day == today.day;
-
-              final isFuture = date.isAfter(today);
-
-              return _buildCalendarDay(
-                date.day,
-                hasRead,
-                isToday,
-                isFuture,
-                isFrozen,
-              );
-            },
+          // Grille du mois avec swipe
+          GestureDetector(
+            onHorizontalDragEnd: isPremium
+                ? (details) {
+                    if (details.primaryVelocity == null) return;
+                    if (details.primaryVelocity! > 0) {
+                      _goToPreviousMonth();
+                    } else if (details.primaryVelocity! < 0) {
+                      _goToNextMonth();
+                    }
+                  }
+                : null,
+            child: _buildMonthGridForDate(month),
           ),
         ],
       ),
+    );
+
+    if (isPremium) {
+      return calendarContent;
+    }
+
+    // Version gratuite : calendrier flouté avec overlay
+    return Stack(
+      children: [
+        // Calendrier flouté
+        ImageFiltered(
+          imageFilter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
+          child: calendarContent,
+        ),
+        // Overlay avec message
+        Positioned.fill(
+          child: GestureDetector(
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const UpgradePage()),
+            ),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardColor.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Center(
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 24),
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).cardColor,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.15),
+                        blurRadius: 20,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.calendar_month,
+                          color: AppColors.primary,
+                          size: 32,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Historique du streak',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Navigue dans tout ton historique de lecture mois par mois',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary,
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.lock_open, color: Colors.white, size: 18),
+                            SizedBox(width: 8),
+                            Text(
+                              'Débloquer avec Premium',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMonthGridForDate(DateTime month) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final firstDayOfMonth = DateTime(month.year, month.month, 1);
+    final lastDayOfMonth = DateTime(month.year, month.month + 1, 0);
+
+    int startWeekday = firstDayOfMonth.weekday - 1;
+
+    final List<DateTime?> days = [];
+    for (int i = 0; i < startWeekday; i++) {
+      days.add(null);
+    }
+    for (int day = 1; day <= lastDayOfMonth.day; day++) {
+      days.add(DateTime(month.year, month.month, day));
+    }
+
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 7,
+        childAspectRatio: 1,
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 8,
+      ),
+      itemCount: days.length,
+      itemBuilder: (context, index) {
+        final date = days[index];
+        if (date == null) {
+          return const SizedBox();
+        }
+
+        final hasRead = _streak.readDates.any((readDate) {
+          return readDate.year == date.year &&
+              readDate.month == date.month &&
+              readDate.day == date.day;
+        });
+
+        final isFrozen = _streak.isDayFrozen(date);
+
+        final isToday = date.year == today.year &&
+            date.month == today.month &&
+            date.day == today.day;
+
+        final isFuture = date.isAfter(today);
+
+        return _buildCalendarDay(
+          date.day,
+          hasRead,
+          isToday,
+          isFuture,
+          isFrozen,
+        );
+      },
     );
   }
 
@@ -707,126 +913,6 @@ class _StreakDetailPageState extends State<StreakDetailPage> {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildYearCalendar() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1A3D33) : const Color(0xFFB8E6D5),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        children: [
-          // Points indicateurs de mois
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(9, (index) {
-              return Container(
-                width: 8,
-                height: 8,
-                margin: const EdgeInsets.symmetric(horizontal: 4),
-                decoration: BoxDecoration(
-                  color: index == 0
-                      ? const Color(0xFF6DB899)
-                      : (isDark ? Colors.white.withValues(alpha: 0.2) : Colors.white.withValues(alpha: 0.5)),
-                  shape: BoxShape.circle,
-                ),
-              );
-            }),
-          ),
-          const SizedBox(height: 20),
-          _buildMonthGrid(),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMonthGrid() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final now = DateTime.now();
-    final firstDayOfMonth = DateTime(now.year, now.month, 1);
-    final lastDayOfMonth = DateTime(now.year, now.month + 1, 0);
-
-    // Calculer le jour de départ (lundi = 0, dimanche = 6)
-    int startWeekday = firstDayOfMonth.weekday - 1;
-
-    final List<DateTime?> days = [];
-
-    for (int i = 0; i < startWeekday; i++) {
-      days.add(null);
-    }
-
-    for (int day = 1; day <= lastDayOfMonth.day; day++) {
-      days.add(DateTime(now.year, now.month, day));
-    }
-
-    return Column(
-      children: [
-        // Labels
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: ['L', 'M', 'M', 'J', 'V', 'S', 'D']
-              .map((day) => SizedBox(
-                    width: 40,
-                    child: Text(
-                      day,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: isDark ? const Color(0xFFB8E6D5) : const Color(0xFF2C5F4F),
-                      ),
-                    ),
-                  ))
-              .toList(),
-        ),
-        const SizedBox(height: 12),
-        // Grille
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 7,
-            childAspectRatio: 1,
-            crossAxisSpacing: 8,
-            mainAxisSpacing: 8,
-          ),
-          itemCount: days.length,
-          itemBuilder: (context, index) {
-            final date = days[index];
-            if (date == null) {
-              return const SizedBox();
-            }
-
-            final hasRead = _streak.readDates.any((readDate) {
-              return readDate.year == date.year &&
-                  readDate.month == date.month &&
-                  readDate.day == date.day;
-            });
-
-            return Container(
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: hasRead ? const Color(0xFF6DB899) : Colors.transparent,
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Text(
-                '${date.day}',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: hasRead
-                      ? Colors.white
-                      : (isDark ? const Color(0xFFB8E6D5).withValues(alpha: 0.5) : const Color(0xFF2C5F4F).withValues(alpha: 0.5)),
-                ),
-              ),
-            );
-          },
-        ),
-      ],
     );
   }
 

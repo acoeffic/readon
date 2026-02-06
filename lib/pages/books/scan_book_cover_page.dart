@@ -9,6 +9,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import '../../services/ocr_service.dart';
 import '../../services/google_books_service.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/cached_book_cover.dart';
 
 /// Mode de scan actif
 enum ScanMode {
@@ -864,19 +865,12 @@ class _ScanBookCoverPageState extends State<ScanBookCoverPage>
           ..._searchResults.map((book) => Card(
                 margin: const EdgeInsets.only(bottom: 12),
                 child: ListTile(
-                  leading: book.coverUrl != null
-                      ? ClipRRect(
-                          borderRadius: BorderRadius.circular(4),
-                          child: Image.network(
-                            book.coverUrl!,
-                            width: 50,
-                            height: 70,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) =>
-                                const Icon(Icons.book, size: 50),
-                          ),
-                        )
-                      : const Icon(Icons.book, size: 50),
+                  leading: CachedBookCover(
+                    imageUrl: book.coverUrl,
+                    width: 50,
+                    height: 70,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
                   title:
                       Text(book.title, maxLines: 2, overflow: TextOverflow.ellipsis),
                   subtitle: Column(

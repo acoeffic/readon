@@ -14,6 +14,8 @@ import '../../../theme/app_theme.dart';
 import 'package:provider/provider.dart';
 import '../../../widgets/reaction_picker.dart';
 import '../../../widgets/reaction_summary.dart';
+import '../../../widgets/cached_book_cover.dart';
+import '../../../widgets/cached_profile_avatar.dart';
 import '../../friends/friend_profile_page.dart';
 
 class FriendActivityCard extends StatefulWidget {
@@ -406,25 +408,16 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
                               ],
                             )
                           : null,
-                      child: CircleAvatar(
+                      child: CachedProfileAvatar(
+                        imageUrl: userAvatar,
+                        userName: userName,
                         radius: 20,
                         backgroundColor: isBookFinished
                             ? Colors.amber.shade100
                             : AppColors.primary.withValues(alpha: 0.2),
-                        backgroundImage: userAvatar != null && userAvatar.isNotEmpty
-                            ? NetworkImage(userAvatar)
-                            : null,
-                        child: userAvatar == null || userAvatar.isEmpty
-                            ? Text(
-                                userName[0].toUpperCase(),
-                                style: TextStyle(
-                                  color: isBookFinished
-                                      ? Colors.amber.shade700
-                                      : AppColors.primary.withValues(alpha: 0.9),
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              )
-                            : null,
+                        textColor: isBookFinished
+                            ? Colors.amber.shade700
+                            : AppColors.primary.withValues(alpha: 0.9),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -506,34 +499,12 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
                   child: Row(
                     children: [
                       // Couverture du livre
-                      if (bookCover != null && bookCover.isNotEmpty)
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(4),
-                          child: Image.network(
-                            bookCover,
-                            width: 50,
-                            height: 70,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Container(
-                                width: 50,
-                                height: 70,
-                                color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                                child: const Icon(Icons.book, size: 30),
-                              );
-                            },
-                          ),
-                        )
-                      else
-                        Container(
-                          width: 50,
-                          height: 70,
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: const Icon(Icons.book, size: 30),
-                        ),
+                      CachedBookCover(
+                        imageUrl: bookCover,
+                        width: 50,
+                        height: 70,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
                       
                       const SizedBox(width: 12),
                       
@@ -623,8 +594,8 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
 
                   const SizedBox(width: 12),
 
-                  // Bouton partage (ouvre le bottom sheet)
-                  if (isBookFinished)
+                  // Bouton partage (seulement pour l'auteur de l'activité)
+                  if (isBookFinished && widget.activity['author_id'] == Supabase.instance.client.auth.currentUser?.id)
                     InkWell(
                       onTap: () => _showShareSheet(bookTitle, bookAuthor),
                       borderRadius: BorderRadius.circular(20),

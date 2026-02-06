@@ -1,6 +1,8 @@
 // pages/feed/feed_page.dart
 // Page principale du flux (Feed) avec activités des amis et contenu communautaire
 
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../theme/app_theme.dart';
@@ -39,6 +41,7 @@ class _FeedPageState extends State<FeedPage> {
   final booksService = BooksService();
   final suggestionsService = SuggestionsService();
   final trendingService = TrendingService();
+  final ScrollController _scrollController = ScrollController();
 
   List<Map<String, dynamic>> friendActivities = [];
   ReadingStreak? currentStreak;
@@ -46,20 +49,78 @@ class _FeedPageState extends State<FeedPage> {
   List<BookSuggestion> suggestions = [];
   bool loading = true;
 
+  // Pagination des activités
+  bool _isLoadingMoreActivities = false;
+  bool _hasMoreActivities = true;
+  int _activitiesOffset = 0;
+  static const int _activitiesPageSize = 20;
+
   // Contenu communautaire
   int friendCount = 0;
   FeedTier feedTier = FeedTier.friendsOnly;
   List<Map<String, dynamic>> trendingBooks = [];
   List<Map<String, dynamic>> communitySessions = [];
 
+  // Ordre aléatoire des sections du feed (sessions, suggestions, trending)
+  List<int> _feedSectionOrder = [0, 1, 2];
+
   @override
   void initState() {
     super.initState();
+    _feedSectionOrder = [0, 1, 2]..shuffle(Random());
+    _scrollController.addListener(_onScroll);
     loadFeed();
   }
 
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      _loadMoreActivities();
+    }
+  }
+
+  Future<void> _loadMoreActivities() async {
+    if (_isLoadingMoreActivities || !_hasMoreActivities) return;
+    if (feedTier == FeedTier.trending) return; // Pas d'activités amis
+
+    final user = supabase.auth.currentUser;
+    if (user == null) return;
+
+    setState(() => _isLoadingMoreActivities = true);
+
+    try {
+      final activitiesRes = await supabase.rpc('get_feed', params: {
+        'p_user_id': user.id,
+        'p_limit': _activitiesPageSize,
+        'p_offset': _activitiesOffset,
+      });
+      final newActivities = List<Map<String, dynamic>>.from(activitiesRes ?? []);
+
+      setState(() {
+        friendActivities.addAll(newActivities);
+        _isLoadingMoreActivities = false;
+        _hasMoreActivities = newActivities.length >= _activitiesPageSize;
+        _activitiesOffset += newActivities.length;
+      });
+    } catch (e) {
+      debugPrint('Erreur _loadMoreActivities: $e');
+      setState(() => _isLoadingMoreActivities = false);
+    }
+  }
+
   Future<void> loadFeed() async {
-    setState(() => loading = true);
+    setState(() {
+      loading = true;
+      _activitiesOffset = 0;
+      _hasMoreActivities = true;
+    });
 
     try {
       final user = supabase.auth.currentUser;
@@ -90,7 +151,7 @@ class _FeedPageState extends State<FeedPage> {
       if (tier == FeedTier.friendsOnly || tier == FeedTier.mixed) {
         final activitiesRes = await supabase.rpc('get_feed', params: {
           'p_user_id': user.id,
-          'p_limit': 20,
+          'p_limit': _activitiesPageSize,
           'p_offset': 0,
         });
         activities = List<Map<String, dynamic>>.from(activitiesRes ?? []);
@@ -107,6 +168,11 @@ class _FeedPageState extends State<FeedPage> {
 
       if (!mounted) return;
 
+      // Mélanger l'ordre des sections du feed
+      final random = Random();
+      final newOrder = [0, 1, 2]..shuffle(random);
+      debugPrint('Feed tier: $tier, section order: $newOrder');
+
       setState(() {
         currentStreak = streak;
         currentReadingBook = currentBook;
@@ -116,7 +182,10 @@ class _FeedPageState extends State<FeedPage> {
         trendingBooks = trending;
         communitySessions = community;
         suggestions = suggestionsRes;
+        _feedSectionOrder = newOrder;
         loading = false;
+        _hasMoreActivities = activities.length >= _activitiesPageSize;
+        _activitiesOffset = activities.length;
       });
     } catch (e) {
       debugPrint('Erreur loadFeed: $e');
@@ -176,58 +245,124 @@ class _FeedPageState extends State<FeedPage> {
     );
   }
 
+  /// Construit la section des sessions communautaires
+  List<Widget> _buildCommunitySessionsSection() {
+    if (communitySessions.isEmpty) return [];
+    return [
+      Row(
+        children: [
+          const Text('✨', style: TextStyle(fontSize: 16)),
+          const SizedBox(width: AppSpace.s),
+          Text(
+            'Sessions récentes',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+        ],
+      ),
+      const SizedBox(height: AppSpace.s),
+      ...communitySessions.map(
+        (session) => CommunitySessionCard(session: session),
+      ),
+      const SizedBox(height: AppSpace.l),
+    ];
+  }
+
+  /// Construit la section des livres tendances
+  List<Widget> _buildTrendingBooksSection() {
+    if (trendingBooks.isEmpty) return [];
+    return [
+      TrendingBooksCard(books: trendingBooks),
+      const SizedBox(height: AppSpace.l),
+    ];
+  }
+
+  /// Construit la section suggestions avec espacement
+  List<Widget> _buildSuggestionsSectionWithSpacing() {
+    if (suggestions.isEmpty) return [];
+    return [
+      _buildSuggestionsSection(),
+      const SizedBox(height: AppSpace.l),
+    ];
+  }
+
   /// Feed tier 3 : 0 amis — contenu tendances communauté
   List<Widget> _buildTrendingFeed() {
+    // Construire les sections dans l'ordre aléatoire
+    // 0 = sessions, 1 = suggestions, 2 = trending books
+    final sections = <List<Widget>>[];
+    final order = _feedSectionOrder.isNotEmpty ? _feedSectionOrder : [0, 1, 2];
+    for (final index in order) {
+      switch (index) {
+        case 0:
+          sections.add(_buildCommunitySessionsSection());
+          break;
+        case 1:
+          sections.add(_buildSuggestionsSectionWithSpacing());
+          break;
+        case 2:
+          sections.add(_buildTrendingBooksSection());
+          break;
+      }
+    }
+
     return [
-      // Message d'accueil
+      // Message d'accueil (toujours en premier)
       const TrendingWelcomeCard(),
       const SizedBox(height: AppSpace.l),
 
-      // Top livres du moment
-      if (trendingBooks.isNotEmpty) ...[
-        TrendingBooksCard(books: trendingBooks),
-        const SizedBox(height: AppSpace.l),
-      ],
+      // Sections dans l'ordre aléatoire
+      ...sections.expand((s) => s),
 
-      // Sessions de la communauté
-      if (communitySessions.isNotEmpty) ...[
-        Row(
-          children: [
-            const Text('✨', style: TextStyle(fontSize: 16)),
-            const SizedBox(width: AppSpace.s),
-            Text(
-              'Sessions récentes',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-          ],
-        ),
-        const SizedBox(height: AppSpace.s),
-        ...communitySessions.take(4).map(
-          (session) => CommunitySessionCard(session: session),
-        ),
-      ],
-
-      // Suggestions
-      _buildSuggestionsSection(),
-
-      // Sessions restantes
-      if (communitySessions.length > 4) ...[
-        const SizedBox(height: AppSpace.s),
-        ...communitySessions.skip(4).map(
-          (session) => CommunitySessionCard(session: session),
-        ),
-      ],
-
-      // CTA trouver des amis
+      // CTA trouver des amis (toujours en dernier)
       FindFriendsCta(onFindFriends: _navigateToSearchUsers),
+      const SizedBox(height: AppSpace.l),
+    ];
+  }
+
+  /// Construit la section des sessions communautaires (limitée pour feed mixte)
+  List<Widget> _buildCommunitySessionsSectionLimited() {
+    if (communitySessions.isEmpty) return [];
+    return [
+      Row(
+        children: [
+          const Text('✨', style: TextStyle(fontSize: 16)),
+          const SizedBox(width: AppSpace.s),
+          Text(
+            'Sessions récentes',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+        ],
+      ),
+      const SizedBox(height: AppSpace.s),
+      ...communitySessions.take(5).map(
+        (session) => CommunitySessionCard(session: session),
+      ),
       const SizedBox(height: AppSpace.l),
     ];
   }
 
   /// Feed tier 2 : 1-2 amis — mixte amis + communauté
   List<Widget> _buildMixedFeed() {
+    // Construire les sections dans l'ordre aléatoire
+    // 0 = sessions, 1 = suggestions, 2 = trending books
+    final sections = <List<Widget>>[];
+    final order = _feedSectionOrder.isNotEmpty ? _feedSectionOrder : [0, 1, 2];
+    for (final index in order) {
+      switch (index) {
+        case 0:
+          sections.add(_buildCommunitySessionsSectionLimited());
+          break;
+        case 1:
+          sections.add(_buildSuggestionsSectionWithSpacing());
+          break;
+        case 2:
+          sections.add(_buildTrendingBooksSection());
+          break;
+      }
+    }
+
     return [
-      // Activités des amis
+      // Activités des amis (toujours en premier)
       Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -266,37 +401,15 @@ class _FeedPageState extends State<FeedPage> {
           (activity) => FriendActivityCard(activity: activity),
         ),
 
-      // Suggestions
-      _buildSuggestionsSection(),
+      const SizedBox(height: AppSpace.l),
 
       // Séparateur communauté
       const CommunitySectionSeparator(),
 
-      // Top livres
-      if (trendingBooks.isNotEmpty) ...[
-        TrendingBooksCard(books: trendingBooks),
-        const SizedBox(height: AppSpace.l),
-      ],
+      // Sections dans l'ordre aléatoire
+      ...sections.expand((s) => s),
 
-      // Sessions communauté (limite a 5 pour le feed mixte)
-      if (communitySessions.isNotEmpty) ...[
-        Row(
-          children: [
-            const Text('✨', style: TextStyle(fontSize: 16)),
-            const SizedBox(width: AppSpace.s),
-            Text(
-              'Sessions récentes',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-          ],
-        ),
-        const SizedBox(height: AppSpace.s),
-        ...communitySessions.take(5).map(
-          (session) => CommunitySessionCard(session: session),
-        ),
-      ],
-
-      // CTA trouver des amis (discret)
+      // CTA trouver des amis (toujours en dernier)
       FindFriendsCta(onFindFriends: _navigateToSearchUsers),
       const SizedBox(height: AppSpace.l),
     ];
@@ -382,6 +495,8 @@ class _FeedPageState extends State<FeedPage> {
               child: RefreshIndicator(
                 onRefresh: loadFeed,
                 child: ListView(
+                  controller: _scrollController,
+                  physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.all(AppSpace.l),
                   children: [
 
@@ -454,6 +569,17 @@ class _FeedPageState extends State<FeedPage> {
                 )
               else
                 ..._buildFeedContent(),
+
+              // Loading indicator pour pagination
+              if (!loading && (_isLoadingMoreActivities || _hasMoreActivities))
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Center(
+                    child: _isLoadingMoreActivities
+                        ? const CircularProgressIndicator()
+                        : const SizedBox.shrink(),
+                  ),
+                ),
 
                   ],
                 ),

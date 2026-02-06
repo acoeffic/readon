@@ -3,6 +3,7 @@ import '../../models/reading_session.dart';
 import '../../models/book.dart';
 import '../../services/reading_session_service.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/cached_book_cover.dart';
 
 class SessionDetailPage extends StatelessWidget {
   final ReadingSession session;
@@ -234,17 +235,11 @@ class SessionDetailPage extends StatelessWidget {
   Widget _buildBookHeader() {
     return Row(
       children: [
-        ClipRRect(
+        CachedBookCover(
+          imageUrl: book?.coverUrl,
+          width: 64,
+          height: 92,
           borderRadius: BorderRadius.circular(8),
-          child: book?.coverUrl != null
-              ? Image.network(
-                  book!.coverUrl!,
-                  width: 64,
-                  height: 92,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => _buildPlaceholderCover(),
-                )
-              : _buildPlaceholderCover(),
         ),
         const SizedBox(width: 16),
         Expanded(
@@ -276,18 +271,6 @@ class SessionDetailPage extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildPlaceholderCover() {
-    return Container(
-      width: 64,
-      height: 92,
-      decoration: BoxDecoration(
-        color: Colors.grey.shade200,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Icon(Icons.book, color: Colors.grey.shade400, size: 32),
     );
   }
 
