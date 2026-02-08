@@ -63,7 +63,7 @@ class UserSearchResult {
   final List<UserBadgeSimple>? recentBadges;
   final int? booksFinished;
   final DateTime? memberSince;
-  final int? currentStreak;
+  final int? currentFlow;
   final CurrentBook? currentBook;
   final int? friendsCount;
 
@@ -76,7 +76,7 @@ class UserSearchResult {
     this.recentBadges,
     this.booksFinished,
     this.memberSince,
-    this.currentStreak,
+    this.currentFlow,
     this.currentBook,
     this.friendsCount,
   });
@@ -101,7 +101,7 @@ class UserSearchResult {
       memberSince: !isPrivate && json['member_since'] != null
           ? DateTime.parse(json['member_since'] as String)
           : null,
-      currentStreak: !isPrivate ? (json['current_streak'] as num?)?.toInt() : null,
+      currentFlow: !isPrivate ? (json['current_streak'] as num?)?.toInt() : null,
       currentBook: !isPrivate && json['current_book'] != null
           ? CurrentBook.fromJson(json['current_book'] as Map<String, dynamic>)
           : null,

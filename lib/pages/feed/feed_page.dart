@@ -8,10 +8,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../theme/app_theme.dart';
 import '../feed/widgets/feed_header.dart';
 import 'widgets/friend_activity_card.dart';
-import '../feed/widgets/streak_card.dart';
-import '../../services/streak_service.dart';
-import '../../models/reading_streak.dart';
-import 'streak_detail_page.dart';
+import '../feed/widgets/flow_card.dart';
+import '../../services/flow_service.dart';
+import '../../models/reading_flow.dart';
+import 'flow_detail_page.dart';
 import 'widgets/continue_reading_card.dart';
 import '../../services/books_service.dart';
 import '../../models/book.dart';
@@ -37,14 +37,14 @@ class FeedPage extends StatefulWidget {
 
 class _FeedPageState extends State<FeedPage> {
   final supabase = Supabase.instance.client;
-  final streakService = StreakService();
+  final flowService = FlowService();
   final booksService = BooksService();
   final suggestionsService = SuggestionsService();
   final trendingService = TrendingService();
   final ScrollController _scrollController = ScrollController();
 
   List<Map<String, dynamic>> friendActivities = [];
-  ReadingStreak? currentStreak;
+  ReadingFlow? currentFlow;
   Map<String, dynamic>? currentReadingBook;
   List<BookSuggestion> suggestions = [];
   bool loading = true;
@@ -129,15 +129,15 @@ class _FeedPageState extends State<FeedPage> {
         return;
       }
 
-      // Charger en parallele : streak, livre en cours, nombre d'amis, suggestions
+      // Charger en parallele : flow, livre en cours, nombre d'amis, suggestions
       final results = await Future.wait([
-        streakService.getUserStreak(),
+        flowService.getUserFlow(),
         booksService.getCurrentReadingBook(),
         trendingService.getAcceptedFriendCount(),
         suggestionsService.getPersonalizedSuggestions(limit: 5),
       ]);
 
-      final streak = results[0] as ReadingStreak?;
+      final flow = results[0] as ReadingFlow?;
       final currentBook = results[1] as Map<String, dynamic>?;
       final fCount = results[2] as int;
       final suggestionsRes = results[3] as List<BookSuggestion>;
@@ -174,7 +174,7 @@ class _FeedPageState extends State<FeedPage> {
       debugPrint('Feed tier: $tier, section order: $newOrder');
 
       setState(() {
-        currentStreak = streak;
+        currentFlow = flow;
         currentReadingBook = currentBook;
         friendCount = fCount;
         feedTier = tier;
@@ -534,7 +534,7 @@ class _FeedPageState extends State<FeedPage> {
                 const SizedBox(height: AppSpace.l),
               ],
 
-              // 👉 Streak de lecture
+              // 👉 Flow de lecture
               if (loading)
                 const Center(
                   child: Padding(
@@ -542,15 +542,15 @@ class _FeedPageState extends State<FeedPage> {
                     child: CircularProgressIndicator(),
                   ),
                 )
-              else if (currentStreak != null)
-                StreakCard(
-                  streak: currentStreak!,
+              else if (currentFlow != null)
+                FlowCard(
+                  flow: currentFlow!,
                   onTap: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => StreakDetailPage(
-                          initialStreak: currentStreak!,
+                        builder: (context) => FlowDetailPage(
+                          initialFlow: currentFlow!,
                         ),
                       ),
                     );

@@ -240,7 +240,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
               ),
               const SizedBox(height: AppSpace.s),
               Text(
-                'Reste motivé avec des rappels quotidiens pour maintenir ton streak de lecture.',
+                'Reste motivé avec des rappels quotidiens pour maintenir ton flow de lecture.',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
@@ -487,7 +487,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Tu recevras une notification les jours sélectionnés pour te rappeler de lire et maintenir ton streak.',
+                            'Tu recevras une notification les jours sélectionnés pour te rappeler de lire et maintenir ton flow.',
                             style: Theme.of(context)
                                 .textTheme
                                 .bodySmall

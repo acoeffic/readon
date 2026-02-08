@@ -1,28 +1,28 @@
-// lib/pages/feed/widgets/streak_card.dart
-// Widget pour afficher le streak de lecture dans le feed
+// lib/pages/feed/widgets/flow_card.dart
+// Widget pour afficher le flow de lecture dans le feed
 
 import 'package:flutter/material.dart';
-import '../../../models/reading_streak.dart';
+import '../../../models/reading_flow.dart';
 import '../../../theme/app_theme.dart';
 
-class StreakCard extends StatelessWidget {
-  final ReadingStreak streak;
+class FlowCard extends StatelessWidget {
+  final ReadingFlow flow;
   final VoidCallback? onTap;
 
-  const StreakCard({
+  const FlowCard({
     super.key,
-    required this.streak,
+    required this.flow,
     this.onTap,
   });
 
-  Color _getStreakColor() {
-    if (streak.currentStreak >= 30) {
+  Color _getFlowColor() {
+    if (flow.currentFlow >= 30) {
       return AppColors.primary; // Purple
-    } else if (streak.currentStreak >= 14) {
+    } else if (flow.currentFlow >= 14) {
       return const Color(0xFFFF5722); // Deep Orange
-    } else if (streak.currentStreak >= 7) {
+    } else if (flow.currentFlow >= 7) {
       return const Color(0xFFFFC107); // Amber
-    } else if (streak.currentStreak >= 3) {
+    } else if (flow.currentFlow >= 3) {
       return const Color(0xFFFF9800); // Orange
     } else {
       return const Color(0xFF4CAF50); // Green
@@ -31,7 +31,7 @@ class StreakCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = _getStreakColor();
+    final color = _getFlowColor();
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
 
@@ -71,14 +71,14 @@ class StreakCard extends StatelessWidget {
               // En-tête compact avec les statistiques
               Row(
                 children: [
-                  // Streak actuel
+                  // Flow actuel
                   Expanded(
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.baseline,
                       textBaseline: TextBaseline.alphabetic,
                       children: [
                         Text(
-                          '${streak.currentStreak}',
+                          '${flow.currentFlow}',
                           style: const TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
@@ -104,7 +104,7 @@ class StreakCard extends StatelessWidget {
                     color: Colors.grey.shade700.withValues(alpha:0.5),
                     margin: const EdgeInsets.symmetric(horizontal: 8),
                   ),
-                  // Streak record
+                  // Flow record
                   Expanded(
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.baseline,
@@ -116,7 +116,7 @@ class StreakCard extends StatelessWidget {
                         ),
                         const SizedBox(width: 3),
                         Text(
-                          '${streak.longestStreak}',
+                          '${flow.longestFlow}',
                           style: const TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
@@ -179,14 +179,14 @@ class StreakCard extends StatelessWidget {
 
   Widget _buildDayCircle(DateTime date, int index, Color activeColor, DateTime today) {
     // Vérifier si l'utilisateur a lu ce jour-là
-    final hasRead = streak.readDates.any((readDate) {
+    final hasRead = flow.readDates.any((readDate) {
       return readDate.year == date.year &&
           readDate.month == date.month &&
           readDate.day == date.day;
     });
 
     // Vérifier si ce jour est frozen
-    final isFrozen = streak.isDayFrozen(date);
+    final isFrozen = flow.isDayFrozen(date);
 
     // Vérifier si c'est aujourd'hui
     final isToday = date.year == today.year &&

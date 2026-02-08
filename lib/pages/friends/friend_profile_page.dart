@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../theme/app_theme.dart';
 import '../../services/badges_service.dart';
-import '../../services/streak_service.dart';
+import '../../services/flow_service.dart';
 import '../../widgets/badges_grid.dart';
 import '../../widgets/cached_profile_avatar.dart';
 
@@ -25,7 +25,7 @@ class FriendProfilePage extends StatefulWidget {
 class _FriendProfilePageState extends State<FriendProfilePage> {
   final supabase = Supabase.instance.client;
   final badgesService = BadgesService();
-  final streakService = StreakService();
+  final flowService = FlowService();
 
   bool _loading = true;
   String _userName = '';
@@ -34,7 +34,7 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
   int _booksFinished = 0;
   int _totalPages = 0;
   int _totalHours = 0;
-  int _currentStreak = 0;
+  int _currentFlow = 0;
   List<Map<String, dynamic>> _recentSessions = [];
   List<UserBadge> _badges = [];
   String? _friendshipStatus; // 'accepted', 'pending', null
@@ -60,7 +60,7 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
     if (_canViewDetails) {
       await Future.wait([
         _loadStats(),
-        _loadStreak(),
+        _loadFlow(),
         _loadRecentSessions(),
         _loadBadges(),
       ]);
@@ -116,12 +116,12 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
     }
   }
 
-  Future<void> _loadStreak() async {
+  Future<void> _loadFlow() async {
     try {
-      final streak = await streakService.getStreakForUser(widget.userId);
-      if (mounted) setState(() => _currentStreak = streak);
+      final flow = await flowService.getFlowForUser(widget.userId);
+      if (mounted) setState(() => _currentFlow = flow);
     } catch (e) {
-      debugPrint('Erreur _loadStreak: $e');
+      debugPrint('Erreur _loadFlow: $e');
     }
   }
 
@@ -443,7 +443,7 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
           _buildStatItem(Icons.book, '$_booksFinished', 'Livres'),
           _buildStatItem(Icons.menu_book, '$_totalPages', 'Pages'),
           _buildStatItem(Icons.schedule, '${_totalHours}h', 'Lecture'),
-          _buildStatItem(Icons.local_fire_department, '$_currentStreak', 'Streak'),
+          _buildStatItem(Icons.local_fire_department, '$_currentFlow', 'Flow'),
         ],
       ),
     );

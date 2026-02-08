@@ -4,21 +4,23 @@ import '../providers/subscription_provider.dart';
 
 enum Feature {
   advancedReactions,
-  streakAutoFreeze,
+  flowAutoFreeze,
   advancedStats,
   customThemes,
   premiumBadges,
-  streakHistory,
+  flowHistory,
+  kindleAutoSync,
 }
 
 class FeatureFlags {
   static const _premiumFeatures = <Feature>{
     Feature.advancedReactions,
-    Feature.streakAutoFreeze,
+    Feature.flowAutoFreeze,
     Feature.advancedStats,
     Feature.customThemes,
     Feature.premiumBadges,
-    Feature.streakHistory,
+    Feature.flowHistory,
+    Feature.kindleAutoSync,
   };
 
   /// Vérifie si une feature est disponible
@@ -37,16 +39,18 @@ class FeatureFlags {
     switch (feature) {
       case Feature.advancedReactions:
         return 'Réactions avancées';
-      case Feature.streakAutoFreeze:
-        return 'Streak auto-freeze';
+      case Feature.flowAutoFreeze:
+        return 'Flow auto-freeze';
       case Feature.advancedStats:
         return 'Statistiques avancées';
       case Feature.customThemes:
         return 'Thèmes personnalisés';
       case Feature.premiumBadges:
         return 'Badges Premium';
-      case Feature.streakHistory:
-        return 'Historique du streak';
+      case Feature.flowHistory:
+        return 'Historique du flow';
+      case Feature.kindleAutoSync:
+        return 'Sync Kindle automatique';
     }
   }
 
@@ -54,16 +58,18 @@ class FeatureFlags {
     switch (feature) {
       case Feature.advancedReactions:
         return 'Réagis aux activités de tes amis avec des emojis uniques';
-      case Feature.streakAutoFreeze:
-        return 'Protège automatiquement ton streak quand tu ne lis pas';
+      case Feature.flowAutoFreeze:
+        return 'Protège automatiquement ton flow quand tu ne lis pas';
       case Feature.advancedStats:
         return 'Accède à des statistiques détaillées sur ta lecture';
       case Feature.customThemes:
         return 'Personnalise l\'apparence de ton application';
       case Feature.premiumBadges:
         return 'Débloquez 65+ badges exclusifs, animés et secrets';
-      case Feature.streakHistory:
+      case Feature.flowHistory:
         return 'Navigue dans tout ton historique de lecture mois par mois';
+      case Feature.kindleAutoSync:
+        return 'Synchronise automatiquement ta bibliothèque Kindle à chaque ouverture';
     }
   }
 
@@ -71,7 +77,7 @@ class FeatureFlags {
     switch (feature) {
       case Feature.advancedReactions:
         return Icons.emoji_emotions;
-      case Feature.streakAutoFreeze:
+      case Feature.flowAutoFreeze:
         return Icons.ac_unit;
       case Feature.advancedStats:
         return Icons.bar_chart;
@@ -79,8 +85,10 @@ class FeatureFlags {
         return Icons.palette;
       case Feature.premiumBadges:
         return Icons.workspace_premium;
-      case Feature.streakHistory:
+      case Feature.flowHistory:
         return Icons.calendar_month;
+      case Feature.kindleAutoSync:
+        return Icons.sync;
     }
   }
 }

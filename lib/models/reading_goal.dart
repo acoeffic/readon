@@ -93,7 +93,7 @@ enum GoalType {
       case GoalType.daysPerWeek:
         return 'Jours de lecture / semaine';
       case GoalType.streakTarget:
-        return 'Streak cible';
+        return 'Flow cible';
       case GoalType.minutesPerDay:
         return 'Minutes de lecture / jour';
       case GoalType.nonfictionBooks:

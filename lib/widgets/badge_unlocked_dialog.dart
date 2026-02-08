@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import '../services/badges_service.dart';
 import '../theme/app_theme.dart';
+import '../features/badges/widgets/first_book_badge_painter.dart';
 
 class BadgeUnlockedDialog extends StatefulWidget {
   final UserBadge badge;
@@ -200,37 +201,39 @@ class _BadgeUnlockedDialogState extends State<BadgeUnlockedDialog>
                       builder: (context, child) {
                         return Transform.rotate(
                           angle: _rotationAnimation.value,
-                          child: Container(
-                            width: 120,
-                            height: 120,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: _getBadgeColor().withValues(alpha: 0.2),
-                              border: Border.all(
-                                color: _getBadgeColor(),
-                                width: 4,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: _getBadgeColor().withValues(alpha: 0.3),
-                                  blurRadius: 20,
-                                  spreadRadius: 5,
-                                ),
-                                if (isSecret)
-                                  BoxShadow(
-                                    color: Colors.purple.withValues(alpha: 0.2),
-                                    blurRadius: 30,
-                                    spreadRadius: 10,
+                          child: isFirstBookBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
+                              ? const FirstBookBadgeWidget(size: 120)
+                              : Container(
+                                  width: 120,
+                                  height: 120,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: _getBadgeColor().withValues(alpha: 0.2),
+                                    border: Border.all(
+                                      color: _getBadgeColor(),
+                                      width: 4,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: _getBadgeColor().withValues(alpha: 0.3),
+                                        blurRadius: 20,
+                                        spreadRadius: 5,
+                                      ),
+                                      if (isSecret)
+                                        BoxShadow(
+                                          color: Colors.purple.withValues(alpha: 0.2),
+                                          blurRadius: 30,
+                                          spreadRadius: 10,
+                                        ),
+                                    ],
                                   ),
-                              ],
-                            ),
-                            child: Center(
-                              child: Text(
-                                widget.badge.icon,
-                                style: const TextStyle(fontSize: 60),
-                              ),
-                            ),
-                          ),
+                                  child: Center(
+                                    child: Text(
+                                      widget.badge.icon,
+                                      style: const TextStyle(fontSize: 60),
+                                    ),
+                                  ),
+                                ),
                         );
                       },
                     ),

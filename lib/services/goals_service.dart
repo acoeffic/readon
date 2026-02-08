@@ -3,11 +3,11 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/reading_goal.dart';
-import 'streak_service.dart';
+import 'flow_service.dart';
 
 class GoalsService {
   final SupabaseClient _supabase = Supabase.instance.client;
-  final StreakService _streakService = StreakService();
+  final FlowService _flowService = FlowService();
 
   /// Recuperer tous les objectifs actifs avec progression
   Future<List<ReadingGoal>> getActiveGoalsWithProgress({int? year}) async {
@@ -32,9 +32,9 @@ class GoalsService {
       // Enrichir streak_target avec les donnees client
       for (int i = 0; i < goals.length; i++) {
         if (goals[i].goalType == GoalType.streakTarget) {
-          final streak = await _streakService.getUserStreak();
+          final flow = await _flowService.getUserFlow();
           goals[i] = goals[i].copyWith(
-            currentValue: streak.currentStreak,
+            currentValue: flow.currentFlow,
           );
         }
       }

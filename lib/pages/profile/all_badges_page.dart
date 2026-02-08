@@ -2,12 +2,14 @@
 // Page complète affichant tous les badges par catégorie
 
 import 'dart:math' as math;
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../services/badges_service.dart';
 import '../../providers/subscription_provider.dart';
 import '../../pages/profile/upgrade_page.dart';
 import '../../theme/app_theme.dart';
+import '../../features/badges/widgets/first_book_badge_painter.dart';
 
 class AllBadgesPage extends StatefulWidget {
   const AllBadgesPage({super.key});
@@ -85,6 +87,7 @@ class _AllBadgesPageState extends State<AllBadgesPage> {
       'style',
       'monthly',
       'yearly',
+      'anniversary',
     ];
 
     for (var category in categoryOrder) {
@@ -114,7 +117,7 @@ class _AllBadgesPageState extends State<AllBadgesPage> {
       case 'reading_time':
         return 'Temps de lecture';
       case 'streak':
-        return 'Streaks';
+        return 'Flows';
       case 'goals':
         return 'Objectifs';
       case 'social':
@@ -133,6 +136,8 @@ class _AllBadgesPageState extends State<AllBadgesPage> {
         return 'Challenges mensuels';
       case 'yearly':
         return 'Année & Récap';
+      case 'anniversary':
+        return 'Anniversaire';
       case 'trophy':
         return 'Trophées';
       default:
@@ -880,6 +885,7 @@ class _BadgeCard extends StatelessWidget {
 
   bool get _isPremiumLocked => badge.isPremium && !isPremiumUser;
   bool get _isSecretHidden => badge.isSecret && !badge.isUnlocked;
+  bool get _isAnniversaryHidden => badge.category == 'anniversary' && !badge.isUnlocked;
 
   @override
   Widget build(BuildContext context) {
@@ -918,30 +924,39 @@ class _BadgeCard extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             // Badge icon
-            Container(
-              width: 64,
-              height: 64,
-              decoration: BoxDecoration(
-                color: _isSecretHidden
-                    ? (isDark ? Colors.grey.shade800 : Colors.grey.shade200)
-                    : isLocked
-                        ? color.withValues(alpha: isDark ? 0.2 : 0.1)
-                        : color.withValues(alpha: isDark ? 0.25 : 0.15),
-                shape: BoxShape.circle,
-              ),
-              child: Center(
-                child: _isSecretHidden
-                    ? Text(
-                        '?',
-                        style: TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                          color: secondaryTextColor,
+            ClipOval(
+              child: ImageFiltered(
+                imageFilter: _isAnniversaryHidden
+                    ? ImageFilter.blur(sigmaX: 6, sigmaY: 6)
+                    : ImageFilter.blur(sigmaX: 0, sigmaY: 0),
+                child: isFirstBookBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                    ? FirstBookBadgeWidget(size: 64, isLocked: !badge.isUnlocked)
+                    : Container(
+                        width: 64,
+                        height: 64,
+                        decoration: BoxDecoration(
+                          color: _isSecretHidden
+                              ? (isDark ? Colors.grey.shade800 : Colors.grey.shade200)
+                              : isLocked
+                                  ? color.withValues(alpha: isDark ? 0.2 : 0.1)
+                                  : color.withValues(alpha: isDark ? 0.25 : 0.15),
+                          shape: BoxShape.circle,
                         ),
-                      )
-                    : Text(
-                        badge.icon,
-                        style: const TextStyle(fontSize: 32),
+                        child: Center(
+                          child: _isSecretHidden
+                              ? Text(
+                                  '?',
+                                  style: TextStyle(
+                                    fontSize: 32,
+                                    fontWeight: FontWeight.bold,
+                                    color: secondaryTextColor,
+                                  ),
+                                )
+                              : Text(
+                                  badge.icon,
+                                  style: const TextStyle(fontSize: 32),
+                                ),
+                        ),
                       ),
               ),
             ),
@@ -949,16 +964,21 @@ class _BadgeCard extends StatelessWidget {
             const SizedBox(height: 10),
 
             // Badge name
-            Text(
-              _isSecretHidden ? '???' : badge.name,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: isLocked ? lockedTextColor : textColor,
+            ImageFiltered(
+              imageFilter: _isAnniversaryHidden
+                  ? ImageFilter.blur(sigmaX: 4, sigmaY: 4)
+                  : ImageFilter.blur(sigmaX: 0, sigmaY: 0),
+              child: Text(
+                _isSecretHidden ? '???' : badge.name,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: isLocked ? lockedTextColor : textColor,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
             ),
 
             const SizedBox(height: 4),
@@ -1088,7 +1108,7 @@ class _BadgeCard extends StatelessWidget {
       case 'reading_time':
         return 'Temps de lecture';
       case 'streak':
-        return 'Streak';
+        return 'Flow';
       case 'goals':
         return 'Objectifs';
       case 'social':
@@ -1107,6 +1127,8 @@ class _BadgeCard extends StatelessWidget {
         return 'Challenge mensuel';
       case 'yearly':
         return 'Annuel';
+      case 'anniversary':
+        return 'Anniversaire';
       default:
         return category;
     }
@@ -1156,65 +1178,84 @@ class _BadgeCard extends StatelessWidget {
             ],
 
             // Badge icon
-            Container(
-              width: 100,
-              height: 100,
-              decoration: BoxDecoration(
-                color: _isSecretHidden
-                    ? (isDark ? Colors.grey.shade800 : Colors.grey.shade200)
-                    : badge.isUnlocked
-                        ? color.withValues(alpha: 0.2)
-                        : (isDark ? Colors.grey.shade800 : Colors.grey.shade100),
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: _isSecretHidden
-                      ? (isDark ? Colors.grey.shade700 : Colors.grey.shade300)
-                      : badge.isUnlocked
-                          ? color
-                          : (isDark ? Colors.grey.shade700 : Colors.grey.shade300),
-                  width: 3,
-                ),
-              ),
-              child: Center(
-                child: _isSecretHidden
-                    ? Text(
-                        '?',
-                        style: TextStyle(
-                          fontSize: 48,
-                          fontWeight: FontWeight.bold,
-                          color: secondaryTextColor,
+            ClipOval(
+              child: ImageFiltered(
+                imageFilter: _isAnniversaryHidden
+                    ? ImageFilter.blur(sigmaX: 8, sigmaY: 8)
+                    : ImageFilter.blur(sigmaX: 0, sigmaY: 0),
+                child: isFirstBookBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                    ? FirstBookBadgeWidget(size: 100, isLocked: !badge.isUnlocked)
+                    : Container(
+                        width: 100,
+                        height: 100,
+                        decoration: BoxDecoration(
+                          color: _isSecretHidden
+                              ? (isDark ? Colors.grey.shade800 : Colors.grey.shade200)
+                              : badge.isUnlocked
+                                  ? color.withValues(alpha: 0.2)
+                                  : (isDark ? Colors.grey.shade800 : Colors.grey.shade100),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: _isSecretHidden
+                                ? (isDark ? Colors.grey.shade700 : Colors.grey.shade300)
+                                : badge.isUnlocked
+                                    ? color
+                                    : (isDark ? Colors.grey.shade700 : Colors.grey.shade300),
+                            width: 3,
+                          ),
                         ),
-                      )
-                    : Text(
-                        badge.icon,
-                        style: const TextStyle(fontSize: 48),
+                        child: Center(
+                          child: _isSecretHidden
+                              ? Text(
+                                  '?',
+                                  style: TextStyle(
+                                    fontSize: 48,
+                                    fontWeight: FontWeight.bold,
+                                    color: secondaryTextColor,
+                                  ),
+                                )
+                              : Text(
+                                  badge.icon,
+                                  style: const TextStyle(fontSize: 48),
+                                ),
+                        ),
                       ),
               ),
             ),
             const SizedBox(height: 16),
 
             // Badge name
-            Text(
-              _isSecretHidden ? '??? Badge Secret' : badge.name,
-              style: const TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
+            ImageFiltered(
+              imageFilter: _isAnniversaryHidden
+                  ? ImageFilter.blur(sigmaX: 5, sigmaY: 5)
+                  : ImageFilter.blur(sigmaX: 0, sigmaY: 0),
+              child: Text(
+                _isSecretHidden ? '??? Badge Secret' : badge.name,
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
               ),
-              textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
 
             // Description
-            Text(
-              _isSecretHidden
-                  ? 'Condition cachée... Continuez à lire pour le découvrir !'
-                  : badge.description,
-              style: TextStyle(
-                fontSize: 14,
-                color: secondaryTextColor,
-                fontStyle: _isSecretHidden ? FontStyle.italic : FontStyle.normal,
+            ImageFiltered(
+              imageFilter: _isAnniversaryHidden
+                  ? ImageFilter.blur(sigmaX: 4, sigmaY: 4)
+                  : ImageFilter.blur(sigmaX: 0, sigmaY: 0),
+              child: Text(
+                _isSecretHidden
+                    ? 'Condition cachée... Continuez à lire pour le découvrir !'
+                    : badge.description,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: secondaryTextColor,
+                  fontStyle: _isSecretHidden ? FontStyle.italic : FontStyle.normal,
+                ),
+                textAlign: TextAlign.center,
               ),
-              textAlign: TextAlign.center,
             ),
             const SizedBox(height: 20),
 

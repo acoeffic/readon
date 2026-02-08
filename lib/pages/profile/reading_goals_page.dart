@@ -468,8 +468,8 @@ class _ReadingGoalsPageState extends State<ReadingGoalsPage> {
 
         const SizedBox(height: AppSpace.l),
 
-        // Streak cible
-        _buildRegularitySubHeader('🔥', 'Maintenir un streak de'),
+        // Flow cible
+        _buildRegularitySubHeader('🔥', 'Maintenir un flow de'),
         const SizedBox(height: AppSpace.m),
         _buildChipRow(
           values: [7, 30, 100],
@@ -520,7 +520,7 @@ class _ReadingGoalsPageState extends State<ReadingGoalsPage> {
                 Text(
                   [
                     if (_daysPerWeek != null) 'Lire $_daysPerWeek jours/semaine',
-                    if (_streakTarget != null) 'Streak de $_streakTarget jours',
+                    if (_streakTarget != null) 'Flow de $_streakTarget jours',
                     if (_minutesPerDay != null) '$_minutesPerDay min/jour',
                   ].join(' · '),
                   style: TextStyle(

@@ -1,29 +1,29 @@
-// lib/models/reading_streak.dart
-// Modèle pour représenter les streaks de lecture (jours consécutifs)
+// lib/models/reading_flow.dart
+// Modèle pour représenter les flows de lecture (jours consécutifs)
 
-import 'streak_freeze.dart';
+import 'flow_freeze.dart';
 
-class ReadingStreak {
-  final int currentStreak;      // Nombre de jours consécutifs actuels
-  final int longestStreak;      // Record de jours consécutifs
+class ReadingFlow {
+  final int currentFlow;      // Nombre de jours consécutifs actuels
+  final int longestFlow;      // Record de jours consécutifs
   final DateTime? lastReadDate; // Dernière date de lecture
   final List<DateTime> readDates; // Historique des dates de lecture
   final List<DateTime> frozenDates; // Dates protégées par un freeze
-  final StreakFreezeStatus? freezeStatus; // Statut du freeze
+  final FlowFreezeStatus? freezeStatus; // Statut du freeze
 
-  ReadingStreak({
-    required this.currentStreak,
-    required this.longestStreak,
+  ReadingFlow({
+    required this.currentFlow,
+    required this.longestFlow,
     this.lastReadDate,
     required this.readDates,
     this.frozenDates = const [],
     this.freezeStatus,
   });
 
-  factory ReadingStreak.empty() {
-    return ReadingStreak(
-      currentStreak: 0,
-      longestStreak: 0,
+  factory ReadingFlow.empty() {
+    return ReadingFlow(
+      currentFlow: 0,
+      longestFlow: 0,
       lastReadDate: null,
       readDates: [],
       frozenDates: [],
@@ -31,10 +31,10 @@ class ReadingStreak {
     );
   }
 
-  factory ReadingStreak.fromJson(Map<String, dynamic> json) {
-    return ReadingStreak(
-      currentStreak: json['current_streak'] as int? ?? 0,
-      longestStreak: json['longest_streak'] as int? ?? 0,
+  factory ReadingFlow.fromJson(Map<String, dynamic> json) {
+    return ReadingFlow(
+      currentFlow: json['current_streak'] as int? ?? 0,
+      longestFlow: json['longest_streak'] as int? ?? 0,
       lastReadDate: json['last_read_date'] != null
           ? DateTime.parse(json['last_read_date'] as String)
           : null,
@@ -47,24 +47,24 @@ class ReadingStreak {
               .toList() ??
           [],
       freezeStatus: json['freeze_status'] != null
-          ? StreakFreezeStatus.fromJson(json['freeze_status'] as Map<String, dynamic>)
+          ? FlowFreezeStatus.fromJson(json['freeze_status'] as Map<String, dynamic>)
           : null,
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'current_streak': currentStreak,
-      'longest_streak': longestStreak,
+      'current_streak': currentFlow,
+      'longest_streak': longestFlow,
       'last_read_date': lastReadDate?.toIso8601String(),
       'read_dates': readDates.map((e) => e.toIso8601String()).toList(),
       'frozen_dates': frozenDates.map((e) => e.toIso8601String()).toList(),
     };
   }
 
-  /// Vérifie si le streak est toujours actif (lecture hier ou aujourd'hui, ou jour frozen)
+  /// Vérifie si le flow est toujours actif (lecture hier ou aujourd'hui, ou jour frozen)
   bool get isActive {
-    if (currentStreak == 0) return false;
+    if (currentFlow == 0) return false;
     if (lastReadDate == null && frozenDates.isEmpty) return false;
 
     final now = DateTime.now();
@@ -97,9 +97,9 @@ class ReadingStreak {
     );
   }
 
-  /// Indique si le streak est en danger (pas de lecture aujourd'hui et freeze disponible)
+  /// Indique si le flow est en danger (pas de lecture aujourd'hui et freeze disponible)
   bool get isAtRisk {
-    if (currentStreak == 0) return false;
+    if (currentFlow == 0) return false;
 
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
@@ -112,56 +112,56 @@ class ReadingStreak {
       lastReadDate!.day,
     );
 
-    // Si la dernière lecture n'est pas aujourd'hui, le streak est en danger
+    // Si la dernière lecture n'est pas aujourd'hui, le flow est en danger
     return lastRead != today;
   }
 
-  /// Retourne le badge de streak le plus élevé débloqué
-  StreakBadgeLevel? get highestBadge {
-    for (final level in StreakBadgeLevel.values.reversed) {
-      if (currentStreak >= level.days) return level;
+  /// Retourne le badge de flow le plus élevé débloqué
+  FlowBadgeLevel? get highestBadge {
+    for (final level in FlowBadgeLevel.values.reversed) {
+      if (currentFlow >= level.days) return level;
     }
     return null;
   }
 
-  /// Retourne tous les badges de streak débloqués
-  List<StreakBadgeLevel> get unlockedBadges {
-    return StreakBadgeLevel.values
-        .where((level) => currentStreak >= level.days)
+  /// Retourne tous les badges de flow débloqués
+  List<FlowBadgeLevel> get unlockedBadges {
+    return FlowBadgeLevel.values
+        .where((level) => currentFlow >= level.days)
         .toList();
   }
 
-  /// Message de motivation basé sur le streak actuel
+  /// Message de motivation basé sur le flow actuel
   String get motivationMessage {
-    if (currentStreak == 0) {
-      return "Commencez votre streak aujourd'hui!";
-    } else if (currentStreak == 1) {
+    if (currentFlow == 0) {
+      return "Commencez votre flow aujourd'hui!";
+    } else if (currentFlow == 1) {
       return "Premier jour de lecture! Continuez!";
-    } else if (currentStreak < 3) {
-      return "Vous êtes lancé! $currentStreak jours d'affilée!";
-    } else if (currentStreak < 7) {
-      return "Excellent! $currentStreak jours consécutifs!";
-    } else if (currentStreak < 14) {
-      return "Incroyable! $currentStreak jours de lecture!";
-    } else if (currentStreak < 30) {
-      return "Fantastique! $currentStreak jours d'affilée!";
+    } else if (currentFlow < 3) {
+      return "Vous êtes lancé! $currentFlow jours d'affilée!";
+    } else if (currentFlow < 7) {
+      return "Excellent! $currentFlow jours consécutifs!";
+    } else if (currentFlow < 14) {
+      return "Incroyable! $currentFlow jours de lecture!";
+    } else if (currentFlow < 30) {
+      return "Fantastique! $currentFlow jours d'affilée!";
     } else {
-      return "Légendaire! $currentStreak jours consécutifs!";
+      return "Légendaire! $currentFlow jours consécutifs!";
     }
   }
 
   /// Copie avec modifications
-  ReadingStreak copyWith({
-    int? currentStreak,
-    int? longestStreak,
+  ReadingFlow copyWith({
+    int? currentFlow,
+    int? longestFlow,
     DateTime? lastReadDate,
     List<DateTime>? readDates,
     List<DateTime>? frozenDates,
-    StreakFreezeStatus? freezeStatus,
+    FlowFreezeStatus? freezeStatus,
   }) {
-    return ReadingStreak(
-      currentStreak: currentStreak ?? this.currentStreak,
-      longestStreak: longestStreak ?? this.longestStreak,
+    return ReadingFlow(
+      currentFlow: currentFlow ?? this.currentFlow,
+      longestFlow: longestFlow ?? this.longestFlow,
       lastReadDate: lastReadDate ?? this.lastReadDate,
       readDates: readDates ?? this.readDates,
       frozenDates: frozenDates ?? this.frozenDates,
@@ -170,8 +170,8 @@ class ReadingStreak {
   }
 }
 
-/// Niveaux de badges pour les streaks
-enum StreakBadgeLevel {
+/// Niveaux de badges pour les flows
+enum FlowBadgeLevel {
   threeDays(3, 'Premier Pas', '👣', '#FFB74D', false),
   week(7, 'Une Semaine', '📅', '#FF9800', false),
   twoWeeks(14, 'Deux Semaines', '🔥', '#FFC107', false),
@@ -181,7 +181,7 @@ enum StreakBadgeLevel {
   quarter(90, 'Trimestre Parfait', '🔥', '#FFD700', true),
   halfYear(180, 'Semi-Annuel', '💎', '#FFC107', true),
   year(365, 'Année Complète', '👑', '#FF9800', true),
-  legendary(500, 'Streak Légendaire', '🏆', '#E91E63', true);
+  legendary(500, 'Flow Légendaire', '🏆', '#E91E63', true);
 
   final int days;
   final String name;
@@ -189,9 +189,9 @@ enum StreakBadgeLevel {
   final String color;
   final bool isPremium;
 
-  const StreakBadgeLevel(this.days, this.name, this.icon, this.color, this.isPremium);
+  const FlowBadgeLevel(this.days, this.name, this.icon, this.color, this.isPremium);
 
-  String get description => 'Streak de $days jours';
+  String get description => 'Flow de $days jours';
 
   String get badgeId => 'streak_${days}_days';
 }

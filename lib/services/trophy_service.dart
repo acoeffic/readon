@@ -81,7 +81,7 @@ class TrophyService {
   /// Retourne la liste des trophées nouvellement débloqués.
   Future<List<Trophy>> checkUnlockableTrophies({
     required ReadingSession session,
-    required int currentStreak,
+    required int currentFlow,
     required int activeBookCount,
   }) async {
     try {
@@ -127,7 +127,7 @@ class TrophyService {
 
       // Trophée 15 : Fidélité quotidienne
       if (!existingIds.contains(TrophyType.fideliteQuotidienne.id)) {
-        if (currentStreak >= 2) {
+        if (currentFlow >= 2) {
           await _awardTrophy(TrophyType.fideliteQuotidienne, userId);
           newTrophies.add(Trophy(
             type: TrophyType.fideliteQuotidienne,

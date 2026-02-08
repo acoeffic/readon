@@ -12,6 +12,8 @@ import 'kindle_login_page.dart';
 import 'reading_goals_page.dart';
 import 'upgrade_page.dart';
 import '../../services/kindle_webview_service.dart';
+import '../../services/kindle_auto_sync_service.dart';
+import '../../models/feature_flags.dart';
 import '../auth/auth_gate.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -27,6 +29,8 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _isUploading = false;
   bool _isDeleting = false;
   String? _kindleLastSync;
+  bool _kindleAutoSyncEnabled = true;
+  bool _loadingAutoSync = true;
   bool _isProfilePrivate = false;
   bool _loadingPrivacy = true;
 
@@ -34,12 +38,30 @@ class _SettingsPageState extends State<SettingsPage> {
   void initState() {
     super.initState();
     _loadKindleSyncStatus();
+    _loadKindleAutoSyncStatus();
     _loadPrivacySettings();
   }
 
   Future<void> _loadKindleSyncStatus() async {
     final lastSync = await KindleWebViewService().getLastSyncDate();
     if (mounted) setState(() => _kindleLastSync = lastSync);
+  }
+
+  Future<void> _loadKindleAutoSyncStatus() async {
+    final service = KindleAutoSyncService();
+    final enabled = await service.isAutoSyncEnabled();
+    if (mounted) {
+      setState(() {
+        _kindleAutoSyncEnabled = enabled;
+        _loadingAutoSync = false;
+      });
+    }
+  }
+
+  Future<void> _toggleKindleAutoSync(bool value) async {
+    final service = KindleAutoSyncService();
+    await service.setAutoSyncEnabled(value);
+    if (mounted) setState(() => _kindleAutoSyncEnabled = value);
   }
 
   Future<void> _loadPrivacySettings() async {
@@ -627,7 +649,7 @@ if (!allowedExtensions.contains(fileExtension)) {
                                 child: Text(
                                   _isProfilePrivate
                                       ? 'Les autres utilisateurs ne verront que ton nom et ta photo de profil.'
-                                      : 'Les autres utilisateurs pourront voir tes badges, livres, streak et statistiques.',
+                                      : 'Les autres utilisateurs pourront voir tes badges, livres, flow et statistiques.',
                                   style: const TextStyle(fontSize: 12, color: AppColors.primary),
                                 ),
                               ),
@@ -657,7 +679,7 @@ if (!allowedExtensions.contains(fileExtension)) {
                     },
                   ),
                   _SettingsItem(
-                    label: '🔔 Notifications de streak',
+                    label: '🔔 Notifications de flow',
                     onTap: () {
                       Navigator.of(context).push(
                         MaterialPageRoute(
@@ -672,19 +694,109 @@ if (!allowedExtensions.contains(fileExtension)) {
               const SizedBox(height: AppSpace.m),
 
               // --- Section Kindle ---
-              _SettingsSection(
-                title: 'Kindle',
-                items: [
-                  _SettingsItem(
-                    label: _kindleLastSync != null
-                        ? '📚 Resynchroniser Kindle'
-                        : '📚 Connecter Kindle',
-                    onTap: _openKindleLogin,
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Kindle',
+                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontSize: 20),
                   ),
-                  if (_kindleLastSync != null)
-                    _SettingsItem(
-                      label: '✅ Dernière sync: ${_formatSyncDate(_kindleLastSync!)}',
+                  const SizedBox(height: AppSpace.s),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(AppSpace.l),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).cardColor,
+                      borderRadius: BorderRadius.circular(AppRadius.l),
                     ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _SettingsItem(
+                          label: _kindleLastSync != null
+                              ? '📚 Resynchroniser Kindle'
+                              : '📚 Connecter Kindle',
+                          onTap: _openKindleLogin,
+                        ),
+                        if (_kindleLastSync != null) ...[
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: AppSpace.s),
+                            child: _SettingsItem(
+                              label: '✅ Dernière sync: ${_formatSyncDate(_kindleLastSync!)}',
+                            ),
+                          ),
+                          const Divider(height: 1),
+                          const SizedBox(height: AppSpace.m),
+                          Builder(builder: (context) {
+                            final sub = context.watch<SubscriptionProvider>();
+                            final isPremium = sub.isPremium;
+                            return Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Text(
+                                            'Sync automatique',
+                                            style: Theme.of(context).textTheme.titleMedium,
+                                          ),
+                                          if (!isPremium) ...[
+                                            const SizedBox(width: 8),
+                                            GestureDetector(
+                                              onTap: () => Navigator.of(context).push(
+                                                MaterialPageRoute(builder: (_) => const UpgradePage()),
+                                              ),
+                                              child: Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                decoration: BoxDecoration(
+                                                  color: AppColors.primary.withValues(alpha: 0.15),
+                                                  borderRadius: BorderRadius.circular(4),
+                                                ),
+                                                child: const Text(
+                                                  'Premium',
+                                                  style: TextStyle(
+                                                    fontSize: 10,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: AppColors.primary,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ],
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        'Synchronise tes livres Kindle à chaque ouverture',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                if (_loadingAutoSync)
+                                  const SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  )
+                                else
+                                  Switch(
+                                    value: isPremium && _kindleAutoSyncEnabled,
+                                    onChanged: isPremium ? _toggleKindleAutoSync : null,
+                                    activeTrackColor: AppColors.primary,
+                                  ),
+                              ],
+                            );
+                          }),
+                        ],
+                      ],
+                    ),
+                  ),
                 ],
               ),
 

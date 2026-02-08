@@ -56,6 +56,11 @@ dependencies:
   purchases_flutter: ^8.1.0           # RevenueCat subscriptions
   lottie: ^3.3.1                      # Lottie animations for badges
   cached_network_image: ^3.4.1        # Image caching for book covers
+  audioplayers: ^6.1.0                 # Audio playback for wrapped melody
+  just_audio: ^0.9.43                   # Audio playback for yearly wrapped
+  google_fonts: ^6.2.1                  # Google Fonts for yearly wrapped
+  screenshot: ^3.0.0                     # Widget-to-image capture for wrapped share
+  image_gallery_saver_plus: ^3.0.5       # Save images to device gallery
 
 dev_dependencies:
   flutter_test:
@@ -84,6 +89,7 @@ flutter:
     - assets/fonts/
     - assets/images/
     - assets/lottie/badges/
+    - assets/audio/
 
   fonts:
     - family: Poppins

@@ -1,32 +1,32 @@
-// lib/pages/feed/streak_detail_page.dart
-// Page détaillée avec calendrier des streaks de lecture
+// lib/pages/feed/flow_detail_page.dart
+// Page détaillée avec calendrier des flows de lecture
 
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/feature_flags.dart';
-import '../../models/reading_streak.dart';
-import '../../models/streak_freeze.dart';
+import '../../models/reading_flow.dart';
+import '../../models/flow_freeze.dart';
 import '../../pages/profile/upgrade_page.dart';
 import '../../providers/subscription_provider.dart';
-import '../../services/streak_service.dart';
+import '../../services/flow_service.dart';
 import '../../theme/app_theme.dart';
 
-class StreakDetailPage extends StatefulWidget {
-  final ReadingStreak initialStreak;
+class FlowDetailPage extends StatefulWidget {
+  final ReadingFlow initialFlow;
 
-  const StreakDetailPage({
+  const FlowDetailPage({
     super.key,
-    required this.initialStreak,
+    required this.initialFlow,
   });
 
   @override
-  State<StreakDetailPage> createState() => _StreakDetailPageState();
+  State<FlowDetailPage> createState() => _FlowDetailPageState();
 }
 
-class _StreakDetailPageState extends State<StreakDetailPage> {
-  final StreakService _streakService = StreakService();
-  late ReadingStreak _streak;
+class _FlowDetailPageState extends State<FlowDetailPage> {
+  final FlowService _flowService = FlowService();
+  late ReadingFlow _flow;
   bool _isLoading = true;
   List<DateTime> _months = [];
   int _currentMonthIndex = 0;
@@ -39,7 +39,7 @@ class _StreakDetailPageState extends State<StreakDetailPage> {
   @override
   void initState() {
     super.initState();
-    _streak = widget.initialStreak;
+    _flow = widget.initialFlow;
     _initMonths();
     _loadData();
   }
@@ -50,12 +50,12 @@ class _StreakDetailPageState extends State<StreakDetailPage> {
 
     // Trouver la date la plus ancienne parmi readDates et frozenDates
     DateTime? earliest;
-    if (_streak.readDates.isNotEmpty) {
-      final sortedRead = List<DateTime>.from(_streak.readDates)..sort();
+    if (_flow.readDates.isNotEmpty) {
+      final sortedRead = List<DateTime>.from(_flow.readDates)..sort();
       earliest = sortedRead.first;
     }
-    if (_streak.frozenDates.isNotEmpty) {
-      final sortedFrozen = List<DateTime>.from(_streak.frozenDates)..sort();
+    if (_flow.frozenDates.isNotEmpty) {
+      final sortedFrozen = List<DateTime>.from(_flow.frozenDates)..sort();
       if (earliest == null || sortedFrozen.first.isBefore(earliest)) {
         earliest = sortedFrozen.first;
       }
@@ -77,10 +77,10 @@ class _StreakDetailPageState extends State<StreakDetailPage> {
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
     try {
-      await _streakService.getReadingHistory();
-      final streak = await _streakService.getUserStreak();
+      await _flowService.getReadingHistory();
+      final flow = await _flowService.getUserFlow();
       setState(() {
-        _streak = streak;
+        _flow = flow;
         _initMonths();
         _isLoading = false;
       });
@@ -90,14 +90,14 @@ class _StreakDetailPageState extends State<StreakDetailPage> {
     }
   }
 
-  Color _getStreakColor() {
-    if (_streak.currentStreak >= 30) {
+  Color _getFlowColor() {
+    if (_flow.currentFlow >= 30) {
       return AppColors.primary; // Purple
-    } else if (_streak.currentStreak >= 14) {
+    } else if (_flow.currentFlow >= 14) {
       return const Color(0xFFFF5722); // Deep Orange
-    } else if (_streak.currentStreak >= 7) {
+    } else if (_flow.currentFlow >= 7) {
       return const Color(0xFFFFC107); // Amber
-    } else if (_streak.currentStreak >= 3) {
+    } else if (_flow.currentFlow >= 3) {
       return const Color(0xFFFF9800); // Orange
     } else {
       return const Color(0xFF4CAF50); // Green
@@ -128,7 +128,7 @@ class _StreakDetailPageState extends State<StreakDetailPage> {
                   children: [
                     _buildHeader(),
                     const SizedBox(height: 24),
-                    _buildStreakCard(),
+                    _buildFlowCard(),
                     const SizedBox(height: 16),
                     _buildFreezeCard(),
                     const SizedBox(height: 24),
@@ -147,7 +147,7 @@ class _StreakDetailPageState extends State<StreakDetailPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Ton streak de lecture',
+          'Ton flow de lecture',
           style: TextStyle(
             fontSize: 28,
             fontWeight: FontWeight.bold,
@@ -156,7 +156,7 @@ class _StreakDetailPageState extends State<StreakDetailPage> {
         ),
         const SizedBox(height: 8),
         Text(
-          '${_streak.currentStreak} jours consécutifs, actif',
+          '${_flow.currentFlow} jours consécutifs, actif',
           style: TextStyle(
             fontSize: 16,
             color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
@@ -166,10 +166,10 @@ class _StreakDetailPageState extends State<StreakDetailPage> {
     );
   }
 
-  Widget _buildStreakCard() {
-    final color = _getStreakColor();
-    final progress = _streak.longestStreak > 0
-        ? (_streak.currentStreak / _streak.longestStreak).clamp(0.0, 1.0)
+  Widget _buildFlowCard() {
+    final color = _getFlowColor();
+    final progress = _flow.longestFlow > 0
+        ? (_flow.currentFlow / _flow.longestFlow).clamp(0.0, 1.0)
         : 0.0;
 
     return Container(
@@ -192,7 +192,7 @@ class _StreakDetailPageState extends State<StreakDetailPage> {
                       textBaseline: TextBaseline.alphabetic,
                       children: [
                         Text(
-                          '${_streak.currentStreak}',
+                          '${_flow.currentFlow}',
                           style: const TextStyle(
                             fontSize: 36,
                             fontWeight: FontWeight.bold,
@@ -220,7 +220,7 @@ class _StreakDetailPageState extends State<StreakDetailPage> {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          'Streak actuel',
+                          'Flow actuel',
                           style: TextStyle(
                             fontSize: 14,
                             color: Colors.grey.shade400,
@@ -241,7 +241,7 @@ class _StreakDetailPageState extends State<StreakDetailPage> {
                       textBaseline: TextBaseline.alphabetic,
                       children: [
                         Text(
-                          '${_streak.readDates.length}',
+                          '${_flow.readDates.length}',
                           style: const TextStyle(
                             fontSize: 36,
                             fontWeight: FontWeight.bold,
@@ -265,7 +265,7 @@ class _StreakDetailPageState extends State<StreakDetailPage> {
                       textBaseline: TextBaseline.alphabetic,
                       children: [
                         Text(
-                          '${_streak.longestStreak}',
+                          '${_flow.longestFlow}',
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -308,7 +308,7 @@ class _StreakDetailPageState extends State<StreakDetailPage> {
               ),
               const SizedBox(width: 12),
               Text(
-                '${_streak.longestStreak}',
+                '${_flow.longestFlow}',
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -323,8 +323,8 @@ class _StreakDetailPageState extends State<StreakDetailPage> {
   }
 
   Widget _buildFreezeCard() {
-    final freezeStatus = _streak.freezeStatus;
-    final isAtRisk = _streak.isAtRisk && _streak.currentStreak > 0;
+    final freezeStatus = _flow.freezeStatus;
+    final isAtRisk = _flow.isAtRisk && _flow.currentFlow > 0;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -358,7 +358,7 @@ class _StreakDetailPageState extends State<StreakDetailPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Streak Freeze',
+                      'Flow Freeze',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -436,7 +436,7 @@ class _StreakDetailPageState extends State<StreakDetailPage> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Ton streak est en danger ! Utilise ton freeze pour le protéger.',
+                      'Ton flow est en danger ! Utilise ton freeze pour le protéger.',
                       style: TextStyle(
                         fontSize: 12,
                         color: Colors.orange.shade700,
@@ -449,7 +449,7 @@ class _StreakDetailPageState extends State<StreakDetailPage> {
           ],
           const SizedBox(height: 8),
           Text(
-            '1 freeze disponible par semaine. Protège ton streak si tu ne peux pas lire un jour.',
+            '1 freeze disponible par semaine. Protège ton flow si tu ne peux pas lire un jour.',
             style: TextStyle(
               fontSize: 11,
               color: Theme.of(context).colorScheme.onSurface.withValues(alpha:0.5),
@@ -472,7 +472,7 @@ class _StreakDetailPageState extends State<StreakDetailPage> {
           ],
         ),
         content: const Text(
-          'Cela protégera ton streak pour hier. Tu ne pourras plus utiliser de freeze cette semaine.',
+          'Cela protégera ton flow pour hier. Tu ne pourras plus utiliser de freeze cette semaine.',
         ),
         actions: [
           TextButton(
@@ -491,7 +491,7 @@ class _StreakDetailPageState extends State<StreakDetailPage> {
     );
 
     if (confirmed == true) {
-      final result = await _streakService.useFreeze();
+      final result = await _flowService.useFreeze();
       if (mounted) {
         if (result.success) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -674,7 +674,7 @@ class _StreakDetailPageState extends State<StreakDetailPage> {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'Historique du streak',
+                        'Historique du flow',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -756,13 +756,13 @@ class _StreakDetailPageState extends State<StreakDetailPage> {
           return const SizedBox();
         }
 
-        final hasRead = _streak.readDates.any((readDate) {
+        final hasRead = _flow.readDates.any((readDate) {
           return readDate.year == date.year &&
               readDate.month == date.month &&
               readDate.day == date.day;
         });
 
-        final isFrozen = _streak.isDayFrozen(date);
+        final isFrozen = _flow.isDayFrozen(date);
 
         final isToday = date.year == today.year &&
             date.month == today.month &&
@@ -782,7 +782,7 @@ class _StreakDetailPageState extends State<StreakDetailPage> {
   }
 
   Widget _buildCalendarDay(int day, bool hasRead, bool isToday, bool isFuture, bool isFrozen) {
-    final color = _getStreakColor();
+    final color = _getFlowColor();
     const frozenColor = Color(0xFF5C6BC0);
 
     if (isFuture) {
@@ -870,7 +870,7 @@ class _StreakDetailPageState extends State<StreakDetailPage> {
 
   Widget _buildMotivationCard() {
     // Calculer un pourcentage fictif (vous pouvez le calculer réellement)
-    final percentage = _streak.readDates.isNotEmpty ? 93 : 0;
+    final percentage = _flow.readDates.isNotEmpty ? 93 : 0;
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -905,7 +905,7 @@ class _StreakDetailPageState extends State<StreakDetailPage> {
           ),
           const SizedBox(height: 12),
           Text(
-            'Continue ta lecture demain pour maintenir ton streak!',
+            'Continue ta lecture demain pour maintenir ton flow!',
             style: TextStyle(
               fontSize: 14,
               color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),

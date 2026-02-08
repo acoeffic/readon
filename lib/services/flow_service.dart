@@ -1,27 +1,27 @@
-// lib/services/streak_service.dart
-// Service pour gérer les streaks de lecture
+// lib/services/flow_service.dart
+// Service pour gérer les flows de lecture
 
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../models/reading_streak.dart';
-import '../models/streak_freeze.dart';
+import '../models/reading_flow.dart';
+import '../models/flow_freeze.dart';
 import 'kindle_webview_service.dart';
 
-class StreakService {
+class FlowService {
   final SupabaseClient _supabase = Supabase.instance.client;
 
   // =====================================================
-  // METHODES STREAK FREEZE
+  // METHODES FLOW FREEZE
   // =====================================================
 
   /// Récupérer le statut du freeze pour l'utilisateur courant
-  Future<StreakFreezeStatus> getFreezeStatus() async {
+  Future<FlowFreezeStatus> getFreezeStatus() async {
     try {
       final result = await _supabase.rpc('get_freeze_status');
-      return StreakFreezeStatus.fromJson(result as Map<String, dynamic>);
+      return FlowFreezeStatus.fromJson(result as Map<String, dynamic>);
     } catch (e) {
       debugPrint('Erreur getFreezeStatus: $e');
-      return StreakFreezeStatus.empty();
+      return FlowFreezeStatus.empty();
     }
   }
 
@@ -71,20 +71,20 @@ class StreakService {
     if (!isPremium) return false;
 
     try {
-      final streak = await getUserStreak();
+      final flow = await getUserFlow();
 
-      // Si le streak est à 0, pas besoin de freeze
-      if (streak.currentStreak == 0) return false;
+      // Si le flow est à 0, pas besoin de freeze
+      if (flow.currentFlow == 0) return false;
 
       // Si l'utilisateur a lu aujourd'hui, pas besoin de freeze
       final now = DateTime.now();
       final today = DateTime(now.year, now.month, now.day);
 
-      if (streak.lastReadDate != null) {
+      if (flow.lastReadDate != null) {
         final lastRead = DateTime(
-          streak.lastReadDate!.year,
-          streak.lastReadDate!.month,
-          streak.lastReadDate!.day,
+          flow.lastReadDate!.year,
+          flow.lastReadDate!.month,
+          flow.lastReadDate!.day,
         );
         if (lastRead == today) return false;
       }
@@ -102,11 +102,11 @@ class StreakService {
     }
   }
 
-  /// Récupérer le streak actuel de l'utilisateur
-  Future<ReadingStreak> getUserStreak() async {
+  /// Récupérer le flow actuel de l'utilisateur
+  Future<ReadingFlow> getUserFlow() async {
     try {
       final userId = _supabase.auth.currentUser?.id;
-      if (userId == null) return ReadingStreak.empty();
+      if (userId == null) return ReadingFlow.empty();
 
       // Récupérer toutes les sessions terminées de l'utilisateur
       final response = await _supabase
@@ -140,47 +140,47 @@ class StreakService {
       readDates.sort((a, b) => b.compareTo(a));
 
       if (readDates.isEmpty && frozenDates.isEmpty) {
-        // Même sans sessions locales, vérifier le streak Kindle
-        final kindleStreak = await _getKindleStreak();
-        if (kindleStreak != null && kindleStreak.currentStreak > 0) {
-          return kindleStreak.copyWith(freezeStatus: freezeStatus);
+        // Même sans sessions locales, vérifier le flow Kindle
+        final kindleFlow = await _getKindleFlow();
+        if (kindleFlow != null && kindleFlow.currentFlow > 0) {
+          return kindleFlow.copyWith(freezeStatus: freezeStatus);
         }
-        return ReadingStreak.empty().copyWith(freezeStatus: freezeStatus);
+        return ReadingFlow.empty().copyWith(freezeStatus: freezeStatus);
       }
 
-      // Calculer le streak actuel (avec les dates frozen)
-      final streakData = _calculateStreakWithFreezes(readDates, frozenDates);
+      // Calculer le flow actuel (avec les dates frozen)
+      final flowData = _calculateFlowWithFreezes(readDates, frozenDates);
 
-      int currentStreak = streakData['current'] ?? 0;
-      int longestStreak = streakData['longest'] ?? 0;
+      int currentFlow = flowData['current'] ?? 0;
+      int longestFlow = flowData['longest'] ?? 0;
 
-      // Fusionner avec le streak Kindle (prendre le max)
+      // Fusionner avec le flow Kindle (prendre le max)
       final kindleData = await KindleWebViewService().loadFromCache();
       if (kindleData != null && kindleData.currentStreak != null) {
-        if (kindleData.currentStreak! > currentStreak) {
-          currentStreak = kindleData.currentStreak!;
+        if (kindleData.currentStreak! > currentFlow) {
+          currentFlow = kindleData.currentStreak!;
         }
-        if (kindleData.currentStreak! > longestStreak) {
-          longestStreak = kindleData.currentStreak!;
+        if (kindleData.currentStreak! > longestFlow) {
+          longestFlow = kindleData.currentStreak!;
         }
       }
 
-      return ReadingStreak(
-        currentStreak: currentStreak,
-        longestStreak: longestStreak,
+      return ReadingFlow(
+        currentFlow: currentFlow,
+        longestFlow: longestFlow,
         lastReadDate: readDates.isNotEmpty ? readDates.first : null,
         readDates: readDates,
         frozenDates: frozenDates,
         freezeStatus: freezeStatus,
       );
     } catch (e) {
-      debugPrint('Erreur getUserStreak: $e');
-      return ReadingStreak.empty();
+      debugPrint('Erreur getUserFlow: $e');
+      return ReadingFlow.empty();
     }
   }
 
-  /// Récupérer le streak d'un utilisateur par son ID
-  Future<int> getStreakForUser(String userId) async {
+  /// Récupérer le flow d'un utilisateur par son ID
+  Future<int> getFlowForUser(String userId) async {
     try {
       final response = await _supabase
           .from('reading_sessions')
@@ -211,22 +211,22 @@ class StreakService {
       readDates.sort((a, b) => b.compareTo(a));
       if (readDates.isEmpty) return 0;
 
-      final streakData = _calculateStreak(readDates);
-      return streakData['current'] ?? 0;
+      final flowData = _calculateFlow(readDates);
+      return flowData['current'] ?? 0;
     } catch (e) {
-      debugPrint('Erreur getStreakForUser: $e');
+      debugPrint('Erreur getFlowForUser: $e');
       return 0;
     }
   }
 
-  /// Récupérer le streak depuis les données Kindle en cache
-  Future<ReadingStreak?> _getKindleStreak() async {
+  /// Récupérer le flow depuis les données Kindle en cache
+  Future<ReadingFlow?> _getKindleFlow() async {
     try {
       final kindleData = await KindleWebViewService().loadFromCache();
       if (kindleData == null || kindleData.currentStreak == null) return null;
-      return ReadingStreak(
-        currentStreak: kindleData.currentStreak!,
-        longestStreak: kindleData.currentStreak!,
+      return ReadingFlow(
+        currentFlow: kindleData.currentStreak!,
+        longestFlow: kindleData.currentStreak!,
         lastReadDate: DateTime.now(),
         readDates: [],
       );
@@ -235,8 +235,8 @@ class StreakService {
     }
   }
 
-  /// Calculer le streak actuel et le record
-  Map<String, int> _calculateStreak(List<DateTime> sortedDates) {
+  /// Calculer le flow actuel et le record
+  Map<String, int> _calculateFlow(List<DateTime> sortedDates) {
     if (sortedDates.isEmpty) {
       return {'current': 0, 'longest': 0};
     }
@@ -245,53 +245,53 @@ class StreakService {
     final today = DateTime(now.year, now.month, now.day);
     final yesterday = today.subtract(const Duration(days: 1));
 
-    int currentStreak = 0;
-    int longestStreak = 0;
-    int tempStreak = 0;
+    int currentFlow = 0;
+    int longestFlow = 0;
+    int tempFlow = 0;
     DateTime? expectedDate = today;
 
     // Vérifier si la dernière lecture était aujourd'hui ou hier
     final lastRead = sortedDates.first;
     if (lastRead != today && lastRead != yesterday) {
-      // Le streak est cassé
+      // Le flow est cassé
       expectedDate = null;
     }
 
-    // Parcourir les dates pour calculer les streaks
+    // Parcourir les dates pour calculer les flows
     for (int i = 0; i < sortedDates.length; i++) {
       final date = sortedDates[i];
 
       if (expectedDate != null && date == expectedDate) {
-        // Continuer le streak
-        tempStreak++;
+        // Continuer le flow
+        tempFlow++;
         if (i == 0 || expectedDate == today || expectedDate == yesterday) {
-          currentStreak = tempStreak;
+          currentFlow = tempFlow;
         }
         expectedDate = date.subtract(const Duration(days: 1));
       } else {
-        // Streak cassé, enregistrer le record
-        if (tempStreak > longestStreak) {
-          longestStreak = tempStreak;
+        // Flow cassé, enregistrer le record
+        if (tempFlow > longestFlow) {
+          longestFlow = tempFlow;
         }
-        // Recommencer un nouveau streak
-        tempStreak = 1;
+        // Recommencer un nouveau flow
+        tempFlow = 1;
         expectedDate = date.subtract(const Duration(days: 1));
       }
     }
 
-    // Vérifier le dernier streak
-    if (tempStreak > longestStreak) {
-      longestStreak = tempStreak;
+    // Vérifier le dernier flow
+    if (tempFlow > longestFlow) {
+      longestFlow = tempFlow;
     }
 
     return {
-      'current': currentStreak,
-      'longest': longestStreak,
+      'current': currentFlow,
+      'longest': longestFlow,
     };
   }
 
-  /// Calculer le streak en tenant compte des jours frozen
-  Map<String, int> _calculateStreakWithFreezes(
+  /// Calculer le flow en tenant compte des jours frozen
+  Map<String, int> _calculateFlowWithFreezes(
     List<DateTime> sortedReadDates,
     List<DateTime> frozenDates,
   ) {
@@ -321,21 +321,21 @@ class StreakService {
       return {'current': 0, 'longest': 0};
     }
 
-    int currentStreak = 0;
-    int longestStreak = 0;
+    int currentFlow = 0;
+    int longestFlow = 0;
 
-    // Calculer le streak actuel en partant d'aujourd'hui
+    // Calculer le flow actuel en partant d'aujourd'hui
     DateTime checkDate = today;
-    bool isCurrentStreak = true;
+    bool isCurrentFlow = true;
 
     while (true) {
       final isValidDay = allValidDates.contains(checkDate);
 
       if (isValidDay) {
-        if (isCurrentStreak) {
-          currentStreak++;
+        if (isCurrentFlow) {
+          currentFlow++;
         }
-        longestStreak = currentStreak > longestStreak ? currentStreak : longestStreak;
+        longestFlow = currentFlow > longestFlow ? currentFlow : longestFlow;
         checkDate = checkDate.subtract(const Duration(days: 1));
       } else {
         // Jour manquant - on vérifie si c'est aujourd'hui (pas encore lu)
@@ -344,50 +344,50 @@ class StreakService {
           checkDate = checkDate.subtract(const Duration(days: 1));
           continue;
         }
-        // Streak cassé
+        // Flow cassé
         break;
       }
     }
 
-    // Calculer le longest streak historique
-    int tempStreak = 0;
+    // Calculer le longest flow historique
+    int tempFlow = 0;
     for (int i = 0; i < sortedValidDates.length; i++) {
       final date = sortedValidDates[i];
       final previousDate = i > 0 ? sortedValidDates[i - 1] : null;
 
       if (previousDate == null) {
-        tempStreak = 1;
+        tempFlow = 1;
       } else {
         final diff = previousDate.difference(date).inDays;
         if (diff == 1) {
-          tempStreak++;
+          tempFlow++;
         } else {
-          if (tempStreak > longestStreak) {
-            longestStreak = tempStreak;
+          if (tempFlow > longestFlow) {
+            longestFlow = tempFlow;
           }
-          tempStreak = 1;
+          tempFlow = 1;
         }
       }
     }
 
-    if (tempStreak > longestStreak) {
-      longestStreak = tempStreak;
+    if (tempFlow > longestFlow) {
+      longestFlow = tempFlow;
     }
 
     return {
-      'current': currentStreak,
-      'longest': longestStreak,
+      'current': currentFlow,
+      'longest': longestFlow,
     };
   }
 
-  /// Vérifier et attribuer des badges de streak
-  Future<List<StreakBadgeLevel>> checkAndAwardStreakBadges() async {
+  /// Vérifier et attribuer des badges de flow
+  Future<List<FlowBadgeLevel>> checkAndAwardFlowBadges() async {
     try {
       final userId = _supabase.auth.currentUser?.id;
       if (userId == null) return [];
 
-      final streak = await getUserStreak();
-      final newBadges = <StreakBadgeLevel>[];
+      final flow = await getUserFlow();
+      final newBadges = <FlowBadgeLevel>[];
 
       // Récupérer les badges déjà attribués
       final existingBadges = await _supabase
@@ -400,8 +400,8 @@ class StreakService {
           .toSet();
 
       // Vérifier chaque niveau de badge
-      for (final level in StreakBadgeLevel.values) {
-        if (streak.currentStreak >= level.days &&
+      for (final level in FlowBadgeLevel.values) {
+        if (flow.currentFlow >= level.days &&
             !existingBadgeIds.contains(level.badgeId)) {
           // Créer le badge s'il n'existe pas
           await _ensureBadgeExists(level);
@@ -419,13 +419,13 @@ class StreakService {
 
       return newBadges;
     } catch (e) {
-      debugPrint('Erreur checkAndAwardStreakBadges: $e');
+      debugPrint('Erreur checkAndAwardFlowBadges: $e');
       return [];
     }
   }
 
   /// S'assurer que le badge existe dans la table badges
-  Future<void> _ensureBadgeExists(StreakBadgeLevel level) async {
+  Future<void> _ensureBadgeExists(FlowBadgeLevel level) async {
     try {
       final existing = await _supabase
           .from('badges')
@@ -486,17 +486,17 @@ class StreakService {
     }
   }
 
-  /// Stream pour suivre le streak en temps réel
-  Stream<ReadingStreak> watchUserStreak() {
+  /// Stream pour suivre le flow en temps réel
+  Stream<ReadingFlow> watchUserFlow() {
     final userId = _supabase.auth.currentUser?.id;
     if (userId == null) {
-      return Stream.value(ReadingStreak.empty());
+      return Stream.value(ReadingFlow.empty());
     }
 
     return _supabase
         .from('reading_sessions')
         .stream(primaryKey: ['id'])
         .eq('user_id', userId)
-        .asyncMap((_) async => await getUserStreak());
+        .asyncMap((_) async => await getUserFlow());
   }
 }

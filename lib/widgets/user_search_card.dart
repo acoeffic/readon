@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../models/user_search_result.dart';
+import '../features/badges/widgets/first_book_badge_painter.dart';
 
 class UserSearchCard extends StatelessWidget {
   final UserSearchResult user;
@@ -175,10 +176,13 @@ class UserSearchCard extends StatelessWidget {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text(
-                            badge.icon,
-                            style: const TextStyle(fontSize: 16),
-                          ),
+                          if (isFirstBookBadge(id: badge.id))
+                            const FirstBookBadgeWidget(size: 20)
+                          else
+                            Text(
+                              badge.icon,
+                              style: const TextStyle(fontSize: 16),
+                            ),
                           const SizedBox(width: 4),
                           Text(
                             badge.name,
@@ -215,8 +219,8 @@ class UserSearchCard extends StatelessWidget {
                   Container(width: 1, height: 30, color: Theme.of(context).dividerColor),
                   _buildStatItem(context,
                     Icons.local_fire_department,
-                    '${user.currentStreak ?? 0}',
-                    'Streak',
+                    '${user.currentFlow ?? 0}',
+                    'Flow',
                   ),
                   Container(width: 1, height: 30, color: Theme.of(context).dividerColor),
                   _buildStatItem(context,

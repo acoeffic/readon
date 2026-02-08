@@ -9,10 +9,10 @@ import '../../services/reading_session_service.dart';
 import '../../services/ocr_service.dart';
 import '../../services/books_service.dart';
 import '../../services/badges_service.dart';
-import '../../services/streak_service.dart';
+import '../../services/flow_service.dart';
 import '../../services/trophy_service.dart';
 import '../../models/reading_session.dart';
-import '../../models/reading_streak.dart';
+import '../../models/reading_flow.dart';
 import '../../models/trophy.dart';
 import '../../widgets/badge_unlocked_dialog.dart';
 import '../../widgets/trophy_card.dart';
@@ -41,7 +41,7 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
   final ReadingSessionService _sessionService = ReadingSessionService();
   final BooksService _booksService = BooksService();
   final BadgesService _badgesService = BadgesService();
-  final StreakService _streakService = StreakService();
+  final FlowService _flowService = FlowService();
   final TrophyService _trophyService = TrophyService();
   final ImagePicker _picker = ImagePicker();
 
@@ -226,22 +226,22 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
         debugPrint('Erreur checkSecretBadges (non bloquante): $e');
       }
 
-      // Vérifier et attribuer les badges de streak (non bloquant)
-      List<StreakBadgeLevel> newStreakBadges = [];
+      // Vérifier et attribuer les badges de flow (non bloquant)
+      List<FlowBadgeLevel> newFlowBadges = [];
       try {
-        newStreakBadges = await _streakService.checkAndAwardStreakBadges();
+        newFlowBadges = await _flowService.checkAndAwardFlowBadges();
       } catch (e) {
-        debugPrint('Erreur checkAndAwardStreakBadges (non bloquante): $e');
+        debugPrint('Erreur checkAndAwardFlowBadges (non bloquante): $e');
       }
 
       // Vérifier et attribuer les trophées débloquables (non bloquant)
       List<Trophy> newUnlockableTrophies = [];
       try {
-        final streak = await _streakService.getUserStreak();
+        final flow = await _flowService.getUserFlow();
         final activeBookCount = await _getActiveBookCount();
         newUnlockableTrophies = await _trophyService.checkUnlockableTrophies(
           session: completedSession,
-          currentStreak: streak.currentStreak,
+          currentFlow: flow.currentFlow,
           activeBookCount: activeBookCount,
         );
       } catch (e) {
@@ -270,13 +270,13 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
         }
       }
 
-      // Afficher les badges de streak débloqués
-      if (newStreakBadges.isNotEmpty && mounted) {
-        for (final badgeLevel in newStreakBadges) {
+      // Afficher les badges de flow débloqués
+      if (newFlowBadges.isNotEmpty && mounted) {
+        for (final badgeLevel in newFlowBadges) {
           await showDialog(
             context: context,
             barrierDismissible: false,
-            builder: (context) => _StreakBadgeDialog(badgeLevel: badgeLevel),
+            builder: (context) => _FlowBadgeDialog(badgeLevel: badgeLevel),
           );
         }
       }
@@ -435,22 +435,22 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
           debugPrint('Erreur checkSecretBadges (non bloquante): $e');
         }
 
-        // Vérifier et attribuer les badges de streak (non bloquant)
-        List<dynamic> newStreakBadges = [];
+        // Vérifier et attribuer les badges de flow (non bloquant)
+        List<dynamic> newFlowBadges = [];
         try {
-          newStreakBadges = await _streakService.checkAndAwardStreakBadges();
+          newFlowBadges = await _flowService.checkAndAwardFlowBadges();
         } catch (e) {
-          debugPrint('Erreur checkAndAwardStreakBadges (non bloquante): $e');
+          debugPrint('Erreur checkAndAwardFlowBadges (non bloquante): $e');
         }
 
         // Vérifier et attribuer les trophées débloquables (non bloquant)
         List<Trophy> newUnlockableTrophies = [];
         try {
-          final streak = await _streakService.getUserStreak();
+          final flow = await _flowService.getUserFlow();
           final activeBookCount = await _getActiveBookCount();
           newUnlockableTrophies = await _trophyService.checkUnlockableTrophies(
             session: completedSession,
-            currentStreak: streak.currentStreak,
+            currentFlow: flow.currentFlow,
             activeBookCount: activeBookCount,
           );
         } catch (e) {
@@ -484,13 +484,13 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
           }
         }
 
-        // Afficher les badges de streak débloqués
-        if (newStreakBadges.isNotEmpty && mounted) {
-          for (final badgeLevel in newStreakBadges) {
+        // Afficher les badges de flow débloqués
+        if (newFlowBadges.isNotEmpty && mounted) {
+          for (final badgeLevel in newFlowBadges) {
             await showDialog(
               context: context,
               barrierDismissible: false,
-              builder: (context) => _StreakBadgeDialog(badgeLevel: badgeLevel as StreakBadgeLevel),
+              builder: (context) => _FlowBadgeDialog(badgeLevel: badgeLevel as FlowBadgeLevel),
             );
           }
         }
@@ -538,26 +538,15 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
         } else {
           if (!hasCompleted) await contactsService.markFirstSessionCompleted();
           if (!mounted) return;
-          if (book != null) {
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(
-                builder: (context) => BookCompletedSummaryPage(
-                  book: book!,
-                  lastSession: completedSession,
-                ),
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (context) => BookCompletedSummaryPage(
+                book: book!,
+                lastSession: completedSession,
               ),
-            );
-          } else {
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(
-                builder: (context) => ReadingSessionSummaryPage(
-                  session: completedSession,
-                  trophy: trophy,
-                ),
-              ),
-            );
-          }
-        }
+            ),
+          );
+                }
       } catch (e) {
         setState(() {
           _isProcessing = false;
@@ -1034,17 +1023,17 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
   }
 }
 
-// Widget pour afficher le déblocage d'un badge de streak
-class _StreakBadgeDialog extends StatefulWidget {
-  final StreakBadgeLevel badgeLevel;
+// Widget pour afficher le déblocage d'un badge de flow
+class _FlowBadgeDialog extends StatefulWidget {
+  final FlowBadgeLevel badgeLevel;
 
-  const _StreakBadgeDialog({required this.badgeLevel});
+  const _FlowBadgeDialog({required this.badgeLevel});
 
   @override
-  State<_StreakBadgeDialog> createState() => _StreakBadgeDialogState();
+  State<_FlowBadgeDialog> createState() => _FlowBadgeDialogState();
 }
 
-class _StreakBadgeDialogState extends State<_StreakBadgeDialog>
+class _FlowBadgeDialogState extends State<_FlowBadgeDialog>
     with TickerProviderStateMixin {
   late AnimationController _scaleController;
   late AnimationController _confettiController;
@@ -1147,7 +1136,7 @@ class _StreakBadgeDialogState extends State<_StreakBadgeDialog>
                       Icon(Icons.local_fire_department, color: color, size: 28),
                       const SizedBox(width: 8),
                       const Text(
-                        'Badge Streak!',
+                        'Badge Flow!',
                         style: TextStyle(
                           fontSize: 28,
                           fontWeight: FontWeight.bold,

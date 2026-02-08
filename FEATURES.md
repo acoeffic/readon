@@ -69,6 +69,13 @@ ReadOn est une application sociale de lecture qui permet de suivre ses sessions 
 - Passage automatique au statut "Terminé" quand un livre atteint 100%
 - Re-synchronisation manuelle possible
 
+### Kindle Auto-Sync (Premium)
+- Synchronisation automatique de la bibliothèque Kindle au lancement de l'application
+- Intervalle de 24 heures entre chaque synchronisation automatique
+- Activable/désactivable dans les préférences utilisateur (activé par défaut)
+- Conditions intelligentes : ne se déclenche pas si Kindle jamais connecté, si désactivé, ou si dernière sync récente (<24h)
+- Feature flag dédié (`kindleAutoSync`)
+
 ---
 
 ## 5. Feed social (3 niveaux)
@@ -135,8 +142,32 @@ Chaque objectif affiche une barre de progression et peut être modifié à tout 
 - **Catégorie Quantité** : paliers de livres lus (ex : 10, 25, 50 livres)
 - **Catégorie Régularité** : paliers de streak (ex : 7, 30, 100 jours)
 - **Catégorie Qualité** : diversité de genres, habitudes de lecture
+- **Catégorie Anniversaire** : badges spéciaux pour célébrer les anniversaires sur la plateforme
 - Progression visible vers les badges non débloqués
 - Notification popup lors du déblocage
+
+### Badges d'anniversaire
+Badges spéciaux attribués automatiquement pour célébrer la fidélité des utilisateurs :
+
+| Badge | Année | Statut |
+|-------|-------|--------|
+| Première Bougie 🌱 | 1 an | Gratuit |
+| Lecteur Fidèle 📖 | 2 ans | Gratuit |
+| Sage des Pages 🦉 | 3 ans | Gratuit |
+| Étoile Littéraire ✨ | 4 ans | Premium |
+| Légende Vivante 👑 | 5 ans | Premium |
+
+**Fonctionnement :**
+- Détection automatique au lancement et à la reprise de l'application
+- Fenêtre de grâce de 7 jours après la date d'anniversaire
+- Animation de déblocage en 5 phases :
+  1. Teaser (boîte cadeau pulsante)
+  2. Burst (explosion de particules)
+  3. Révélation du badge (animation scale + rotation)
+  4. Affichage des statistiques de l'année (livres lus, heures, streak, commentaires)
+  5. Boutons d'action (partager ou fermer)
+- Partage : génération d'une carte partageable avec le badge et les stats
+- Affichage unique (ne se réaffiche pas après fermeture)
 
 ### Trophées (récompenses de session)
 Attribués après chaque session selon le contexte :
@@ -254,8 +285,9 @@ Moteur de recommandation hybride :
 ### Profil utilisateur
 - Nom d'affichage, avatar (upload photo)
 - Objectif principal affiché
-- Galerie de badges
+- Galerie de badges (incluant badges d'anniversaire)
 - Statistiques de lecture
+- Accès au Monthly Wrapped et Yearly Wrapped
 
 ### Paramètres
 - **Visibilité du profil** : public / privé
@@ -285,17 +317,65 @@ Bouton flottant global pour démarrer une session de lecture depuis n'importe qu
 
 ---
 
-## 16. Stack technique
+## 16. Monthly Wrapped
+
+Résumé mensuel de lecture, inspiré de Spotify Wrapped, avec musique de fond et slides animés.
+
+### 5 slides
+1. **Titre** : nom du mois avec dégradé thématique et emoji
+2. **Statistiques** : temps de lecture total, sessions, livres terminés/en cours, plus longue session, meilleur jour de la semaine
+3. **Calendrier** : heatmap visuel de l'activité de lecture quotidienne du mois
+4. **Livre phare** : couverture, titre, auteur et temps passé sur le livre le plus lu
+5. **Partage** : comparaison avec le mois précédent, badges gagnés, résumé partageable
+
+### Caractéristiques
+- **Thème par mois** : chaque mois a des couleurs de dégradé, une couleur d'accent et un emoji uniques (flocon pour janvier, cœur pour février, etc.)
+- **Musique de fond** : mélodie ambiante en boucle (`wrapped_melody.wav`) avec fondu d'entrée/sortie
+- **Toggle mute** : possibilité de couper le son pendant la consultation
+- **Navigation** : points de navigation en bas, gestes de swipe
+- **Agrégation des données** : sessions, livres, heatmap journalier, badges gagnés, comparaison mois précédent (pourcentage d'évolution)
+
+---
+
+## 17. Yearly Wrapped
+
+Résumé annuel de lecture complet avec 10 slides cinématiques, inspiré de Spotify Wrapped.
+
+### 10 slides
+1. **Ouverture** : accueil avec année et nom d'utilisateur
+2. **Temps** : temps de lecture total, sessions, durée moyenne par session
+3. **Livres** : livres terminés avec graphique de répartition mensuelle
+4. **Genres** : top 5 des genres avec pourcentages et barres visuelles
+5. **Habitudes** : profil de lecteur (Oiseau de Nuit / Lève-Tôt / etc.), heure de pointe, jours actifs, meilleur streak
+6. **Top Livres** : top 5 des livres les plus lus avec couvertures
+7. **Jalons** : réalisations clés (plus longue session, meilleur streak, mois le plus productif, badges gagnés)
+8. **Social** : classement en percentile parmi tous les utilisateurs
+9. **Évolution** : comparaison année par année avec les stats de l'année précédente
+10. **Conclusion** : remerciement avec option de partage
+
+### Caractéristiques
+- **Musique ambiante** : sélection aléatoire parmi 3 pistes ambiantes depuis Supabase Storage
+- **Thème doré** : fond sombre élégant avec accents dorés et texte crème
+- **Animations** : animations fade-up, décorateurs ligne dorée, graphiques barres mensuels
+- **Profilage lecteur** : analyse des heures de lecture pour classifier en Oiseau de Nuit, Lève-Tôt, Lecteur de Midi ou d'Après-midi
+- **Comparaison sociale** : classement en percentile par rapport à tous les utilisateurs
+- **Comparaison année précédente** : évolution en temps, livres, sessions, streak
+- **Partage** : génération de cartes partageables
+
+---
+
+## 18. Stack technique
 
 | Composant | Technologie |
 |-----------|------------|
 | Framework | Flutter 3.9.2+ |
-| Backend | Supabase (auth, DB, RLS) |
+| Backend | Supabase (auth, DB, RLS, Storage) |
 | State management | Provider 6.1.1 |
 | OCR | Google ML Kit |
 | Recherche de livres | Google Books API |
 | Contacts | flutter_contacts |
 | Authentification Kindle | WebView OAuth |
+| Audio | audioplayers (musique Wrapped) |
 | Hashing | SHA-256 (pgcrypto + dart crypto) |
 | Polices | Poppins, Inter |
 | Langue | Français (interface), Anglais (code) |

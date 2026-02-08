@@ -34,7 +34,7 @@ class GlobalReadingSessionFAB extends StatelessWidget {
 
     // 2. Ajouter le livre à la BDD
     final booksService = BooksService();
-    
+
     try {
       showDialog(
         context: context,
@@ -43,17 +43,17 @@ class GlobalReadingSessionFAB extends StatelessWidget {
       );
 
       final book = await booksService.addBookFromGoogleBooks(googleBook);
-      
+
       if (!context.mounted) return;
       Navigator.pop(context); // Fermer le loading
 
       // 3. Démarrer la session de lecture
       await _startSession(context, book);
-      
+
     } catch (e) {
       if (!context.mounted) return;
       Navigator.pop(context);
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red),
       );
@@ -63,9 +63,9 @@ class GlobalReadingSessionFAB extends StatelessWidget {
   Future<void> _selectKindleBookAndStart(BuildContext context) async {
     final apiService = kindle.KindleApiService();
     final books = await apiService.getBooks();
-    
+
     if (!context.mounted) return;
-    
+
     if (books.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -74,7 +74,7 @@ class GlobalReadingSessionFAB extends StatelessWidget {
       );
       return;
     }
-    
+
     final selectedKindleBook = await showModalBottomSheet<Book>(
       context: context,
       builder: (context) => _BookSelectorSheet(
@@ -82,9 +82,9 @@ class GlobalReadingSessionFAB extends StatelessWidget {
         title: 'Livres Kindle',
       ),
     );
-    
+
     if (selectedKindleBook == null || !context.mounted) return;
-    
+
     // Convertir en Book unifié et démarrer
     // TODO: Adapter pour convertir le Book Kindle en Book Supabase
     ScaffoldMessenger.of(context).showSnackBar(
@@ -94,24 +94,24 @@ class GlobalReadingSessionFAB extends StatelessWidget {
 
   Future<void> _selectFromLibraryAndStart(BuildContext context) async {
     final booksService = BooksService();
-    
+
     try {
       final allBooks = await booksService.getUserBooks();
-      
+
       if (!context.mounted) return;
-      
+
       if (allBooks.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Votre bibliothèque est vide')),
         );
         return;
       }
-      
+
       final selectedBook = await showModalBottomSheet<Book>(
         context: context,
         builder: (context) => _UnifiedBookSelectorSheet(books: allBooks),
       );
-      
+
       if (selectedBook != null && context.mounted) {
         await _startSession(context, selectedBook);
       }
@@ -256,7 +256,7 @@ class GlobalReadingSessionFAB extends StatelessWidget {
   }
 }
 
-/// FAB Expandable avec design Liquid Glass (Apple style)
+/// FAB Expandable avec design Liquid Glass — utilise un Overlay pour le menu
 class _ExpandableFAB extends StatefulWidget {
   final VoidCallback onScanPressed;
   final VoidCallback onKindlePressed;
@@ -276,6 +276,7 @@ class _ExpandableFAB extends StatefulWidget {
 
 class _ExpandableFABState extends State<_ExpandableFAB> with SingleTickerProviderStateMixin {
   bool _isExpanded = false;
+  OverlayEntry? _overlayEntry;
   late AnimationController _animationController;
   late Animation<double> _expandAnimation;
 
@@ -290,195 +291,214 @@ class _ExpandableFABState extends State<_ExpandableFAB> with SingleTickerProvide
       parent: _animationController,
       curve: Curves.easeOutCubic,
     );
+    _animationController.addListener(() {
+      _overlayEntry?.markNeedsBuild();
+    });
   }
 
   @override
   void dispose() {
+    _removeOverlay();
     _animationController.dispose();
     super.dispose();
   }
 
+  void _removeOverlay() {
+    _overlayEntry?.remove();
+    _overlayEntry = null;
+  }
+
   void _toggle() {
-    setState(() {
-      _isExpanded = !_isExpanded;
-      if (_isExpanded) {
-        _animationController.forward();
-      } else {
-        _animationController.reverse();
-      }
-    });
+    if (_isExpanded) {
+      _close();
+    } else {
+      _open();
+    }
+  }
+
+  void _open() {
+    setState(() => _isExpanded = true);
+
+    final renderBox = context.findRenderObject() as RenderBox;
+    final fabOffset = renderBox.localToGlobal(Offset.zero);
+    final fabSize = renderBox.size;
+
+    _overlayEntry = _createOverlayEntry(fabOffset, fabSize);
+    Overlay.of(context).insert(_overlayEntry!);
+    _animationController.forward();
   }
 
   void _close() {
-    if (_isExpanded) {
-      setState(() {
-        _isExpanded = false;
-        _animationController.reverse();
-      });
-    }
+    if (!_isExpanded) return;
+    setState(() => _isExpanded = false);
+    _animationController.reverse().then((_) {
+      _removeOverlay();
+    });
+  }
+
+  OverlayEntry _createOverlayEntry(Offset fabOffset, Size fabSize) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    // Le menu se positionne au-dessus du FAB, centré horizontalement
+    final fabCenterX = fabOffset.dx + fabSize.width / 2;
+
+    return OverlayEntry(
+      builder: (context) {
+        final screenWidth = MediaQuery.of(context).size.width;
+        final screenHeight = MediaQuery.of(context).size.height;
+        // Distance du bas de l'écran jusqu'au haut du FAB + marge
+        final bottomDistance = screenHeight - fabOffset.dy + 16;
+
+        return Material(
+          color: Colors.transparent,
+          child: Stack(
+            children: [
+              // Blur plein écran + tap pour fermer
+              Positioned.fill(
+                child: GestureDetector(
+                  onTap: _close,
+                  behavior: HitTestBehavior.opaque,
+                  child: AnimatedBuilder(
+                    animation: _expandAnimation,
+                    builder: (context, child) {
+                      return BackdropFilter(
+                        filter: ImageFilter.blur(
+                          sigmaX: 5 * _expandAnimation.value,
+                          sigmaY: 5 * _expandAnimation.value,
+                        ),
+                        child: const SizedBox.expand(),
+                      );
+                    },
+                  ),
+                ),
+              ),
+              // Options du menu positionnées au-dessus du FAB
+              Positioned(
+                bottom: bottomDistance,
+                left: 0,
+                right: 0,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _buildLiquidGlassOption(
+                      index: 2,
+                      label: 'Nouveau livre',
+                      icon: Icons.camera_alt_rounded,
+                      accentColor: const Color(0xFF8B5CF6),
+                      onTap: () {
+                        _close();
+                        widget.onScanPressed();
+                      },
+                      isDark: isDark,
+                    ),
+                    const SizedBox(height: 12),
+                    _buildLiquidGlassOption(
+                      index: 1,
+                      label: 'Livres Kindle',
+                      icon: Icons.auto_stories_rounded,
+                      accentColor: const Color(0xFFF59E0B),
+                      onTap: () {
+                        _close();
+                        widget.onKindlePressed();
+                      },
+                      isDark: isDark,
+                    ),
+                    const SizedBox(height: 12),
+                    _buildLiquidGlassOption(
+                      index: 0,
+                      label: 'Ma bibliothèque',
+                      icon: Icons.menu_book_rounded,
+                      accentColor: const Color(0xFF10B981),
+                      onTap: () {
+                        _close();
+                        widget.onLibraryPressed();
+                      },
+                      isDark: isDark,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Stack(
-      alignment: Alignment.bottomRight,
-      children: [
-        // Overlay avec blur (sans fond grisé) pour fermer
-        if (_isExpanded)
-          Positioned.fill(
-            child: GestureDetector(
-              onTap: _close,
-              behavior: HitTestBehavior.opaque,
-              child: AnimatedBuilder(
-                animation: _expandAnimation,
-                builder: (context, child) {
-                  return BackdropFilter(
-                    filter: ImageFilter.blur(
-                      sigmaX: 5 * _expandAnimation.value,
-                      sigmaY: 5 * _expandAnimation.value,
-                    ),
-                    child: const SizedBox.expand(),
-                  );
-                },
-              ),
-            ),
-          ),
-
-        // Options du menu
-        Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            // Option 1: Scanner
-            _buildLiquidGlassOption(
-              index: 2,
-              label: 'Nouveau livre',
-              icon: Icons.camera_alt_rounded,
-              accentColor: const Color(0xFF8B5CF6), // Violet
-              onTap: () {
-                _close();
-                widget.onScanPressed();
-              },
-              isDark: isDark,
-            ),
-            const SizedBox(height: 12),
-
-            // Option 2: Kindle
-            _buildLiquidGlassOption(
-              index: 1,
-              label: 'Livres Kindle',
-              icon: Icons.auto_stories_rounded,
-              accentColor: const Color(0xFFF59E0B), // Orange/Ambre
-              onTap: () {
-                _close();
-                widget.onKindlePressed();
-              },
-              isDark: isDark,
-            ),
-            const SizedBox(height: 12),
-
-            // Option 3: Bibliothèque
-            _buildLiquidGlassOption(
-              index: 0,
-              label: 'Ma bibliothèque',
-              icon: Icons.menu_book_rounded,
-              accentColor: const Color(0xFF10B981), // Vert émeraude
-              onTap: () {
-                _close();
-                widget.onLibraryPressed();
-              },
-              isDark: isDark,
-            ),
-            const SizedBox(height: 16),
-
-            // Bouton principal Liquid Glass
-            _buildMainLiquidGlassButton(isDark),
-          ],
-        ),
-      ],
+    // Le FAB reste toujours 60x60, pas de changement de taille
+    return GestureDetector(
+      onTap: _toggle,
+      child: _buildMainLiquidGlassButton(isDark),
     );
   }
 
   Widget _buildMainLiquidGlassButton(bool isDark) {
-    return GestureDetector(
-      onTap: _toggle,
-      child: AnimatedBuilder(
-        animation: _expandAnimation,
-        builder: (context, child) {
-          return Container(
-            width: 60,
-            height: 60,
+    return Container(
+      width: 60,
+      height: 60,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isDark
+              ? [
+                  AppColors.primary.withValues(alpha: 0.25),
+                  AppColors.primary.withValues(alpha: 0.12),
+                ]
+              : [
+                  AppColors.primary.withValues(alpha: 0.4),
+                  AppColors.primary.withValues(alpha: 0.2),
+                ],
+        ),
+        border: Border.all(
+          color: isDark
+              ? AppColors.primary.withValues(alpha: 0.35)
+              : AppColors.primary.withValues(alpha: 0.6),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.15),
+            blurRadius: 20,
+            spreadRadius: 0,
+            offset: const Offset(0, 8),
+          ),
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: isDark ? 0.15 : 0.35),
+            blurRadius: 10,
+            spreadRadius: -5,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: ClipOval(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+          child: Container(
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              // Gradient de fond glass
               gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: isDark
-                    ? [
-                        AppColors.primary.withValues(alpha: 0.25),
-                        AppColors.primary.withValues(alpha: 0.12),
-                      ]
-                    : [
-                        AppColors.primary.withValues(alpha: 0.4),
-                        AppColors.primary.withValues(alpha: 0.2),
-                      ],
-              ),
-              // Bordure subtile avec reflet
-              border: Border.all(
-                color: isDark
-                    ? AppColors.primary.withValues(alpha: 0.35)
-                    : AppColors.primary.withValues(alpha: 0.6),
-                width: 1.5,
-              ),
-              // Ombres multiples pour l'effet de profondeur
-              boxShadow: [
-                // Ombre externe douce
-                BoxShadow(
-                  color: Colors.black.withValues(alpha:0.15),
-                  blurRadius: 20,
-                  spreadRadius: 0,
-                  offset: const Offset(0, 8),
-                ),
-                // Ombre interne lumineuse (simulée)
-                BoxShadow(
-                  color: AppColors.primary.withValues(alpha: isDark ? 0.15 : 0.35),
-                  blurRadius: 10,
-                  spreadRadius: -5,
-                  offset: const Offset(0, -2),
-                ),
-              ],
-            ),
-            child: ClipOval(
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-                child: Container(
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        AppColors.primary.withValues(alpha: isDark ? 0.2 : 0.3),
-                        Colors.transparent,
-                      ],
-                      stops: const [0.0, 0.5],
-                    ),
-                  ),
-                  child: Center(
-                    child: Icon(
-                      Icons.menu_book_rounded,
-                      size: 28,
-                      color: isDark ? Colors.white : Colors.black87,
-                    ),
-                  ),
-                ),
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  AppColors.primary.withValues(alpha: isDark ? 0.2 : 0.3),
+                  Colors.transparent,
+                ],
+                stops: const [0.0, 0.5],
               ),
             ),
-          );
-        },
+            child: Center(
+              child: Icon(
+                Icons.menu_book_rounded,
+                size: 28,
+                color: isDark ? Colors.white : Colors.black87,
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -532,23 +552,23 @@ class _ExpandableFABState extends State<_ExpandableFAB> with SingleTickerProvide
                       end: Alignment.bottomRight,
                       colors: isDark
                           ? [
-                              Colors.white.withValues(alpha:0.15),
-                              Colors.white.withValues(alpha:0.05),
+                              Colors.white.withValues(alpha: 0.15),
+                              Colors.white.withValues(alpha: 0.05),
                             ]
                           : [
-                              Colors.white.withValues(alpha:0.7),
-                              Colors.white.withValues(alpha:0.4),
+                              Colors.white.withValues(alpha: 0.7),
+                              Colors.white.withValues(alpha: 0.4),
                             ],
                     ),
                     border: Border.all(
                       color: isDark
-                          ? Colors.white.withValues(alpha:0.2)
-                          : Colors.white.withValues(alpha:0.6),
+                          ? Colors.white.withValues(alpha: 0.2)
+                          : Colors.white.withValues(alpha: 0.6),
                       width: 1,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha:0.1),
+                        color: Colors.black.withValues(alpha: 0.1),
                         blurRadius: 10,
                         offset: const Offset(0, 4),
                       ),
@@ -580,23 +600,23 @@ class _ExpandableFABState extends State<_ExpandableFAB> with SingleTickerProvide
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                       colors: [
-                        accentColor.withValues(alpha:0.8),
-                        accentColor.withValues(alpha:0.5),
+                        accentColor.withValues(alpha: 0.8),
+                        accentColor.withValues(alpha: 0.5),
                       ],
                     ),
                     border: Border.all(
-                      color: Colors.white.withValues(alpha:0.4),
+                      color: Colors.white.withValues(alpha: 0.4),
                       width: 1.5,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: accentColor.withValues(alpha:0.4),
+                        color: accentColor.withValues(alpha: 0.4),
                         blurRadius: 12,
                         spreadRadius: 0,
                         offset: const Offset(0, 4),
                       ),
                       BoxShadow(
-                        color: Colors.black.withValues(alpha:0.1),
+                        color: Colors.black.withValues(alpha: 0.1),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
                       ),
@@ -617,8 +637,8 @@ class _ExpandableFABState extends State<_ExpandableFAB> with SingleTickerProvide
                               begin: Alignment.topCenter,
                               end: Alignment.bottomCenter,
                               colors: [
-                                Colors.white.withValues(alpha:0.5),
-                                Colors.white.withValues(alpha:0.0),
+                                Colors.white.withValues(alpha: 0.5),
+                                Colors.white.withValues(alpha: 0.0),
                               ],
                             ),
                           ),

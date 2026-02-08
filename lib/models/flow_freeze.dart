@@ -1,14 +1,14 @@
-// lib/models/streak_freeze.dart
-// Modele pour la protection de streak (freeze)
+// lib/models/flow_freeze.dart
+// Modele pour la protection de flow (freeze)
 
-class StreakFreezeStatus {
+class FlowFreezeStatus {
   final bool freezeAvailable;      // Un freeze est disponible cette semaine
   final bool freezeUsedThisWeek;   // Un freeze a été utilisé cette semaine
   final DateTime? lastFreezeDate;  // Date du dernier freeze utilisé
   final DateTime weekStart;        // Début de la semaine courante
   final DateTime weekEnd;          // Fin de la semaine courante
 
-  StreakFreezeStatus({
+  FlowFreezeStatus({
     required this.freezeAvailable,
     required this.freezeUsedThisWeek,
     this.lastFreezeDate,
@@ -16,12 +16,12 @@ class StreakFreezeStatus {
     required this.weekEnd,
   });
 
-  factory StreakFreezeStatus.empty() {
+  factory FlowFreezeStatus.empty() {
     final now = DateTime.now();
     // Calculer le lundi de cette semaine
     final weekStart = now.subtract(Duration(days: now.weekday - 1));
     final weekStartDate = DateTime(weekStart.year, weekStart.month, weekStart.day);
-    return StreakFreezeStatus(
+    return FlowFreezeStatus(
       freezeAvailable: true,
       freezeUsedThisWeek: false,
       lastFreezeDate: null,
@@ -30,8 +30,8 @@ class StreakFreezeStatus {
     );
   }
 
-  factory StreakFreezeStatus.fromJson(Map<String, dynamic> json) {
-    return StreakFreezeStatus(
+  factory FlowFreezeStatus.fromJson(Map<String, dynamic> json) {
+    return FlowFreezeStatus(
       freezeAvailable: json['freeze_available'] as bool? ?? true,
       freezeUsedThisWeek: json['freeze_used_this_week'] as bool? ?? false,
       lastFreezeDate: json['last_freeze_date'] != null

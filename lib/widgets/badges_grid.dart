@@ -1,8 +1,10 @@
 // lib/widgets/badges_grid.dart
 // Widget pour afficher la grille de badges
 
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../services/badges_service.dart';
+import '../features/badges/widgets/first_book_badge_painter.dart';
 
 class BadgesGrid extends StatelessWidget {
   final List<UserBadge> badges;
@@ -20,7 +22,7 @@ class BadgesGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     // Afficher seulement les 3 derniers badges débloqués
     final displayBadges = badges.where((b) => b.isUnlocked).take(3).toList();
-    
+
     // Si pas assez de badges débloqués, compléter avec les prochains à débloquer
     if (displayBadges.length < 3) {
       final locked = badges.where((b) => !b.isUnlocked).take(3 - displayBadges.length);
@@ -66,50 +68,66 @@ class BadgeItem extends StatelessWidget {
     return Color(int.parse(buffer.toString(), radix: 16));
   }
 
+  bool get _isAnniversaryHidden => badge.category == 'anniversary' && !badge.isUnlocked;
+
   @override
   Widget build(BuildContext context) {
     final color = _hexToColor(badge.color);
-    
+
     return GestureDetector(
       onTap: () {
         _showBadgeDetails(context);
       },
       child: Column(
         children: [
-          Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              color: badge.isUnlocked ? color.withValues(alpha:0.2) : Theme.of(context).colorScheme.surfaceContainerHighest,
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: badge.isUnlocked ? color : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
-                width: 3,
-              ),
-            ),
-            child: Center(
-              child: Text(
-                badge.icon,
-                style: TextStyle(
-                  fontSize: 36,
-                  color: badge.isUnlocked ? null : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
-                ),
-              ),
+          ClipOval(
+            child: ImageFiltered(
+              imageFilter: _isAnniversaryHidden
+                  ? ImageFilter.blur(sigmaX: 6, sigmaY: 6)
+                  : ImageFilter.blur(sigmaX: 0, sigmaY: 0),
+              child: isFirstBookBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                  ? FirstBookBadgeWidget(size: 80, isLocked: !badge.isUnlocked)
+                  : Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        color: badge.isUnlocked ? color.withValues(alpha:0.2) : Theme.of(context).colorScheme.surfaceContainerHighest,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: badge.isUnlocked ? color : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
+                          width: 3,
+                        ),
+                      ),
+                      child: Center(
+                        child: Text(
+                          badge.icon,
+                          style: TextStyle(
+                            fontSize: 36,
+                            color: badge.isUnlocked ? null : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
+                          ),
+                        ),
+                      ),
+                    ),
             ),
           ),
           const SizedBox(height: 8),
-          SizedBox(
-            width: 100,
-            child: Text(
-              badge.name,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: badge.isUnlocked ? Theme.of(context).colorScheme.onSurface : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+          ImageFiltered(
+            imageFilter: _isAnniversaryHidden
+                ? ImageFilter.blur(sigmaX: 4, sigmaY: 4)
+                : ImageFilter.blur(sigmaX: 0, sigmaY: 0),
+            child: SizedBox(
+              width: 100,
+              child: Text(
+                badge.name,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: badge.isUnlocked ? Theme.of(context).colorScheme.onSurface : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
             ),
           ),
           if (!badge.isUnlocked) ...[
@@ -146,41 +164,60 @@ class BadgeItem extends StatelessWidget {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              width: 100,
-              height: 100,
-              decoration: BoxDecoration(
-                color: badge.isUnlocked ? color.withValues(alpha:0.2) : Theme.of(context).colorScheme.surfaceContainerHighest,
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: badge.isUnlocked ? color : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
-                  width: 3,
-                ),
-              ),
-              child: Center(
-                child: Text(
-                  badge.icon,
-                  style: const TextStyle(fontSize: 48),
-                ),
+            ClipOval(
+              child: ImageFiltered(
+                imageFilter: _isAnniversaryHidden
+                    ? ImageFilter.blur(sigmaX: 8, sigmaY: 8)
+                    : ImageFilter.blur(sigmaX: 0, sigmaY: 0),
+                child: isFirstBookBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                    ? FirstBookBadgeWidget(size: 100, isLocked: !badge.isUnlocked)
+                    : Container(
+                        width: 100,
+                        height: 100,
+                        decoration: BoxDecoration(
+                          color: badge.isUnlocked ? color.withValues(alpha:0.2) : Theme.of(context).colorScheme.surfaceContainerHighest,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: badge.isUnlocked ? color : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
+                            width: 3,
+                          ),
+                        ),
+                        child: Center(
+                          child: Text(
+                            badge.icon,
+                            style: const TextStyle(fontSize: 48),
+                          ),
+                        ),
+                      ),
               ),
             ),
             const SizedBox(height: 16),
-            Text(
-              badge.name,
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
+            ImageFiltered(
+              imageFilter: _isAnniversaryHidden
+                  ? ImageFilter.blur(sigmaX: 5, sigmaY: 5)
+                  : ImageFilter.blur(sigmaX: 0, sigmaY: 0),
+              child: Text(
+                badge.name,
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
               ),
-              textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
-            Text(
-              badge.description,
-              style: TextStyle(
-                fontSize: 14,
-                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+            ImageFiltered(
+              imageFilter: _isAnniversaryHidden
+                  ? ImageFilter.blur(sigmaX: 4, sigmaY: 4)
+                  : ImageFilter.blur(sigmaX: 0, sigmaY: 0),
+              child: Text(
+                badge.description,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                ),
+                textAlign: TextAlign.center,
               ),
-              textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
             if (badge.isUnlocked) ...[

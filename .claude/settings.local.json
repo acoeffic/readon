@@ -17,7 +17,19 @@
       "Bash(ls:*)",
       "Bash(cat:*)",
       "Bash(git -C /Users/acoeffic/readon log --oneline --all -- \"supabase/migrations/*friends*\")",
-      "Bash(git -C:*)"
+      "Bash(git -C:*)",
+      "Bash(/Users/acoeffic/flutter/bin/flutter pub:*)",
+      "Bash(~/.zshrc)",
+      "Bash(/Users/acoeffic/flutter/bin/dart analyze:*)",
+      "Bash(/Users/acoeffic/flutter/bin/flutter devices:*)",
+      "Bash(/Users/acoeffic/flutter/bin/flutter run:*)",
+      "Bash(pkill:*)",
+      "WebFetch(domain:pixabay.com)",
+      "Bash(python3:*)",
+      "Bash(/Users/acoeffic/flutter/bin/flutter analyze:*)",
+      "Bash(fvm flutter pub get:*)",
+      "Bash(/Users/acoeffic/flutter/bin/flutter clean:*)",
+      "Bash(dart analyze:*)"
     ]
   }
 }

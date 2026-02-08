@@ -24,7 +24,7 @@ class _KindleLoginPageState extends State<KindleLoginPage> {
   static const String _kindleLibraryUrl =
       'https://read.amazon.com/kindle-library';
 
-  // Étape 2 : Reading Insights pour le streak
+  // Étape 2 : Reading Insights pour le flow
   static const String _readingInsightsUrl =
       'https://www.amazon.com/kindle/reading/insights';
 
@@ -87,11 +87,11 @@ class _KindleLoginPageState extends State<KindleLoginPage> {
       return;
     }
 
-    // Cas 3 : on est sur Reading Insights (étape streak)
+    // Cas 3 : on est sur Reading Insights (étape flow)
     if (url.contains('/kindle/reading/insights')) {
       if (_extractingData) {
         await Future.delayed(const Duration(seconds: 3));
-        await _extractStreaks();
+        await _extractFlows();
       }
       return;
     }
@@ -190,7 +190,7 @@ class _KindleLoginPageState extends State<KindleLoginPage> {
       debugPrint('Kindle Library: ${books.length} livres extraits');
 
       if (books.isNotEmpty) {
-        // Sauvegarder en cache local (sera utilisé par _extractStreaks)
+        // Sauvegarder en cache local (sera utilisé par _extractFlows)
         final tempData = KindleReadingData(books: books);
         await _service.saveLocally(tempData);
 
@@ -208,42 +208,42 @@ class _KindleLoginPageState extends State<KindleLoginPage> {
         debugPrint('Kindle: $imported nouveaux livres importés (firstSync: $isFirstSync)');
 
         if (mounted) {
-          setState(() => _statusMessage = '${books.length} livres récupérés ! Streaks...');
+          setState(() => _statusMessage = '${books.length} livres récupérés ! Flows...');
         }
       } else {
         if (mounted) {
-          setState(() => _statusMessage = 'Aucun livre trouvé. Streaks...');
+          setState(() => _statusMessage = 'Aucun livre trouvé. Flows...');
         }
       }
 
-      // Étape 2 : Naviguer vers Reading Insights pour les streaks
+      // Étape 2 : Naviguer vers Reading Insights pour les flows
       await _controller.loadRequest(Uri.parse(_readingInsightsUrl));
     } catch (e) {
       debugPrint('Kindle library extraction error: $e');
-      // En cas d'erreur, tenter quand même les streaks
+      // En cas d'erreur, tenter quand même les flows
       if (mounted) {
-        setState(() => _statusMessage = 'Erreur livres. Streaks...');
+        setState(() => _statusMessage = 'Erreur livres. Flows...');
       }
       await _controller.loadRequest(Uri.parse(_readingInsightsUrl));
     }
   }
 
-  /// Étape 2 : Extraire les streaks depuis Reading Insights
-  Future<void> _extractStreaks() async {
+  /// Étape 2 : Extraire les flows depuis Reading Insights
+  Future<void> _extractFlows() async {
     try {
       if (mounted) {
-        setState(() => _statusMessage = 'Extraction des streaks...');
+        setState(() => _statusMessage = 'Extraction des flows...');
       }
 
       // Scroller pour charger le contenu
       await _scrollToBottom();
       await Future.delayed(const Duration(seconds: 1));
 
-      // Extraire les données de streak
+      // Extraire les données de flow
       final result = await _controller.runJavaScriptReturningResult(
         KindleWebViewService.extractionScript,
       );
-      debugPrint('=== KINDLE STREAK RESULT ===');
+      debugPrint('=== KINDLE FLOW RESULT ===');
       debugPrint(result.toString());
 
       final data = _service.parseExtractionResult(result.toString());
@@ -259,7 +259,7 @@ class _KindleLoginPageState extends State<KindleLoginPage> {
       final cachedData = await _service.loadFromCache();
       final existingBooks = cachedData?.books ?? [];
 
-      // Construire les données finales avec streaks + livres
+      // Construire les données finales avec flows + livres
       final finalData = KindleReadingData(
         booksReadThisYear: data?.booksReadThisYear,
         currentStreak: data?.currentStreak,
@@ -280,11 +280,11 @@ class _KindleLoginPageState extends State<KindleLoginPage> {
       }
 
       if (mounted) {
-        final streakInfo = data?.daysStreak != null
-            ? ' | Streak: ${data!.daysStreak} jours'
+        final flowInfo = data?.daysStreak != null
+            ? ' | Flow: ${data!.daysStreak} jours'
             : '';
         setState(() {
-          _statusMessage = '${existingBooks.length} livres$streakInfo';
+          _statusMessage = '${existingBooks.length} livres$flowInfo';
           _extractingData = false;
         });
 
@@ -294,10 +294,10 @@ class _KindleLoginPageState extends State<KindleLoginPage> {
         }
       }
     } catch (e) {
-      debugPrint('Kindle streak extraction error: $e');
+      debugPrint('Kindle flow extraction error: $e');
       if (mounted) {
         setState(() {
-          _statusMessage = 'Erreur streaks: $e';
+          _statusMessage = 'Erreur flows: $e';
           _extractingData = false;
         });
       }
