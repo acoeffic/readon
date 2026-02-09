@@ -6,6 +6,7 @@ import 'dart:io';
 import '../../theme/app_theme.dart';
 import '../../widgets/back_header.dart';
 import '../../providers/theme_provider.dart';
+import '../../providers/locale_provider.dart';
 import '../../providers/subscription_provider.dart';
 import 'notification_settings_page.dart';
 import 'kindle_login_page.dart';
@@ -512,6 +513,8 @@ if (!allowedExtensions.contains(fileExtension)) {
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final isDark = themeProvider.isDarkMode;
+    final localeProvider = Provider.of<LocaleProvider>(context);
+    final isFrench = localeProvider.locale.languageCode == 'fr';
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -816,6 +819,27 @@ if (!allowedExtensions.contains(fileExtension)) {
                     label: isDark ? '🌙 Thème sombre (actif)' : '🌙 Thème sombre',
                     onTap: !isDark
                         ? () => themeProvider.setThemeMode(ThemeMode.dark)
+                        : null,
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: AppSpace.m),
+
+              // --- Section Langue ---
+              _SettingsSection(
+                title: 'Langue',
+                items: [
+                  _SettingsItem(
+                    label: isFrench ? '🇫🇷 Français (actif)' : '🇫🇷 Français',
+                    onTap: !isFrench
+                        ? () => localeProvider.setLocale(const Locale('fr'))
+                        : null,
+                  ),
+                  _SettingsItem(
+                    label: isFrench ? '🇬🇧 English' : '🇬🇧 English (active)',
+                    onTap: isFrench
+                        ? () => localeProvider.setLocale(const Locale('en'))
                         : null,
                   ),
                 ],

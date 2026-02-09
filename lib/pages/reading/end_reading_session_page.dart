@@ -53,11 +53,13 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
   bool _showFinishBookAnimation = false;
   bool _isEditingPageNumber = false;
   final TextEditingController _pageNumberController = TextEditingController();
+  final TextEditingController _manualPageController = TextEditingController();
 
   @override
   void dispose() {
     _sessionService.dispose();
     _pageNumberController.dispose();
+    _manualPageController.dispose();
     super.dispose();
   }
 
@@ -301,7 +303,7 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
         if (!hasCompleted && !hasSeen) {
           await contactsService.markFirstSessionCompleted();
           if (!mounted) return;
-          Navigator.of(context).pushReplacement(
+          Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(
               builder: (context) => ContactsSuggestionPage(
                 session: completedSession,
@@ -309,17 +311,19 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
                 isBookCompleted: false,
               ),
             ),
+            (route) => route.isFirst,
           );
         } else {
           if (!hasCompleted) await contactsService.markFirstSessionCompleted();
           if (!mounted) return;
-          Navigator.of(context).pushReplacement(
+          Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(
               builder: (context) => ReadingSessionSummaryPage(
                 session: completedSession,
                 trophy: trophy,
               ),
             ),
+            (route) => route.isFirst,
           );
         }
       }
@@ -525,7 +529,7 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
         if (!hasCompleted && !hasSeen) {
           await contactsService.markFirstSessionCompleted();
           if (!mounted) return;
-          Navigator.of(context).pushReplacement(
+          Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(
               builder: (context) => ContactsSuggestionPage(
                 session: completedSession,
@@ -534,17 +538,19 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
                 isBookCompleted: true,
               ),
             ),
+            (route) => route.isFirst,
           );
         } else {
           if (!hasCompleted) await contactsService.markFirstSessionCompleted();
           if (!mounted) return;
-          Navigator.of(context).pushReplacement(
+          Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(
               builder: (context) => BookCompletedSummaryPage(
                 book: book!,
                 lastSession: completedSession,
               ),
             ),
+            (route) => route.isFirst,
           );
                 }
       } catch (e) {
@@ -916,6 +922,8 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
               const Text('Ou saisissez le numéro directement:', style: TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               TextField(
+                key: const ValueKey('manual_page_input'),
+                controller: _manualPageController,
                 keyboardType: TextInputType.number,
                 decoration: InputDecoration(
                   labelText: 'Numéro de page',

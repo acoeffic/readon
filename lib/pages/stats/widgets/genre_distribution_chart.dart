@@ -13,8 +13,9 @@ const _genreColors = [
 
 class GenreDistributionChart extends StatelessWidget {
   final List<GenreStatData> data;
+  final bool showHeader;
 
-  const GenreDistributionChart({super.key, required this.data});
+  const GenreDistributionChart({super.key, required this.data, this.showHeader = true});
 
   @override
   Widget build(BuildContext context) {
@@ -28,14 +29,16 @@ class GenreDistributionChart extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Répartition des genres',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
-                  ?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: AppSpace.l),
+            if (showHeader) ...[
+              Text(
+                'Répartition des genres',
+                style: Theme.of(context)
+                    .textTheme
+                    .titleMedium
+                    ?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: AppSpace.l),
+            ],
             Center(
               child: Text(
                 'Pas encore de données',
@@ -61,14 +64,16 @@ class GenreDistributionChart extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Répartition des genres',
-            style: Theme.of(context)
-                .textTheme
-                .titleMedium
-                ?.copyWith(fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: AppSpace.l),
+          if (showHeader) ...[
+            Text(
+              'Répartition des genres',
+              style: Theme.of(context)
+                  .textTheme
+                  .titleMedium
+                  ?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: AppSpace.l),
+          ],
 
           // Stacked bar
           ClipRRect(

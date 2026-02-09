@@ -107,7 +107,9 @@ class BadgeOverviewCard extends StatelessWidget {
                           return Padding(
                             padding: const EdgeInsets.only(right: AppSpace.s),
                             child: isFirstBookBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const FirstBookBadgeWidget(size: 44)
+                                ? const FirstBookBadge(size: 44)
+                                : isApprenticeReaderBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                                ? const ApprenticeReaderBadge(size: 44)
                                 : Container(
                                     width: 44,
                                     height: 44,

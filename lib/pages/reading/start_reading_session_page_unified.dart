@@ -10,6 +10,7 @@ import '../../models/book.dart';
 import '../../models/reading_session.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/cached_book_cover.dart';
+import 'active_reading_session_page.dart';
 
 class StartReadingSessionPageUnified extends StatefulWidget {
   final Book book;
@@ -35,12 +36,42 @@ class _StartReadingSessionPageUnifiedState extends State<StartReadingSessionPage
   int? _manualPageNumber;
   bool _isEditingPageNumber = false;
   final TextEditingController _pageNumberController = TextEditingController();
+  final TextEditingController _manualPageController = TextEditingController();
+
+  ReadingSession? _activeSession;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkActiveSession();
+  }
+
+  Future<void> _checkActiveSession() async {
+    try {
+      final session = await _sessionService.getActiveSession(widget.book.id.toString());
+      if (mounted && session != null) {
+        setState(() => _activeSession = session);
+      }
+    } catch (_) {}
+  }
+
+  void _resumeActiveSession() {
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (context) => ActiveReadingSessionPage(
+          activeSession: _activeSession!,
+          book: widget.book,
+        ),
+      ),
+    );
+  }
 
   @override
   void dispose() {
     _sessionService.dispose();
     _ocrService.dispose();
     _pageNumberController.dispose();
+    _manualPageController.dispose();
     super.dispose();
   }
 
@@ -190,6 +221,55 @@ class _StartReadingSessionPageUnifiedState extends State<StartReadingSessionPage
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // Bandeau session active
+            if (_activeSession != null) ...[
+              Card(
+                color: AppColors.primary.withValues(alpha: 0.1),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.play_circle_fill, color: AppColors.primary, size: 22),
+                          const SizedBox(width: 8),
+                          const Expanded(
+                            child: Text(
+                              'Une session est déjà en cours',
+                              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Commencée à la page ${_activeSession!.startPage}',
+                        style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: _resumeActiveSession,
+                          icon: const Icon(Icons.arrow_forward_rounded, size: 20),
+                          label: const Text('Reprendre la session'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+
             // Infos du livre
             Card(
               child: Padding(
@@ -445,6 +525,8 @@ class _StartReadingSessionPageUnifiedState extends State<StartReadingSessionPage
               ),
               const SizedBox(height: 8),
               TextField(
+                key: const ValueKey('manual_page_input'),
+                controller: _manualPageController,
                 keyboardType: TextInputType.number,
                 decoration: const InputDecoration(
                   labelText: 'Numéro de page',

@@ -202,7 +202,9 @@ class _BadgeUnlockedDialogState extends State<BadgeUnlockedDialog>
                         return Transform.rotate(
                           angle: _rotationAnimation.value,
                           child: isFirstBookBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const FirstBookBadgeWidget(size: 120)
+                              ? const FirstBookBadge(size: 120)
+                              : isApprenticeReaderBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
+                              ? const ApprenticeReaderBadge(size: 120)
                               : Container(
                                   width: 120,
                                   height: 120,

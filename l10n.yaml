@@ -4,4 +4,5 @@ output-localization-file: app_localizations.dart
 output-class: AppLocalizations
 preferred-supported-locales:
   - fr
+  - en
 nullable-getter: false

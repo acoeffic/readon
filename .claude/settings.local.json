@@ -29,7 +29,9 @@
       "Bash(/Users/acoeffic/flutter/bin/flutter analyze:*)",
       "Bash(fvm flutter pub get:*)",
       "Bash(/Users/acoeffic/flutter/bin/flutter clean:*)",
-      "Bash(dart analyze:*)"
+      "Bash(dart analyze:*)",
+      "Bash(flutter gen-l10n:*)",
+      "Bash(flutter pub add:*)"
     ]
   }
 }

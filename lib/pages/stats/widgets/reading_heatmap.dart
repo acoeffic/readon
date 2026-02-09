@@ -6,8 +6,9 @@ const _dayLabels = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 
 class ReadingHeatmap extends StatelessWidget {
   final Map<int, Map<int, int>> data; // weekday (1-7) -> {timeSlot (0-3) -> count}
+  final bool showHeader;
 
-  const ReadingHeatmap({super.key, required this.data});
+  const ReadingHeatmap({super.key, required this.data, this.showHeader = true});
 
   int get _maxCount {
     int max = 0;
@@ -50,19 +51,21 @@ class ReadingHeatmap extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Quand lis-tu',
-            style: Theme.of(context)
-                .textTheme
-                .titleMedium
-                ?.copyWith(fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Tes horaires favoris de la semaine',
-            style: TextStyle(fontSize: 13, color: subtitleColor),
-          ),
-          const SizedBox(height: AppSpace.l),
+          if (showHeader) ...[
+            Text(
+              'Quand lis-tu',
+              style: Theme.of(context)
+                  .textTheme
+                  .titleMedium
+                  ?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Tes horaires favoris de la semaine',
+              style: TextStyle(fontSize: 13, color: subtitleColor),
+            ),
+            const SizedBox(height: AppSpace.l),
+          ],
 
           // Day labels at the top
           Row(

@@ -86,7 +86,9 @@ class BadgeItem extends StatelessWidget {
                   ? ImageFilter.blur(sigmaX: 6, sigmaY: 6)
                   : ImageFilter.blur(sigmaX: 0, sigmaY: 0),
               child: isFirstBookBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                  ? FirstBookBadgeWidget(size: 80, isLocked: !badge.isUnlocked)
+                  ? FirstBookBadge(size: 80, isLocked: !badge.isUnlocked)
+                  : isApprenticeReaderBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                  ? ApprenticeReaderBadge(size: 80, isLocked: !badge.isUnlocked)
                   : Container(
                       width: 80,
                       height: 80,
@@ -170,7 +172,9 @@ class BadgeItem extends StatelessWidget {
                     ? ImageFilter.blur(sigmaX: 8, sigmaY: 8)
                     : ImageFilter.blur(sigmaX: 0, sigmaY: 0),
                 child: isFirstBookBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                    ? FirstBookBadgeWidget(size: 100, isLocked: !badge.isUnlocked)
+                    ? FirstBookBadge(size: 100, isLocked: !badge.isUnlocked)
+                    : isApprenticeReaderBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                    ? ApprenticeReaderBadge(size: 100, isLocked: !badge.isUnlocked)
                     : Container(
                         width: 100,
                         height: 100,

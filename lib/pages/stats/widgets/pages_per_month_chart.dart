@@ -4,8 +4,9 @@ import '../../../theme/app_theme.dart';
 
 class PagesPerMonthChart extends StatelessWidget {
   final List<MonthlyPageCount> data;
+  final bool showHeader;
 
-  const PagesPerMonthChart({super.key, required this.data});
+  const PagesPerMonthChart({super.key, required this.data, this.showHeader = true});
 
   @override
   Widget build(BuildContext context) {
@@ -21,14 +22,16 @@ class PagesPerMonthChart extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Pages lues par mois',
-            style: Theme.of(context)
-                .textTheme
-                .titleMedium
-                ?.copyWith(fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: AppSpace.l),
+          if (showHeader) ...[
+            Text(
+              'Pages lues par mois',
+              style: Theme.of(context)
+                  .textTheme
+                  .titleMedium
+                  ?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: AppSpace.l),
+          ],
           SizedBox(
             height: maxBarHeight + 50, // bars + labels
             child: Row(

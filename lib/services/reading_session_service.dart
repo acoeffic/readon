@@ -92,7 +92,7 @@ class ReadingSessionService {
       // Mettre à jour la session
       final updateData = <String, dynamic>{
         'end_page': pageNumber,
-        'end_time': DateTime.now().toIso8601String(),
+        'end_time': DateTime.now().toUtc().toIso8601String(),
       };
       if (imagePath != null) {
         updateData['end_image_path'] = imagePath;

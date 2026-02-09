@@ -1,3 +1,6 @@
+import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+
 /// Share image format for the Yearly Wrapped card.
 enum ShareFormat {
   /// 1080x1920 – Instagram/TikTok Story (9:16)
@@ -26,24 +29,39 @@ enum ShareDestination {
   instagramPost,
   twitter,
   linkedin,
+  facebook,
   saveToGallery;
 
   String get label => switch (this) {
         instagramStory => 'Instagram Story',
         tiktok => 'TikTok',
         instagramPost => 'Instagram Post',
-        twitter => 'Twitter / X',
+        twitter => 'X (Twitter)',
         linkedin => 'LinkedIn',
+        facebook => 'Facebook',
         saveToGallery => "Sauvegarder l'image",
       };
 
-  String get icon => switch (this) {
-        instagramStory => '\uD83D\uDCF8',
-        tiktok => '\uD83C\uDFB5',
-        instagramPost => '\uD83D\uDDBC\uFE0F',
-        twitter => '\uD83D\uDC26',
-        linkedin => '\uD83D\uDCBC',
-        saveToGallery => '\uD83D\uDCBE',
+  /// Brand icon for each destination.
+  IconData get iconData => switch (this) {
+        instagramStory => FontAwesomeIcons.instagram,
+        tiktok => FontAwesomeIcons.tiktok,
+        instagramPost => FontAwesomeIcons.instagram,
+        twitter => FontAwesomeIcons.xTwitter,
+        linkedin => FontAwesomeIcons.linkedin,
+        facebook => FontAwesomeIcons.facebook,
+        saveToGallery => Icons.save_alt,
+      };
+
+  /// Brand color for each destination.
+  Color get brandColor => switch (this) {
+        instagramStory => const Color(0xFFE4405F),
+        tiktok => const Color(0xFF000000),
+        instagramPost => const Color(0xFFE4405F),
+        twitter => const Color(0xFF000000),
+        linkedin => const Color(0xFF0A66C2),
+        facebook => const Color(0xFF1877F2),
+        saveToGallery => const Color(0xFF6B7280),
       };
 
   ShareFormat get format => switch (this) {
@@ -52,6 +70,7 @@ enum ShareDestination {
         instagramPost => ShareFormat.square,
         twitter => ShareFormat.square,
         linkedin => ShareFormat.square,
+        facebook => ShareFormat.square,
         saveToGallery => ShareFormat.story,
       };
 
@@ -63,6 +82,7 @@ enum ShareDestination {
         instagramPost => 'instagram://app',
         twitter => 'twitter://post',
         linkedin => 'linkedin://app',
+        facebook => 'fb://publish',
         saveToGallery => null,
       };
 }

@@ -8,25 +8,32 @@ import 'package:path_provider/path_provider.dart';
 import 'package:screenshot/screenshot.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../yearly/yearly_wrapped_data.dart';
-import '../yearly/widgets/yearly_animations.dart';
-import 'share_format.dart';
-import 'wrapped_share_card.dart';
+import '../../models/reading_session.dart';
+import '../../features/wrapped/share/share_format.dart';
+import '../../theme/app_theme.dart';
+import 'session_share_card.dart';
 
 // ==========================================================================
 // Service
 // ==========================================================================
 
-/// Handles screenshot capture and per-destination sharing of the Wrapped card.
-class WrappedShareService {
+/// Handles screenshot capture and per-destination sharing of a session card.
+class SessionShareService {
   final _screenshotController = ScreenshotController();
 
-  /// Capture the [WrappedShareCard] as a high-res PNG.
+  /// Capture the [SessionShareCard] as a high-res PNG.
   Future<Uint8List?> captureCard({
-    required YearlyWrappedData data,
+    required ReadingSession session,
+    required String bookTitle,
+    required String? bookAuthor,
     required ShareFormat format,
   }) async {
-    final card = WrappedShareCard(data: data, format: format);
+    final card = SessionShareCard(
+      session: session,
+      bookTitle: bookTitle,
+      bookAuthor: bookAuthor,
+      format: format,
+    );
     return _screenshotController.captureFromWidget(
       card,
       pixelRatio: 3.0,
@@ -35,27 +42,23 @@ class WrappedShareService {
   }
 
   /// Execute the share action for a specific [destination].
-  ///
-  /// Pattern for social apps:
-  ///   1. Save image to gallery (so it's accessible from the target app)
-  ///   2. Try opening the app via its URL scheme (deep link)
-  ///   3. If app not installed → fall back to native share sheet
-  ///
-  /// For [ShareDestination.saveToGallery] → just save, no app opening.
-  Future<ShareResult> shareToDestination({
+  Future<SessionShareResult> shareToDestination({
     required Uint8List imageBytes,
     required ShareDestination destination,
-    required int year,
+    required ReadingSession session,
   }) async {
-    // Save to gallery — needed for all destinations
+    // Save to gallery
     final galleryResult = await ImageGallerySaverPlus.saveImage(
       imageBytes,
-      name: 'readon_wrapped_${year}_${destination.name}',
+      name: 'readon_session_${session.id}_${destination.name}',
     );
-    final saved = galleryResult != null && (galleryResult['isSuccess'] == true);
+    final saved =
+        galleryResult != null && (galleryResult['isSuccess'] == true);
 
     if (destination == ShareDestination.saveToGallery) {
-      return saved ? ShareResult.savedToGallery : ShareResult.error;
+      return saved
+          ? SessionShareResult.savedToGallery
+          : SessionShareResult.error;
     }
 
     // Try deep-linking into the target app
@@ -64,74 +67,76 @@ class WrappedShareService {
       final uri = Uri.parse(scheme);
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
-        return ShareResult.openedApp;
+        return SessionShareResult.openedApp;
       }
     }
 
     // App not installed — fall back to native share sheet
-    final file = await _saveTempFile(imageBytes, destination.format, year);
+    final file = await _saveTempFile(imageBytes, session.id);
     await Share.shareXFiles(
       [XFile(file.path)],
-      text: 'Mon annee de lecture $year \uD83D\uDCDA\u2728 #ReadOnWrapped',
+      text:
+          'Je viens de lire ${session.pagesRead} pages \uD83D\uDCDA #ReadOn',
     );
-    return ShareResult.sharedGeneric;
+    return SessionShareResult.sharedGeneric;
   }
 
-  Future<File> _saveTempFile(
-    Uint8List bytes,
-    ShareFormat format,
-    int year,
-  ) async {
+  Future<File> _saveTempFile(Uint8List bytes, String sessionId) async {
     final dir = await getTemporaryDirectory();
-    final name = 'readon_wrapped_${year}_${format.name}.png';
-    final file = File('${dir.path}/$name');
+    final file = File('${dir.path}/readon_session_$sessionId.png');
     await file.writeAsBytes(bytes);
     return file;
   }
 }
 
 /// Outcome of a share action.
-enum ShareResult {
-  /// Image was shared via the native share sheet.
+enum SessionShareResult {
   sharedGeneric,
-
-  /// An external app (e.g. Instagram) was opened after saving the image.
   openedApp,
-
-  /// Image was saved to the device gallery.
   savedToGallery,
-
-  /// Something went wrong.
   error,
 }
 
 // ==========================================================================
-// Bottom sheet — called from slide_final.dart
+// Bottom sheet
 // ==========================================================================
 
-/// Shows the share bottom sheet with destination choices.
-Future<void> showWrappedShareSheet({
+/// Shows the session share bottom sheet with destination choices.
+Future<void> showSessionShareSheet({
   required BuildContext context,
-  required YearlyWrappedData data,
+  required ReadingSession session,
+  required String bookTitle,
+  required String? bookAuthor,
 }) {
   return showModalBottomSheet(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
-    builder: (_) => _WrappedShareSheet(data: data),
+    builder: (_) => _SessionShareSheet(
+      session: session,
+      bookTitle: bookTitle,
+      bookAuthor: bookAuthor,
+    ),
   );
 }
 
-class _WrappedShareSheet extends StatefulWidget {
-  final YearlyWrappedData data;
-  const _WrappedShareSheet({required this.data});
+class _SessionShareSheet extends StatefulWidget {
+  final ReadingSession session;
+  final String bookTitle;
+  final String? bookAuthor;
+
+  const _SessionShareSheet({
+    required this.session,
+    required this.bookTitle,
+    required this.bookAuthor,
+  });
 
   @override
-  State<_WrappedShareSheet> createState() => _WrappedShareSheetState();
+  State<_SessionShareSheet> createState() => _SessionShareSheetState();
 }
 
-class _WrappedShareSheetState extends State<_WrappedShareSheet> {
-  final _service = WrappedShareService();
+class _SessionShareSheetState extends State<_SessionShareSheet> {
+  final _service = SessionShareService();
   ShareDestination? _loadingDestination;
 
   Future<void> _onDestinationTap(ShareDestination destination) async {
@@ -139,9 +144,10 @@ class _WrappedShareSheetState extends State<_WrappedShareSheet> {
     setState(() => _loadingDestination = destination);
 
     try {
-      // 1. Capture the card in the right format for this destination
       final bytes = await _service.captureCard(
-        data: widget.data,
+        session: widget.session,
+        bookTitle: widget.bookTitle,
+        bookAuthor: widget.bookAuthor,
         format: destination.format,
       );
 
@@ -153,27 +159,26 @@ class _WrappedShareSheetState extends State<_WrappedShareSheet> {
         return;
       }
 
-      // 2. Execute the destination-specific share action
       final result = await _service.shareToDestination(
         imageBytes: bytes,
         destination: destination,
-        year: widget.data.year,
+        session: widget.session,
       );
 
       if (!mounted) return;
 
-      // 3. Show feedback based on result
       switch (result) {
-        case ShareResult.savedToGallery:
+        case SessionShareResult.savedToGallery:
           Navigator.pop(context);
           _showSnackBar('Image sauvegardee \u2713');
-        case ShareResult.openedApp:
+        case SessionShareResult.openedApp:
           Navigator.pop(context);
-          _showSnackBar('Image sauvegardee — ouvre ${destination.label}');
-        case ShareResult.sharedGeneric:
+          _showSnackBar(
+              'Image sauvegardee — ouvre ${destination.label}');
+        case SessionShareResult.sharedGeneric:
           setState(() => _loadingDestination = null);
           Navigator.pop(context);
-        case ShareResult.error:
+        case SessionShareResult.error:
           setState(() => _loadingDestination = null);
           _showSnackBar('Erreur lors du partage');
       }
@@ -190,7 +195,7 @@ class _WrappedShareSheetState extends State<_WrappedShareSheet> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: YearlyColors.gold.withValues(alpha: 0.9),
+        backgroundColor: AppColors.primary.withValues(alpha: 0.9),
         behavior: SnackBarBehavior.floating,
         duration: const Duration(seconds: 2),
       ),
@@ -200,9 +205,10 @@ class _WrappedShareSheetState extends State<_WrappedShareSheet> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        color: YearlyColors.deepBg,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0A1F1A),
+        borderRadius:
+            const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -221,7 +227,7 @@ class _WrappedShareSheetState extends State<_WrappedShareSheet> {
 
           // Title
           Text(
-            'Partage ton Wrapped \u2728',
+            'Partage ta session \uD83D\uDCDA',
             style: GoogleFonts.libreBaskerville(
               fontSize: 20,
               fontWeight: FontWeight.w700,
@@ -255,7 +261,8 @@ class _WrappedShareSheetState extends State<_WrappedShareSheet> {
             ),
           ),
 
-          SizedBox(height: MediaQuery.of(context).padding.bottom + 20),
+          SizedBox(
+              height: MediaQuery.of(context).padding.bottom + 20),
         ],
       ),
     );
@@ -285,7 +292,8 @@ class _DestinationTile extends StatelessWidget {
       onTap: enabled ? onTap : null,
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        padding:
+            const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
@@ -339,8 +347,8 @@ class _DestinationTile extends StatelessWidget {
                 height: 20,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  valueColor:
-                      AlwaysStoppedAnimation<Color>(YearlyColors.gold),
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                      AppColors.primary),
                 ),
               )
             else

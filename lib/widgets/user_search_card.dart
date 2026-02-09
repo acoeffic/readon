@@ -177,7 +177,9 @@ class UserSearchCard extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           if (isFirstBookBadge(id: badge.id))
-                            const FirstBookBadgeWidget(size: 20)
+                            const FirstBookBadge(size: 20)
+                          else if (isApprenticeReaderBadge(id: badge.id))
+                            const ApprenticeReaderBadge(size: 20)
                           else
                             Text(
                               badge.icon,

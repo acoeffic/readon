@@ -2,7 +2,6 @@
 
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import '../services/kindle_api_service.dart' as kindle;
 import '../services/books_service.dart';
 import '../services/reading_session_service.dart';
 import '../pages/reading/start_reading_session_page_unified.dart';
@@ -58,38 +57,6 @@ class GlobalReadingSessionFAB extends StatelessWidget {
         SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red),
       );
     }
-  }
-
-  Future<void> _selectKindleBookAndStart(BuildContext context) async {
-    final apiService = kindle.KindleApiService();
-    final books = await apiService.getBooks();
-
-    if (!context.mounted) return;
-
-    if (books.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Aucun livre Kindle. Synchronisez vos livres d\'abord.'),
-        ),
-      );
-      return;
-    }
-
-    final selectedKindleBook = await showModalBottomSheet<Book>(
-      context: context,
-      builder: (context) => _BookSelectorSheet(
-        books: books,
-        title: 'Livres Kindle',
-      ),
-    );
-
-    if (selectedKindleBook == null || !context.mounted) return;
-
-    // Convertir en Book unifié et démarrer
-    // TODO: Adapter pour convertir le Book Kindle en Book Supabase
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Fonctionnalité en cours de développement')),
-    );
   }
 
   Future<void> _selectFromLibraryAndStart(BuildContext context) async {
@@ -150,7 +117,6 @@ class GlobalReadingSessionFAB extends StatelessWidget {
   Widget build(BuildContext context) {
     return _ExpandableFAB(
       onScanPressed: () => _handleScan(context),
-      onKindlePressed: () => _handleKindle(context),
       onLibraryPressed: () => _handleLibrary(context),
       checkActiveSession: () => _checkActiveSession(context),
     );
@@ -243,12 +209,6 @@ class GlobalReadingSessionFAB extends StatelessWidget {
     await _scanAndStartSession(context);
   }
 
-  Future<void> _handleKindle(BuildContext context) async {
-    if (await _checkActiveSession(context)) return;
-    if (!context.mounted) return;
-    await _selectKindleBookAndStart(context);
-  }
-
   Future<void> _handleLibrary(BuildContext context) async {
     if (await _checkActiveSession(context)) return;
     if (!context.mounted) return;
@@ -259,13 +219,11 @@ class GlobalReadingSessionFAB extends StatelessWidget {
 /// FAB Expandable avec design Liquid Glass — utilise un Overlay pour le menu
 class _ExpandableFAB extends StatefulWidget {
   final VoidCallback onScanPressed;
-  final VoidCallback onKindlePressed;
   final VoidCallback onLibraryPressed;
   final Future<bool> Function() checkActiveSession;
 
   const _ExpandableFAB({
     required this.onScanPressed,
-    required this.onKindlePressed,
     required this.onLibraryPressed,
     required this.checkActiveSession,
   });
@@ -380,25 +338,13 @@ class _ExpandableFABState extends State<_ExpandableFAB> with SingleTickerProvide
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     _buildLiquidGlassOption(
-                      index: 2,
+                      index: 1,
                       label: 'Nouveau livre',
                       icon: Icons.camera_alt_rounded,
                       accentColor: const Color(0xFF8B5CF6),
                       onTap: () {
                         _close();
                         widget.onScanPressed();
-                      },
-                      isDark: isDark,
-                    ),
-                    const SizedBox(height: 12),
-                    _buildLiquidGlassOption(
-                      index: 1,
-                      label: 'Livres Kindle',
-                      icon: Icons.auto_stories_rounded,
-                      accentColor: const Color(0xFFF59E0B),
-                      onTap: () {
-                        _close();
-                        widget.onKindlePressed();
                       },
                       isDark: isDark,
                     ),
@@ -739,46 +685,3 @@ class _UnifiedBookSelectorSheetState extends State<_UnifiedBookSelectorSheet> {
   }
 }
 
-/// Bottom sheet pour Kindle books (ancien format)
-class _BookSelectorSheet extends StatelessWidget {
-  final List<dynamic> books;
-  final String title;
-
-  const _BookSelectorSheet({required this.books, required this.title});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: MediaQuery.of(context).size.height * 0.7,
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Text(title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-              const Spacer(),
-              IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Expanded(
-            child: ListView.builder(
-              itemCount: books.length,
-              itemBuilder: (context, index) {
-                final book = books[index];
-                return Card(
-                  child: ListTile(
-                    leading: const Icon(Icons.book),
-                    title: Text(book.title ?? 'Sans titre'),
-                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                    onTap: () => Navigator.pop(context, book),
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}

@@ -1,7 +1,12 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
+import '../../models/feature_flags.dart';
 import '../../models/reading_statistics.dart';
+import '../../pages/profile/upgrade_page.dart';
 import '../../services/statistics_service.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/premium_gate.dart';
 import 'widgets/activity_rings_card.dart';
 import 'widgets/pages_per_month_chart.dart';
 import 'widgets/genre_distribution_chart.dart';
@@ -42,6 +47,90 @@ class _StatsTabState extends State<StatsTab> {
     }
   }
 
+  Widget _buildBlurredPremiumCard(
+    BuildContext context, {
+    required String title,
+    String? subtitle,
+    required Widget child,
+  }) {
+    return GestureDetector(
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const UpgradePage()),
+      ),
+      child: Container(
+        padding: const EdgeInsets.all(AppSpace.l),
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(AppRadius.l),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: Theme.of(context)
+                  .textTheme
+                  .titleMedium
+                  ?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            if (subtitle != null) ...[
+              const SizedBox(height: 4),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.5),
+                ),
+              ),
+            ],
+            const SizedBox(height: AppSpace.l),
+            Stack(
+              children: [
+                ClipRect(
+                  child: ImageFiltered(
+                    imageFilter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+                    child: child,
+                  ),
+                ),
+                Positioned.fill(
+                  child: Center(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpace.l,
+                        vertical: AppSpace.s,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        borderRadius: BorderRadius.circular(AppRadius.l),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.lock, color: Colors.white, size: 16),
+                          SizedBox(width: AppSpace.xs),
+                          Text(
+                            'Premium',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -75,11 +164,45 @@ class _StatsTabState extends State<StatsTab> {
           children: [
             ActivityRingsCard(goals: _stats!.activeGoals),
             const SizedBox(height: AppSpace.l),
-            PagesPerMonthChart(data: _stats!.pagesPerMonth),
+            PremiumGate(
+              feature: Feature.advancedStats,
+              lockedWidget: _buildBlurredPremiumCard(
+                context,
+                title: 'Pages lues par mois',
+                child: PagesPerMonthChart(
+                  data: _stats!.pagesPerMonth,
+                  showHeader: false,
+                ),
+              ),
+              child: PagesPerMonthChart(data: _stats!.pagesPerMonth),
+            ),
             const SizedBox(height: AppSpace.l),
-            GenreDistributionChart(data: _stats!.genreDistribution),
+            PremiumGate(
+              feature: Feature.advancedStats,
+              lockedWidget: _buildBlurredPremiumCard(
+                context,
+                title: 'Répartition des genres',
+                child: GenreDistributionChart(
+                  data: _stats!.genreDistribution,
+                  showHeader: false,
+                ),
+              ),
+              child: GenreDistributionChart(data: _stats!.genreDistribution),
+            ),
             const SizedBox(height: AppSpace.l),
-            ReadingHeatmap(data: _stats!.readingHeatmap),
+            PremiumGate(
+              feature: Feature.advancedStats,
+              lockedWidget: _buildBlurredPremiumCard(
+                context,
+                title: 'Quand lis-tu',
+                subtitle: 'Tes horaires favoris de la semaine',
+                child: ReadingHeatmap(
+                  data: _stats!.readingHeatmap,
+                  showHeader: false,
+                ),
+              ),
+              child: ReadingHeatmap(data: _stats!.readingHeatmap),
+            ),
             const SizedBox(height: AppSpace.l),
             PersonalRecordsCard(records: _stats!.records),
             const SizedBox(height: AppSpace.l),
