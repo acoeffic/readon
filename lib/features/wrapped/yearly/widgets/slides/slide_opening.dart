@@ -4,7 +4,7 @@ import '../../yearly_wrapped_data.dart';
 import '../yearly_animations.dart';
 import '../common/gold_line.dart';
 
-/// Slide 0 — Opening: "ReadOn présente" + year in gradient + "ANNÉE COMPLÈTE".
+/// Slide 0 — Opening: "Lexsta présente" + year in gradient + "ANNÉE COMPLÈTE".
 class SlideOpening extends StatelessWidget {
   final YearlyWrappedData data;
   const SlideOpening({super.key, required this.data});
@@ -16,7 +16,7 @@ class SlideOpening extends StatelessWidget {
       children: [
         FadeUp(
           child: Text(
-            'READON PRESENTE',
+            'LEXSTA PRESENTE',
             style: GoogleFonts.libreBaskerville(
               fontSize: 12,
               color: YearlyColors.gold.withValues(alpha: 0.5),

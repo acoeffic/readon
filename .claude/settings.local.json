@@ -31,7 +31,12 @@
       "Bash(/Users/acoeffic/flutter/bin/flutter clean:*)",
       "Bash(dart analyze:*)",
       "Bash(flutter gen-l10n:*)",
-      "Bash(flutter pub add:*)"
+      "Bash(flutter pub add:*)",
+      "WebFetch(domain:nzbhmshkcwudzydeahrq.supabase.co)",
+      "Bash(fvm flutter analyze:*)",
+      "Bash(/Users/acoeffic/flutter/bin/dart run flutter_launcher_icons:*)",
+      "Bash(curl:*)",
+      "Bash(/Users/acoeffic/development/flutter/bin/flutter analyze:*)"
     ]
   }
 }

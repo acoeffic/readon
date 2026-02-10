@@ -1,11 +1,7 @@
-// pages/feed/widgets/friend_activity_card.dart
-// Card pour afficher l'activité d'un ami avec likes et détails
-
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../../services/comments_service.dart';
 import '../../../services/likes_service.dart';
 import '../../../services/reactions_service.dart';
 import '../../../models/feature_flags.dart';
@@ -17,6 +13,11 @@ import '../../../widgets/reaction_summary.dart';
 import '../../../widgets/cached_book_cover.dart';
 import '../../../widgets/cached_profile_avatar.dart';
 import '../../friends/friend_profile_page.dart';
+import '../../../models/book.dart';
+import '../../../models/reading_session.dart';
+import '../../../services/books_service.dart';
+import '../../../services/reading_session_service.dart';
+import '../../reading/book_finished_share_service.dart';
 
 class FriendActivityCard extends StatefulWidget {
   final Map<String, dynamic> activity;
@@ -38,16 +39,56 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
   int _likeCount = 0;
   bool _isLoading = false;
 
-  // Réactions avancées (premium)
   Map<String, int> _reactionCounts = {};
   List<String> _userReactions = [];
   final GlobalKey _likeButtonKey = GlobalKey();
+
+  String? _bookTitle;
+  String? _bookAuthor;
+  String? _bookCover;
+  int? _bookPageCount;
 
   @override
   void initState() {
     super.initState();
     _loadLikeStatus();
     _loadReactions();
+    _loadBookInfo();
+  }
+
+  Future<void> _loadBookInfo() async {
+    final payload = widget.activity['payload'] as Map<String, dynamic>?;
+    if (payload == null) return;
+
+    final bookId = payload['book_id'];
+    if (bookId == null) {
+      final existingTitle = payload['book_title'] as String?;
+      if (existingTitle != null) {
+        setState(() {
+          _bookTitle = existingTitle;
+          _bookAuthor = payload['book_author'] as String?;
+          _bookCover = payload['book_cover'] as String?;
+        });
+      }
+      return;
+    }
+
+    try {
+      final book = await supabase
+          .from('books')
+          .select('title, author, cover_url, page_count')
+          .eq('id', bookId)
+          .maybeSingle();
+      if (!mounted || book == null) return;
+      setState(() {
+        _bookTitle = book['title'] as String?;
+        _bookAuthor = book['author'] as String?;
+        _bookCover = book['cover_url'] as String?;
+        _bookPageCount = book['page_count'] as int?;
+      });
+    } catch (e) {
+      debugPrint('Erreur _loadBookInfo: $e');
+    }
   }
 
   Future<void> _loadLikeStatus() async {
@@ -202,19 +243,6 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
     );
   }
 
-/*
-  void _showComments() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => _CommentsSheet(activityId: widget.activity['id'] as int),
-    );
-  }
-*/
-
   String _getTimeAgo(String? createdAt) {
     if (createdAt == null) return 'Récemment';
     
@@ -271,12 +299,53 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
   String _getShareText(String? bookTitle, String? bookAuthor) {
     final title = bookTitle ?? 'un livre';
     final author = bookAuthor != null ? ' de $bookAuthor' : '';
-    return "Je viens de terminer \"$title\"$author ! 📚✨\n\n#Lecture #BookFinished #ReadOn";
+    if (_isBookFinished()) {
+      return "Je viens de terminer \"$title\"$author ! 📚✨\n\n#Lecture #ReadOn";
+    }
+    final payload = widget.activity['payload'] as Map<String, dynamic>?;
+    final pagesRead = payload?['pages_read'] as int?;
+    final pages = pagesRead != null ? '$pagesRead pages de ' : '';
+    return "Je viens de lire $pages\"$title\"$author 📖\n\n#Lecture #ReadOn";
   }
 
-  void _showShareSheet(String? bookTitle, String? bookAuthor) {
-    final shareText = _getShareText(bookTitle, bookAuthor);
+  Future<void> _showShareSheet(String? bookTitle, String? bookAuthor) async {
+    // For book_finished activities, use the rich share card
+    if (_isBookFinished()) {
+      final payload = widget.activity['payload'] as Map<String, dynamic>?;
+      var bookId = payload?['book_id'] as int?;
 
+      // Fallback: search by title in user's library
+      if (bookId == null && bookTitle != null) {
+        try {
+          final userBooks = await BooksService().getUserBooks();
+          final match = userBooks.where((b) => b.title == bookTitle).firstOrNull;
+          bookId = match?.id;
+        } catch (e) {
+          debugPrint('Erreur recherche livre par titre: $e');
+        }
+      }
+
+      if (bookId != null) {
+        try {
+          final book = await BooksService().getBookById(bookId);
+          final stats = await ReadingSessionService()
+              .getBookStats(bookId.toString());
+          if (!mounted) return;
+          showBookFinishedShareSheet(
+            context: context,
+            book: book,
+            stats: stats,
+          );
+          return;
+        } catch (e) {
+          debugPrint('Erreur chargement livre pour partage: $e');
+        }
+      }
+    }
+
+    // Fallback: text-only share
+    final shareText = _getShareText(bookTitle, bookAuthor);
+    if (!mounted) return;
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -285,6 +354,14 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
         bookTitle: bookTitle,
       ),
     );
+  }
+
+  String _formatDuration(double? durationMinutes) {
+    if (durationMinutes == null || durationMinutes <= 0) return '';
+    final hours = (durationMinutes / 60).floor();
+    final minutes = (durationMinutes % 60).round();
+    if (hours > 0) return '${hours}h${minutes.toString().padLeft(2, '0')}';
+    return '$minutes min';
   }
 
   @override
@@ -296,19 +373,30 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
     final userAvatar = widget.activity['author_avatar'] as String?;
     final authorId = widget.activity['author_id'] as String?;
     final payload = widget.activity['payload'] as Map<String, dynamic>?;
-    final bookTitle = payload?['book_title'] as String?;
-    final bookAuthor = payload?['book_author'] as String?;
-    final bookCover = payload?['book_cover'] as String?;
+    final bookTitle = _bookTitle;
+    final bookAuthor = _bookAuthor;
+    final bookCover = _bookCover;
+    final bookPageCount = _bookPageCount;
     final createdAt = widget.activity['created_at'] as String?;
     final isBookFinished = _isBookFinished();
+    final pagesRead = payload?['pages_read'] as int?;
+    final startPage = payload?['start_page'] as int?;
+    final endPage = payload?['end_page'] as int?;
+    final progressPercent = (bookPageCount != null && bookPageCount > 0 && endPage != null)
+        ? (endPage / bookPageCount).clamp(0.0, 1.0)
+        : null;
+    final durationMinutes = (payload?['duration_minutes'] as num?)?.toDouble();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final muted = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5);
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      elevation: isBookFinished ? 4 : 1,
+      elevation: isBookFinished ? 4 : 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Container(
         decoration: isBookFinished
             ? BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(16),
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
@@ -318,272 +406,200 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
                     Colors.pink.shade50,
                   ],
                 ),
-                border: Border.all(
-                  color: Colors.amber.shade300,
-                  width: 2,
-                ),
+                border: Border.all(color: Colors.amber.shade300, width: 2),
               )
             : null,
-        child: InkWell(
-          onTap: _showDetails,
-          borderRadius: BorderRadius.circular(12),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Badge "Livre terminé" si applicable
-                if (isBookFinished) ...[
-                  Row(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (isBookFinished) ...[
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Colors.amber.shade400, Colors.orange.shade400],
+                    ),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [Colors.amber.shade400, Colors.orange.shade400],
-                          ),
-                          borderRadius: BorderRadius.circular(20),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.amber.withValues(alpha:0.3),
-                              blurRadius: 8,
-                              spreadRadius: 2,
-                            ),
-                          ],
-                        ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.auto_awesome, color: Colors.white, size: 16),
-                            SizedBox(width: 6),
-                            Text(
-                              'Livre terminé!',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ],
+                      Icon(Icons.auto_awesome, color: Colors.white, size: 16),
+                      SizedBox(width: 6),
+                      Text(
+                        'Livre terminé !',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
                         ),
                       ),
-                      const Spacer(),
-                      Icon(Icons.celebration, color: Colors.amber.shade600, size: 24),
                     ],
                   ),
-                  const SizedBox(height: 12),
-                ],
-              // Header: Avatar + Nom + Temps
-              GestureDetector(
-                onTap: authorId != null
-                    ? () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => FriendProfilePage(
-                              userId: authorId,
-                              initialName: userName,
-                              initialAvatar: userAvatar,
-                            ),
-                          ),
-                        );
-                      }
-                    : null,
-                child: Row(
-                  children: [
-                    Container(
-                      decoration: isBookFinished
-                          ? BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: Colors.amber.shade400,
-                                width: 3,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.amber.withValues(alpha:0.3),
-                                  blurRadius: 8,
-                                  spreadRadius: 2,
+                ),
+                const SizedBox(height: 12),
+              ],
+
+              Row(
+                children: [
+                  GestureDetector(
+                    onTap: authorId != null
+                        ? () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => FriendProfilePage(
+                                  userId: authorId,
+                                  initialName: userName,
+                                  initialAvatar: userAvatar,
                                 ),
-                              ],
+                              ),
                             )
-                          : null,
-                      child: CachedProfileAvatar(
-                        imageUrl: userAvatar,
-                        userName: userName,
-                        radius: 20,
-                        backgroundColor: isBookFinished
-                            ? Colors.amber.shade100
-                            : AppColors.primary.withValues(alpha: 0.2),
-                        textColor: isBookFinished
-                            ? Colors.amber.shade700
-                            : AppColors.primary.withValues(alpha: 0.9),
-                      ),
+                        : null,
+                    child: CachedProfileAvatar(
+                      imageUrl: userAvatar,
+                      userName: userName,
+                      radius: 22,
+                      backgroundColor: isBookFinished
+                          ? Colors.amber.shade100
+                          : AppColors.primary.withValues(alpha: 0.15),
+                      textColor: isBookFinished
+                          ? Colors.amber.shade700
+                          : AppColors.primary,
                     ),
-                    const SizedBox(width: 12),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          userName,
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 15,
+                            color: isBookFinished ? Colors.amber.shade900 : null,
+                          ),
+                        ),
+                        const SizedBox(height: 1),
+                        Text(
+                          '${_getActivityDescription()} · ${_getTimeAgo(createdAt).toLowerCase()}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isBookFinished
+                                ? Colors.orange.shade700
+                                : muted,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: _showDetails,
+                    child: Padding(
+                      padding: const EdgeInsets.all(4),
+                      child: Icon(Icons.more_horiz, size: 22, color: muted),
+                    ),
+                  ),
+                ],
+              ),
+
+              if (bookTitle != null) ...[
+                const SizedBox(height: 14),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    CachedBookCover(
+                      imageUrl: bookCover,
+                      width: 80,
+                      height: 110,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    const SizedBox(width: 14),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          const SizedBox(height: 4),
                           Text(
-                            userName,
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
+                            bookTitle,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
                               fontSize: 16,
-                              color: isBookFinished ? Colors.amber.shade900 : null,
+                              height: 1.2,
                             ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          Text(
-                            _getTimeAgo(createdAt),
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: isBookFinished
-                                  ? Colors.orange.shade700
-                                  : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                          if (bookAuthor != null) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              bookAuthor,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: muted,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                          ),
+                          ],
                         ],
                       ),
                     ),
-                  ],
-                ),
-              ),
-              
-              const SizedBox(height: 12),
-
-              // Description
-              Row(
-                children: [
-                  if (isBookFinished)
-                    Icon(Icons.auto_awesome, color: Colors.amber.shade700, size: 18),
-                  if (isBookFinished) const SizedBox(width: 6),
-                  Text(
-                    _getActivityDescription(),
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: isBookFinished
-                          ? Colors.amber.shade900
-                          : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
-                      fontWeight: isBookFinished ? FontWeight.w600 : FontWeight.normal,
-                    ),
-                  ),
-                ],
-              ),
-
-              // Détails du livre
-              if (bookTitle != null) ...[
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: isBookFinished
-                        ? Theme.of(context).cardColor
-                        : Theme.of(context).colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: isBookFinished
-                          ? Colors.amber.shade300
-                          : Theme.of(context).dividerColor,
-                      width: isBookFinished ? 2 : 1,
-                    ),
-                    boxShadow: isBookFinished
-                        ? [
-                            BoxShadow(
-                              color: Colors.amber.withValues(alpha:0.2),
-                              blurRadius: 8,
-                              spreadRadius: 1,
-                            ),
-                          ]
-                        : null,
-                  ),
-                  child: Row(
-                    children: [
-                      // Couverture du livre
-                      CachedBookCover(
-                        imageUrl: bookCover,
-                        width: 50,
-                        height: 70,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      
-                      const SizedBox(width: 12),
-                      
-                      // Infos du livre
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              bookTitle,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            if (bookAuthor != null) ...[
-                              const SizedBox(height: 4),
-                              Text(
-                                bookAuthor,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                            if (payload != null) ...[
-                              const SizedBox(height: 8),
-                              _buildSessionDetails(payload),
-                            ],
-                          ],
-                        ),
+                    if (progressPercent != null) ...[
+                      const SizedBox(width: 10),
+                      _CircularProgress(
+                        percent: progressPercent,
+                        color: isBookFinished ? Colors.amber.shade600 : AppColors.primary,
                       ),
                     ],
-                  ),
+                  ],
                 ),
               ],
-              
+
+              if (pagesRead != null || durationMinutes != null) ...[
+                const SizedBox(height: 14),
+                _StatsBar(
+                  durationText: _formatDuration(durationMinutes),
+                  pagesRead: pagesRead,
+                  startPage: startPage,
+                  endPage: endPage,
+                ),
+              ],
+
               const SizedBox(height: 12),
 
-              // Réactions avancées (premium)
-              if (_reactionCounts.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: ReactionSummary(
-                    reactionCounts: _reactionCounts,
-                    userReactions: _userReactions,
-                  ),
-                ),
-
-              // Actions: Like + Partage + Détails
               Row(
                 children: [
-                  // Bouton Like (tap = like, long press = réactions premium)
                   GestureDetector(
                     key: _likeButtonKey,
                     onTap: _toggleLike,
                     onLongPress: _onLikeLongPress,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
                             _isLiked ? Icons.favorite : Icons.favorite_border,
-                            size: 20,
-                            color: _isLiked ? Colors.red : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                            size: 18,
+                            color: _isLiked ? Colors.red : muted,
                           ),
                           if (_likeCount > 0) ...[
                             const SizedBox(width: 4),
                             Text(
                               '$_likeCount',
                               style: TextStyle(
-                                fontSize: 14,
-                                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
-                                fontWeight: FontWeight.w500,
+                                fontSize: 13,
+                                color: _isLiked
+                                    ? Colors.red
+                                    : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
                           ],
@@ -592,126 +608,203 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
                     ),
                   ),
 
-                  const SizedBox(width: 12),
-
-                  // Bouton partage (seulement pour l'auteur de l'activité)
-                  if (isBookFinished && widget.activity['author_id'] == Supabase.instance.client.auth.currentUser?.id)
-                    InkWell(
+                  if (widget.activity['author_id'] == Supabase.instance.client.auth.currentUser?.id) ...[
+                    const SizedBox(width: 8),
+                    GestureDetector(
                       onTap: () => _showShareSheet(bookTitle, bookAuthor),
-                      borderRadius: BorderRadius.circular(20),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        child: Icon(
-                          Icons.share_outlined,
-                          size: 20,
-                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(20),
                         ),
+                        child: Icon(Icons.share_outlined, size: 18, color: muted),
                       ),
                     ),
+                  ],
 
                   const Spacer(),
 
-                  // Bouton Voir plus
-                  TextButton.icon(
-                    onPressed: _showDetails,
-                    icon: Icon(Icons.info_outline, size: 18, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
-                    label: Text(
-                      'Détails',
-                      style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7)),
+                  if (_reactionCounts.isNotEmpty)
+                    ReactionSummary(
+                      reactionCounts: _reactionCounts,
+                      userReactions: _userReactions,
                     ),
-                  ),
                 ],
               ),
             ],
           ),
         ),
       ),
-    ));
-  }
-
-  Widget _buildSessionDetails(Map<String, dynamic> payload) {
-    final pagesRead = payload['pages_read'] as int?;
-    final durationMinutes = (payload['duration_minutes'] as num?)?.toDouble();
-
-    final List<Widget> chips = [];
-
-    if (pagesRead != null && pagesRead > 0) {
-      chips.add(
-        _DetailChip(
-          icon: Icons.menu_book,
-          label: '$pagesRead page${pagesRead > 1 ? 's' : ''}',
-        ),
-      );
-    }
-
-    if (durationMinutes != null && durationMinutes > 0) {
-      final hours = (durationMinutes / 60).floor();
-      final minutes = (durationMinutes % 60).round();
-      
-      String timeText;
-      if (hours > 0) {
-        timeText = '${hours}h${minutes}min';
-      } else {
-        timeText = '${minutes}min';
-      }
-      
-      chips.add(
-        _DetailChip(
-          icon: Icons.schedule,
-          label: timeText,
-        ),
-      );
-    }
-
-    if (chips.isEmpty) return const SizedBox.shrink();
-
-    return Wrap(
-      spacing: 8,
-      runSpacing: 4,
-      children: chips,
     );
   }
 }
 
-class _DetailChip extends StatelessWidget {
-  final IconData icon;
-  final String label;
+class _StatsBar extends StatelessWidget {
+  final String durationText;
+  final int? pagesRead;
+  final int? startPage;
+  final int? endPage;
 
-  const _DetailChip({
-    required this.icon,
-    required this.label,
+  const _StatsBar({
+    required this.durationText,
+    this.pagesRead,
+    this.startPage,
+    this.endPage,
   });
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final muted = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5);
+    final statColor = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.85);
+    final bgColor = isDark
+        ? Colors.white.withValues(alpha: 0.06)
+        : Colors.grey.shade50;
+    final dividerColor = isDark
+        ? Colors.white.withValues(alpha: 0.1)
+        : Colors.grey.shade200;
+
+    final stats = <Widget>[];
+
+    if (durationText.isNotEmpty) {
+      stats.add(_StatCell(
+        icon: Icons.timer_outlined,
+        value: durationText,
+        label: 'durée',
+        valueColor: statColor,
+        labelColor: muted,
+      ));
+    }
+
+    if (pagesRead != null && pagesRead! > 0) {
+      stats.add(_StatCell(
+        icon: Icons.auto_stories_outlined,
+        value: '$pagesRead',
+        label: 'pages',
+        valueColor: statColor,
+        labelColor: muted,
+      ));
+    }
+
+    if (startPage != null && endPage != null) {
+      stats.add(_StatCell(
+        icon: Icons.bookmark_border,
+        value: 'p.$startPage→$endPage',
+        label: '',
+        valueColor: statColor,
+        labelColor: muted,
+      ));
+    }
+
+    if (stats.isEmpty) return const SizedBox.shrink();
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 10),
       decoration: BoxDecoration(
-        color: isDark
-            ? AppColors.primary.withValues(alpha: 0.3)
-            : AppColors.primary.withValues(alpha: 0.12),
+        color: bgColor,
         borderRadius: BorderRadius.circular(12),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            icon,
-            size: 14,
-            color: isDark
-                ? AppColors.primary.withValues(alpha: 0.7)
-                : AppColors.primary.withValues(alpha: 0.9),
-          ),
-          const SizedBox(width: 4),
+      child: IntrinsicHeight(
+        child: Row(
+          children: [
+            for (int i = 0; i < stats.length; i++) ...[
+              Expanded(child: stats[i]),
+              if (i < stats.length - 1)
+                VerticalDivider(width: 1, thickness: 1, color: dividerColor, indent: 4, endIndent: 4),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _StatCell extends StatelessWidget {
+  final IconData icon;
+  final String value;
+  final String label;
+  final Color valueColor;
+  final Color labelColor;
+
+  const _StatCell({
+    required this.icon,
+    required this.value,
+    required this.label,
+    required this.valueColor,
+    required this.labelColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 15, color: labelColor),
+            const SizedBox(width: 4),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: valueColor,
+              ),
+            ),
+          ],
+        ),
+        if (label.isNotEmpty) ...[
+          const SizedBox(height: 2),
           Text(
             label,
             style: TextStyle(
+              fontSize: 11,
+              color: labelColor,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _CircularProgress extends StatelessWidget {
+  final double percent;
+  final Color color;
+
+  const _CircularProgress({
+    required this.percent,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final displayPercent = (percent * 100).round();
+    return SizedBox(
+      width: 48,
+      height: 48,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          SizedBox(
+            width: 48,
+            height: 48,
+            child: CircularProgressIndicator(
+              value: percent,
+              strokeWidth: 3.5,
+              backgroundColor: color.withValues(alpha: 0.15),
+              valueColor: AlwaysStoppedAnimation(color),
+              strokeCap: StrokeCap.round,
+            ),
+          ),
+          Text(
+            '$displayPercent%',
+            style: TextStyle(
               fontSize: 12,
-              color: isDark
-                  ? AppColors.primary.withValues(alpha: 0.7)
-                  : AppColors.primary.withValues(alpha: 0.9),
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w700,
+              color: color,
             ),
           ),
         ],
@@ -720,7 +813,6 @@ class _DetailChip extends StatelessWidget {
   }
 }
 
-// Bottom Sheet avec détails complets de l'activité
 class _ActivityDetailsSheet extends StatelessWidget {
   final Map<String, dynamic> activity;
 
@@ -980,7 +1072,11 @@ class _ShareBottomSheet extends StatelessWidget {
   }
 
   Future<void> _copyToClipboard(BuildContext context) async {
-    await Share.share(shareText);
+    final box = context.findRenderObject() as RenderBox?;
+    final origin = box != null
+        ? box.localToGlobal(Offset.zero) & box.size
+        : null;
+    await Share.share(shareText, sharePositionOrigin: origin);
     if (context.mounted) Navigator.pop(context);
   }
 
@@ -1183,256 +1279,3 @@ class _ShareOption extends StatelessWidget {
   }
 }
 
-/*
-// Bottom sheet pour les commentaires
-class _CommentsSheet extends StatefulWidget {
-  final int activityId;
-
-  const _CommentsSheet({required this.activityId});
-
-  @override
-  State<_CommentsSheet> createState() => _CommentsSheetState();
-}
-
-class _CommentsSheetState extends State<_CommentsSheet> {
-  final _commentsService = CommentsService();
-  final _commentController = TextEditingController();
-  List<Comment> _comments = [];
-  bool _isLoading = true;
-  bool _isPosting = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadComments();
-  }
-
-  @override
-  void dispose() {
-    _commentController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _loadComments() async {
-    setState(() => _isLoading = true);
-    
-    try {
-      final comments = await _commentsService.getComments(widget.activityId);
-      setState(() {
-        _comments = comments;
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() => _isLoading = false);
-    }
-  }
-
-  Future<void> _postComment() async {
-    if (_commentController.text.trim().isEmpty) return;
-    
-    setState(() => _isPosting = true);
-    
-    try {
-      final comment = await _commentsService.addComment(
-        activityId: widget.activityId,
-        content: _commentController.text,
-      );
-      
-      if (comment != null) {
-        setState(() {
-          _comments.add(comment);
-          _commentController.clear();
-        });
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red),
-      );
-    } finally {
-      setState(() => _isPosting = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: MediaQuery.of(context).size.height * 0.75,
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          // Header
-          Row(
-            children: [
-              const Text(
-                'Commentaires',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              const Spacer(),
-              IconButton(
-                icon: const Icon(Icons.close),
-                onPressed: () => Navigator.pop(context),
-              ),
-            ],
-          ),
-          
-          const Divider(),
-          
-          // Liste des commentaires
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _comments.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.comment_outlined, size: 64, color: Colors.grey.shade300),
-                            const SizedBox(height: 16),
-                            Text(
-                              'Aucun commentaire',
-                              style: TextStyle(color: Colors.grey.shade600),
-                            ),
-                            const SizedBox(height: 8),
-                            const Text(
-                              'Soyez le premier à commenter!',
-                              style: TextStyle(fontSize: 12, color: Colors.grey),
-                            ),
-                          ],
-                        ),
-                      )
-                    : ListView.builder(
-                        itemCount: _comments.length,
-                        itemBuilder: (context, index) {
-                          final comment = _comments[index];
-                          return _CommentItem(comment: comment);
-                        },
-                      ),
-          ),
-          
-          const Divider(),
-          
-          // Input commentaire
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _commentController,
-                  decoration: InputDecoration(
-                    hintText: 'Écrivez un commentaire...',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                  ),
-                  maxLines: null,
-                  maxLength: 500,
-                  textCapitalization: TextCapitalization.sentences,
-                ),
-              ),
-              const SizedBox(width: 8),
-              IconButton(
-                onPressed: _isPosting ? null : _postComment,
-                icon: _isPosting
-                    ? const SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.send),
-                color: AppColors.primary,
-                iconSize: 28,
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _CommentItem extends StatelessWidget {
-  final Comment comment;
-
-  const _CommentItem({required this.comment});
-
-  String _timeAgo(DateTime date) {
-    final now = DateTime.now();
-    final difference = now.difference(date);
-
-    if (difference.inMinutes < 1) {
-      return 'À l\'instant';
-    } else if (difference.inHours < 1) {
-      return 'Il y a ${difference.inMinutes}min';
-    } else if (difference.inDays < 1) {
-      return 'Il y a ${difference.inHours}h';
-    } else if (difference.inDays < 7) {
-      return 'Il y a ${difference.inDays}j';
-    } else {
-      return '${date.day}/${date.month}/${date.year}';
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          CircleAvatar(
-            radius: 18,
-            backgroundColor: AppColors.primary.withValues(alpha: 0.2),
-            backgroundImage: comment.authorAvatar != null && comment.authorAvatar!.isNotEmpty
-                ? NetworkImage(comment.authorAvatar!)
-                : null,
-            child: comment.authorAvatar == null || comment.authorAvatar!.isEmpty
-                ? Text(
-                    comment.displayName[0].toUpperCase(),
-                    style: TextStyle(
-                      color: AppColors.primary.withValues(alpha: 0.9),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                    ),
-                  )
-                : null,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      comment.displayName,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      _timeAgo(comment.createdAt),
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  comment.content,
-                  style: const TextStyle(fontSize: 14),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}*/

@@ -10,6 +10,7 @@ import '../../models/book_suggestion.dart';
 import '../../widgets/suggestion_card.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/cached_book_cover.dart';
+import 'book_finished_share_service.dart';
 
 class BookCompletedSummaryPage extends StatefulWidget {
   final Book book;
@@ -272,15 +273,42 @@ class _BookCompletedSummaryPageState extends State<BookCompletedSummaryPage>
             const SizedBox(height: 24),
           ],
 
+          // Bouton partager
+          if (_stats != null)
+            ElevatedButton.icon(
+              onPressed: () {
+                showBookFinishedShareSheet(
+                  context: context,
+                  book: widget.book,
+                  stats: _stats!,
+                );
+              },
+              icon: const Icon(Icons.share_outlined, size: 20),
+              label: const Text('Partager'),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.all(16),
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+            ),
+
+          const SizedBox(height: 12),
+
           // Bouton retour
-          ElevatedButton.icon(
+          OutlinedButton.icon(
             onPressed: () => Navigator.of(context).pop(),
             icon: const Icon(Icons.home),
             label: const Text('Retour à l\'accueil'),
-            style: ElevatedButton.styleFrom(
+            style: OutlinedButton.styleFrom(
               padding: const EdgeInsets.all(16),
-              backgroundColor: Colors.amber,
-              foregroundColor: Colors.white,
+              foregroundColor: Colors.amber,
+              side: const BorderSide(color: Colors.amber),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
             ),
           ),
 

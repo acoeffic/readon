@@ -15,7 +15,7 @@ class SlideSocial extends StatelessWidget {
       children: [
         FadeUp(
           child: Text(
-            'Parmi la communaute ReadOn',
+            'Parmi la communaute Lexsta',
             style: GoogleFonts.libreBaskerville(
               fontSize: 14,
               fontStyle: FontStyle.italic,

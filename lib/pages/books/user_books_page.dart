@@ -6,6 +6,7 @@ import '../../services/reading_session_service.dart';
 import '../../models/reading_session.dart';
 import '../reading/start_reading_session_page_unified.dart';
 import '../reading/end_reading_session_page.dart';
+import '../reading/book_finished_share_service.dart';
 import '../../widgets/cached_book_cover.dart';
 
 class UserBooksPage extends StatefulWidget {
@@ -100,11 +101,38 @@ class _UserBooksPageState extends State<UserBooksPage> {
         _currentOffset = booksWithStatus.length;
       });
 
-      // Enrichir automatiquement les descriptions manquantes en arrière-plan
+      // Enrichir automatiquement les données manquantes en arrière-plan
+      _autoEnrichCovers();
       _autoEnrichDescriptions();
     } catch (e) {
       debugPrint('Erreur _loadBooks: $e');
       setState(() => _isLoading = false);
+    }
+  }
+
+  /// Enrichit automatiquement les couvertures manquantes sans bloquer l'UI
+  Future<void> _autoEnrichCovers() async {
+    final hasMissing = _booksWithStatus.any((item) {
+      final coverUrl = (item['book'] as Book).coverUrl;
+      return coverUrl == null || coverUrl.isEmpty;
+    });
+
+    if (!hasMissing) return;
+
+    try {
+      final count = await _booksService.enrichMissingCovers();
+      if (count > 0 && mounted) {
+        final booksWithStatus = await _booksService.getUserBooksWithStatusPaginated(
+          limit: _pageSize,
+          offset: 0,
+        );
+        setState(() {
+          _booksWithStatus = booksWithStatus;
+          _currentOffset = booksWithStatus.length;
+        });
+      }
+    } catch (e) {
+      debugPrint('Erreur auto-enrichissement couvertures: $e');
     }
   }
 
@@ -1241,6 +1269,28 @@ class _BookDetailPageState extends State<BookDetailPage> {
                       ],
                     ),
                   ),
+                  if (_stats != null) ...[
+                    const SizedBox(height: 12),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        showBookFinishedShareSheet(
+                          context: context,
+                          book: widget.book,
+                          stats: _stats!,
+                        );
+                      },
+                      icon: const Icon(Icons.share_outlined, size: 20),
+                      label: const Text('Partager'),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.all(16),
+                        backgroundColor: Theme.of(context).primaryColor,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ],
             ],

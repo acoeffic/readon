@@ -162,7 +162,10 @@ class _StatsTabState extends State<StatsTab> {
         padding: const EdgeInsets.all(AppSpace.l),
         child: Column(
           children: [
-            ActivityRingsCard(goals: _stats!.activeGoals),
+            ActivityRingsCard(
+              goals: _stats!.activeGoals,
+              onGoalsUpdated: _loadStats,
+            ),
             const SizedBox(height: AppSpace.l),
             PremiumGate(
               feature: Feature.advancedStats,

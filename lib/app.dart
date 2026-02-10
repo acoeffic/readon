@@ -7,8 +7,8 @@ import 'providers/theme_provider.dart';
 import 'providers/subscription_provider.dart';
 import 'providers/locale_provider.dart';
 
-class ReadOnApp extends StatelessWidget {
-  const ReadOnApp({super.key});
+class LexstaApp extends StatelessWidget {
+  const LexstaApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -21,7 +21,7 @@ class ReadOnApp extends StatelessWidget {
       child: Consumer2<ThemeProvider, LocaleProvider>(
         builder: (context, themeProvider, localeProvider, _) {
           return MaterialApp(
-            title: 'ReadOn',
+            title: 'Lexsta',
             debugShowCheckedModeBanner: false,
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,

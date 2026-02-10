@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:typed_data';
+import 'dart:ui';
 import 'package:image_gallery_saver_plus/image_gallery_saver_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:screenshot/screenshot.dart';
@@ -35,11 +36,13 @@ class MonthlyShareService {
     required Uint8List imageBytes,
     required int year,
     required int month,
+    Rect? sharePositionOrigin,
   }) async {
     final file = await _saveTempFile(imageBytes, year, month);
     await Share.shareXFiles(
       [XFile(file.path)],
-      text: 'Mon wrapped lecture #ReadOn',
+      text: 'Mon wrapped lecture #Lexsta',
+      sharePositionOrigin: sharePositionOrigin,
     );
   }
 
@@ -51,6 +54,7 @@ class MonthlyShareService {
     required String urlScheme,
     required int year,
     required int month,
+    Rect? sharePositionOrigin,
   }) async {
     // Save to temp so it's ready to paste in the target app
     final file = await _saveTempFile(imageBytes, year, month);
@@ -65,7 +69,8 @@ class MonthlyShareService {
     // App not installed — fallback to native share sheet
     await Share.shareXFiles(
       [XFile(file.path)],
-      text: 'Mon wrapped lecture #ReadOn',
+      text: 'Mon wrapped lecture #Lexsta',
+      sharePositionOrigin: sharePositionOrigin,
     );
     return false;
   }

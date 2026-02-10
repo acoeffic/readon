@@ -57,7 +57,7 @@ class TermsAcceptanceCheckbox extends StatelessWidget {
                         );
                       },
                   ),
-                  const TextSpan(text: ' de ReadOn'),
+                  const TextSpan(text: ' de Lexsta'),
                 ],
               ),
             ),

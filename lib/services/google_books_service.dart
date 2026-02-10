@@ -96,14 +96,20 @@ class GoogleBook {
     String? coverUrl;
     if (imageLinks != null) {
       // Prefer larger images
-      coverUrl = imageLinks['large'] ?? 
-                 imageLinks['medium'] ?? 
+      coverUrl = imageLinks['large'] ??
+                 imageLinks['medium'] ??
                  imageLinks['thumbnail'];
-      
+
       // Replace http with https for security
       if (coverUrl != null && coverUrl.startsWith('http:')) {
         coverUrl = coverUrl.replaceFirst('http:', 'https:');
       }
+    }
+
+    // Fallback: Open Library cover via ISBN
+    if (coverUrl == null && isbns.isNotEmpty) {
+      final isbn = isbns.firstWhere((i) => i.length == 13, orElse: () => isbns.first);
+      coverUrl = 'https://covers.openlibrary.org/b/isbn/$isbn-L.jpg';
     }
     
     // Extract categories

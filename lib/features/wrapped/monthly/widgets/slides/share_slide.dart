@@ -26,6 +26,12 @@ class _ShareSlideState extends State<ShareSlide> {
   // Share actions
   // ---------------------------------------------------------------------------
 
+  Rect? _shareOrigin() {
+    final box = context.findRenderObject() as RenderBox?;
+    if (box == null) return null;
+    return box.localToGlobal(Offset.zero) & box.size;
+  }
+
   /// Big button — opens native share sheet with story format.
   Future<void> _shareGeneric() async {
     if (_loadingAction != null) return;
@@ -46,6 +52,7 @@ class _ShareSlideState extends State<ShareSlide> {
         imageBytes: bytes,
         year: data.year,
         month: data.month,
+        sharePositionOrigin: _shareOrigin(),
       );
     } catch (_) {}
     _reset();
@@ -72,6 +79,7 @@ class _ShareSlideState extends State<ShareSlide> {
         urlScheme: urlScheme,
         year: data.year,
         month: data.month,
+        sharePositionOrigin: _shareOrigin(),
       );
       if (!mounted) return;
 
@@ -84,8 +92,8 @@ class _ShareSlideState extends State<ShareSlide> {
     _reset();
   }
 
-  /// Saves image to the photo gallery ("Copier").
-  Future<void> _saveToGallery() async {
+  /// Copies the image via the native share sheet.
+  Future<void> _shareCopy() async {
     if (_loadingAction != null) return;
     setState(() => _loadingAction = 'copier');
 
@@ -100,14 +108,12 @@ class _ShareSlideState extends State<ShareSlide> {
         return;
       }
 
-      final saved = await _service.saveToGallery(
+      await _service.shareGeneric(
         imageBytes: bytes,
         year: data.year,
         month: data.month,
+        sharePositionOrigin: _shareOrigin(),
       );
-      if (!mounted) return;
-
-      _showSnackBar(saved ? 'Image sauvegardee \u2713' : 'Erreur lors de la sauvegarde');
     } catch (e) {
       if (mounted) _showSnackBar('Erreur : $e');
     }
@@ -263,7 +269,7 @@ class _ShareSlideState extends State<ShareSlide> {
               _AppLink(
                 label: 'Copier',
                 isLoading: _loadingAction == 'copier',
-                onTap: _saveToGallery,
+                onTap: _shareCopy,
               ),
             ],
           ),

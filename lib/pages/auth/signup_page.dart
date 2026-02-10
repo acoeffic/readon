@@ -219,7 +219,7 @@ class _SignUpPageState extends State<SignUpPage> {
               const BackHeader(title: 'Créer un compte'),
               const SizedBox(height: AppSpace.l),
 
-              // Logo ReadOn
+              // Logo Lexsta
               Center(
                 child: Column(
                   children: [
@@ -240,7 +240,7 @@ class _SignUpPageState extends State<SignUpPage> {
                     ),
                     const SizedBox(height: AppSpace.s),
                     Text(
-                      'ReadOn',
+                      'Lexsta',
                       style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                             color: AppColors.primary,
                             fontSize: 26,
@@ -253,7 +253,7 @@ class _SignUpPageState extends State<SignUpPage> {
               const SizedBox(height: AppSpace.l),
 
               Text(
-                'Rejoins ReadOn',
+                'Rejoins Lexsta',
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                       fontSize: 26,
                       fontWeight: FontWeight.w700,

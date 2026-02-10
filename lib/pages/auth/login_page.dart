@@ -127,7 +127,7 @@ class _LoginPageState extends State<LoginPage> {
               ),
               const SizedBox(height: AppSpace.l),
               Text(
-                'Bienvenue sur ReadOn',
+                'Bienvenue sur Lexsta',
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                       fontSize: 28,
                       fontWeight: FontWeight.w700,

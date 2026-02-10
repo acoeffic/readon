@@ -705,6 +705,60 @@ class BooksService {
     }
   }
 
+  /// Enrichir les couvertures manquantes pour tous les livres de l'utilisateur
+  /// Retourne le nombre de livres mis à jour
+  Future<int> enrichMissingCovers() async {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) return 0;
+
+    try {
+      final response = await _supabase
+          .from('user_books')
+          .select('book_id, books(id, title, author, cover_url)')
+          .eq('user_id', userId);
+
+      final booksWithoutCover = (response as List).where((item) {
+        final book = item['books'] as Map<String, dynamic>?;
+        if (book == null) return false;
+        final coverUrl = book['cover_url'] as String?;
+        return coverUrl == null || coverUrl.isEmpty;
+      }).toList();
+
+      if (booksWithoutCover.isEmpty) return 0;
+
+      int updated = 0;
+      for (final item in booksWithoutCover) {
+        final book = item['books'] as Map<String, dynamic>;
+        final bookId = book['id'] as int;
+        final title = book['title'] as String;
+        final author = book['author'] as String?;
+
+        try {
+          final metadata = await _fetchGoogleBooksMetadata(
+            _cleanBookTitle(title),
+            kindleAuthor: author,
+          );
+          final coverUrl = metadata?['cover_url'] as String?;
+
+          if (coverUrl != null && coverUrl.isNotEmpty) {
+            await _supabase
+                .from('books')
+                .update({'cover_url': coverUrl})
+                .eq('id', bookId);
+            updated++;
+          }
+        } catch (e) {
+          debugPrint('Erreur enrichissement couverture pour "$title": $e');
+        }
+      }
+
+      return updated;
+    } catch (e) {
+      debugPrint('Erreur enrichMissingCovers: $e');
+      return 0;
+    }
+  }
+
   /// Enrichir les genres manquants pour tous les livres de l'utilisateur
   /// Retourne le nombre de livres mis à jour
   Future<int> enrichMissingGenres() async {

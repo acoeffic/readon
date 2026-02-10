@@ -625,10 +625,16 @@ class _AnniversaryUnlockOverlayState extends State<AnniversaryUnlockOverlay>
           ? '1 an'
           : '${widget.badge.years} ans';
 
+      final box = context.findRenderObject() as RenderBox?;
+      final origin = box != null
+          ? box.localToGlobal(Offset.zero) & box.size
+          : null;
+
       await Share.shareXFiles(
         [XFile(file.path)],
         text:
-            '$yearsText sur ReadOn ! ${widget.badge.icon} #ReadOn',
+            '$yearsText sur Lexsta ! ${widget.badge.icon} #Lexsta',
+        sharePositionOrigin: origin,
       );
     } catch (e) {
       debugPrint('Erreur partage badge anniversaire: $e');
@@ -746,7 +752,7 @@ class _AnniversaryShareCard extends StatelessWidget {
 
           // Branding
           Text(
-            'ReadOn',
+            'Lexsta',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,

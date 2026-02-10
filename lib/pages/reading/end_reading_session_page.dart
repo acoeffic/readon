@@ -587,6 +587,7 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
         'author_id': userId,
         'type': 'book_finished',
         'payload': {
+          'book_id': bookIdInt,
           'book_title': bookResponse['title'],
           'book_author': bookResponse['author'],
           'book_cover': bookResponse['cover_url'],

@@ -1,6 +1,6 @@
 {
-    "name": "readon",
-    "short_name": "readon",
+    "name": "lexsta",
+    "short_name": "lexsta",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

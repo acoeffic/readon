@@ -29,5 +29,5 @@ Future<void> main() async {
   // Initialiser RevenueCat
   await SubscriptionService().initialize();
 
-  runApp(const ReadOnApp());
+  runApp(const LexstaApp());
 }

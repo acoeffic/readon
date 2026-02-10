@@ -12,8 +12,9 @@ const _ringColors = [
 
 class ActivityRingsCard extends StatelessWidget {
   final List<ReadingGoal> goals;
+  final VoidCallback? onGoalsUpdated;
 
-  const ActivityRingsCard({super.key, required this.goals});
+  const ActivityRingsCard({super.key, required this.goals, this.onGoalsUpdated});
 
   @override
   Widget build(BuildContext context) {
@@ -62,9 +63,12 @@ class ActivityRingsCard extends StatelessWidget {
           ),
           const SizedBox(height: AppSpace.m),
           ElevatedButton(
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const ReadingGoalsPage()),
-            ),
+            onPressed: () async {
+              await Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const ReadingGoalsPage()),
+              );
+              onGoalsUpdated?.call();
+            },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,

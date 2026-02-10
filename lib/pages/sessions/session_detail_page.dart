@@ -53,15 +53,19 @@ class SessionDetailPage extends StatelessWidget {
     }
   }
 
-  void _shareSession() {
+  void _shareSession(BuildContext context) {
     final bookTitle = book?.title ?? 'un livre';
     final author = book?.author ?? '';
     final pages = session.pagesRead;
     final duration = _formatDuration(session.durationMinutes);
 
     final text =
-        "Je viens de lire $pages pages de \"$bookTitle\"${author.isNotEmpty ? ' de $author' : ''} en $duration ! \u{1F4DA}\n\n#Readon #Lecture";
-    Share.share(text);
+        "Je viens de lire $pages pages de \"$bookTitle\"${author.isNotEmpty ? ' de $author' : ''} en $duration ! \u{1F4DA}\n\n#Lexsta #Lecture";
+    final box = context.findRenderObject() as RenderBox?;
+    final origin = box != null
+        ? box.localToGlobal(Offset.zero) & box.size
+        : null;
+    Share.share(text, sharePositionOrigin: origin);
   }
 
   @override
@@ -138,7 +142,7 @@ class SessionDetailPage extends StatelessWidget {
               const SizedBox(height: 20),
 
               // Share Button
-              _buildShareButton(isDark),
+              _buildShareButton(isDark, context),
             ] else ...[
               _buildActiveSessionCard(isDark, cardColor, terracotta),
             ],
@@ -648,11 +652,11 @@ class SessionDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _buildShareButton(bool isDark) {
+  Widget _buildShareButton(bool isDark, BuildContext context) {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton.icon(
-        onPressed: _shareSession,
+        onPressed: () => _shareSession(context),
         icon: const Text('\u{1F4EC}', style: TextStyle(fontSize: 18)),
         label: const Text(
           'Partager',

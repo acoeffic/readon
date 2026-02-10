@@ -19,70 +19,76 @@ enum ShareFormat {
   double get aspectRatio => width / height;
 }
 
-/// Where the user wants to share their Wrapped image.
+/// Where the user wants to share their image.
 ///
 /// The [format] is determined automatically based on the destination.
 /// Each destination maps to a URL scheme for deep linking.
 enum ShareDestination {
-  instagramStory,
-  tiktok,
-  instagramPost,
-  twitter,
+  whatsapp,
   linkedin,
+  twitter,
+  tiktok,
+  message,
+  messenger,
   facebook,
-  saveToGallery;
+  more;
 
   String get label => switch (this) {
-        instagramStory => 'Instagram Story',
-        tiktok => 'TikTok',
-        instagramPost => 'Instagram Post',
-        twitter => 'X (Twitter)',
+        whatsapp => 'WhatsApp',
         linkedin => 'LinkedIn',
+        twitter => 'X',
+        tiktok => 'TikTok',
+        message => 'Message',
+        messenger => 'Messenger',
         facebook => 'Facebook',
-        saveToGallery => "Sauvegarder l'image",
+        more => 'Plus',
       };
 
   /// Brand icon for each destination.
   IconData get iconData => switch (this) {
-        instagramStory => FontAwesomeIcons.instagram,
-        tiktok => FontAwesomeIcons.tiktok,
-        instagramPost => FontAwesomeIcons.instagram,
-        twitter => FontAwesomeIcons.xTwitter,
+        whatsapp => FontAwesomeIcons.whatsapp,
         linkedin => FontAwesomeIcons.linkedin,
+        twitter => FontAwesomeIcons.xTwitter,
+        tiktok => FontAwesomeIcons.tiktok,
+        message => Icons.message_rounded,
+        messenger => FontAwesomeIcons.facebookMessenger,
         facebook => FontAwesomeIcons.facebook,
-        saveToGallery => Icons.save_alt,
+        more => Icons.ios_share,
       };
 
   /// Brand color for each destination.
   Color get brandColor => switch (this) {
-        instagramStory => const Color(0xFFE4405F),
-        tiktok => const Color(0xFF000000),
-        instagramPost => const Color(0xFFE4405F),
-        twitter => const Color(0xFF000000),
+        whatsapp => const Color(0xFF25D366),
         linkedin => const Color(0xFF0A66C2),
+        twitter => const Color(0xFF000000),
+        tiktok => const Color(0xFF000000),
+        message => const Color(0xFF34C759),
+        messenger => const Color(0xFF006AFF),
         facebook => const Color(0xFF1877F2),
-        saveToGallery => const Color(0xFF6B7280),
+        more => const Color(0xFF8E8E93),
       };
 
   ShareFormat get format => switch (this) {
-        instagramStory => ShareFormat.story,
-        tiktok => ShareFormat.story,
-        instagramPost => ShareFormat.square,
-        twitter => ShareFormat.square,
+        whatsapp => ShareFormat.story,
         linkedin => ShareFormat.square,
+        twitter => ShareFormat.square,
+        tiktok => ShareFormat.story,
+        message => ShareFormat.story,
+        messenger => ShareFormat.story,
         facebook => ShareFormat.square,
-        saveToGallery => ShareFormat.story,
+        more => ShareFormat.story,
       };
 
   /// URL scheme used to open the target app via deep link.
-  /// Returns `null` for destinations that don't open an external app.
+  /// Returns `null` for destinations that use the native share sheet directly.
   String? get urlScheme => switch (this) {
-        instagramStory => 'instagram://app',
-        tiktok => 'snssdk1233://',
-        instagramPost => 'instagram://app',
-        twitter => 'twitter://post',
+        whatsapp => null,
         linkedin => 'linkedin://app',
+        twitter => 'twitter://post',
+        tiktok => 'snssdk1233://',
+        message => null,
+        messenger => 'fb-messenger://',
         facebook => 'fb://publish',
-        saveToGallery => null,
+        more => null,
       };
 }

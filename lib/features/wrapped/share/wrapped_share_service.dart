@@ -1,9 +1,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:image_gallery_saver_plus/image_gallery_saver_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:screenshot/screenshot.dart';
 import 'package:share_plus/share_plus.dart';
@@ -35,27 +33,25 @@ class WrappedShareService {
   }
 
   /// Execute the share action for a specific [destination].
-  ///
-  /// Pattern for social apps:
-  ///   1. Save image to gallery (so it's accessible from the target app)
-  ///   2. Try opening the app via its URL scheme (deep link)
-  ///   3. If app not installed → fall back to native share sheet
-  ///
-  /// For [ShareDestination.saveToGallery] → just save, no app opening.
-  Future<ShareResult> shareToDestination({
+  Future<void> shareToDestination({
     required Uint8List imageBytes,
     required ShareDestination destination,
     required int year,
+    Rect? sharePositionOrigin,
   }) async {
-    // Save to gallery — needed for all destinations
-    final galleryResult = await ImageGallerySaverPlus.saveImage(
-      imageBytes,
-      name: 'readon_wrapped_${year}_${destination.name}',
-    );
-    final saved = galleryResult != null && (galleryResult['isSuccess'] == true);
+    final text = 'Mon annee de lecture $year \uD83D\uDCDA\u2728 #LexstaWrapped';
 
-    if (destination == ShareDestination.saveToGallery) {
-      return saved ? ShareResult.savedToGallery : ShareResult.error;
+    // Destinations that go directly to the native share sheet
+    if (destination == ShareDestination.whatsapp ||
+        destination == ShareDestination.message ||
+        destination == ShareDestination.more) {
+      final file = await _saveTempFile(imageBytes, destination.format, year);
+      await Share.shareXFiles(
+        [XFile(file.path)],
+        text: text,
+        sharePositionOrigin: sharePositionOrigin,
+      );
+      return;
     }
 
     // Try deep-linking into the target app
@@ -64,7 +60,7 @@ class WrappedShareService {
       final uri = Uri.parse(scheme);
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
-        return ShareResult.openedApp;
+        return;
       }
     }
 
@@ -72,9 +68,9 @@ class WrappedShareService {
     final file = await _saveTempFile(imageBytes, destination.format, year);
     await Share.shareXFiles(
       [XFile(file.path)],
-      text: 'Mon annee de lecture $year \uD83D\uDCDA\u2728 #ReadOnWrapped',
+      text: text,
+      sharePositionOrigin: sharePositionOrigin,
     );
-    return ShareResult.sharedGeneric;
   }
 
   Future<File> _saveTempFile(
@@ -90,26 +86,11 @@ class WrappedShareService {
   }
 }
 
-/// Outcome of a share action.
-enum ShareResult {
-  /// Image was shared via the native share sheet.
-  sharedGeneric,
-
-  /// An external app (e.g. Instagram) was opened after saving the image.
-  openedApp,
-
-  /// Image was saved to the device gallery.
-  savedToGallery,
-
-  /// Something went wrong.
-  error,
-}
-
 // ==========================================================================
 // Bottom sheet — called from slide_final.dart
 // ==========================================================================
 
-/// Shows the share bottom sheet with destination choices.
+/// Shows the share bottom sheet with card preview + icon grid.
 Future<void> showWrappedShareSheet({
   required BuildContext context,
   required YearlyWrappedData data,
@@ -132,51 +113,48 @@ class _WrappedShareSheet extends StatefulWidget {
 
 class _WrappedShareSheetState extends State<_WrappedShareSheet> {
   final _service = WrappedShareService();
+  Uint8List? _capturedImage;
+  bool _isCapturing = true;
   ShareDestination? _loadingDestination;
 
+  @override
+  void initState() {
+    super.initState();
+    _capturePreview();
+  }
+
+  Future<void> _capturePreview() async {
+    final bytes = await _service.captureCard(
+      data: widget.data,
+      format: ShareFormat.story,
+    );
+    if (!mounted) return;
+    setState(() {
+      _capturedImage = bytes;
+      _isCapturing = false;
+    });
+  }
+
+  Rect? _shareOrigin() {
+    final box = context.findRenderObject() as RenderBox?;
+    if (box == null) return null;
+    return box.localToGlobal(Offset.zero) & box.size;
+  }
+
   Future<void> _onDestinationTap(ShareDestination destination) async {
-    if (_loadingDestination != null) return;
+    if (_loadingDestination != null || _capturedImage == null) return;
     setState(() => _loadingDestination = destination);
 
     try {
-      // 1. Capture the card in the right format for this destination
-      final bytes = await _service.captureCard(
-        data: widget.data,
-        format: destination.format,
-      );
-
-      if (!mounted) return;
-
-      if (bytes == null || bytes.isEmpty) {
-        setState(() => _loadingDestination = null);
-        _showSnackBar("Impossible de generer l'image");
-        return;
-      }
-
-      // 2. Execute the destination-specific share action
-      final result = await _service.shareToDestination(
-        imageBytes: bytes,
+      await _service.shareToDestination(
+        imageBytes: _capturedImage!,
         destination: destination,
         year: widget.data.year,
+        sharePositionOrigin: _shareOrigin(),
       );
 
       if (!mounted) return;
-
-      // 3. Show feedback based on result
-      switch (result) {
-        case ShareResult.savedToGallery:
-          Navigator.pop(context);
-          _showSnackBar('Image sauvegardee \u2713');
-        case ShareResult.openedApp:
-          Navigator.pop(context);
-          _showSnackBar('Image sauvegardee — ouvre ${destination.label}');
-        case ShareResult.sharedGeneric:
-          setState(() => _loadingDestination = null);
-          Navigator.pop(context);
-        case ShareResult.error:
-          setState(() => _loadingDestination = null);
-          _showSnackBar('Erreur lors du partage');
-      }
+      Navigator.pop(context);
     } catch (e) {
       if (mounted) {
         setState(() => _loadingDestination = null);
@@ -199,6 +177,8 @@ class _WrappedShareSheetState extends State<_WrappedShareSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
+
     return Container(
       decoration: const BoxDecoration(
         color: YearlyColors.deepBg,
@@ -217,45 +197,125 @@ class _WrappedShareSheetState extends State<_WrappedShareSheet> {
               borderRadius: BorderRadius.circular(2),
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
 
-          // Title
-          Text(
-            'Partage ton Wrapped \u2728',
-            style: GoogleFonts.libreBaskerville(
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-              color: Colors.white,
-            ),
-          ),
-          const SizedBox(height: 8),
-
-          // Subtitle
-          Text(
-            'Choisis ou partager',
-            style: GoogleFonts.jetBrainsMono(
-              fontSize: 12,
-              color: Colors.white.withValues(alpha: 0.4),
-            ),
-          ),
-          const SizedBox(height: 28),
-
-          // Destination list
+          // Header: Fermer + Title
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Column(
+            child: Row(
+              children: [
+                GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Text(
+                    'Fermer',
+                    style: GoogleFonts.jetBrainsMono(
+                      fontSize: 14,
+                      color: Colors.white.withValues(alpha: 0.6),
+                    ),
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  'Partager ton Wrapped',
+                  style: GoogleFonts.libreBaskerville(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                ),
+                const Spacer(),
+                Opacity(
+                  opacity: 0,
+                  child: Text(
+                    'Fermer',
+                    style: GoogleFonts.jetBrainsMono(fontSize: 14),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // Card preview
+          SizedBox(
+            height: 320,
+            child: _isCapturing
+                ? const Center(
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor:
+                          AlwaysStoppedAnimation<Color>(YearlyColors.gold),
+                    ),
+                  )
+                : _capturedImage != null
+                    ? Center(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.4),
+                                blurRadius: 30,
+                                offset: const Offset(0, 10),
+                              ),
+                            ],
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(16),
+                            child: Image.memory(
+                              _capturedImage!,
+                              height: 320,
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                        ),
+                      )
+                    : Center(
+                        child: Text(
+                          'Erreur',
+                          style: GoogleFonts.jetBrainsMono(
+                            color: Colors.white.withValues(alpha: 0.4),
+                          ),
+                        ),
+                      ),
+          ),
+          const SizedBox(height: 24),
+
+          // "Partager sur"
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Text(
+                'Partager sur',
+                style: GoogleFonts.libreBaskerville(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Destination grid
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Wrap(
+              spacing: 16,
+              runSpacing: 16,
               children: ShareDestination.values.map((dest) {
-                return _DestinationTile(
+                return _DestinationIcon(
                   destination: dest,
                   isLoading: _loadingDestination == dest,
-                  enabled: _loadingDestination == null,
+                  enabled: _loadingDestination == null && !_isCapturing,
                   onTap: () => _onDestinationTap(dest),
                 );
               }).toList(),
             ),
           ),
 
-          SizedBox(height: MediaQuery.of(context).padding.bottom + 20),
+          SizedBox(height: bottomPadding + 24),
         ],
       ),
     );
@@ -263,16 +323,16 @@ class _WrappedShareSheetState extends State<_WrappedShareSheet> {
 }
 
 // ==========================================================================
-// Destination tile widget
+// Destination icon widget
 // ==========================================================================
 
-class _DestinationTile extends StatelessWidget {
+class _DestinationIcon extends StatelessWidget {
   final ShareDestination destination;
   final bool isLoading;
   final bool enabled;
   final VoidCallback onTap;
 
-  const _DestinationTile({
+  const _DestinationIcon({
     required this.destination,
     required this.isLoading,
     required this.enabled,
@@ -283,72 +343,46 @@ class _DestinationTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: enabled ? onTap : null,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Colors.white.withValues(alpha: 0.06),
-              Colors.white.withValues(alpha: 0.02),
-            ],
-          ),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: Colors.white.withValues(alpha: 0.08),
-          ),
-        ),
-        child: Row(
+      child: SizedBox(
+        width: 72,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            // Icon
             Container(
-              width: 44,
-              height: 44,
+              width: 56,
+              height: 56,
               decoration: BoxDecoration(
-                color: destination.brandColor.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(12),
+                shape: BoxShape.circle,
+                color: destination.brandColor,
               ),
-              child: Center(
-                child: FaIcon(
-                  destination.iconData,
-                  size: 20,
-                  color: destination.brandColor,
-                ),
-              ),
+              child: isLoading
+                  ? const Padding(
+                      padding: EdgeInsets.all(16),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor:
+                            AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                  : Center(
+                      child: Icon(
+                        destination.iconData,
+                        size: 24,
+                        color: Colors.white,
+                      ),
+                    ),
             ),
-            const SizedBox(width: 16),
-
-            // Label
-            Expanded(
-              child: Text(
-                destination.label,
-                style: GoogleFonts.libreBaskerville(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                ),
+            const SizedBox(height: 6),
+            Text(
+              destination.label,
+              style: GoogleFonts.jetBrainsMono(
+                fontSize: 10,
+                color: Colors.white.withValues(alpha: 0.6),
               ),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-
-            // Chevron or loader
-            if (isLoading)
-              const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor:
-                      AlwaysStoppedAnimation<Color>(YearlyColors.gold),
-                ),
-              )
-            else
-              Icon(
-                Icons.arrow_forward_ios,
-                size: 16,
-                color: Colors.white.withValues(alpha: 0.3),
-              ),
           ],
         ),
       ),

@@ -80,7 +80,7 @@ class _FindContactsFriendsPageState extends State<FindContactsFriendsPage> {
 
   Future<void> _sendSmsInvite(UnmatchedContact contact) async {
     final message = Uri.encodeComponent(
-      'Rejoins-moi sur ReadOn pour suivre nos lectures ensemble ! '
+      'Rejoins-moi sur Lexsta pour suivre nos lectures ensemble ! '
       'Télécharge l\'app : https://readon.app',
     );
     final uri = Uri.parse('sms:${contact.phone}?body=$message');
@@ -167,7 +167,7 @@ class _FindContactsFriendsPageState extends State<FindContactsFriendsPage> {
               ),
               const SizedBox(height: AppSpace.s),
               Text(
-                'Tes contacts ne semblent pas encore utiliser ReadOn.',
+                'Tes contacts ne semblent pas encore utiliser Lexsta.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 14,
@@ -186,7 +186,7 @@ class _FindContactsFriendsPageState extends State<FindContactsFriendsPage> {
         if (hasMatched) ...[
           const SizedBox(height: AppSpace.m),
           _buildSectionHeader(
-            'Déjà sur ReadOn',
+            'Déjà sur Lexsta',
             _matchedUsers.length,
             isDark,
           ),
@@ -199,7 +199,7 @@ class _FindContactsFriendsPageState extends State<FindContactsFriendsPage> {
         if (hasUnmatched) ...[
           const SizedBox(height: AppSpace.l),
           _buildSectionHeader(
-            'Inviter sur ReadOn',
+            'Inviter sur Lexsta',
             _unmatchedContacts.length,
             isDark,
           ),

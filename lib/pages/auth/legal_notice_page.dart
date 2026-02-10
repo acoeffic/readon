@@ -25,7 +25,7 @@ class LegalNoticePage extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildSectionTitle(context, 'Application ReadOn'),
+                    _buildSectionTitle(context, 'Application Lexsta'),
                     const SizedBox(height: AppSpace.m),
 
                     _buildSectionTitle(context, 'Éditeur de l\'application'),
@@ -54,7 +54,7 @@ class LegalNoticePage extends StatelessWidget {
                     _buildSectionTitle(context, 'Propriété intellectuelle'),
                     const SizedBox(height: AppSpace.s),
                     _buildText(
-                      'L\'ensemble de l\'application ReadOn, incluant notamment les textes, '
+                      'L\'ensemble de l\'application Lexsta, incluant notamment les textes, '
                       'graphismes, logos, interfaces, fonctionnalités et code source, est '
                       'protégé par le droit de la propriété intellectuelle.',
                     ),
@@ -82,7 +82,7 @@ class LegalNoticePage extends StatelessWidget {
                     const SizedBox(height: AppSpace.s),
                     _buildText(
                       'L\'éditeur s\'efforce d\'assurer l\'exactitude et la mise à jour des '
-                      'informations diffusées via l\'application ReadOn. Toutefois, il ne '
+                      'informations diffusées via l\'application Lexsta. Toutefois, il ne '
                       'saurait être tenu responsable d\'erreurs, d\'omissions ou d\'une '
                       'indisponibilité temporaire du service.',
                     ),

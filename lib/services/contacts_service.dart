@@ -357,7 +357,7 @@ class ContactsResult {
   ContactsResult({required this.matched, required this.unmatched});
 }
 
-/// Contact non inscrit sur ReadOn (pour invitation SMS)
+/// Contact non inscrit sur Lexsta (pour invitation SMS)
 class UnmatchedContact {
   final String displayName;
   final String phone;
