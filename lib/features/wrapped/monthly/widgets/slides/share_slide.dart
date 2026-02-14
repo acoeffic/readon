@@ -59,7 +59,7 @@ class _ShareSlideState extends State<ShareSlide> {
   }
 
   /// Opens a specific social app (save temp + URL scheme, no gallery dependency).
-  Future<void> _shareToApp(String appName, String urlScheme, ShareFormat format) async {
+  Future<void> _shareToApp(String appName, String urlScheme, ShareFormat format, {String? webFallbackUrl}) async {
     if (_loadingAction != null) return;
     setState(() => _loadingAction = appName);
 
@@ -79,6 +79,7 @@ class _ShareSlideState extends State<ShareSlide> {
         urlScheme: urlScheme,
         year: data.year,
         month: data.month,
+        webFallbackUrl: webFallbackUrl,
         sharePositionOrigin: _shareOrigin(),
       );
       if (!mounted) return;
@@ -243,6 +244,7 @@ class _ShareSlideState extends State<ShareSlide> {
                   'Instagram',
                   'instagram://app',
                   ShareFormat.story,
+                  webFallbackUrl: 'https://www.instagram.com',
                 ),
               ),
               const SizedBox(width: 24),
@@ -253,6 +255,7 @@ class _ShareSlideState extends State<ShareSlide> {
                   'Twitter',
                   'twitter://post',
                   ShareFormat.square,
+                  webFallbackUrl: 'https://x.com',
                 ),
               ),
               const SizedBox(width: 24),
@@ -263,6 +266,7 @@ class _ShareSlideState extends State<ShareSlide> {
                   'LinkedIn',
                   'linkedin://app',
                   ShareFormat.square,
+                  webFallbackUrl: 'https://www.linkedin.com',
                 ),
               ),
               const SizedBox(width: 24),

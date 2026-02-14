@@ -111,7 +111,8 @@ class BooksService {
   /// Ajouter un livre à la bibliothèque de l'utilisateur
   Future<void> _addToUserBooks(int bookId) async {
     try {
-      final userId = _supabase.auth.currentUser!.id;
+      final userId = _supabase.auth.currentUser?.id;
+      if (userId == null) throw Exception('Non connecté');
 
       // Vérifier si déjà présent
       final existing = await _supabase
@@ -156,7 +157,8 @@ class BooksService {
   /// Récupérer tous les livres de l'utilisateur (Kindle + personnels)
   Future<List<Book>> getUserBooks() async {
     try {
-      final userId = _supabase.auth.currentUser!.id;
+      final userId = _supabase.auth.currentUser?.id;
+      if (userId == null) throw Exception('Non connecté');
 
       final response = await _supabase
           .from('user_books')
@@ -181,14 +183,17 @@ class BooksService {
     int offset = 0,
   }) async {
     try {
-      final userId = _supabase.auth.currentUser!.id;
+      final userId = _supabase.auth.currentUser?.id;
+      if (userId == null) throw Exception('Non connecté');
+      // Limiter à 100 max pour éviter les abus
+      final clampedLimit = limit.clamp(1, 100);
 
       final response = await _supabase
           .from('user_books')
           .select('book_id, status, is_hidden, books(*)')
           .eq('user_id', userId)
           .order('created_at', ascending: false)
-          .range(offset, offset + limit - 1);
+          .range(offset, offset + clampedLimit - 1);
 
       return (response as List).map((item) {
         return {
@@ -237,7 +242,8 @@ class BooksService {
   /// Supprimer un livre de la bibliothèque
   Future<void> removeBookFromLibrary(int bookId) async {
     try {
-      final userId = _supabase.auth.currentUser!.id;
+      final userId = _supabase.auth.currentUser?.id;
+      if (userId == null) throw Exception('Non connecté');
 
       await _supabase
           .from('user_books')
@@ -253,7 +259,8 @@ class BooksService {
   /// Masquer ou afficher un livre vis-à-vis des autres utilisateurs
   Future<void> toggleBookHidden(int bookId, bool isHidden) async {
     try {
-      final userId = _supabase.auth.currentUser!.id;
+      final userId = _supabase.auth.currentUser?.id;
+      if (userId == null) throw Exception('Non connecté');
       await _supabase
           .from('user_books')
           .update({'is_hidden': isHidden})
@@ -268,7 +275,8 @@ class BooksService {
   /// Mettre à jour le statut d'un livre
   Future<void> updateBookStatus(int bookId, String status) async {
     try {
-      final userId = _supabase.auth.currentUser!.id;
+      final userId = _supabase.auth.currentUser?.id;
+      if (userId == null) throw Exception('Non connecté');
 
       // Vérifier si l'entrée user_books existe
       final existing = await _supabase
@@ -393,7 +401,7 @@ class BooksService {
           bookId = existing['id'] as int;
           // Toujours mettre à jour avec la couverture Kindle si disponible (priorité sur Google Books)
           if (kindleBook.coverUrl != null) {
-            await _supabase.from('books').update({'cover_url': kindleBook.coverUrl}).eq('id', bookId);
+            await _supabase.rpc('update_book_metadata', params: {'p_book_id': bookId, 'p_cover_url': kindleBook.coverUrl});
           } else if (existing['cover_url'] == null) {
             // Pas de couverture Kindle ni existante -> enrichir via Google Books
             await _enrichBookWithGoogleBooks(bookId, _cleanBookTitle(kindleBook.title), kindleAuthor: kindleBook.author);
@@ -423,7 +431,7 @@ class BooksService {
               // Un livre avec ce google_id existe déjà, mettre à jour la couverture Kindle si disponible
               bookId = existingByGoogleId['id'] as int;
               if (kindleBook.coverUrl != null) {
-                await _supabase.from('books').update({'cover_url': kindleBook.coverUrl}).eq('id', bookId);
+                await _supabase.rpc('update_book_metadata', params: {'p_book_id': bookId, 'p_cover_url': kindleBook.coverUrl});
               }
             } else {
               // Créer le livre avec métadonnées et google_id
@@ -895,7 +903,15 @@ class BooksService {
       }
 
       if (updates.isNotEmpty) {
-        await _supabase.from('books').update(updates).eq('id', bookId);
+        await _supabase.rpc('update_book_metadata', params: {
+          'p_book_id': bookId,
+          if (updates.containsKey('cover_url')) 'p_cover_url': updates['cover_url'],
+          if (updates.containsKey('description')) 'p_description': updates['description'],
+          if (updates.containsKey('page_count')) 'p_page_count': updates['page_count'],
+          if (updates.containsKey('author')) 'p_author': updates['author'],
+          if (updates.containsKey('genre')) 'p_genre': updates['genre'],
+          if (updates.containsKey('google_id')) 'p_google_id': updates['google_id'],
+        });
       }
     } catch (e) {
       debugPrint('Erreur enrichissement livre $bookId: $e');

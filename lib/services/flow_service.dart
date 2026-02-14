@@ -5,7 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/reading_flow.dart';
 import '../models/flow_freeze.dart';
-import 'kindle_webview_service.dart';
+import 'access_guard.dart';
 
 class FlowService {
   final SupabaseClient _supabase = Supabase.instance.client;
@@ -28,6 +28,20 @@ class FlowService {
   /// Utiliser un freeze pour protéger un jour (par défaut: hier)
   Future<FreezeResult> useFreeze({DateTime? date, bool isAuto = false}) async {
     try {
+      // Empêcher le freeze de dates futures
+      if (date != null) {
+        final today = DateTime.now();
+        final todayDate = DateTime(today.year, today.month, today.day);
+        final freezeDate = DateTime(date.year, date.month, date.day);
+        if (freezeDate.isAfter(todayDate)) {
+          return FreezeResult(
+            success: false,
+            error: 'FUTURE_DATE',
+            message: 'Impossible de geler une date future',
+          );
+        }
+      }
+
       final params = <String, dynamic>{
         'p_is_auto': isAuto,
       };
@@ -47,9 +61,12 @@ class FlowService {
     }
   }
 
-  /// Récupérer les dates frozen pour un utilisateur
+  /// Récupérer les dates frozen pour un utilisateur.
+  /// Si [userId] est fourni, vérifie l'autorisation d'accès.
   Future<List<DateTime>> getFrozenDates({String? userId}) async {
     try {
+      if (userId != null && !await canAccessUserData(userId)) return [];
+
       final params = userId != null ? {'p_user_id': userId} : <String, dynamic>{};
       final result = await _supabase.rpc('get_frozen_dates', params: params);
 
@@ -102,6 +119,22 @@ class FlowService {
     }
   }
 
+  // =====================================================
+  // PERCENTILE
+  // =====================================================
+
+  /// Récupérer le percentile du flow de l'utilisateur (0-99)
+  /// Compare les jours de lecture sur 30 jours vs les autres utilisateurs
+  Future<int> getFlowPercentile() async {
+    try {
+      final result = await _supabase.rpc('get_flow_percentile');
+      return (result as int?) ?? 0;
+    } catch (e) {
+      debugPrint('Erreur getFlowPercentile: $e');
+      return 0;
+    }
+  }
+
   /// Récupérer le flow actuel de l'utilisateur
   Future<ReadingFlow> getUserFlow() async {
     try {
@@ -140,30 +173,14 @@ class FlowService {
       readDates.sort((a, b) => b.compareTo(a));
 
       if (readDates.isEmpty && frozenDates.isEmpty) {
-        // Même sans sessions locales, vérifier le flow Kindle
-        final kindleFlow = await _getKindleFlow();
-        if (kindleFlow != null && kindleFlow.currentFlow > 0) {
-          return kindleFlow.copyWith(freezeStatus: freezeStatus);
-        }
         return ReadingFlow.empty().copyWith(freezeStatus: freezeStatus);
       }
 
       // Calculer le flow actuel (avec les dates frozen)
       final flowData = _calculateFlowWithFreezes(readDates, frozenDates);
 
-      int currentFlow = flowData['current'] ?? 0;
-      int longestFlow = flowData['longest'] ?? 0;
-
-      // Fusionner avec le flow Kindle (prendre le max)
-      final kindleData = await KindleWebViewService().loadFromCache();
-      if (kindleData != null && kindleData.currentStreak != null) {
-        if (kindleData.currentStreak! > currentFlow) {
-          currentFlow = kindleData.currentStreak!;
-        }
-        if (kindleData.currentStreak! > longestFlow) {
-          longestFlow = kindleData.currentStreak!;
-        }
-      }
+      final currentFlow = flowData['current'] ?? 0;
+      final longestFlow = flowData['longest'] ?? 0;
 
       return ReadingFlow(
         currentFlow: currentFlow,
@@ -179,13 +196,17 @@ class FlowService {
     }
   }
 
-  /// Récupérer le flow d'un utilisateur par son ID
+  /// Récupérer le flow d'un utilisateur par son ID.
+  /// Vérifie que le demandeur est autorisé (soi-même, ami, ou profil public).
   Future<int> getFlowForUser(String userId) async {
     try {
+      if (!await canAccessUserData(userId)) return 0;
+
       final response = await _supabase
           .from('reading_sessions')
           .select('end_time')
           .eq('user_id', userId)
+          .eq('is_hidden', false)
           .not('end_time', 'is', null)
           .order('end_time', ascending: false);
 
@@ -216,22 +237,6 @@ class FlowService {
     } catch (e) {
       debugPrint('Erreur getFlowForUser: $e');
       return 0;
-    }
-  }
-
-  /// Récupérer le flow depuis les données Kindle en cache
-  Future<ReadingFlow?> _getKindleFlow() async {
-    try {
-      final kindleData = await KindleWebViewService().loadFromCache();
-      if (kindleData == null || kindleData.currentStreak == null) return null;
-      return ReadingFlow(
-        currentFlow: kindleData.currentStreak!,
-        longestFlow: kindleData.currentStreak!,
-        lastReadDate: DateTime.now(),
-        readDates: [],
-      );
-    } catch (e) {
-      return null;
     }
   }
 
@@ -406,12 +411,12 @@ class FlowService {
           // Créer le badge s'il n'existe pas
           await _ensureBadgeExists(level);
 
-          // Attribuer le badge à l'utilisateur
-          await _supabase.from('user_badges').insert({
+          // Attribuer le badge à l'utilisateur (upsert pour éviter doublon)
+          await _supabase.from('user_badges').upsert({
             'user_id': userId,
             'badge_id': level.badgeId,
             'earned_at': DateTime.now().toIso8601String(),
-          });
+          }, onConflict: 'user_id,badge_id', ignoreDuplicates: true);
 
           newBadges.add(level);
         }

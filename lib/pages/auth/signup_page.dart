@@ -3,6 +3,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../config/env.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/back_header.dart';
 import '../auth/confirm_email_page.dart';
@@ -88,7 +89,7 @@ class _SignUpPageState extends State<SignUpPage> {
     try {
       await Supabase.instance.client.auth.resetPasswordForEmail(
         email,
-        redirectTo: 'https://nzbhmshkcwudzydeahrq.supabase.co/auth/callback',
+        redirectTo: Env.authCallbackUrl,
       );
 
       if (!mounted) return;
@@ -136,6 +137,22 @@ class _SignUpPageState extends State<SignUpPage> {
       return;
     }
 
+    if (password.length < 8) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Le mot de passe doit contenir au moins 8 caractères')),
+      );
+      return;
+    }
+
+    if (!RegExp(r'[A-Z]').hasMatch(password) ||
+        !RegExp(r'[a-z]').hasMatch(password) ||
+        !RegExp(r'[0-9]').hasMatch(password)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Le mot de passe doit contenir majuscule, minuscule et chiffre')),
+      );
+      return;
+    }
+
     if (!_acceptedTerms) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -152,7 +169,7 @@ class _SignUpPageState extends State<SignUpPage> {
       final res = await supabase.auth.signUp(
         email: email,
         password: password,
-        emailRedirectTo: 'https://nzbhmshkcwudzydeahrq.supabase.co/auth/v1/callback',
+        emailRedirectTo: Env.authV1CallbackUrl,
         data: {'display_name': name},
       );
 

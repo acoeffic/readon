@@ -1,0 +1,886 @@
+import 'package:flutter/material.dart';
+import 'package:lucide_icons/lucide_icons.dart';
+import '../../models/curated_list.dart';
+import '../../services/curated_lists_service.dart';
+import '../../services/google_books_service.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../theme/app_theme.dart';
+import '../../widgets/cached_book_cover.dart';
+
+class CuratedListDetailPage extends StatefulWidget {
+  final CuratedList list;
+
+  const CuratedListDetailPage({super.key, required this.list});
+
+  @override
+  State<CuratedListDetailPage> createState() => _CuratedListDetailPageState();
+}
+
+class _CuratedListDetailPageState extends State<CuratedListDetailPage> {
+  final _curatedService = CuratedListsService();
+  final _googleBooksService = GoogleBooksService();
+
+  bool _isLoading = true;
+  bool _isSaved = false;
+  Set<String> _readIsbns = {};
+  int _readerCount = 0;
+
+  // Google Books data par ISBN
+  final Map<String, GoogleBook> _googleBooks = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    try {
+      final results = await Future.wait([
+        _curatedService.isListSaved(widget.list.id),
+        _curatedService.getReadBookIsbns(widget.list.id),
+        _curatedService.getReaderCounts([widget.list.id]),
+      ]);
+
+      if (!mounted) return;
+      setState(() {
+        _isSaved = results[0] as bool;
+        _readIsbns = results[1] as Set<String>;
+        final counts = results[2] as Map<int, int>;
+        _readerCount = counts[widget.list.id] ?? 0;
+        _isLoading = false;
+      });
+
+      // Charger les données Google Books en arrière-plan
+      _loadGoogleBooksData();
+    } catch (e) {
+      debugPrint('Erreur _loadData: $e');
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _loadGoogleBooksData() async {
+    for (final book in widget.list.books) {
+      if (!mounted) return;
+      try {
+        GoogleBook? result;
+
+        // 1) Recherche par ISBN (utilise le cache interne du service)
+        result = await _googleBooksService.searchByISBN(book.isbn);
+
+        // 2) Fallback : titre + auteur (opérateurs intitle/inauthor)
+        if (result == null) {
+          final results = await _googleBooksService.searchByTitleAuthor(
+            book.title,
+            book.author,
+          );
+          if (results.isNotEmpty) result = results.first;
+        }
+
+        // 3) Fallback : recherche libre simplifiée (sans opérateurs)
+        if (result == null) {
+          final simplifiedTitle =
+              book.title.replaceAll("'", ' ').replaceAll("'", ' ');
+          final results = await _googleBooksService
+              .searchBooks('$simplifiedTitle ${book.author}');
+          if (results.isNotEmpty) result = results.first;
+        }
+
+        // 4) Dernier recours : objet minimal avec couverture Open Library
+        result ??= GoogleBook(
+          id: 'ol-${book.isbn}',
+          title: book.title,
+          authors: [book.author],
+          coverUrl: 'https://covers.openlibrary.org/b/isbn/${book.isbn}-L.jpg',
+          isbns: [book.isbn],
+        );
+
+        // Mettre en cache le résultat (y compris les fallbacks)
+        _googleBooksService.cacheBook(book.isbn, result);
+
+        if (mounted) {
+          setState(() => _googleBooks[book.isbn] = result!);
+        }
+      } catch (e) {
+        debugPrint('Erreur chargement Google Book ${book.isbn}: $e');
+        // Même en cas d'erreur, on met la couverture Open Library
+        if (mounted) {
+          final fallback = GoogleBook(
+            id: 'ol-${book.isbn}',
+            title: book.title,
+            authors: [book.author],
+            coverUrl:
+                'https://covers.openlibrary.org/b/isbn/${book.isbn}-L.jpg',
+            isbns: [book.isbn],
+          );
+          _googleBooksService.cacheBook(book.isbn, fallback);
+          setState(() => _googleBooks[book.isbn] = fallback);
+        }
+      }
+    }
+  }
+
+  void _toggleSave() async {
+    final wasSaved = _isSaved;
+    setState(() => _isSaved = !wasSaved);
+
+    try {
+      if (!wasSaved) {
+        await _curatedService.saveList(widget.list.id);
+      } else {
+        await _curatedService.unsaveList(widget.list.id);
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isSaved = wasSaved);
+    }
+  }
+
+  void _toggleBookRead(CuratedBookEntry book) async {
+    final wasRead = _readIsbns.contains(book.isbn);
+    setState(() {
+      if (wasRead) {
+        _readIsbns.remove(book.isbn);
+      } else {
+        _readIsbns.add(book.isbn);
+      }
+    });
+
+    try {
+      if (!wasRead) {
+        await _curatedService.markBookRead(widget.list.id, book.isbn);
+      } else {
+        await _curatedService.unmarkBookRead(widget.list.id, book.isbn);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          if (wasRead) {
+            _readIsbns.add(book.isbn);
+          } else {
+            _readIsbns.remove(book.isbn);
+          }
+        });
+      }
+    }
+  }
+
+  void _onBookTap(CuratedBookEntry book) {
+    final googleBook = _googleBooks[book.isbn];
+    if (googleBook != null) {
+      _showBookDetailSheet(book, googleBook);
+    } else {
+      // Données pas encore chargées, on les charge à la volée
+      _loadAndShowBook(book);
+    }
+  }
+
+  Future<void> _loadAndShowBook(CuratedBookEntry book) async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      GoogleBook? googleBook;
+
+      // 1) ISBN
+      googleBook = await _googleBooksService.searchByISBN(book.isbn);
+
+      // 2) titre + auteur
+      if (googleBook == null) {
+        final results = await _googleBooksService.searchByTitleAuthor(
+          book.title,
+          book.author,
+        );
+        if (results.isNotEmpty) googleBook = results.first;
+      }
+
+      // 3) recherche libre simplifiée
+      if (googleBook == null) {
+        final simplifiedTitle =
+            book.title.replaceAll("'", ' ').replaceAll("'", ' ');
+        final results = await _googleBooksService
+            .searchBooks('$simplifiedTitle ${book.author}');
+        if (results.isNotEmpty) googleBook = results.first;
+      }
+
+      // 4) objet minimal Open Library
+      googleBook ??= GoogleBook(
+        id: 'ol-${book.isbn}',
+        title: book.title,
+        authors: [book.author],
+        coverUrl: 'https://covers.openlibrary.org/b/isbn/${book.isbn}-L.jpg',
+        isbns: [book.isbn],
+      );
+
+      if (!mounted) return;
+      Navigator.pop(context);
+
+      setState(() => _googleBooks[book.isbn] = googleBook!);
+      _showBookDetailSheet(book, googleBook);
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context);
+        // Même en erreur, on ouvre avec couverture Open Library
+        final fallback = GoogleBook(
+          id: 'ol-${book.isbn}',
+          title: book.title,
+          authors: [book.author],
+          coverUrl:
+              'https://covers.openlibrary.org/b/isbn/${book.isbn}-L.jpg',
+          isbns: [book.isbn],
+        );
+        setState(() => _googleBooks[book.isbn] = fallback);
+        _showBookDetailSheet(book, fallback);
+      }
+    }
+  }
+
+  void _showBookDetailSheet(CuratedBookEntry entry, GoogleBook googleBook) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) => DraggableScrollableSheet(
+        initialChildSize: 0.55,
+        minChildSize: 0.3,
+        maxChildSize: 0.85,
+        expand: false,
+        builder: (context, scrollController) => SingleChildScrollView(
+          controller: scrollController,
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Cover
+                  if (googleBook.coverUrl != null)
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.network(
+                        googleBook.coverUrl!,
+                        width: 100,
+                        height: 150,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => _buildPlaceholderCover(
+                            width: 100, height: 150),
+                      ),
+                    )
+                  else
+                    _buildPlaceholderCover(width: 100, height: 150),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          entry.title,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          entry.author,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withValues(alpha: 0.6),
+                          ),
+                        ),
+                        if (googleBook.pageCount != null) ...[
+                          const SizedBox(height: 8),
+                          Text(
+                            '${googleBook.pageCount} pages',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurface
+                                  .withValues(alpha: 0.5),
+                            ),
+                          ),
+                        ],
+                        if (googleBook.genre != null) ...[
+                          const SizedBox(height: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFF6B35)
+                                  .withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              googleBook.genre!,
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: Color(0xFFFF6B35),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              if (googleBook.description != null) ...[
+                const SizedBox(height: 20),
+                Text(
+                  'Description',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  googleBook.description!,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.7),
+                    height: 1.6,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 24),
+              Container(
+                decoration: BoxDecoration(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  children: [
+                    _buildBuyOption(
+                      context: context,
+                      emoji: '📖',
+                      label: 'En librairie',
+                      onTap: () {
+                        final query = Uri.encodeComponent(
+                          '${entry.title} ${entry.author}'.trim(),
+                        );
+                        launchUrl(
+                          Uri.parse('https://www.leslibraires.fr/recherche?q=$query'),
+                          mode: LaunchMode.externalApplication,
+                        );
+                      },
+                    ),
+                    Divider(height: 1, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.08)),
+                    _buildBuyOption(
+                      context: context,
+                      emoji: '🏪',
+                      label: 'Trouver près de moi',
+                      onTap: () => _openNearbyBookstores(context),
+                    ),
+                    Divider(height: 1, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.08)),
+                    _buildBuyOption(
+                      context: context,
+                      emoji: '📦',
+                      label: 'Amazon',
+                      onTap: () {
+                        final query = Uri.encodeComponent(
+                          '${entry.title} ${entry.author}'.trim(),
+                        );
+                        launchUrl(
+                          Uri.parse('https://www.amazon.fr/s?k=$query&i=stripbooks'),
+                          mode: LaunchMode.externalApplication,
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openNearbyBookstores(BuildContext parentContext) async {
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(parentContext).showSnackBar(
+          const SnackBar(content: Text('Activez la localisation dans les réglages')),
+        );
+        return;
+      }
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(parentContext).showSnackBar(
+          const SnackBar(content: Text('Accès à la localisation requis')),
+        );
+        return;
+      }
+
+      // Try to get last known position first (instant), fallback to current
+      Position? position = await Geolocator.getLastKnownPosition();
+      position ??= await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.low,
+          timeLimit: Duration(seconds: 15),
+        ),
+      );
+
+      final url = Uri.parse(
+        'https://www.google.com/maps/search/librairie/@${position.latitude},${position.longitude},14z',
+      );
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    } catch (e) {
+      debugPrint('Geolocation error: $e');
+      if (!mounted) return;
+      ScaffoldMessenger.of(parentContext).showSnackBar(
+        SnackBar(content: Text('Erreur localisation: $e')),
+      );
+    }
+  }
+
+  Widget _buildBuyOption({
+    required BuildContext context,
+    required String emoji,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return ListTile(
+      leading: Text(emoji, style: const TextStyle(fontSize: 20)),
+      title: Text(label, style: const TextStyle(fontSize: 15)),
+      trailing: Icon(
+        Icons.chevron_right,
+        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
+      ),
+      onTap: onTap,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    );
+  }
+
+  Widget _buildPlaceholderCover(
+      {required double width, required double height}) {
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: widget.list.gradientColors.last.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Icon(Icons.book,
+          size: 32,
+          color: widget.list.gradientColors.last.withValues(alpha: 0.4)),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final readCount = _readIsbns.length;
+    final totalBooks = widget.list.bookCount;
+    final progress = totalBooks > 0 ? readCount / totalBooks : 0.0;
+
+    return Scaffold(
+      body: CustomScrollView(
+        slivers: [
+          // Gradient header
+          SliverAppBar(
+            expandedHeight: 200,
+            pinned: true,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back, color: Colors.white),
+              onPressed: () => Navigator.pop(context),
+            ),
+            actions: [
+              IconButton(
+                icon: Icon(
+                  _isSaved ? Icons.favorite : Icons.favorite_border,
+                  color: Colors.white,
+                ),
+                onPressed: _toggleSave,
+              ),
+              IconButton(
+                icon:
+                    const Icon(Icons.share_outlined, color: Colors.white),
+                onPressed: () {
+                  // TODO: share functionality
+                },
+              ),
+            ],
+            flexibleSpace: FlexibleSpaceBar(
+              background: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: widget.list.gradientColors,
+                  ),
+                ),
+                child: Stack(
+                  children: [
+                    Positioned(
+                      top: 20,
+                      right: -20,
+                      child: Icon(
+                        widget.list.icon,
+                        size: 160,
+                        color: Colors.white.withValues(alpha: 0.1),
+                      ),
+                    ),
+                    Positioned(
+                      bottom: 20,
+                      left: 20,
+                      right: 80,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(widget.list.icon,
+                              size: 28, color: Colors.white),
+                          const SizedBox(height: 8),
+                          Text(
+                            widget.list.title,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              height: 1.2,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            widget.list.subtitle,
+                            style: TextStyle(
+                              color:
+                                  Colors.white.withValues(alpha: 0.8),
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          // Stats + description
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpace.l),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(LucideIcons.bookOpen,
+                          size: 16,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: 0.5)),
+                      const SizedBox(width: 4),
+                      Text(
+                        '$totalBooks livres',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: 0.6),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Icon(Icons.people_outline,
+                          size: 16,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: 0.5)),
+                      const SizedBox(width: 4),
+                      Text(
+                        '$_readerCount lecteur${_readerCount > 1 ? 's' : ''}',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: 0.6),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    widget.list.description,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withValues(alpha: 0.7),
+                      height: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: LinearProgressIndicator(
+                            value: progress,
+                            backgroundColor: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withValues(alpha: 0.1),
+                            valueColor:
+                                const AlwaysStoppedAnimation<Color>(
+                              Color(0xFFFF6B35),
+                            ),
+                            minHeight: 6,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        '$readCount/$totalBooks lus',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: 0.7),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          const SliverToBoxAdapter(child: Divider(height: 1)),
+
+          // Book list
+          if (_isLoading)
+            const SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.all(40),
+                child: Center(child: CircularProgressIndicator()),
+              ),
+            )
+          else
+            SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  final book = widget.list.books[index];
+                  final isRead = _readIsbns.contains(book.isbn);
+                  final googleBook = _googleBooks[book.isbn];
+                  return _BookListItem(
+                    book: book,
+                    index: index,
+                    isRead: isRead,
+                    coverUrl: googleBook?.coverUrl,
+                    gradientColor: widget.list.gradientColors.last,
+                    onToggleRead: () => _toggleBookRead(book),
+                    onTap: () => _onBookTap(book),
+                  );
+                },
+                childCount: widget.list.books.length,
+              ),
+            ),
+
+          const SliverToBoxAdapter(child: SizedBox(height: 40)),
+        ],
+      ),
+    );
+  }
+}
+
+class _BookListItem extends StatelessWidget {
+  final CuratedBookEntry book;
+  final int index;
+  final bool isRead;
+  final String? coverUrl;
+  final Color gradientColor;
+  final VoidCallback onToggleRead;
+  final VoidCallback onTap;
+
+  const _BookListItem({
+    required this.book,
+    required this.index,
+    required this.isRead,
+    required this.coverUrl,
+    required this.gradientColor,
+    required this.onToggleRead,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: AnimatedOpacity(
+        opacity: isRead ? 0.5 : 1.0,
+        duration: const Duration(milliseconds: 200),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpace.l,
+            vertical: 10,
+          ),
+          child: Row(
+            children: [
+              // Checkbox
+              GestureDetector(
+                onTap: onToggleRead,
+                child: Container(
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: isRead
+                        ? const Color(0xFFFF6B35)
+                        : Colors.transparent,
+                    border: Border.all(
+                      color: isRead
+                          ? const Color(0xFFFF6B35)
+                          : Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: 0.3),
+                      width: 2,
+                    ),
+                  ),
+                  child: isRead
+                      ? const Icon(Icons.check,
+                          size: 16, color: Colors.white)
+                      : null,
+                ),
+              ),
+              const SizedBox(width: 12),
+
+              // Book cover
+              _BookCover(
+                coverUrl: coverUrl,
+                gradientColor: gradientColor,
+              ),
+              const SizedBox(width: 12),
+
+              // Book info
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      book.title,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15,
+                        decoration:
+                            isRead ? TextDecoration.lineThrough : null,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      book.author,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withValues(alpha: 0.5),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              Icon(
+                Icons.chevron_right,
+                size: 20,
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withValues(alpha: 0.3),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _BookCover extends StatelessWidget {
+  final String? coverUrl;
+  final Color gradientColor;
+
+  const _BookCover({
+    required this.coverUrl,
+    required this.gradientColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (coverUrl != null) {
+      return CachedBookCover(
+        imageUrl: coverUrl,
+        width: 44,
+        height: 64,
+        borderRadius: BorderRadius.circular(4),
+      );
+    }
+
+    return Container(
+      width: 44,
+      height: 64,
+      decoration: BoxDecoration(
+        color: gradientColor.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Icon(
+        Icons.book,
+        size: 20,
+        color: gradientColor.withValues(alpha: 0.4),
+      ),
+    );
+  }
+}

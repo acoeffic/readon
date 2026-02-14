@@ -25,6 +25,12 @@ node_modules/
 # Submodules
 readon-sync/
 
+# Secrets / environment
+env.json
+.env
+.env.*
+!.env.example
+
 # Misc
 .DS_Store
 *.log

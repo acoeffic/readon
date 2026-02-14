@@ -292,6 +292,22 @@ class ReadingSessionService {
     return getSessionsPaginated(limit: 200, offset: 0);
   }
 
+  /// Masquer ou afficher une session vis-à-vis des autres utilisateurs
+  Future<void> toggleSessionHidden(String sessionId, bool isHidden) async {
+    try {
+      final userId = _supabase.auth.currentUser?.id;
+      if (userId == null) throw Exception('Non connecté');
+      await _supabase
+          .from('reading_sessions')
+          .update({'is_hidden': isHidden})
+          .eq('id', sessionId)
+          .eq('user_id', userId);
+    } catch (e) {
+      debugPrint('Erreur toggleSessionHidden: $e');
+      rethrow;
+    }
+  }
+
   /// Annuler une session active
   Future<void> cancelSession(String sessionId) async {
     try {

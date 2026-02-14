@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../theme/app_theme.dart';
 import '../../models/reading_group.dart';
+import '../../models/feature_flags.dart';
 import '../../services/groups_service.dart';
+import '../../providers/subscription_provider.dart';
+import '../../pages/profile/upgrade_page.dart';
 import 'create_group_page.dart';
 import 'group_detail_page.dart';
 
@@ -80,6 +84,12 @@ class _GroupsPageState extends State<GroupsPage>
 
 
   void _navigateToCreateGroup() async {
+    final isPremium = context.read<SubscriptionProvider>().isPremium;
+    if (!isPremium && _myGroups.length >= FeatureFlags.maxFreeGroups) {
+      _showGroupLimitDialog();
+      return;
+    }
+
     final result = await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const CreateGroupPage()),
@@ -88,6 +98,42 @@ class _GroupsPageState extends State<GroupsPage>
     if (result == true) {
       _loadMyGroups();
     }
+  }
+
+  void _showGroupLimitDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.l),
+        ),
+        title: const Text('Limite atteinte'),
+        content: Text(
+          'Tu as atteint la limite de ${FeatureFlags.maxFreeGroups} clubs de lecture. '
+          'Passe à Premium pour en rejoindre autant que tu veux !',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('OK'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const UpgradePage()),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Devenir Premium'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _navigateToGroupDetail(ReadingGroup group) {

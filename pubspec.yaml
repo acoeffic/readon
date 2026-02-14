@@ -52,7 +52,6 @@ dependencies:
   webview_flutter_wkwebview: ^3.16.0 # iOS WebView implementation
   webview_flutter_android: ^4.3.0    # Android WebView implementation
   flutter_contacts: ^1.1.9+2         # Access device contacts
-  crypto: ^3.0.6                     # SHA256 hashing
   purchases_flutter: ^8.1.0           # RevenueCat subscriptions
   lottie: ^3.3.1                      # Lottie animations for badges
   cached_network_image: ^3.4.1        # Image caching for book covers
@@ -62,7 +61,12 @@ dependencies:
   screenshot: ^3.0.0                     # Widget-to-image capture for wrapped share
   image_gallery_saver_plus: ^3.0.5       # Save images to device gallery
   font_awesome_flutter: ^10.12.0
+  lucide_icons: ^0.257.0
   flutter_svg: ^2.0.10+1                # SVG rendering for badges
+  flutter_local_notifications: ^18.0.1   # Local scheduled notifications
+  timezone: ^0.10.0                      # Timezone data for scheduled notifications
+  flutter_timezone: ^3.0.1               # Device timezone detection
+  geolocator: ^13.0.2                    # GPS location for nearby bookstores
 
 dev_dependencies:
   flutter_test:
@@ -91,6 +95,7 @@ flutter:
   assets:
     - assets/fonts/
     - assets/images/
+    - assets/badges/
     - assets/lottie/badges/
     - assets/audio/
 

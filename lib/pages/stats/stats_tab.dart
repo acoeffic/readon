@@ -167,6 +167,12 @@ class _StatsTabState extends State<StatsTab> {
               onGoalsUpdated: _loadStats,
             ),
             const SizedBox(height: AppSpace.l),
+            BadgeOverviewCard(
+              unlocked: _stats!.unlockedBadges,
+              total: _stats!.totalBadges,
+              recentBadges: _stats!.recentBadges,
+            ),
+            const SizedBox(height: AppSpace.l),
             PremiumGate(
               feature: Feature.advancedStats,
               lockedWidget: _buildBlurredPremiumCard(
@@ -208,12 +214,6 @@ class _StatsTabState extends State<StatsTab> {
             ),
             const SizedBox(height: AppSpace.l),
             PersonalRecordsCard(records: _stats!.records),
-            const SizedBox(height: AppSpace.l),
-            BadgeOverviewCard(
-              unlocked: _stats!.unlockedBadges,
-              total: _stats!.totalBadges,
-              recentBadges: _stats!.recentBadges,
-            ),
             const SizedBox(height: AppSpace.l),
           ],
         ),

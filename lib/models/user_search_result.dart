@@ -55,7 +55,6 @@ class CurrentBook {
 class UserSearchResult {
   final String id;
   final String displayName;
-  final String? email;
   final String? avatarUrl;
   final bool isProfilePrivate;
 
@@ -70,7 +69,6 @@ class UserSearchResult {
   UserSearchResult({
     required this.id,
     required this.displayName,
-    this.email,
     this.avatarUrl,
     this.isProfilePrivate = false,
     this.recentBadges,
@@ -86,8 +84,7 @@ class UserSearchResult {
 
     return UserSearchResult(
       id: json['id'] as String,
-      displayName: json['display_name'] as String? ?? json['email'] as String? ?? 'Utilisateur',
-      email: json['email'] as String?,
+      displayName: json['display_name'] as String? ?? 'Utilisateur',
       avatarUrl: json['avatar_url'] as String?,
       isProfilePrivate: isPrivate,
 

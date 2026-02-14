@@ -13,7 +13,9 @@ class ReadingSession {
   
   final String? startImagePath;
   final String? endImagePath;
-  
+
+  final bool isHidden;
+
   // Computed fields
   int get pagesRead => endPage != null ? endPage! - startPage : 0;
   
@@ -37,6 +39,7 @@ class ReadingSession {
     this.endTime,
     this.startImagePath,
     this.endImagePath,
+    this.isHidden = false,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -54,6 +57,7 @@ class ReadingSession {
           : null,
       startImagePath: json['start_image_path'] as String?,
       endImagePath: json['end_image_path'] as String?,
+      isHidden: json['is_hidden'] as bool? ?? false,
       createdAt: DateTime.parse(json['created_at'] as String).toLocal(),
       updatedAt: DateTime.parse(json['updated_at'] as String).toLocal(),
     );
@@ -70,6 +74,7 @@ class ReadingSession {
       'end_time': endTime?.toUtc().toIso8601String(),
       'start_image_path': startImagePath,
       'end_image_path': endImagePath,
+      'is_hidden': isHidden,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
     };
@@ -85,6 +90,7 @@ class ReadingSession {
     DateTime? endTime,
     String? startImagePath,
     String? endImagePath,
+    bool? isHidden,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -98,6 +104,7 @@ class ReadingSession {
       endTime: endTime ?? this.endTime,
       startImagePath: startImagePath ?? this.startImagePath,
       endImagePath: endImagePath ?? this.endImagePath,
+      isHidden: isHidden ?? this.isHidden,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

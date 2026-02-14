@@ -22,6 +22,7 @@ import 'book_completed_summary_page.dart';
 import '../../theme/app_theme.dart';
 import '../../services/contacts_service.dart';
 import '../friends/contacts_suggestion_page.dart';
+import '../chat/ai_chat_page.dart';
 
 class EndReadingSessionPage extends StatefulWidget {
   final ReadingSession activeSession;
@@ -216,12 +217,11 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
         debugPrint('Erreur checkAndAwardBadges (non bloquante): $e');
       }
 
-      // Vérifier les badges secrets (côté client, basés sur l'heure)
+      // Vérifier les badges secrets (côté serveur via RPC)
       List<dynamic> newSecretBadges = [];
       try {
         newSecretBadges = await _badgesService.checkSecretBadges(
-          sessionStartTime: widget.activeSession.startTime,
-          sessionEndTime: completedSession.endTime,
+          sessionId: completedSession.id,
           bookFinished: false,
         );
       } catch (e) {
@@ -427,12 +427,11 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
           debugPrint('Erreur checkAndAwardBadges (non bloquante): $e');
         }
 
-        // Vérifier les badges secrets (côté client, basés sur l'heure)
+        // Vérifier les badges secrets (côté serveur via RPC)
         List<dynamic> newSecretBadges = [];
         try {
           newSecretBadges = await _badgesService.checkSecretBadges(
-            sessionStartTime: widget.activeSession.startTime,
-            sessionEndTime: completedSession.endTime,
+            sessionId: completedSession.id,
             bookFinished: true,
           );
         } catch (e) {
@@ -517,6 +516,52 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
             book = await _booksService.getBookById(bookIdInt);
           } catch (e) {
             debugPrint('Erreur récupération livre: $e');
+          }
+        }
+
+        // Proposer Muse pour la prochaine lecture
+        if (mounted) {
+          final bookTitle = book?.title ?? 'ce livre';
+          final openMuse = await showDialog<bool>(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              title: const Row(
+                children: [
+                  Icon(Icons.auto_awesome, color: Color(0xFFE49B0F)),
+                  SizedBox(width: 8),
+                  Text('Muse'),
+                ],
+              ),
+              content: Text(
+                'Bravo pour $bookTitle ! Envie que Muse te conseille ta prochaine lecture ?',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  child: const Text('Plus tard'),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(ctx, true),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFE49B0F),
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text('Discuter avec Muse'),
+                ),
+              ],
+            ),
+          );
+
+          if (openMuse == true && mounted) {
+            await Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => AiChatPage(
+                  initialMessage:
+                      'Je viens de terminer "$bookTitle"${book?.author != null ? " de ${book!.author}" : ""}. '
+                      'Qu\'est-ce que tu me conseillerais de lire ensuite ?',
+                ),
+              ),
+            );
           }
         }
 

@@ -54,9 +54,9 @@ class MonthlyShareService {
     required String urlScheme,
     required int year,
     required int month,
+    String? webFallbackUrl,
     Rect? sharePositionOrigin,
   }) async {
-    // Save to temp so it's ready to paste in the target app
     final file = await _saveTempFile(imageBytes, year, month);
 
     // Try opening the app
@@ -66,7 +66,16 @@ class MonthlyShareService {
       return true;
     }
 
-    // App not installed — fallback to native share sheet
+    // App not installed — open web version in browser
+    if (webFallbackUrl != null) {
+      await launchUrl(
+        Uri.parse(webFallbackUrl),
+        mode: LaunchMode.externalApplication,
+      );
+      return false;
+    }
+
+    // Last resort — native share sheet
     await Share.shareXFiles(
       [XFile(file.path)],
       text: 'Mon wrapped lecture #Lexsta',
@@ -92,6 +101,7 @@ class MonthlyShareService {
     final dir = await getTemporaryDirectory();
     final file = File('${dir.path}/readon_wrapped_${year}_$month.png');
     await file.writeAsBytes(bytes);
+    Future.delayed(const Duration(seconds: 60), () => file.delete().catchError((_) => file));
     return file;
   }
 }

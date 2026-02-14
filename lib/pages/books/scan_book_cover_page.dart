@@ -578,30 +578,43 @@ class _ScanBookCoverPageState extends State<ScanBookCoverPage>
             // Instructions
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Card(
-                color: Colors.blue.shade50,
-                child: const Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
+              child: Builder(
+                builder: (context) {
+                  final isDark = Theme.of(context).brightness == Brightness.dark;
+                  return Card(
+                    color: isDark ? Colors.blue.shade900.withValues(alpha: 0.3) : Colors.blue.shade50,
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(Icons.info_outline, color: Colors.blue),
-                          SizedBox(width: 8),
-                          Text('Scan code-barres',
-                              style: TextStyle(fontWeight: FontWeight.bold)),
+                          Row(
+                            children: [
+                              Icon(Icons.info_outline, color: isDark ? Colors.blue.shade300 : Colors.blue),
+                              const SizedBox(width: 8),
+                              Text('Scan code-barres',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: isDark ? Colors.white : null,
+                                  )),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Text('Pointez la caméra vers le code-barres ISBN',
+                              style: TextStyle(color: isDark ? Colors.white70 : null)),
+                          Text('(au dos du livre, commence par 978 ou 979)',
+                              style: TextStyle(color: isDark ? Colors.white70 : null)),
+                          const SizedBox(height: 8),
+                          Text('Pas de code-barres ? Utilisez l\'onglet "Couverture"',
+                              style: TextStyle(
+                                fontStyle: FontStyle.italic,
+                                color: isDark ? Colors.white60 : null,
+                              )),
                         ],
                       ),
-                      SizedBox(height: 8),
-                      Text('Pointez la caméra vers le code-barres ISBN'),
-                      Text('(au dos du livre, commence par 978 ou 979)'),
-                      SizedBox(height: 8),
-                      Text('Pas de code-barres ? Utilisez l\'onglet "Couverture"',
-                          style: TextStyle(fontStyle: FontStyle.italic)),
-                    ],
-                  ),
-                ),
+                    ),
+                  );
+                },
               ),
             ),
 
@@ -654,31 +667,45 @@ class _ScanBookCoverPageState extends State<ScanBookCoverPage>
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // Instructions
-          Card(
-            color: Colors.blue.shade50,
-            child: const Padding(
-              padding: EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+          Builder(
+            builder: (context) {
+              final isDark = Theme.of(context).brightness == Brightness.dark;
+              return Card(
+                color: isDark ? Colors.blue.shade900.withValues(alpha: 0.3) : Colors.blue.shade50,
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(Icons.info_outline, color: Colors.blue),
-                      SizedBox(width: 8),
-                      Text('Scan de couverture',
-                          style: TextStyle(fontWeight: FontWeight.bold)),
+                      Row(
+                        children: [
+                          Icon(Icons.info_outline, color: isDark ? Colors.blue.shade300 : Colors.blue),
+                          const SizedBox(width: 8),
+                          Text('Scan de couverture',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? Colors.white : null,
+                              )),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text('1. Photographiez la couverture du livre',
+                          style: TextStyle(color: isDark ? Colors.white70 : null)),
+                      Text('2. L\'OCR détecte le titre et l\'auteur',
+                          style: TextStyle(color: isDark ? Colors.white70 : null)),
+                      Text('3. Recherche automatique sur Google Books',
+                          style: TextStyle(color: isDark ? Colors.white70 : null)),
+                      const SizedBox(height: 8),
+                      Text('Astuce: si l\'ISBN est visible, il sera détecté automatiquement',
+                          style: TextStyle(
+                            fontStyle: FontStyle.italic,
+                            color: isDark ? Colors.white60 : null,
+                          )),
                     ],
                   ),
-                  SizedBox(height: 8),
-                  Text('1. Photographiez la couverture du livre'),
-                  Text('2. L\'OCR détecte le titre et l\'auteur'),
-                  Text('3. Recherche automatique sur Google Books'),
-                  SizedBox(height: 8),
-                  Text('Astuce: si l\'ISBN est visible, il sera détecté automatiquement',
-                      style: TextStyle(fontStyle: FontStyle.italic)),
-                ],
-              ),
-            ),
+                ),
+              );
+            },
           ),
 
           const SizedBox(height: 20),
@@ -771,11 +798,15 @@ class _ScanBookCoverPageState extends State<ScanBookCoverPage>
             ExpansionTile(
               title: const Text('Texte détecté'),
               children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  color: Colors.grey.shade100,
-                  child:
-                      Text(_extractedText!, style: const TextStyle(fontSize: 12)),
+                Builder(
+                  builder: (context) {
+                    final isDark = Theme.of(context).brightness == Brightness.dark;
+                    return Container(
+                      padding: const EdgeInsets.all(12),
+                      color: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
+                      child: Text(_extractedText!, style: const TextStyle(fontSize: 12)),
+                    );
+                  },
                 ),
               ],
             ),

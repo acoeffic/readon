@@ -933,6 +933,10 @@ class _BadgeCard extends StatelessWidget {
                     ? FirstBookBadge(size: 64, isLocked: !badge.isUnlocked)
                     : isApprenticeReaderBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
                     ? ApprenticeReaderBadge(size: 64, isLocked: !badge.isUnlocked)
+                    : isConfirmedReaderBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                    ? ConfirmedReaderBadge(size: 64, isLocked: !badge.isUnlocked)
+                    : isBibliophileBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                    ? BibliophileBadge(size: 64, isLocked: !badge.isUnlocked)
                     : Container(
                         width: 64,
                         height: 64,
@@ -1189,6 +1193,10 @@ class _BadgeCard extends StatelessWidget {
                     ? FirstBookBadge(size: 100, isLocked: !badge.isUnlocked)
                     : isApprenticeReaderBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
                     ? ApprenticeReaderBadge(size: 100, isLocked: !badge.isUnlocked)
+                    : isConfirmedReaderBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                    ? ConfirmedReaderBadge(size: 100, isLocked: !badge.isUnlocked)
+                    : isBibliophileBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                    ? BibliophileBadge(size: 100, isLocked: !badge.isUnlocked)
                     : Container(
                         width: 100,
                         height: 100,

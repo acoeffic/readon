@@ -6,6 +6,7 @@ import 'settings_page.dart';
 import 'profile_detail_page.dart';
 import '../sessions/sessions_tab.dart';
 import '../stats/stats_tab.dart';
+import '../curated_lists/saved_lists_tab.dart';
 
 class ProfilePage extends StatefulWidget {
   final bool showBack;
@@ -19,20 +20,29 @@ class _ProfilePageState extends State<ProfilePage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final supabase = Supabase.instance.client;
+  final _savedListsKey = GlobalKey<SavedListsTabState>();
   String _userName = 'Utilisateur';
   String? _avatarUrl;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
+    _tabController.addListener(_onTabChanged);
     _loadUserInfo();
   }
 
   @override
   void dispose() {
+    _tabController.removeListener(_onTabChanged);
     _tabController.dispose();
     super.dispose();
+  }
+
+  void _onTabChanged() {
+    if (_tabController.index == 2 && !_tabController.indexIsChanging) {
+      _savedListsKey.currentState?.refresh();
+    }
   }
 
   Future<void> _loadUserInfo() async {
@@ -147,6 +157,7 @@ class _ProfilePageState extends State<ProfilePage>
               tabs: const [
                 Tab(text: 'Mes Sessions'),
                 Tab(text: 'Mes Statistiques'),
+                Tab(text: 'Mes Listes'),
               ],
             ),
 
@@ -154,9 +165,10 @@ class _ProfilePageState extends State<ProfilePage>
             Expanded(
               child: TabBarView(
                 controller: _tabController,
-                children: const [
-                  SessionsTab(),
-                  StatsTab(),
+                children: [
+                  const SessionsTab(),
+                  const StatsTab(),
+                  SavedListsTab(key: _savedListsKey),
                 ],
               ),
             ),

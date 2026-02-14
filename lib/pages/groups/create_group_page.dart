@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:provider/provider.dart';
 import 'dart:io';
 import '../../theme/app_theme.dart';
 import '../../widgets/back_header.dart';
 import '../../services/groups_service.dart';
+import '../../providers/subscription_provider.dart';
+import '../../models/feature_flags.dart';
+import '../../pages/profile/upgrade_page.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class CreateGroupPage extends StatefulWidget {
@@ -130,7 +134,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('✅ Groupe créé avec succès!'),
+            content: Text('Groupe créé avec succès!'),
             backgroundColor: Colors.green,
           ),
         );
@@ -138,15 +142,56 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
       }
     } catch (e) {
       setState(() => _isCreating = false);
-      if (mounted) {
+      if (!mounted) return;
+
+      final errorMsg = e.toString();
+      if (errorMsg.contains('Limite de')) {
+        _showGroupLimitDialog();
+      } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('❌ Erreur: $e'),
+            content: Text('Erreur: $e'),
             backgroundColor: Colors.red,
           ),
         );
       }
     }
+  }
+
+  void _showGroupLimitDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.l),
+        ),
+        title: const Text('Limite atteinte'),
+        content: Text(
+          'Tu as atteint la limite de ${FeatureFlags.maxFreeGroups} clubs de lecture. '
+          'Passe à Premium pour en rejoindre autant que tu veux !',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('OK'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const UpgradePage()),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Devenir Premium'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override

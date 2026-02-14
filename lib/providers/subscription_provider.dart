@@ -28,8 +28,10 @@ class SubscriptionProvider with ChangeNotifier {
 
   Future<void> _init() async {
     await refreshStatus();
-    // Écouter les changements de statut RevenueCat
-    Purchases.addCustomerInfoUpdateListener(_onCustomerInfoUpdated);
+    // Pas de listener RevenueCat en mode dev-premium
+    if (!_service.isDevPremium) {
+      Purchases.addCustomerInfoUpdateListener(_onCustomerInfoUpdated);
+    }
   }
 
   void _onCustomerInfoUpdated(CustomerInfo info) {
@@ -53,8 +55,6 @@ class SubscriptionProvider with ChangeNotifier {
       }
 
       notifyListeners();
-      // Sync client-side en arrière-plan
-      _service.syncStatusToSupabase();
     }
   }
 
@@ -79,13 +79,14 @@ class SubscriptionProvider with ChangeNotifier {
 
   /// Appeler après un achat réussi
   Future<void> onPurchaseCompleted() async {
-    await _service.syncStatusToSupabase();
     await refreshStatus();
   }
 
   @override
   void dispose() {
-    Purchases.removeCustomerInfoUpdateListener(_onCustomerInfoUpdated);
+    if (!_service.isDevPremium) {
+      Purchases.removeCustomerInfoUpdateListener(_onCustomerInfoUpdated);
+    }
     super.dispose();
   }
 }

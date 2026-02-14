@@ -81,8 +81,8 @@ class _ContactsSuggestionPageState extends State<ContactsSuggestionPage>
         return;
       }
 
-      final hashes = await _contactsService.getContactHashes();
-      final matches = await _contactsService.findMatchedUsers(hashes);
+      final data = await _contactsService.getContactData();
+      final matches = await _contactsService.findMatchedUsers(data.emails, data.phones);
 
       if (!mounted) return;
       setState(() {

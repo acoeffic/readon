@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../models/book.dart';
+import '../../services/books_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/back_header.dart';
 import '../../widgets/user_search_card.dart';
@@ -17,11 +20,39 @@ class SearchUsersPage extends StatefulWidget {
 
 class _SearchUsersPageState extends State<SearchUsersPage> {
   final _controller = TextEditingController();
+  final _booksService = BooksService();
   List<UserSearchResult> _userResults = [];
   List<ReadingGroup> _groupResults = [];
   Map<String, bool> _pendingRequests = {}; // user_id -> isPending
   bool _loading = false;
   int _selectedTab = 0; // 0 = Amis, 1 = Groupes
+  Book? _currentReadingBook;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCurrentBook();
+  }
+
+  Future<void> _loadCurrentBook() async {
+    final data = await _booksService.getCurrentReadingBook();
+    if (!mounted || data == null) return;
+    setState(() => _currentReadingBook = data['book'] as Book?);
+  }
+
+  void _shareApp() {
+    final bookTitle = _currentReadingBook?.title;
+    final text = bookTitle != null
+        ? '\u{1F4D6} Je suis en train de lire $bookTitle\n\n'
+            'Tu lis quoi en ce moment ? \u{1F440}\n'
+            'lexsta.app'
+        : '\u{1F4D6} Rejoins-moi sur Lexsta !\n\n'
+            'Tu lis quoi en ce moment ? \u{1F440}\n'
+            'lexsta.app';
+    final box = context.findRenderObject() as RenderBox?;
+    final origin = box != null ? box.localToGlobal(Offset.zero) & box.size : null;
+    Share.share(text, sharePositionOrigin: origin);
+  }
 
   Future<void> _search(String term) async {
     final query = term.trim();
@@ -41,11 +72,11 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
 
     try {
       if (_selectedTab == 0) {
-        // Recherche de base des utilisateurs
+        // Recherche par nom uniquement (jamais par email → anti-énumération)
         final basicData = await supabase
             .from('profiles')
-            .select('id, display_name, email')
-            .or('display_name.ilike.$pattern,email.ilike.$pattern')
+            .select('id, display_name')
+            .ilike('display_name', pattern)
             .limit(20);
 
         if (!mounted) return;
@@ -55,7 +86,7 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
         for (final user in (basicData as List)) {
           try {
             final userId = user['id'] as String;
-            final displayName = user['display_name'] as String? ?? user['email'] as String? ?? 'Utilisateur';
+            final displayName = user['display_name'] as String? ?? 'Utilisateur';
 
             debugPrint('🔍 Récupération données pour: $displayName ($userId)');
 
@@ -81,8 +112,7 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
             // En cas d'erreur, ajouter avec les données de base uniquement
             enrichedUsers.add(UserSearchResult(
               id: user['id'] as String,
-              displayName: user['display_name'] as String? ?? user['email'] as String? ?? 'Utilisateur',
-              email: user['email'] as String?,
+              displayName: user['display_name'] as String? ?? 'Utilisateur',
               isProfilePrivate: true, // Par défaut, traiter comme privé en cas d'erreur
             ));
           }
@@ -351,7 +381,7 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
                 controller: _controller,
                 decoration: InputDecoration(
                   hintText: _selectedTab == 0
-                      ? 'Nom ou email'
+                      ? 'Rechercher par nom'
                       : 'Nom du groupe',
                   prefixIcon: const Icon(Icons.search),
                 ),
@@ -360,6 +390,70 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
 
               const SizedBox(height: AppSpace.m),
               if (_loading) const LinearProgressIndicator(),
+
+              // Bouton partager l'app (onglet Amis uniquement)
+              if (_selectedTab == 0) ...[
+                GestureDetector(
+                  onTap: _shareApp,
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppColors.feedHeader,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.feedHeader.withValues(alpha: 0.3),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(Icons.share, size: 20, color: Colors.white),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Invite tes amis à lire',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Partage ce que tu lis en ce moment',
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.8),
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Icon(
+                          Icons.arrow_forward_ios,
+                          size: 16,
+                          color: Colors.white.withValues(alpha: 0.7),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppSpace.m),
+              ],
 
               Expanded(
                 child: _selectedTab == 0

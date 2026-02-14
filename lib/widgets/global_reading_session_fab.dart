@@ -13,6 +13,7 @@ import 'active_session_dialog.dart';
 import 'cached_book_cover.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../theme/app_theme.dart';
+import '../pages/chat/ai_conversations_page.dart';
 
 final _supabase = Supabase.instance.client;
 
@@ -118,6 +119,7 @@ class GlobalReadingSessionFAB extends StatelessWidget {
     return _ExpandableFAB(
       onScanPressed: () => _handleScan(context),
       onLibraryPressed: () => _handleLibrary(context),
+      onAiChatPressed: () => _handleAiChat(context),
       checkActiveSession: () => _checkActiveSession(context),
     );
   }
@@ -214,17 +216,26 @@ class GlobalReadingSessionFAB extends StatelessWidget {
     if (!context.mounted) return;
     await _selectFromLibraryAndStart(context);
   }
+
+  void _handleAiChat(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const AiConversationsPage()),
+    );
+  }
 }
 
 /// FAB Expandable avec design Liquid Glass — utilise un Overlay pour le menu
 class _ExpandableFAB extends StatefulWidget {
   final VoidCallback onScanPressed;
   final VoidCallback onLibraryPressed;
+  final VoidCallback onAiChatPressed;
   final Future<bool> Function() checkActiveSession;
 
   const _ExpandableFAB({
     required this.onScanPressed,
     required this.onLibraryPressed,
+    required this.onAiChatPressed,
     required this.checkActiveSession,
   });
 
@@ -337,6 +348,18 @@ class _ExpandableFABState extends State<_ExpandableFAB> with SingleTickerProvide
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    _buildLiquidGlassOption(
+                      index: 2,
+                      label: '\u{1F4A1} Muse',
+                      icon: Icons.auto_awesome,
+                      accentColor: const Color(0xFFE49B0F),
+                      onTap: () {
+                        _close();
+                        widget.onAiChatPressed();
+                      },
+                      isDark: isDark,
+                    ),
+                    const SizedBox(height: 12),
                     _buildLiquidGlassOption(
                       index: 1,
                       label: 'Nouveau livre',

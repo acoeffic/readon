@@ -2,6 +2,7 @@
 
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'access_guard.dart';
 
 class UserBadge {
   final String id;
@@ -20,6 +21,7 @@ class UserBadge {
   final String progressUnit;
   final String? lottieAsset;
   final int sortOrder;
+  final String? tier;
 
   UserBadge({
     required this.id,
@@ -38,6 +40,7 @@ class UserBadge {
     this.progressUnit = 'livres',
     this.lottieAsset,
     this.sortOrder = 0,
+    this.tier,
   });
 
   factory UserBadge.fromJson(dynamic json) {
@@ -64,6 +67,7 @@ class UserBadge {
       progressUnit: map['progress_unit']?.toString() ?? 'livres',
       lottieAsset: map['lottie_asset']?.toString(),
       sortOrder: (map['sort_order'] as num?)?.toInt() ?? 0,
+      tier: map['tier']?.toString(),
     );
   }
 
@@ -109,15 +113,19 @@ class BadgesService {
       return list
           .map((item) => UserBadge.fromJson(item))
           .toList();
-    } catch (e) {
-      debugPrint('Erreur getUserBadges: $e');
+    } catch (e, stack) {
+      debugPrint('❌ ERREUR getUserBadges: $e');
+      debugPrint('❌ Stack: $stack');
       return [];
     }
   }
 
-  /// Récupérer les badges d'un utilisateur par son ID
+  /// Récupérer les badges d'un utilisateur par son ID.
+  /// Vérifie que le demandeur est autorisé (soi-même, ami, ou profil public).
   Future<List<UserBadge>> getUserBadgesById(String userId) async {
     try {
+      if (!await canAccessUserData(userId)) return [];
+
       final response = await _supabase.rpc(
         'get_all_user_badges',
         params: {'p_user_id': userId},
@@ -181,112 +189,41 @@ class BadgesService {
     }
   }
 
-  /// Vérifier les badges secrets basés sur l'heure locale (côté client)
+  /// Vérifier et attribuer les badges secrets via RPC serveur.
+  /// Les timestamps sont vérifiés côté serveur (non manipulables).
   Future<List<UserBadge>> checkSecretBadges({
-    required DateTime sessionStartTime,
-    required DateTime? sessionEndTime,
+    required String sessionId,
     required bool bookFinished,
   }) async {
     try {
       final userId = _supabase.auth.currentUser?.id;
       if (userId == null) return [];
 
-      // Récupérer les badges secrets déjà attribués
-      final existingBadges = await _supabase
-          .from('user_badges')
-          .select('badge_id')
-          .eq('user_id', userId);
+      final result = await _supabase.rpc(
+        'check_and_award_secret_badges',
+        params: {
+          'p_session_id': sessionId,
+          'p_book_finished': bookFinished,
+        },
+      );
 
-      final existingIds = (existingBadges as List)
-          .map((b) => b['badge_id'] as String)
-          .toSet();
-
-      final newBadges = <UserBadge>[];
-
-      // Minuit Pile: session commencée à 00:00
-      if (!existingIds.contains('secret_midnight') &&
-          sessionStartTime.hour == 0 && sessionStartTime.minute == 0) {
-        await _awardSecretBadge(userId, 'secret_midnight');
-        newBadges.add(UserBadge(
-          id: 'secret_midnight', name: 'Minuit Pile',
-          description: 'Commencer une session à 00:00',
-          icon: '🕛', category: 'secret', requirement: 1,
-          color: '#311B92', unlockedAt: DateTime.now(),
-          progress: 1, isUnlocked: true, isSecret: true,
-        ));
-      }
-
-      // Premier de l'An: lire le 1er janvier
-      if (!existingIds.contains('secret_new_year') &&
-          sessionStartTime.month == 1 && sessionStartTime.day == 1) {
-        await _awardSecretBadge(userId, 'secret_new_year');
-        newBadges.add(UserBadge(
-          id: 'secret_new_year', name: 'Premier de l\'An',
-          description: 'Lire le 1er janvier',
-          icon: '🎆', category: 'secret', requirement: 1,
-          color: '#1A237E', unlockedAt: DateTime.now(),
-          progress: 1, isUnlocked: true, isSecret: true,
-        ));
-      }
-
-      // Marathon Nocturne: lire de 22h à 6h
-      if (!existingIds.contains('secret_night_marathon') &&
-          sessionEndTime != null &&
-          sessionStartTime.hour >= 22 && sessionEndTime.hour < 6) {
-        await _awardSecretBadge(userId, 'secret_night_marathon');
-        newBadges.add(UserBadge(
-          id: 'secret_night_marathon', name: 'Marathon Nocturne',
-          description: 'Lire de 22h à 6h',
-          icon: '🦉', category: 'secret', requirement: 1,
-          color: '#0D47A1', unlockedAt: DateTime.now(),
-          progress: 1, isUnlocked: true, isSecret: true,
-        ));
-      }
-
-      // Finisher: terminer un livre en 1 session
-      if (!existingIds.contains('secret_finisher') && bookFinished) {
-        // On considère que si le livre est fini dans cette session, c'est un finisher
-        // La vérification plus précise peut être faite côté serveur
-        await _awardSecretBadge(userId, 'secret_finisher');
-        newBadges.add(UserBadge(
-          id: 'secret_finisher', name: 'Finisher',
-          description: 'Terminer un livre en 1 session',
-          icon: '🚀', category: 'secret', requirement: 1,
-          color: '#01579B', unlockedAt: DateTime.now(),
-          progress: 1, isUnlocked: true, isSecret: true,
-        ));
-      }
-
-      // Palindrome: lire un jour palindrome (ex: 12/12, 11/11, 01/01, etc.)
-      if (!existingIds.contains('secret_palindrome') &&
-          sessionStartTime.month == sessionStartTime.day) {
-        await _awardSecretBadge(userId, 'secret_palindrome');
-        newBadges.add(UserBadge(
-          id: 'secret_palindrome', name: 'Palindrome',
-          description: 'Lire un 12/12, 11/11, etc.',
-          icon: '🔢', category: 'secret', requirement: 1,
-          color: '#006064', unlockedAt: DateTime.now(),
-          progress: 1, isUnlocked: true, isSecret: true,
-        ));
-      }
-
-      return newBadges;
+      final rows = List<Map<String, dynamic>>.from(result ?? []);
+      return rows.map((row) => UserBadge(
+        id: row['badge_id'] as String,
+        name: row['badge_name'] as String,
+        description: row['badge_desc'] as String,
+        icon: row['badge_icon'] as String,
+        category: 'secret',
+        requirement: 1,
+        color: row['badge_color'] as String,
+        unlockedAt: DateTime.now(),
+        progress: 1,
+        isUnlocked: true,
+        isSecret: true,
+      )).toList();
     } catch (e) {
       debugPrint('Erreur checkSecretBadges: $e');
       return [];
-    }
-  }
-
-  /// Attribuer un badge secret
-  Future<void> _awardSecretBadge(String userId, String badgeId) async {
-    try {
-      await _supabase.from('user_badges').insert({
-        'user_id': userId,
-        'badge_id': badgeId,
-        'earned_at': DateTime.now().toIso8601String(),
-      });
-    } catch (e) {
-      debugPrint('Erreur _awardSecretBadge: $e');
     }
   }
 

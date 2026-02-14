@@ -6,23 +6,76 @@ import '../../services/reading_session_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/cached_book_cover.dart';
 
-class SessionDetailPage extends StatelessWidget {
+class SessionDetailPage extends StatefulWidget {
   final ReadingSession session;
   final Book? book;
+  final bool isOwn;
 
   const SessionDetailPage({
     super.key,
     required this.session,
     this.book,
+    this.isOwn = true,
   });
 
-  Future<void> _deleteSession(BuildContext context) async {
+  @override
+  State<SessionDetailPage> createState() => _SessionDetailPageState();
+}
+
+class _SessionDetailPageState extends State<SessionDetailPage> {
+  late bool _isHidden;
+
+  @override
+  void initState() {
+    super.initState();
+    _isHidden = widget.session.isHidden;
+  }
+
+  Future<void> _toggleHidden() async {
+    final newValue = !_isHidden;
+    setState(() => _isHidden = newValue);
+
+    try {
+      await ReadingSessionService().toggleSessionHidden(
+        widget.session.id,
+        newValue,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(newValue
+              ? 'Session masquee des classements'
+              : 'Session visible dans les classements'),
+          action: SnackBarAction(
+            label: 'Annuler',
+            onPressed: () async {
+              setState(() => _isHidden = !newValue);
+              try {
+                await ReadingSessionService().toggleSessionHidden(
+                  widget.session.id,
+                  !newValue,
+                );
+              } catch (_) {}
+            },
+          ),
+        ),
+      );
+    } catch (e) {
+      setState(() => _isHidden = !newValue);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Erreur lors de la modification')),
+      );
+    }
+  }
+
+  Future<void> _deleteSession() async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Supprimer la session'),
         content: const Text(
-            'Voulez-vous vraiment supprimer cette session de lecture ? Cette action est irréversible.'),
+            'Voulez-vous vraiment supprimer cette session de lecture ? Cette action est irreversible.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
@@ -37,14 +90,14 @@ class SessionDetailPage extends StatelessWidget {
       ),
     );
 
-    if (confirm == true && context.mounted) {
+    if (confirm == true && mounted) {
       try {
-        await ReadingSessionService().cancelSession(session.id);
-        if (context.mounted) {
+        await ReadingSessionService().cancelSession(widget.session.id);
+        if (mounted) {
           Navigator.of(context).pop(true);
         }
       } catch (e) {
-        if (context.mounted) {
+        if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Erreur lors de la suppression')),
           );
@@ -53,11 +106,11 @@ class SessionDetailPage extends StatelessWidget {
     }
   }
 
-  void _shareSession(BuildContext context) {
-    final bookTitle = book?.title ?? 'un livre';
-    final author = book?.author ?? '';
-    final pages = session.pagesRead;
-    final duration = _formatDuration(session.durationMinutes);
+  void _shareSession() {
+    final bookTitle = widget.book?.title ?? 'un livre';
+    final author = widget.book?.author ?? '';
+    final pages = widget.session.pagesRead;
+    final duration = _formatDuration(widget.session.durationMinutes);
 
     final text =
         "Je viens de lire $pages pages de \"$bookTitle\"${author.isNotEmpty ? ' de $author' : ''} en $duration ! \u{1F4DA}\n\n#Lexsta #Lecture";
@@ -104,18 +157,36 @@ class SessionDetailPage extends StatelessWidget {
         ),
         centerTitle: true,
         actions: [
-          IconButton(
-            icon: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: cardColor.withValues(alpha: 0.9),
-                shape: BoxShape.circle,
+          if (widget.isOwn) ...[
+            IconButton(
+              icon: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: cardColor.withValues(alpha: 0.9),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  _isHidden ? Icons.visibility : Icons.visibility_off_outlined,
+                  color: isDark ? Colors.white70 : Colors.black54,
+                  size: 18,
+                ),
               ),
-              child: Icon(Icons.delete_outline,
-                  color: Colors.red, size: 18),
+              tooltip: _isHidden ? 'Rendre visible' : 'Masquer la session',
+              onPressed: _toggleHidden,
             ),
-            onPressed: () => _deleteSession(context),
-          ),
+            IconButton(
+              icon: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: cardColor.withValues(alpha: 0.9),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.delete_outline,
+                    color: Colors.red, size: 18),
+              ),
+              onPressed: _deleteSession,
+            ),
+          ],
         ],
       ),
       body: SingleChildScrollView(
@@ -124,12 +195,43 @@ class SessionDetailPage extends StatelessWidget {
           children: [
             const SizedBox(height: 8),
 
+            // Hidden indicator
+            if (_isHidden && widget.isOwn)
+              Container(
+                width: double.infinity,
+                margin: const EdgeInsets.only(bottom: 16),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? Colors.orange.shade900.withValues(alpha: 0.3)
+                      : Colors.orange.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.orange.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.visibility_off, color: Colors.orange.shade700, size: 18),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Session masquee des classements et du feed',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.orange.shade800,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
             // Book Header with progress
             _buildBookHeader(isDark, terracotta, subtitleColor),
             const SizedBox(height: 24),
 
             // Stats Row (duration, pages, pace)
-            if (!session.isActive) ...[
+            if (!widget.session.isActive) ...[
               _buildStatsCard(isDark, cardColor, terracotta, subtitleColor),
               const SizedBox(height: 16),
 
@@ -142,7 +244,7 @@ class SessionDetailPage extends StatelessWidget {
               const SizedBox(height: 20),
 
               // Share Button
-              _buildShareButton(isDark, context),
+              _buildShareButton(isDark),
             ] else ...[
               _buildActiveSessionCard(isDark, cardColor, terracotta),
             ],
@@ -173,7 +275,7 @@ class SessionDetailPage extends StatelessWidget {
             ],
           ),
           child: CachedBookCover(
-            imageUrl: book?.coverUrl,
+            imageUrl: widget.book?.coverUrl,
             width: 80,
             height: 110,
             borderRadius: BorderRadius.circular(8),
@@ -186,7 +288,7 @@ class SessionDetailPage extends StatelessWidget {
             children: [
               const SizedBox(height: 4),
               Text(
-                book?.title ?? 'Livre inconnu',
+                widget.book?.title ?? 'Livre inconnu',
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w800,
@@ -196,10 +298,10 @@ class SessionDetailPage extends StatelessWidget {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
-              if (book?.author != null) ...[
+              if (widget.book?.author != null) ...[
                 const SizedBox(height: 4),
                 Text(
-                  book!.author!,
+                  widget.book!.author!,
                   style: TextStyle(
                     fontSize: 14,
                     color: subtitleColor,
@@ -247,7 +349,7 @@ class SessionDetailPage extends StatelessWidget {
               Row(
                 children: [
                   Text(
-                    'p.${session.endPage ?? session.startPage}',
+                    'p.${widget.session.endPage ?? widget.session.startPage}',
                     style: TextStyle(
                       fontSize: 11,
                       color: subtitleColor,
@@ -255,7 +357,7 @@ class SessionDetailPage extends StatelessWidget {
                   ),
                   const Spacer(),
                   Text(
-                    book?.pageCount != null ? '${book!.pageCount} pages' : '',
+                    widget.book?.pageCount != null ? '${widget.book!.pageCount} pages' : '',
                     style: TextStyle(
                       fontSize: 11,
                       color: subtitleColor,
@@ -291,14 +393,14 @@ class SessionDetailPage extends StatelessWidget {
         children: [
           _buildStatItem(
             '\u{23F1}',
-            _formatDuration(session.durationMinutes),
+            _formatDuration(widget.session.durationMinutes),
             'duree',
             terracotta,
             subtitleColor,
           ),
           _buildStatItem(
             '\u{1F4C4}',
-            '${session.pagesRead}',
+            '${widget.session.pagesRead}',
             'pages lues',
             terracotta,
             subtitleColor,
@@ -381,7 +483,7 @@ class SessionDetailPage extends StatelessWidget {
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  '+${session.pagesRead} pages',
+                  '+${widget.session.pagesRead} pages',
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
@@ -397,7 +499,7 @@ class SessionDetailPage extends StatelessWidget {
               // Start page
               _buildPageBubble(
                 'Debut',
-                '${session.startPage}',
+                '${widget.session.startPage}',
                 isDark,
                 false,
               ),
@@ -435,7 +537,7 @@ class SessionDetailPage extends StatelessWidget {
               // End page
               _buildPageBubble(
                 'Fin',
-                '${session.endPage ?? session.startPage}',
+                '${widget.session.endPage ?? widget.session.startPage}',
                 isDark,
                 true,
               ),
@@ -488,8 +590,8 @@ class SessionDetailPage extends StatelessWidget {
 
   Widget _buildTimelineCard(
       bool isDark, Color cardColor, Color terracotta, Color subtitleColor) {
-    final startTime = session.startTime;
-    final endTime = session.endTime;
+    final startTime = widget.session.startTime;
+    final endTime = widget.session.endTime;
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -600,7 +702,7 @@ class SessionDetailPage extends StatelessWidget {
                   Text('\u{23F1}', style: const TextStyle(fontSize: 13)),
                   const SizedBox(width: 6),
                   Text(
-                    '${_formatDuration(session.durationMinutes)} de lecture',
+                    '${_formatDuration(widget.session.durationMinutes)} de lecture',
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
@@ -652,12 +754,12 @@ class SessionDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _buildShareButton(bool isDark, BuildContext context) {
+  Widget _buildShareButton(bool isDark) {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton.icon(
-        onPressed: () => _shareSession(context),
-        icon: const Text('\u{1F4EC}', style: TextStyle(fontSize: 18)),
+        onPressed: _shareSession,
+        icon: const Icon(Icons.share_outlined, size: 20),
         label: const Text(
           'Partager',
           style: TextStyle(
@@ -708,7 +810,7 @@ class SessionDetailPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Demarree a la page ${session.startPage}',
+                  'Demarree a la page ${widget.session.startPage}',
                   style: TextStyle(
                     fontSize: 14,
                     color: Colors.orange.shade700,
@@ -725,9 +827,9 @@ class SessionDetailPage extends StatelessWidget {
   // Helpers
 
   double? _getBookProgress() {
-    if (book?.pageCount == null || book!.pageCount == 0) return null;
-    final currentPage = session.endPage ?? session.startPage;
-    return (currentPage / book!.pageCount!) * 100;
+    if (widget.book?.pageCount == null || widget.book!.pageCount == 0) return null;
+    final currentPage = widget.session.endPage ?? widget.session.startPage;
+    return (currentPage / widget.book!.pageCount!) * 100;
   }
 
   String _formatDuration(int minutes) {
@@ -739,10 +841,10 @@ class SessionDetailPage extends StatelessWidget {
   }
 
   String _formatPace() {
-    if (session.pagesRead == 0 || session.durationMinutes == 0) return '-';
-    final minutesPerPage = session.durationMinutes / session.pagesRead;
+    if (widget.session.pagesRead == 0 || widget.session.durationMinutes == 0) return '-';
+    final minutesPerPage = widget.session.durationMinutes / widget.session.pagesRead;
     if (minutesPerPage < 1) {
-      final pagesPerMinute = session.pagesRead / session.durationMinutes;
+      final pagesPerMinute = widget.session.pagesRead / widget.session.durationMinutes;
       return '${pagesPerMinute.toStringAsFixed(1)} p/min';
     }
     return '${minutesPerPage.round()} min/p';

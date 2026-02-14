@@ -4,9 +4,17 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
+import '../config/env.dart';
+
 class GoogleBooksService {
   static const String _baseUrl = 'https://www.googleapis.com/books/v1/volumes';
-  static const String _apiKey = 'AIzaSyBfeOIQFzc9nGtinVmBGQoAB0fpyOCsBgg';
+  static String get _apiKey => Env.googleBooksApiKey;
+
+  /// Cache en mémoire : ISBN → GoogleBook (évite les appels API répétés)
+  static final Map<String, GoogleBook> _isbnCache = {};
+
+  /// Vide le cache (utile pour les tests ou un refresh forcé)
+  static void clearCache() => _isbnCache.clear();
 
   /// Rechercher des livres via Google Books API (1 seul appel)
   Future<List<GoogleBook>> searchBooks(String query, {bool langRestrict = false}) async {
@@ -31,8 +39,14 @@ class GoogleBooksService {
     }
   }
 
-  /// Rechercher par ISBN (1 appel, pas de restriction de langue)
+  /// Rechercher par ISBN (1 appel, pas de restriction de langue).
+  /// Les résultats sont cachés en mémoire pour éviter les appels répétés.
   Future<GoogleBook?> searchByISBN(String isbn) async {
+    // Vérifier le cache d'abord
+    if (_isbnCache.containsKey(isbn)) {
+      return _isbnCache[isbn];
+    }
+
     try {
       final uri = Uri.parse('$_baseUrl?q=isbn:${Uri.encodeComponent(isbn)}&maxResults=1&key=$_apiKey');
       final response = await http.get(uri);
@@ -41,13 +55,20 @@ class GoogleBooksService {
         final data = jsonDecode(response.body);
         final items = data['items'] as List<dynamic>?;
         if (items == null || items.isEmpty) return null;
-        return GoogleBook.fromJson(items.first);
+        final book = GoogleBook.fromJson(items.first);
+        _isbnCache[isbn] = book;
+        return book;
       }
       return null;
     } catch (e) {
       debugPrint('Erreur searchByISBN: $e');
       return null;
     }
+  }
+
+  /// Met en cache un GoogleBook pour un ISBN donné (utile après un fallback).
+  void cacheBook(String isbn, GoogleBook book) {
+    _isbnCache[isbn] = book;
   }
 
   /// Rechercher par titre et auteur (1 appel)
@@ -106,10 +127,12 @@ class GoogleBook {
       }
     }
 
-    // Fallback: Open Library cover via ISBN
+    // Fallback: Open Library cover via ISBN (validé alphanumerique)
     if (coverUrl == null && isbns.isNotEmpty) {
       final isbn = isbns.firstWhere((i) => i.length == 13, orElse: () => isbns.first);
-      coverUrl = 'https://covers.openlibrary.org/b/isbn/$isbn-L.jpg';
+      if (RegExp(r'^[0-9Xx-]+$').hasMatch(isbn)) {
+        coverUrl = 'https://covers.openlibrary.org/b/isbn/$isbn-L.jpg';
+      }
     }
     
     // Extract categories

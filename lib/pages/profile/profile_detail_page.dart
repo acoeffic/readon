@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../theme/app_theme.dart';
@@ -9,6 +10,7 @@ import '../../features/wrapped/monthly/monthly_wrapped_screen.dart';
 import '../../features/wrapped/monthly/monthly_wrapped_data.dart';
 import '../../features/wrapped/yearly/yearly_wrapped_screen.dart';
 import '../../features/badges/widgets/anniversary_debug_page.dart';
+import '../../features/badges/widgets/books_badge_debug_page.dart';
 
 class ProfileDetailPage extends StatefulWidget {
   const ProfileDetailPage({super.key});
@@ -161,23 +163,6 @@ class _ProfileDetailPageState extends State<ProfileDetailPage> {
 
             _navButton(
               context,
-              label: 'Monthly Wrapped',
-              icon: Icons.calendar_month_outlined,
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => MonthlyWrappedScreen(
-                    month: 10,
-                    year: 2025,
-                    demoData: MonthlyWrappedData.demo(),
-                  ),
-                ),
-              ),
-            ),
-
-            const SizedBox(height: AppSpace.m),
-
-            _navButton(
-              context,
               label: 'Yearly Wrapped 2025',
               icon: Icons.auto_awesome_outlined,
               onPressed: () => Navigator.of(context).push(
@@ -187,18 +172,46 @@ class _ProfileDetailPageState extends State<ProfileDetailPage> {
               ),
             ),
 
-            const SizedBox(height: AppSpace.m),
-
-            _navButton(
-              context,
-              label: 'Test Badges Anniversaire',
-              icon: Icons.bug_report_outlined,
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const AnniversaryDebugPage(),
+            // ── Debug-only buttons (tree-shaked en release grâce à kDebugMode) ──
+            if (kDebugMode) ...[
+              const SizedBox(height: AppSpace.m),
+              _navButton(
+                context,
+                label: 'Monthly Wrapped (demo)',
+                icon: Icons.calendar_month_outlined,
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => MonthlyWrappedScreen(
+                      month: 10,
+                      year: 2025,
+                      demoData: MonthlyWrappedData.demo(),
+                    ),
+                  ),
                 ),
               ),
-            ),
+              const SizedBox(height: AppSpace.m),
+              _navButton(
+                context,
+                label: 'Test Badges Anniversaire',
+                icon: Icons.bug_report_outlined,
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const AnniversaryDebugPage(),
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSpace.m),
+              _navButton(
+                context,
+                label: 'Test Badges Livres',
+                icon: Icons.bug_report_outlined,
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const BooksBadgeDebugPage(),
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),

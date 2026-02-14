@@ -8,6 +8,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../theme/app_theme.dart';
 import '../feed/widgets/feed_header.dart';
 import 'widgets/friend_activity_card.dart';
+import 'widgets/book_finished_card.dart';
 import '../feed/widgets/flow_card.dart';
 import '../../services/flow_service.dart';
 import '../../models/reading_flow.dart';
@@ -25,8 +26,17 @@ import 'widgets/trending_welcome_card.dart';
 import 'widgets/trending_books_card.dart';
 import 'widgets/community_session_card.dart';
 import 'widgets/community_section_separator.dart';
+import '../../models/reading_session.dart';
+import '../sessions/session_detail_page.dart';
 import 'widgets/find_friends_cta.dart';
 import '../friends/search_users_page.dart';
+import 'widgets/curated_lists_carousel.dart';
+import '../../models/curated_list.dart';
+import '../../services/curated_lists_service.dart';
+import '../../data/curated_lists_data.dart';
+import '../curated_lists/curated_list_detail_page.dart';
+import '../curated_lists/all_curated_lists_page.dart';
+import '../books/user_books_page.dart';
 
 class FeedPage extends StatefulWidget {
   const FeedPage({super.key});
@@ -41,6 +51,7 @@ class _FeedPageState extends State<FeedPage> {
   final booksService = BooksService();
   final suggestionsService = SuggestionsService();
   final trendingService = TrendingService();
+  final curatedListsService = CuratedListsService();
   final ScrollController _scrollController = ScrollController();
 
   List<Map<String, dynamic>> friendActivities = [];
@@ -60,6 +71,10 @@ class _FeedPageState extends State<FeedPage> {
   FeedTier feedTier = FeedTier.friendsOnly;
   List<Map<String, dynamic>> trendingBooks = [];
   List<Map<String, dynamic>> communitySessions = [];
+
+  // Listes curatées
+  Map<int, int> curatedReaderCounts = {};
+  Set<int> savedCuratedListIds = {};
 
   // Ordre aléatoire des sections du feed (sessions, suggestions, trending)
   List<int> _feedSectionOrder = [0, 1, 2];
@@ -129,18 +144,23 @@ class _FeedPageState extends State<FeedPage> {
         return;
       }
 
-      // Charger en parallele : flow, livre en cours, nombre d'amis, suggestions
+      // Charger en parallele : flow, livre en cours, nombre d'amis, suggestions, curated lists
       final results = await Future.wait([
         flowService.getUserFlow(),
         booksService.getCurrentReadingBook(),
         trendingService.getAcceptedFriendCount(),
         suggestionsService.getPersonalizedSuggestions(limit: 5),
+        curatedListsService.getReaderCounts(
+            kCuratedLists.map((l) => l.id).toList()),
+        curatedListsService.getSavedListIds(),
       ]);
 
       final flow = results[0] as ReadingFlow?;
       final currentBook = results[1] as Map<String, dynamic>?;
       final fCount = results[2] as int;
       final suggestionsRes = results[3] as List<BookSuggestion>;
+      final readerCountsRes = results[4] as Map<int, int>;
+      final savedListIdsRes = results[5] as Set<int>;
       final tier = trendingService.determineFeedTier(fCount);
 
       // Charger conditionnellement selon le tier
@@ -182,6 +202,8 @@ class _FeedPageState extends State<FeedPage> {
         trendingBooks = trending;
         communitySessions = community;
         suggestions = suggestionsRes;
+        curatedReaderCounts = readerCountsRes;
+        savedCuratedListIds = savedListIdsRes;
         _feedSectionOrder = newOrder;
         loading = false;
         _hasMoreActivities = activities.length >= _activitiesPageSize;
@@ -197,6 +219,65 @@ class _FeedPageState extends State<FeedPage> {
           SnackBar(content: Text('Erreur: $e')),
         );
       }
+    }
+  }
+
+  void _openCommunitySession(Map<String, dynamic> data) {
+    final session = ReadingSession(
+      id: (data['id'] ?? '').toString(),
+      userId: (data['user_id'] ?? '').toString(),
+      bookId: (data['book_id'] ?? '').toString(),
+      startPage: data['start_page'] as int? ?? 0,
+      endPage: data['end_page'] as int?,
+      startTime: data['start_time'] != null
+          ? DateTime.parse(data['start_time'] as String).toLocal()
+          : DateTime.now(),
+      endTime: data['end_time'] != null
+          ? DateTime.parse(data['end_time'] as String).toLocal()
+          : null,
+      createdAt: data['session_created_at'] != null
+          ? DateTime.parse(data['session_created_at'] as String).toLocal()
+          : DateTime.now(),
+      updatedAt: data['session_created_at'] != null
+          ? DateTime.parse(data['session_created_at'] as String).toLocal()
+          : DateTime.now(),
+    );
+
+    final bookId = data['book_id'];
+    final book = data['book_title'] != null
+        ? Book(
+            id: bookId is int ? bookId : 0,
+            title: data['book_title'] as String,
+            author: data['book_author'] as String?,
+            coverUrl: data['book_cover'] as String?,
+          )
+        : null;
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => SessionDetailPage(
+          session: session,
+          book: book,
+          isOwn: false,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openTrendingBook(Map<String, dynamic> data) async {
+    final bookId = data['book_id'] as int?;
+    if (bookId == null) return;
+
+    try {
+      final book = await booksService.getBookById(bookId);
+      if (!mounted) return;
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => BookDetailPage(book: book),
+        ),
+      );
+    } catch (e) {
+      debugPrint('Erreur _openTrendingBook: $e');
     }
   }
 
@@ -261,7 +342,10 @@ class _FeedPageState extends State<FeedPage> {
       ),
       const SizedBox(height: AppSpace.s),
       ...communitySessions.map(
-        (session) => CommunitySessionCard(session: session),
+        (session) => CommunitySessionCard(
+              session: session,
+              onTap: () => _openCommunitySession(session),
+            ),
       ),
       const SizedBox(height: AppSpace.l),
     ];
@@ -271,9 +355,73 @@ class _FeedPageState extends State<FeedPage> {
   List<Widget> _buildTrendingBooksSection() {
     if (trendingBooks.isEmpty) return [];
     return [
-      TrendingBooksCard(books: trendingBooks),
+      TrendingBooksCard(
+        books: trendingBooks,
+        onBookTap: _openTrendingBook,
+      ),
       const SizedBox(height: AppSpace.l),
     ];
+  }
+
+  /// Construit la section des listes curatées
+  List<Widget> _buildCuratedListsSection() {
+    return [
+      CuratedListsCarousel(
+        lists: kCuratedLists,
+        readerCounts: curatedReaderCounts,
+        savedListIds: savedCuratedListIds,
+        onToggleSave: _toggleCuratedListSave,
+        onSeeAll: _navigateToAllCuratedLists,
+        onListTap: _navigateToCuratedListDetail,
+      ),
+      const SizedBox(height: AppSpace.l),
+    ];
+  }
+
+  void _toggleCuratedListSave(int listId, bool save) async {
+    // Optimistic update
+    setState(() {
+      if (save) {
+        savedCuratedListIds.add(listId);
+      } else {
+        savedCuratedListIds.remove(listId);
+      }
+    });
+
+    try {
+      if (save) {
+        await curatedListsService.saveList(listId);
+      } else {
+        await curatedListsService.unsaveList(listId);
+      }
+    } catch (e) {
+      // Rollback
+      if (mounted) {
+        setState(() {
+          if (save) {
+            savedCuratedListIds.remove(listId);
+          } else {
+            savedCuratedListIds.add(listId);
+          }
+        });
+      }
+    }
+  }
+
+  void _navigateToAllCuratedLists() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const AllCuratedListsPage()),
+    );
+  }
+
+  void _navigateToCuratedListDetail(CuratedList list) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CuratedListDetailPage(list: list),
+      ),
+    );
   }
 
   /// Construit la section suggestions avec espacement
@@ -310,6 +458,9 @@ class _FeedPageState extends State<FeedPage> {
       const TrendingWelcomeCard(),
       const SizedBox(height: AppSpace.l),
 
+      // Listes curatées (position fixe)
+      ..._buildCuratedListsSection(),
+
       // Sections dans l'ordre aléatoire
       ...sections.expand((s) => s),
 
@@ -335,7 +486,10 @@ class _FeedPageState extends State<FeedPage> {
       ),
       const SizedBox(height: AppSpace.s),
       ...communitySessions.take(5).map(
-        (session) => CommunitySessionCard(session: session),
+        (session) => CommunitySessionCard(
+              session: session,
+              onTap: () => _openCommunitySession(session),
+            ),
       ),
       const SizedBox(height: AppSpace.l),
     ];
@@ -396,10 +550,14 @@ class _FeedPageState extends State<FeedPage> {
             ),
           ),
         )
-      else
-        ...friendActivities.map(
-          (activity) => FriendActivityCard(activity: activity),
-        ),
+      else ...[
+        // 5 premières activités
+        ...friendActivities.take(5).map(_buildActivityCard),
+        // Listes curatées après 5 activités
+        ..._buildCuratedListsSection(),
+        // Activités restantes
+        ...friendActivities.skip(5).map(_buildActivityCard),
+      ],
 
       const SizedBox(height: AppSpace.l),
 
@@ -459,17 +617,28 @@ class _FeedPageState extends State<FeedPage> {
         ),
         _buildSuggestionsSection(),
       ] else ...[
-        // 4 premières activités
-        ...friendActivities.take(4).map((activity) => FriendActivityCard(activity: activity)),
-        // Suggestions après 4 activités
+        // 5 premières activités
+        ...friendActivities.take(5).map(_buildActivityCard),
+        // Listes curatées après 5 activités
+        ..._buildCuratedListsSection(),
+        // Suggestions
         if (suggestions.isNotEmpty) ...[
           _buildSuggestionsSection(),
           const SizedBox(height: AppSpace.l),
         ],
         // Activités restantes
-        ...friendActivities.skip(4).map((activity) => FriendActivityCard(activity: activity)),
+        ...friendActivities.skip(5).map(_buildActivityCard),
       ],
     ];
+  }
+
+  Widget _buildActivityCard(Map<String, dynamic> activity) {
+    final type = activity['type'] as String?;
+    final payload = activity['payload'] as Map<String, dynamic>?;
+    final isBookFinished =
+        type == 'book_finished' || payload?['book_finished'] == true;
+    if (isBookFinished) return BookFinishedCard(activity: activity);
+    return FriendActivityCard(activity: activity);
   }
 
   List<Widget> _buildFeedContent() {

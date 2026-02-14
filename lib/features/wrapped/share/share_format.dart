@@ -91,4 +91,17 @@ enum ShareDestination {
         facebook => 'fb://publish',
         more => null,
       };
+
+  /// Web fallback URL when the app is not installed.
+  /// Returns `null` for destinations that don't have a web fallback.
+  String? get webFallbackUrl => switch (this) {
+        whatsapp => null,
+        linkedin => 'https://www.linkedin.com',
+        twitter => 'https://x.com',
+        tiktok => 'https://www.tiktok.com',
+        message => null,
+        messenger => 'https://www.messenger.com',
+        facebook => 'https://www.facebook.com',
+        more => null,
+      };
 }

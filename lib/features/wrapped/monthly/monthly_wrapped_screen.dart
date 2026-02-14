@@ -1,5 +1,7 @@
-import 'package:audioplayers/audioplayers.dart';
+import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:just_audio/just_audio.dart';
+import '../../../config/env.dart';
 import 'monthly_wrapped_data.dart';
 import 'monthly_wrapped_service.dart';
 import 'widgets/monthly_slide_container.dart';
@@ -36,12 +38,36 @@ class _MonthlyWrappedScreenState extends State<MonthlyWrappedScreen> {
 
   final AudioPlayer _audioPlayer = AudioPlayer();
   bool _isMuted = false;
-  final double _targetVolume = 0.5;
+  static const double _targetVolume = 0.5;
+
+  static final _baseUrl = '${Env.supabaseStorageUrl}/asset/audio';
+  static final List<String> _ambientTracks = [
+    '$_baseUrl/wrapped_01_intro_future_bass.mp3',
+    '$_baseUrl/wrapped_02_intro_energetic_upbeat.mp3',
+    '$_baseUrl/wrapped_03_intro_abstract.mp3',
+    '$_baseUrl/wrapped_04_stats_background_motivational.mp3',
+    '$_baseUrl/wrapped_05_stats_future_tech.mp3',
+    '$_baseUrl/wrapped_06_stats_trap_future_bass.mp3',
+    '$_baseUrl/wrapped_07_stats_nightfall.mp3',
+    '$_baseUrl/wrapped_08_momentum_bounce_on_it.mp3',
+    '$_baseUrl/wrapped_09_momentum_lokiis.mp3',
+    '$_baseUrl/wrapped_10_momentum_miro_max.mp3',
+    '$_baseUrl/wrapped_11_cool_good_vibes.mp3',
+    '$_baseUrl/wrapped_12_cool_vlogs_vlog.mp3',
+    '$_baseUrl/wrapped_13_cool_nastel_bom.mp3',
+    '$_baseUrl/wrapped_14_calm_new_age_nature.mp3',
+    '$_baseUrl/wrapped_15_calm_lofi_ksmk.mp3',
+    '$_baseUrl/wrapped_16_calm_lofi_osynthw.mp3',
+    '$_baseUrl/wrapped_17_outro_dreamy_night.mp3',
+    '$_baseUrl/wrapped_18_outro_80s_synth.mp3',
+    '$_baseUrl/wrapped_19_outro_soft_house.mp3',
+    '$_baseUrl/wrapped_20_outro_new_age_vibe.mp3',
+  ];
 
   @override
   void initState() {
     super.initState();
-    _startMusic();
+    _initAudio();
     if (widget.demoData != null) {
       _data = widget.demoData;
       _isLoading = false;
@@ -50,28 +76,30 @@ class _MonthlyWrappedScreenState extends State<MonthlyWrappedScreen> {
     }
   }
 
-  Future<void> _startMusic() async {
+  Future<void> _initAudio() async {
     try {
-      await _audioPlayer.setReleaseMode(ReleaseMode.loop);
+      final randomTrack =
+          _ambientTracks[Random().nextInt(_ambientTracks.length)];
+      await _audioPlayer.setUrl(randomTrack);
+      await _audioPlayer.setLoopMode(LoopMode.one);
       await _audioPlayer.setVolume(0);
-      await _audioPlayer.play(AssetSource('audio/wrapped_melody.wav'));
-      // Fade in over ~1.5 s
+      await _audioPlayer.play();
+      // Fade in: 0 → 0.5 over ~1.5 s
       for (int i = 1; i <= 15; i++) {
-        await Future.delayed(const Duration(milliseconds: 100));
         if (!mounted) return;
-        await _audioPlayer.setVolume(i / 15 * 0.5);
+        await Future.delayed(const Duration(milliseconds: 100));
+        await _audioPlayer.setVolume(i / 15 * _targetVolume);
       }
     } catch (e) {
-      debugPrint('Wrapped audio error: $e');
+      debugPrint('Monthly Wrapped audio error: $e');
     }
   }
 
-  Future<void> _stopMusic() async {
+  Future<void> _fadeOut() async {
     try {
-      // Fade out over ~0.8 s
-      final current = 0.5;
+      final currentVol = _audioPlayer.volume;
       for (int i = 8; i >= 0; i--) {
-        await _audioPlayer.setVolume(current * i / 8);
+        await _audioPlayer.setVolume(currentVol * i / 8);
         await Future.delayed(const Duration(milliseconds: 100));
       }
       await _audioPlayer.stop();
@@ -80,7 +108,7 @@ class _MonthlyWrappedScreenState extends State<MonthlyWrappedScreen> {
 
   @override
   void dispose() {
-    _stopMusic().then((_) => _audioPlayer.dispose());
+    _fadeOut().then((_) => _audioPlayer.dispose());
     super.dispose();
   }
 
@@ -109,7 +137,7 @@ class _MonthlyWrappedScreenState extends State<MonthlyWrappedScreen> {
   }
 
   void _close() {
-    _stopMusic().then((_) {
+    _fadeOut().then((_) {
       if (mounted) Navigator.of(context).pop();
     });
   }

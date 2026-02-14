@@ -16,6 +16,8 @@ import '../../services/kindle_webview_service.dart';
 import '../../services/kindle_auto_sync_service.dart';
 import '../../models/feature_flags.dart';
 import '../auth/auth_gate.dart';
+import '../../services/trending_service.dart';
+import '../../services/google_books_service.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -348,7 +350,25 @@ if (!allowedExtensions.contains(fileExtension)) {
       ),
     );
 
-    if (newName == null || newName.isEmpty) return;
+    if (newName == null || newName.trim().isEmpty) return;
+
+    final cleaned = newName.trim().replaceAll(RegExp(r'<[^>]*>'), '');
+    if (cleaned.length < 2) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Le nom doit contenir au moins 2 caractères')),
+        );
+      }
+      return;
+    }
+    if (cleaned.length > 50) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Le nom ne doit pas dépasser 50 caractères')),
+        );
+      }
+      return;
+    }
 
     try {
       final user = supabase.auth.currentUser;
@@ -356,7 +376,7 @@ if (!allowedExtensions.contains(fileExtension)) {
 
       await supabase
           .from('profiles')
-          .update({'display_name': newName})
+          .update({'display_name': cleaned})
           .eq('id', user.id);
 
       if (mounted) {
@@ -482,6 +502,10 @@ if (!allowedExtensions.contains(fileExtension)) {
         throw Exception(response['message'] ?? 'Erreur inconnue');
       }
 
+      // Vider les caches en mémoire avant déconnexion
+      TrendingService.clearCache();
+      GoogleBooksService.clearCache();
+
       // Déconnexion et redirection
       try {
         await Supabase.instance.client.auth.signOut();
@@ -519,16 +543,21 @@ if (!allowedExtensions.contains(fileExtension)) {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(AppSpace.l),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const BackHeader(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(AppSpace.l, AppSpace.l, AppSpace.l, 0),
+              child: const BackHeader(
                 title: 'Paramètres',
                 titleColor: AppColors.primary,
               ),
-              const SizedBox(height: AppSpace.l),
+            ),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(AppSpace.l),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
 
               // --- Section Profil ---
               _SettingsSection(
@@ -892,6 +921,8 @@ if (!allowedExtensions.contains(fileExtension)) {
                     );
 
                     if (confirm == true) {
+                      TrendingService.clearCache();
+                      GoogleBooksService.clearCache();
                       await Supabase.instance.client.auth.signOut();
 
                       if (context.mounted) {
@@ -974,8 +1005,11 @@ if (!allowedExtensions.contains(fileExtension)) {
                   ],
                 ),
               ),
-            ],
-          ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

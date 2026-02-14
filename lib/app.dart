@@ -6,6 +6,7 @@ import 'pages/auth/auth_gate.dart';
 import 'providers/theme_provider.dart';
 import 'providers/subscription_provider.dart';
 import 'providers/locale_provider.dart';
+import 'services/monthly_notification_service.dart';
 
 class LexstaApp extends StatelessWidget {
   const LexstaApp({super.key});
@@ -21,6 +22,7 @@ class LexstaApp extends StatelessWidget {
       child: Consumer2<ThemeProvider, LocaleProvider>(
         builder: (context, themeProvider, localeProvider, _) {
           return MaterialApp(
+            navigatorKey: MonthlyNotificationService.navigatorKey,
             title: 'Lexsta',
             debugShowCheckedModeBanner: false,
             localizationsDelegates: AppLocalizations.localizationsDelegates,

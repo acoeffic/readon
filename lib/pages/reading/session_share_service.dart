@@ -72,7 +72,17 @@ class SessionShareService {
       }
     }
 
-    // App not installed — fall back to native share sheet
+    // App not installed — open web version in browser
+    final webUrl = destination.webFallbackUrl;
+    if (webUrl != null) {
+      await launchUrl(
+        Uri.parse(webUrl),
+        mode: LaunchMode.externalApplication,
+      );
+      return;
+    }
+
+    // Last resort — native share sheet
     final file = await _saveTempFile(imageBytes, session.id);
     await Share.shareXFiles(
       [XFile(file.path)],
@@ -85,6 +95,7 @@ class SessionShareService {
     final dir = await getTemporaryDirectory();
     final file = File('${dir.path}/readon_session_$sessionId.png');
     await file.writeAsBytes(bytes);
+    Future.delayed(const Duration(seconds: 60), () => file.delete().catchError((_) => file));
     return file;
   }
 }

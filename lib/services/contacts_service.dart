@@ -1,7 +1,5 @@
 // lib/services/contacts_service.dart
 
-import 'dart:convert';
-import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -103,12 +101,7 @@ class ContactsService {
     return await Permission.contacts.isPermanentlyDenied;
   }
 
-  /// Hash une chaine en SHA256
-  String _hashSHA256(String input) {
-    return sha256.convert(utf8.encode(input.toLowerCase().trim())).toString();
-  }
-
-  /// Normalise un numero de telephone pour le hashing
+  /// Normalise un numero de telephone
   String _normalizePhone(String phone) {
     // Enlever tous les caracteres non-numeriques sauf le +
     String cleaned = phone.replaceAll(RegExp(r'[^\d+]'), '');
@@ -130,60 +123,92 @@ class ContactsService {
     return cleaned;
   }
 
-  /// Recupere les contacts, extrait emails et telephones, retourne les hashes SHA256
-  Future<List<String>> getContactHashes() async {
+  /// Recupere les contacts, extrait emails et telephones normalises
+  Future<({List<String> emails, List<String> phones})> getContactData() async {
     try {
       final contacts = await FlutterContacts.getContacts(
         withProperties: true,
         withPhoto: false,
       );
 
-      final Set<String> hashes = {};
+      final Set<String> emails = {};
+      final Set<String> phones = {};
 
       for (final contact in contacts) {
-        // Hash des emails
         for (final email in contact.emails) {
           if (email.address.isNotEmpty) {
-            hashes.add(_hashSHA256(email.address));
+            emails.add(email.address.toLowerCase().trim());
           }
         }
 
-        // Hash des telephones
         for (final phone in contact.phones) {
           if (phone.number.isNotEmpty) {
             final normalized = _normalizePhone(phone.number);
             if (normalized.length >= 9) {
-              hashes.add(_hashSHA256(normalized));
+              phones.add(normalized);
             }
           }
         }
       }
 
-      return hashes.toList();
+      return (emails: emails.toList(), phones: phones.toList());
     } catch (e) {
-      debugPrint('Erreur getContactHashes: $e');
-      return [];
+      debugPrint('Erreur getContactData: $e');
+      return (emails: <String>[], phones: <String>[]);
     }
   }
 
-  /// Envoie les hashes a Supabase et retourne les utilisateurs matchants
-  Future<List<ContactMatch>> findMatchedUsers(List<String> hashes) async {
-    if (hashes.isEmpty) return [];
+  /// Envoie les contacts bruts a Supabase (hashing HMAC cote serveur)
+  Future<List<ContactMatch>> findMatchedUsers(List<String> emails, List<String> phones) async {
+    if (emails.isEmpty && phones.isEmpty) return [];
 
     try {
-      // Batching si trop de hashes
       final List<ContactMatch> allMatches = [];
-      const batchSize = 1000;
+      const batchSize = 500;
 
-      for (int i = 0; i < hashes.length; i += batchSize) {
-        final batch = hashes.sublist(
+      // Batching par emails
+      for (int i = 0; i < emails.length || (i == 0 && phones.isNotEmpty); i += batchSize) {
+        final emailBatch = emails.sublist(
           i,
-          i + batchSize > hashes.length ? hashes.length : i + batchSize,
+          i + batchSize > emails.length ? emails.length : i + batchSize,
+        );
+        final phoneBatch = i == 0
+            ? phones.sublist(0, phones.length > batchSize ? batchSize : phones.length)
+            : <String>[];
+
+        final result = await _supabase.rpc(
+          'find_contacts_matches_v2',
+          params: {
+            'p_emails': emailBatch,
+            'p_phones': phoneBatch,
+          },
+        );
+
+        for (final item in (result as List)) {
+          final json = item as Map<String, dynamic>;
+          allMatches.add(ContactMatch(
+            id: json['id'] as String,
+            displayName: json['display_name'] as String? ?? 'Utilisateur',
+            email: json['email'] as String?,
+            avatarUrl: json['avatar_url'] as String?,
+            isProfilePrivate: json['is_profile_private'] as bool? ?? false,
+          ));
+        }
+      }
+
+      // Batching pour les phones restants (si > batchSize)
+      for (int i = batchSize; i < phones.length; i += batchSize) {
+        final phoneBatch = phones.sublist(
+          i,
+          i + batchSize > phones.length ? phones.length : i + batchSize,
         );
 
         final result = await _supabase.rpc(
-          'find_contacts_matches',
-          params: {'p_hashes': batch},
+          'find_contacts_matches_v2',
+          params: {
+            'p_emails': <String>[],
+            'p_phones': phoneBatch,
+          },
         );
 
         for (final item in (result as List)) {
@@ -205,13 +230,13 @@ class ContactsService {
     }
   }
 
-  /// Flow complet : permission → contacts → hash → matching
+  /// Flow complet : permission → contacts → matching (hashing cote serveur)
   Future<List<ContactMatch>> fetchAndMatchContacts() async {
     final granted = await requestContactsPermission();
     if (!granted) return [];
 
-    final hashes = await getContactHashes();
-    return findMatchedUsers(hashes);
+    final data = await getContactData();
+    return findMatchedUsers(data.emails, data.phones);
   }
 
   /// Flow complet avec details : retourne les contacts matches ET non-matches
@@ -223,56 +248,48 @@ class ContactsService {
         withPhoto: false,
       );
 
-      final Set<String> allHashes = {};
-      final Map<String, _RawContactInfo> hashToContact = {};
+      final Set<String> allEmails = {};
+      final Set<String> allPhones = {};
+      final List<_RawContactInfo> contactInfos = [];
 
       for (final contact in contacts) {
         final name = contact.displayName.isNotEmpty
             ? contact.displayName
             : 'Contact';
 
-        // Hash des emails
+        String? firstPhone = contact.phones.isNotEmpty
+            ? contact.phones.first.number
+            : null;
+        String? firstEmail = contact.emails.isNotEmpty
+            ? contact.emails.first.address
+            : null;
+
         for (final email in contact.emails) {
           if (email.address.isNotEmpty) {
-            final hash = _hashSHA256(email.address);
-            allHashes.add(hash);
-            hashToContact.putIfAbsent(
-              hash,
-              () => _RawContactInfo(
-                name: name,
-                phone: contact.phones.isNotEmpty
-                    ? contact.phones.first.number
-                    : null,
-                email: email.address,
-              ),
-            );
+            allEmails.add(email.address.toLowerCase().trim());
           }
         }
 
-        // Hash des telephones
         for (final phone in contact.phones) {
           if (phone.number.isNotEmpty) {
             final normalized = _normalizePhone(phone.number);
             if (normalized.length >= 9) {
-              final hash = _hashSHA256(normalized);
-              allHashes.add(hash);
-              hashToContact.putIfAbsent(
-                hash,
-                () => _RawContactInfo(
-                  name: name,
-                  phone: phone.number,
-                  email: contact.emails.isNotEmpty
-                      ? contact.emails.first.address
-                      : null,
-                ),
-              );
+              allPhones.add(normalized);
             }
           }
         }
+
+        if (firstPhone != null || firstEmail != null) {
+          contactInfos.add(_RawContactInfo(
+            name: name,
+            phone: firstPhone,
+            email: firstEmail,
+          ));
+        }
       }
 
-      // Obtenir les utilisateurs matches
-      final matched = await findMatchedUsers(allHashes.toList());
+      // Obtenir les utilisateurs matches (hashing cote serveur)
+      final matched = await findMatchedUsers(allEmails.toList(), allPhones.toList());
 
       // Identifier les contacts non-matches
       final matchedNames =
@@ -285,8 +302,7 @@ class ContactsService {
       final seenNames = <String>{};
       final unmatched = <UnmatchedContact>[];
 
-      for (final entry in hashToContact.entries) {
-        final info = entry.value;
+      for (final info in contactInfos) {
         if (info.phone == null) continue;
 
         final nameKey = info.name.toLowerCase();

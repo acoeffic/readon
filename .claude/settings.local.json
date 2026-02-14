@@ -36,7 +36,17 @@
       "Bash(fvm flutter analyze:*)",
       "Bash(/Users/acoeffic/flutter/bin/dart run flutter_launcher_icons:*)",
       "Bash(curl:*)",
-      "Bash(/Users/acoeffic/development/flutter/bin/flutter analyze:*)"
+      "Bash(/Users/acoeffic/development/flutter/bin/flutter analyze:*)",
+      "Bash(~/flutter/bin/flutter analyze:*)",
+      "Bash(git check-ignore:*)",
+      "mcp__chrome-devtools__take_screenshot",
+      "mcp__chrome-devtools__wait_for",
+      "mcp__chrome-devtools__click",
+      "mcp__chrome-devtools__evaluate_script",
+      "Bash(npx remotion render:*)",
+      "Bash(npx tsc:*)",
+      "Bash(./node_modules/.bin/tsc:*)",
+      "WebFetch(domain:www.leslibraires.fr)"
     ]
   }
 }

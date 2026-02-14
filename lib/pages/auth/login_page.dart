@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../config/env.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/back_header.dart';
 import 'auth_gate.dart';
@@ -19,6 +20,8 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
+  int _failedAttempts = 0;
+  DateTime? _lockoutUntil;
 
   Future<void> sendResetPassword() async {
     final email = emailController.text.trim();
@@ -34,7 +37,7 @@ class _LoginPageState extends State<LoginPage> {
       await Supabase.instance.client.auth.resetPasswordForEmail(
         email,
         // À adapter avec ta vraie URL de redirection si besoin
-        redirectTo: 'https://nzbhmshkcwudzydeahrq.supabase.co/auth/callback',
+        redirectTo: Env.authCallbackUrl,
       );
 
       if (!mounted) return;
@@ -55,6 +58,15 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> login() async {
+    // Backoff exponentiel : bloquer si trop de tentatives
+    if (_lockoutUntil != null && DateTime.now().isBefore(_lockoutUntil!)) {
+      final remaining = _lockoutUntil!.difference(DateTime.now()).inSeconds;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Trop de tentatives. Réessaie dans ${remaining}s')),
+      );
+      return;
+    }
+
     final email = emailController.text.trim();
     final password = passwordController.text.trim();
 
@@ -79,6 +91,9 @@ class _LoginPageState extends State<LoginPage> {
         return;
       }
 
+      _failedAttempts = 0;
+      _lockoutUntil = null;
+
       if (!mounted) return;
 
       Navigator.of(context).pushAndRemoveUntil(
@@ -86,6 +101,12 @@ class _LoginPageState extends State<LoginPage> {
         (route) => false,
       );
     } on AuthException catch (e) {
+      _failedAttempts++;
+      if (_failedAttempts >= 3) {
+        // Backoff : 2^(attempts-3) secondes → 1s, 2s, 4s, 8s, 16s, max 30s
+        final delay = Duration(seconds: (1 << (_failedAttempts - 3)).clamp(1, 30));
+        _lockoutUntil = DateTime.now().add(delay);
+      }
       if (!mounted) return;
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(e.message)));

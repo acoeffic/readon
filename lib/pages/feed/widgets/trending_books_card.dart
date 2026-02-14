@@ -7,8 +7,9 @@ import '../../../widgets/cached_book_cover.dart';
 
 class TrendingBooksCard extends StatelessWidget {
   final List<Map<String, dynamic>> books;
+  final void Function(Map<String, dynamic> book)? onBookTap;
 
-  const TrendingBooksCard({super.key, required this.books});
+  const TrendingBooksCard({super.key, required this.books, this.onBookTap});
 
   @override
   Widget build(BuildContext context) {
@@ -42,6 +43,7 @@ class TrendingBooksCard extends StatelessWidget {
                 coverUrl: book['book_cover'] as String?,
                 sessionCount: (book['session_count'] as num?)?.toInt() ?? 0,
                 readerCount: (book['reader_count'] as num?)?.toInt() ?? 0,
+                onTap: onBookTap != null ? () => onBookTap!(book) : null,
               );
             },
           ),
@@ -58,6 +60,7 @@ class _TrendingBookItem extends StatelessWidget {
   final String? coverUrl;
   final int sessionCount;
   final int readerCount;
+  final VoidCallback? onTap;
 
   const _TrendingBookItem({
     required this.rank,
@@ -66,13 +69,16 @@ class _TrendingBookItem extends StatelessWidget {
     this.coverUrl,
     required this.sessionCount,
     required this.readerCount,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Container(
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
       width: 140,
       margin: const EdgeInsets.only(right: 12),
       child: Card(
@@ -170,6 +176,7 @@ class _TrendingBookItem extends StatelessWidget {
           ),
         ),
       ),
+    ),
     );
   }
 

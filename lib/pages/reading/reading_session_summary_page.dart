@@ -6,6 +6,7 @@ import '../../models/reading_session.dart';
 import '../../models/trophy.dart';
 import '../../services/books_service.dart';
 import '../../services/flow_service.dart';
+import '../../services/reading_session_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/cached_book_cover.dart';
 import 'session_share_service.dart';
@@ -94,6 +95,8 @@ class _ReadingSessionSummaryPageState
               _buildMainCard(isDark),
               const SizedBox(height: 28),
               _buildShareButton(),
+              const SizedBox(height: 12),
+              _buildHideButton(isDark),
               const SizedBox(height: 12),
               _buildSkipButton(isDark),
               const SizedBox(height: 16),
@@ -435,6 +438,67 @@ class _ReadingSessionSummaryPageState
             borderRadius: BorderRadius.circular(AppRadius.l),
           ),
           elevation: 0,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHideButton(bool isDark) {
+    return SizedBox(
+      width: double.infinity,
+      height: 54,
+      child: OutlinedButton.icon(
+        onPressed: () async {
+          try {
+            await ReadingSessionService().toggleSessionHidden(
+              widget.session.id,
+              true,
+            );
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text('Session masquee des classements'),
+                action: SnackBarAction(
+                  label: 'Annuler',
+                  onPressed: () async {
+                    try {
+                      await ReadingSessionService().toggleSessionHidden(
+                        widget.session.id,
+                        false,
+                      );
+                    } catch (_) {}
+                  },
+                ),
+              ),
+            );
+          } catch (e) {
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Erreur lors du masquage')),
+            );
+          }
+        },
+        icon: Icon(
+          Icons.visibility_off_outlined,
+          size: 18,
+          color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+        ),
+        label: Text(
+          'Masquer cette session',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+          ),
+        ),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: isDark ? AppColors.textPrimaryDark : Colors.black87,
+          side: BorderSide(
+            color: isDark ? AppColors.borderDark : AppColors.border,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadius.l),
+          ),
         ),
       ),
     );

@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
+import '../../../config/env.dart';
 import 'yearly_wrapped_data.dart';
 import 'yearly_wrapped_service.dart';
 import 'widgets/yearly_animations.dart';
@@ -43,9 +44,9 @@ class _YearlyWrappedScreenState extends State<YearlyWrappedScreen> {
   bool _isMuted = false;
   static const double _targetVolume = 0.3;
 
-  static const _baseUrl =
-      'https://nzbhmshkcwudzydeahrq.supabase.co/storage/v1/object/public/asset/audio';
-  final List<String> _ambientTracks = const [
+  static final _baseUrl =
+      '${Env.supabaseStorageUrl}/asset/audio';
+  late final List<String> _ambientTracks = [
     '$_baseUrl/wrapped_ambient_1.mp3',
     '$_baseUrl/wrapped_ambient_2.mp3',
     '$_baseUrl/wrapped_ambient_3.mp3',

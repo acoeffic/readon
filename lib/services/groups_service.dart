@@ -1,8 +1,32 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/reading_group.dart';
+import '../models/feature_flags.dart';
+import 'subscription_service.dart';
 
 class GroupsService {
   final SupabaseClient _supabase = Supabase.instance.client;
+  final SubscriptionService _subscriptionService = SubscriptionService();
+
+  /// Vérifie que l'utilisateur gratuit n'a pas atteint la limite de clubs
+  Future<void> _enforceGroupLimit() async {
+    final premium = await _subscriptionService.isPremium();
+    if (premium) return;
+
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) return;
+
+    final result = await _supabase
+        .from('group_members')
+        .select('id')
+        .eq('user_id', userId);
+
+    if ((result as List).length >= FeatureFlags.maxFreeGroups) {
+      throw Exception(
+        'Limite de ${FeatureFlags.maxFreeGroups} clubs atteinte. '
+        'Passe à Premium pour en rejoindre plus !',
+      );
+    }
+  }
 
   // =====================================================
   // GROUP MANAGEMENT
@@ -17,6 +41,8 @@ class GroupsService {
   }) async {
     final userId = _supabase.auth.currentUser?.id;
     if (userId == null) throw Exception('User not authenticated');
+
+    await _enforceGroupLimit();
 
     final response = await _supabase
         .from('reading_groups')
@@ -259,6 +285,10 @@ class GroupsService {
     required String invitationId,
     required bool accept,
   }) async {
+    if (accept) {
+      await _enforceGroupLimit();
+    }
+
     await _supabase.rpc('respond_to_group_invitation', params: {
       'p_invitation_id': invitationId,
       'p_accept': accept,

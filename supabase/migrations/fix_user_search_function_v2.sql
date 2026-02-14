@@ -26,7 +26,6 @@ BEGIN
     jsonb_build_object(
       'id', p.id,
       'display_name', p.display_name,
-      'email', p.email,
       'avatar_url', p.avatar_url,
       'is_profile_private', COALESCE(p.is_profile_private, FALSE),
       'member_since', p.created_at

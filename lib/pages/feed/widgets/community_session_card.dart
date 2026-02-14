@@ -8,8 +8,9 @@ import '../../../widgets/cached_profile_avatar.dart';
 
 class CommunitySessionCard extends StatelessWidget {
   final Map<String, dynamic> session;
+  final VoidCallback? onTap;
 
-  const CommunitySessionCard({super.key, required this.session});
+  const CommunitySessionCard({super.key, required this.session, this.onTap});
 
   String _getTimeAgo(String? createdAt) {
     if (createdAt == null) return 'Récemment';
@@ -57,7 +58,10 @@ class CommunitySessionCard extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       elevation: isDark ? 0 : 1,
-      child: Padding(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -227,6 +231,7 @@ class CommunitySessionCard extends StatelessWidget {
             ],
           ],
         ),
+      ),
       ),
     );
   }

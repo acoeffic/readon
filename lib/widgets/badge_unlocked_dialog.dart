@@ -5,6 +5,7 @@ import 'dart:math' as math;
 import '../services/badges_service.dart';
 import '../theme/app_theme.dart';
 import '../features/badges/widgets/first_book_badge_painter.dart';
+import '../pages/badges/badge_share_service.dart';
 
 class BadgeUnlockedDialog extends StatefulWidget {
   final UserBadge badge;
@@ -205,6 +206,10 @@ class _BadgeUnlockedDialogState extends State<BadgeUnlockedDialog>
                               ? const FirstBookBadge(size: 120)
                               : isApprenticeReaderBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
                               ? const ApprenticeReaderBadge(size: 120)
+                              : isConfirmedReaderBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
+                              ? const ConfirmedReaderBadge(size: 120, animate: true, showUnlockBurst: true)
+                              : isBibliophileBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
+                              ? const BibliophileBadge(size: 120)
                               : Container(
                                   width: 120,
                                   height: 120,
@@ -268,27 +273,63 @@ class _BadgeUnlockedDialogState extends State<BadgeUnlockedDialog>
 
                   const SizedBox(height: 24),
 
-                  // Bouton de fermeture
-                  ElevatedButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _getBadgeColor(),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 32,
-                        vertical: 16,
+                  // Boutons
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Partager
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                          showBadgeShareSheet(
+                            context: context,
+                            badge: widget.badge,
+                          );
+                        },
+                        icon: const Icon(Icons.share, size: 18),
+                        label: const Text(
+                          'Partager',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _getBadgeColor(),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 14,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                        ),
                       ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30),
+                      const SizedBox(width: 12),
+                      // Fermer
+                      OutlinedButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: _getBadgeColor(),
+                          side: BorderSide(color: _getBadgeColor()),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 14,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                        ),
+                        child: const Text(
+                          'Super!',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
-                    ),
-                    child: const Text(
-                      'Super!',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    ],
                   ),
                 ],
               ),

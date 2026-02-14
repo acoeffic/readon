@@ -12,6 +12,7 @@ import '../providers/subscription_provider.dart';
 import '../features/badges/services/anniversary_service.dart';
 import '../features/badges/widgets/anniversary_unlock_overlay.dart';
 import '../services/kindle_auto_sync_service.dart';
+import '../services/monthly_notification_service.dart';
 import '../widgets/kindle_auto_sync_widget.dart';
 
 class MainNavigation extends StatefulWidget {
@@ -54,6 +55,7 @@ class _MainNavigationState extends State<MainNavigation>
     if (state == AppLifecycleState.resumed) {
       _checkAnniversary();
       _checkKindleAutoSync();
+      MonthlyNotificationService().scheduleNextMonthlyNotification();
     }
   }
 

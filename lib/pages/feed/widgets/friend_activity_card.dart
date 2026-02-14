@@ -18,6 +18,7 @@ import '../../../models/reading_session.dart';
 import '../../../services/books_service.dart';
 import '../../../services/reading_session_service.dart';
 import '../../reading/book_finished_share_service.dart';
+import '../../sessions/session_detail_page.dart';
 
 class FriendActivityCard extends StatefulWidget {
   final Map<String, dynamic> activity;
@@ -356,6 +357,58 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
     );
   }
 
+  void _navigateToSessionDetail() {
+    final payload = widget.activity['payload'] as Map<String, dynamic>?;
+    if (payload == null) return;
+
+    final authorId = widget.activity['author_id'] as String?;
+    final createdAt = widget.activity['created_at'] as String?;
+    final durationMin = (payload['duration_minutes'] as num?)?.toInt() ?? 0;
+
+    DateTime endTime;
+    try {
+      endTime = createdAt != null ? DateTime.parse(createdAt).toLocal() : DateTime.now();
+    } catch (_) {
+      endTime = DateTime.now();
+    }
+    final startTime = endTime.subtract(Duration(minutes: durationMin));
+
+    final session = ReadingSession(
+      id: (payload['session_id'] ?? widget.activity['id'] ?? '').toString(),
+      userId: authorId ?? '',
+      bookId: (payload['book_id'] ?? '').toString(),
+      startPage: payload['start_page'] as int? ?? 0,
+      endPage: payload['end_page'] as int?,
+      startTime: startTime,
+      endTime: endTime,
+      createdAt: endTime,
+      updatedAt: endTime,
+    );
+
+    final bookId = payload['book_id'];
+    final book = _bookTitle != null
+        ? Book(
+            id: bookId is int ? bookId : 0,
+            title: _bookTitle!,
+            author: _bookAuthor,
+            coverUrl: _bookCover,
+            pageCount: _bookPageCount,
+          )
+        : null;
+
+    final isOwn = authorId == supabase.auth.currentUser?.id;
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => SessionDetailPage(
+          session: session,
+          book: book,
+          isOwn: isOwn,
+        ),
+      ),
+    );
+  }
+
   String _formatDuration(double? durationMinutes) {
     if (durationMinutes == null || durationMinutes <= 0) return '';
     final hours = (durationMinutes / 60).floor();
@@ -505,68 +558,77 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
                 ],
               ),
 
-              if (bookTitle != null) ...[
-                const SizedBox(height: 14),
-                Row(
+              GestureDetector(
+                onTap: _navigateToSessionDetail,
+                behavior: HitTestBehavior.opaque,
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    CachedBookCover(
-                      imageUrl: bookCover,
-                      width: 80,
-                      height: 110,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
+                    if (bookTitle != null) ...[
+                      const SizedBox(height: 14),
+                      Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const SizedBox(height: 4),
-                          Text(
-                            bookTitle,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 16,
-                              height: 1.2,
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
+                          CachedBookCover(
+                            imageUrl: bookCover,
+                            width: 80,
+                            height: 110,
+                            borderRadius: BorderRadius.circular(8),
                           ),
-                          if (bookAuthor != null) ...[
-                            const SizedBox(height: 4),
-                            Text(
-                              bookAuthor,
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: muted,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const SizedBox(height: 4),
+                                Text(
+                                  bookTitle,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 16,
+                                    height: 1.2,
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                if (bookAuthor != null) ...[
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    bookAuthor,
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: muted,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                          if (progressPercent != null) ...[
+                            const SizedBox(width: 10),
+                            _CircularProgress(
+                              percent: progressPercent,
+                              color: isBookFinished ? Colors.amber.shade600 : AppColors.primary,
                             ),
                           ],
                         ],
                       ),
-                    ),
-                    if (progressPercent != null) ...[
-                      const SizedBox(width: 10),
-                      _CircularProgress(
-                        percent: progressPercent,
-                        color: isBookFinished ? Colors.amber.shade600 : AppColors.primary,
+                    ],
+
+                    if (pagesRead != null || durationMinutes != null) ...[
+                      const SizedBox(height: 14),
+                      _StatsBar(
+                        durationText: _formatDuration(durationMinutes),
+                        pagesRead: pagesRead,
+                        startPage: startPage,
+                        endPage: endPage,
                       ),
                     ],
                   ],
                 ),
-              ],
-
-              if (pagesRead != null || durationMinutes != null) ...[
-                const SizedBox(height: 14),
-                _StatsBar(
-                  durationText: _formatDuration(durationMinutes),
-                  pagesRead: pagesRead,
-                  startPage: startPage,
-                  endPage: endPage,
-                ),
-              ],
+              ),
 
               const SizedBox(height: 12),
 
@@ -1061,12 +1123,6 @@ class _ShareBottomSheet extends StatelessWidget {
     final url = Uri.parse('fb-messenger://share?link=https://readon.app&quote=$text');
     if (await canLaunchUrl(url)) {
       await launchUrl(url, mode: LaunchMode.externalApplication);
-    } else {
-      // Fallback vers le web
-      final webUrl = Uri.parse('https://www.facebook.com/dialog/send?link=https://readon.app&app_id=YOUR_APP_ID&redirect_uri=https://readon.app');
-      if (await canLaunchUrl(webUrl)) {
-        await launchUrl(webUrl, mode: LaunchMode.externalApplication);
-      }
     }
     if (context.mounted) Navigator.pop(context);
   }

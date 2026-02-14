@@ -10,9 +10,20 @@ enum Feature {
   premiumBadges,
   flowHistory,
   kindleAutoSync,
+  customLists,
+  aiChat,
 }
 
 class FeatureFlags {
+  /// Limite de listes personnalisées pour les utilisateurs gratuits
+  static const maxFreeCustomLists = 5;
+
+  /// Limite de clubs de lecture pour les utilisateurs gratuits
+  static const maxFreeGroups = 5;
+
+  /// Limite de messages IA par mois pour les utilisateurs gratuits
+  static const maxFreeAiMessages = 3;
+
   static const _premiumFeatures = <Feature>{
     Feature.advancedReactions,
     Feature.flowAutoFreeze,
@@ -21,6 +32,7 @@ class FeatureFlags {
     Feature.premiumBadges,
     Feature.flowHistory,
     Feature.kindleAutoSync,
+    Feature.aiChat,
   };
 
   /// Vérifie si une feature est disponible
@@ -51,6 +63,10 @@ class FeatureFlags {
         return 'Historique du flow';
       case Feature.kindleAutoSync:
         return 'Sync Kindle automatique';
+      case Feature.customLists:
+        return 'Listes de lecture';
+      case Feature.aiChat:
+        return 'Muse - Conseillère lecture';
     }
   }
 
@@ -70,6 +86,10 @@ class FeatureFlags {
         return 'Navigue dans tout ton historique de lecture mois par mois';
       case Feature.kindleAutoSync:
         return 'Synchronise automatiquement ta bibliothèque Kindle à chaque ouverture';
+      case Feature.customLists:
+        return 'Crée tes propres listes de lecture personnalisées';
+      case Feature.aiChat:
+        return 'Discute avec Muse pour obtenir des recommandations de livres personnalisées';
     }
   }
 
@@ -89,6 +109,10 @@ class FeatureFlags {
         return Icons.calendar_month;
       case Feature.kindleAutoSync:
         return Icons.sync;
+      case Feature.customLists:
+        return Icons.playlist_add;
+      case Feature.aiChat:
+        return Icons.auto_awesome;
     }
   }
 }

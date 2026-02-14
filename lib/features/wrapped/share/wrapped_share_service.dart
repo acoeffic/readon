@@ -64,7 +64,17 @@ class WrappedShareService {
       }
     }
 
-    // App not installed — fall back to native share sheet
+    // App not installed — open web version in browser
+    final webUrl = destination.webFallbackUrl;
+    if (webUrl != null) {
+      await launchUrl(
+        Uri.parse(webUrl),
+        mode: LaunchMode.externalApplication,
+      );
+      return;
+    }
+
+    // Last resort — native share sheet
     final file = await _saveTempFile(imageBytes, destination.format, year);
     await Share.shareXFiles(
       [XFile(file.path)],
@@ -82,6 +92,7 @@ class WrappedShareService {
     final name = 'readon_wrapped_${year}_${format.name}.png';
     final file = File('${dir.path}/$name');
     await file.writeAsBytes(bytes);
+    Future.delayed(const Duration(seconds: 60), () => file.delete().catchError((_) => file));
     return file;
   }
 }

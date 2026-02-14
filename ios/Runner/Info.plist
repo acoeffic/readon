@@ -39,6 +39,8 @@
 	<string>Lexsta utilise vos contacts pour trouver vos amis qui utilisent déjà l'application.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Lexsta a besoin d'accéder à vos photos pour sauvegarder votre Wrapped.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Lexsta utilise votre position pour trouver les librairies proches de vous.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Lexsta a besoin d'accéder à vos photos pour sélectionner des images de pages de livre à analyser.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>

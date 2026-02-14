@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons/lucide_icons.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../services/books_service.dart';
 import '../../models/book.dart';
+import '../../models/user_custom_list.dart';
 import '../../services/reading_session_service.dart';
+import '../../services/user_custom_lists_service.dart';
 import '../../models/reading_session.dart';
 import '../reading/start_reading_session_page_unified.dart';
 import '../reading/end_reading_session_page.dart';
 import '../reading/book_finished_share_service.dart';
+import '../curated_lists/create_custom_list_dialog.dart';
 import '../../widgets/cached_book_cover.dart';
 
 class UserBooksPage extends StatefulWidget {
@@ -19,31 +24,44 @@ class UserBooksPage extends StatefulWidget {
 class _UserBooksPageState extends State<UserBooksPage> {
   final BooksService _booksService = BooksService();
   final ScrollController _scrollController = ScrollController();
+  final TextEditingController _searchController = TextEditingController();
 
   List<Map<String, dynamic>> _booksWithStatus = [];
   bool _isLoading = true;
   bool _isLoadingMore = false;
   bool _hasMore = true;
-  bool _isEnrichingGenres = false;
   bool _isEnrichingAuthors = false;
   String _viewMode = 'status'; // 'status' ou 'genre'
   String? _selectedGenre; // null = tous les genres
+  String _searchQuery = '';
 
   static const int _pageSize = 30;
   int _currentOffset = 0;
 
+  // Livres filtrés par recherche
+  List<Map<String, dynamic>> get _filteredBooks {
+    if (_searchQuery.isEmpty) return _booksWithStatus;
+    final query = _searchQuery.toLowerCase();
+    return _booksWithStatus.where((item) {
+      final book = item['book'] as Book;
+      final title = book.title.toLowerCase();
+      final author = (book.author ?? '').toLowerCase();
+      return title.contains(query) || author.contains(query);
+    }).toList();
+  }
+
   // Livres séparés par statut
-  List<Map<String, dynamic>> get _readingBooksData => _booksWithStatus
+  List<Map<String, dynamic>> get _readingBooksData => _filteredBooks
       .where((item) => item['status'] == 'reading' || item['status'] == 'to_read')
       .toList();
 
-  List<Map<String, dynamic>> get _finishedBooksData => _booksWithStatus
+  List<Map<String, dynamic>> get _finishedBooksData => _filteredBooks
       .where((item) => item['status'] == 'finished')
       .toList();
 
   Map<String, List<Map<String, dynamic>>> get _booksByGenre {
     final Map<String, List<Map<String, dynamic>>> grouped = {};
-    for (final item in _booksWithStatus) {
+    for (final item in _filteredBooks) {
       final book = item['book'] as Book;
       final genre = book.genre ?? 'Autre';
       grouped.putIfAbsent(genre, () => []);
@@ -71,6 +89,7 @@ class _UserBooksPageState extends State<UserBooksPage> {
   void dispose() {
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -104,6 +123,7 @@ class _UserBooksPageState extends State<UserBooksPage> {
       // Enrichir automatiquement les données manquantes en arrière-plan
       _autoEnrichCovers();
       _autoEnrichDescriptions();
+      _autoEnrichGenres();
     } catch (e) {
       debugPrint('Erreur _loadBooks: $e');
       setState(() => _isLoading = false);
@@ -164,6 +184,31 @@ class _UserBooksPageState extends State<UserBooksPage> {
     }
   }
 
+  /// Enrichit automatiquement les genres manquants sans bloquer l'UI
+  Future<void> _autoEnrichGenres() async {
+    final hasMissing = _booksWithStatus.any((item) {
+      return (item['book'] as Book).genre == null;
+    });
+
+    if (!hasMissing) return;
+
+    try {
+      final count = await _booksService.enrichMissingGenres();
+      if (count > 0 && mounted) {
+        final booksWithStatus = await _booksService.getUserBooksWithStatusPaginated(
+          limit: _pageSize,
+          offset: 0,
+        );
+        setState(() {
+          _booksWithStatus = booksWithStatus;
+          _currentOffset = booksWithStatus.length;
+        });
+      }
+    } catch (e) {
+      debugPrint('Erreur auto-enrichissement genres: $e');
+    }
+  }
+
   Future<void> _loadMoreBooks() async {
     if (_isLoadingMore || !_hasMore) return;
 
@@ -214,6 +259,31 @@ class _UserBooksPageState extends State<UserBooksPage> {
                     children: [
                       Padding(
                         padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                        child: TextField(
+                          controller: _searchController,
+                          decoration: InputDecoration(
+                            hintText: 'Rechercher un livre...',
+                            prefixIcon: const Icon(Icons.search),
+                            suffixIcon: _searchQuery.isNotEmpty
+                                ? IconButton(
+                                    icon: const Icon(Icons.clear),
+                                    onPressed: () {
+                                      _searchController.clear();
+                                      setState(() => _searchQuery = '');
+                                    },
+                                  )
+                                : null,
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          onChanged: (value) => setState(() => _searchQuery = value),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
                         child: SegmentedButton<String>(
                           segments: const [
                             ButtonSegment(
@@ -261,31 +331,6 @@ class _UserBooksPageState extends State<UserBooksPage> {
         ],
       ),
     );
-  }
-
-  Future<void> _enrichGenres() async {
-    setState(() => _isEnrichingGenres = true);
-    try {
-      final count = await _booksService.enrichMissingGenres();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(count > 0
-                ? '$count livre${count > 1 ? 's' : ''} classifié${count > 1 ? 's' : ''}'
-                : 'Aucun genre trouvé'),
-          ),
-        );
-        if (count > 0) _loadAllBooks();
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Erreur lors de la classification')),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isEnrichingGenres = false);
-    }
   }
 
   Future<void> _enrichAuthors() async {
@@ -351,7 +396,7 @@ class _UserBooksPageState extends State<UserBooksPage> {
             padding: const EdgeInsets.symmetric(horizontal: 4),
             child: FilterChip(
               selected: _selectedGenre == null,
-              label: Text('Tous (${_booksWithStatus.length})'),
+              label: Text('Tous (${_filteredBooks.length})'),
               avatar: _selectedGenre == null ? null : const Icon(Icons.library_books, size: 16),
               onSelected: (_) => setState(() => _selectedGenre = null),
             ),
@@ -376,9 +421,6 @@ class _UserBooksPageState extends State<UserBooksPage> {
 
   Widget _buildBooksListByGenre() {
     final grouped = _booksByGenre;
-    final hasUnclassified = _booksWithStatus.any(
-      (item) => (item['book'] as Book).genre == null,
-    );
 
     // Filtrer si un genre est sélectionné
     final filteredEntries = _selectedGenre != null
@@ -394,23 +436,6 @@ class _UserBooksPageState extends State<UserBooksPage> {
             controller: _scrollController,
             children: [
               if (_hasBooksWithoutAuthor) _buildEnrichAuthorsButton(),
-              if (hasUnclassified && _selectedGenre == null)
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                  child: OutlinedButton.icon(
-                    onPressed: _isEnrichingGenres ? null : _enrichGenres,
-                    icon: _isEnrichingGenres
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.auto_fix_high),
-                    label: Text(_isEnrichingGenres
-                        ? 'Classification en cours...'
-                        : 'Classifier les livres sans genre'),
-                  ),
-                ),
               for (final entry in filteredEntries) ...[
                 if (_selectedGenre == null)
                   _buildSectionHeader(
@@ -720,6 +745,7 @@ class BookDetailPage extends StatefulWidget {
 class _BookDetailPageState extends State<BookDetailPage> {
   final ReadingSessionService _sessionService = ReadingSessionService();
   final BooksService _booksService = BooksService();
+  final UserCustomListsService _customListsService = UserCustomListsService();
   ReadingSession? _activeSession;
   BookReadingStats? _stats;
   String? _bookStatus;
@@ -956,6 +982,42 @@ class _BookDetailPageState extends State<BookDetailPage> {
     return icons[genre] ?? Icons.bookmark;
   }
 
+  Future<void> _openAmazonLink() async {
+    final query = Uri.encodeComponent(
+      '${widget.book.title} ${widget.book.author ?? ''}'.trim(),
+    );
+    final url = Uri.parse('https://www.amazon.fr/s?k=$query&i=stripbooks');
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    }
+  }
+
+  void _showAddToListSheet() async {
+    // Charger les listes et savoir lesquelles contiennent déjà ce livre
+    final results = await Future.wait([
+      _customListsService.getUserLists(),
+      _customListsService.getListIdsContainingBook(widget.book.id),
+    ]);
+
+    final lists = results[0] as List<UserCustomList>;
+    final containingIds = results[1] as Set<int>;
+
+    if (!mounted) return;
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => _AddToListSheet(
+        lists: lists,
+        containingIds: containingIds,
+        bookId: widget.book.id,
+        service: _customListsService,
+      ),
+    );
+  }
+
   Future<void> _markAsFinished() async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -1138,6 +1200,70 @@ class _BookDetailPageState extends State<BookDetailPage> {
                             color: _currentGenre != null
                                 ? Theme.of(context).primaryColor
                                 : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                GestureDetector(
+                  onTap: _showAddToListSheet,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFF6B35).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: const Color(0xFFFF6B35).withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          LucideIcons.listPlus,
+                          size: 14,
+                          color: Color(0xFFFF6B35),
+                        ),
+                        SizedBox(width: 4),
+                        Text(
+                          'Ajouter à une liste',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFFFF6B35),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                GestureDetector(
+                  onTap: _openAmazonLink,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFF9900).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: const Color(0xFFFF9900).withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          LucideIcons.shoppingCart,
+                          size: 14,
+                          color: Color(0xFFFF9900),
+                        ),
+                        SizedBox(width: 4),
+                        Text(
+                          'Acheter sur Amazon',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFFFF9900),
                           ),
                         ),
                       ],
@@ -1466,6 +1592,178 @@ class _StatItem extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _AddToListSheet extends StatefulWidget {
+  final List<UserCustomList> lists;
+  final Set<int> containingIds;
+  final int bookId;
+  final UserCustomListsService service;
+
+  const _AddToListSheet({
+    required this.lists,
+    required this.containingIds,
+    required this.bookId,
+    required this.service,
+  });
+
+  @override
+  State<_AddToListSheet> createState() => _AddToListSheetState();
+}
+
+class _AddToListSheetState extends State<_AddToListSheet> {
+  late Set<int> _containingIds;
+
+  @override
+  void initState() {
+    super.initState();
+    _containingIds = Set<int>.from(widget.containingIds);
+  }
+
+  Future<void> _toggleList(UserCustomList list) async {
+    final wasInList = _containingIds.contains(list.id);
+    setState(() {
+      if (wasInList) {
+        _containingIds.remove(list.id);
+      } else {
+        _containingIds.add(list.id);
+      }
+    });
+
+    try {
+      if (wasInList) {
+        await widget.service.removeBookFromList(list.id, widget.bookId);
+      } else {
+        await widget.service.addBookToList(list.id, widget.bookId);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          if (wasInList) {
+            _containingIds.add(list.id);
+          } else {
+            _containingIds.remove(list.id);
+          }
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur : $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  Future<void> _createNewList() async {
+    Navigator.pop(context);
+    final result = await showCreateCustomListSheet(context);
+    if (result != null) {
+      // Ajouter le livre à la liste nouvellement créée
+      try {
+        await widget.service.addBookToList(result.id, widget.bookId);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Ajouté à "${result.title}"'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        debugPrint('Erreur ajout à nouvelle liste: $e');
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Poignée
+          Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(
+              'Ajouter à une liste',
+              style: Theme.of(context)
+                  .textTheme
+                  .titleMedium
+                  ?.copyWith(fontWeight: FontWeight.bold),
+            ),
+          ),
+          if (widget.lists.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Text(
+                'Aucune liste personnelle.',
+                style: TextStyle(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.5),
+                ),
+              ),
+            )
+          else
+            ...widget.lists.map((list) {
+              final isInList = _containingIds.contains(list.id);
+              final gradientColors = list.gradientColors;
+              return ListTile(
+                leading: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(colors: gradientColors),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(list.icon, size: 18, color: Colors.white),
+                ),
+                title: Text(list.title),
+                trailing: Icon(
+                  isInList ? Icons.check_circle : Icons.circle_outlined,
+                  color: isInList ? const Color(0xFFFF6B35) : null,
+                ),
+                onTap: () => _toggleList(list),
+              );
+            }),
+          const Divider(),
+          ListTile(
+            leading: Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: const Color(0xFFFF6B35).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(LucideIcons.plus,
+                  size: 18, color: Color(0xFFFF6B35)),
+            ),
+            title: const Text(
+              'Créer une nouvelle liste',
+              style: TextStyle(color: Color(0xFFFF6B35)),
+            ),
+            onTap: _createNewList,
+          ),
+          const SizedBox(height: 8),
+        ],
+      ),
     );
   }
 }

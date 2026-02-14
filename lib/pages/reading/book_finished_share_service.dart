@@ -84,7 +84,7 @@ class BookFinishedShareService {
       return;
     }
 
-    // Try deep-linking into the target app (save to gallery first)
+    // Try deep-linking into the target app
     final scheme = destination.urlScheme;
     if (scheme != null) {
       final uri = Uri.parse(scheme);
@@ -94,7 +94,17 @@ class BookFinishedShareService {
       }
     }
 
-    // App not installed — fall back to native share sheet
+    // App not installed — open web version in browser
+    final webUrl = destination.webFallbackUrl;
+    if (webUrl != null) {
+      await launchUrl(
+        Uri.parse(webUrl),
+        mode: LaunchMode.externalApplication,
+      );
+      return;
+    }
+
+    // Last resort — native share sheet
     final file = await _saveTempFile(imageBytes, book.id);
     await Share.shareXFiles(
       [XFile(file.path)],
@@ -107,6 +117,7 @@ class BookFinishedShareService {
     final dir = await getTemporaryDirectory();
     final file = File('${dir.path}/lexsta_book_finished_$bookId.png');
     await file.writeAsBytes(bytes);
+    Future.delayed(const Duration(seconds: 60), () => file.delete().catchError((_) => file));
     return file;
   }
 }

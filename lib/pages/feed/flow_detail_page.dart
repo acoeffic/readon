@@ -27,6 +27,7 @@ class FlowDetailPage extends StatefulWidget {
 class _FlowDetailPageState extends State<FlowDetailPage> {
   final FlowService _flowService = FlowService();
   late ReadingFlow _flow;
+  int _percentile = 0;
   bool _isLoading = true;
   List<DateTime> _months = [];
   int _currentMonthIndex = 0;
@@ -77,10 +78,16 @@ class _FlowDetailPageState extends State<FlowDetailPage> {
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
     try {
-      await _flowService.getReadingHistory();
-      final flow = await _flowService.getUserFlow();
+      final results = await Future.wait([
+        _flowService.getReadingHistory(),
+        _flowService.getUserFlow(),
+        _flowService.getFlowPercentile(),
+      ]);
+      final flow = results[1] as ReadingFlow;
+      final percentile = results[2] as int;
       setState(() {
         _flow = flow;
+        _percentile = percentile;
         _initMonths();
         _isLoading = false;
       });
@@ -869,8 +876,7 @@ class _FlowDetailPageState extends State<FlowDetailPage> {
   }
 
   Widget _buildMotivationCard() {
-    // Calculer un pourcentage fictif (vous pouvez le calculer réellement)
-    final percentage = _flow.readDates.isNotEmpty ? 93 : 0;
+    if (_percentile <= 0) return const SizedBox();
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -882,7 +888,7 @@ class _FlowDetailPageState extends State<FlowDetailPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Tu as battu $percentage % des lecteurs réguliers.',
+            'Tu as battu $_percentile % des lecteurs réguliers.',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w600,

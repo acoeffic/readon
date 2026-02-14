@@ -1,0 +1,29 @@
+{
+  "name": "remotion",
+  "version": "1.0.0",
+  "description": "",
+  "main": "src/index.ts",
+  "scripts": {
+    "studio": "remotion studio src/index.ts",
+    "render": "remotion render src/index.ts",
+    "build": "remotion bundle src/index.ts",
+    "deploy-lambda": "ts-node lambda/deploy.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@remotion/cli": "4.0.421",
+    "@remotion/lambda": "4.0.421",
+    "@remotion/player": "4.0.421",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "remotion": "4.0.421"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "typescript": "5.9.3"
+  }
+}

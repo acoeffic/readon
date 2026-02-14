@@ -7,6 +7,8 @@ import 'package:flutter/services.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../config/env.dart';
+
 class SubscriptionStatus {
   final bool isPremium;
   final String status; // free, trial, premium, expired, billing_issue
@@ -27,12 +29,8 @@ class SubscriptionStatus {
 }
 
 class SubscriptionService {
-  // ============================================================
-  // PLACEHOLDER : Remplacer par vos clés RevenueCat
-  // Dashboard → Project → API Keys
-  // ============================================================
-  static const _apiKeyIOS = 'appl_PLACEHOLDER_IOS_API_KEY';
-  static const _apiKeyAndroid = 'goog_PLACEHOLDER_ANDROID_API_KEY';
+  static String get _apiKeyIOS => Env.revenueCatApiKeyIOS;
+  static String get _apiKeyAndroid => Env.revenueCatApiKeyAndroid;
 
   // Product identifiers (configurés dans RevenueCat dashboard)
   static const monthlyProductId = 'readon_premium_monthly';
@@ -48,9 +46,19 @@ class SubscriptionService {
 
   bool _initialized = false;
 
+  /// `true` quand on court-circuite RevenueCat (dev/test).
+  bool get isDevPremium => Env.devForcePremium;
+
   /// Initialiser le SDK RevenueCat — appeler une fois depuis main.dart
   Future<void> initialize() async {
     if (_initialized) return;
+
+    // En mode dev-premium, on skip entièrement RevenueCat
+    if (isDevPremium) {
+      _initialized = true;
+      debugPrint('⚡ DEV_FORCE_PREMIUM activé — RevenueCat ignoré');
+      return;
+    }
 
     try {
       final PurchasesConfiguration configuration;
@@ -84,10 +92,9 @@ class SubscriptionService {
 
   /// Associer l'utilisateur Supabase à RevenueCat
   Future<void> loginUser(String userId) async {
+    if (isDevPremium) return;
     try {
       await Purchases.logIn(userId);
-      // Sync client-side en fallback
-      await syncStatusToSupabase();
     } catch (e) {
       debugPrint('Erreur loginUser RevenueCat: $e');
     }
@@ -95,6 +102,7 @@ class SubscriptionService {
 
   /// Déconnecter de RevenueCat
   Future<void> logoutUser() async {
+    if (isDevPremium) return;
     try {
       await Purchases.logOut();
     } catch (e) {
@@ -104,6 +112,7 @@ class SubscriptionService {
 
   /// Récupérer les offres disponibles (mensuel, annuel)
   Future<Offerings?> getOfferings() async {
+    if (isDevPremium) return null;
     try {
       final offerings = await Purchases.getOfferings();
       return offerings;
@@ -115,14 +124,11 @@ class SubscriptionService {
 
   /// Acheter un package
   Future<bool> purchasePackage(Package package) async {
+    if (isDevPremium) return true;
     try {
       final customerInfo = await Purchases.purchasePackage(package);
       final isPremium =
           customerInfo.entitlements.active.containsKey(entitlementId);
-
-      if (isPremium) {
-        await syncStatusToSupabase();
-      }
 
       return isPremium;
     } on PlatformException catch (e) {
@@ -138,14 +144,11 @@ class SubscriptionService {
 
   /// Restaurer les achats (App Store / Play Store)
   Future<bool> restorePurchases() async {
+    if (isDevPremium) return true;
     try {
       final customerInfo = await Purchases.restorePurchases();
       final isPremium =
           customerInfo.entitlements.active.containsKey(entitlementId);
-
-      if (isPremium) {
-        await syncStatusToSupabase();
-      }
 
       return isPremium;
     } catch (e) {
@@ -156,6 +159,7 @@ class SubscriptionService {
 
   /// Vérifier le statut premium (RC SDK source de vérité, fallback Supabase)
   Future<bool> isPremium() async {
+    if (isDevPremium) return true;
     try {
       final customerInfo = await Purchases.getCustomerInfo();
       return customerInfo.entitlements.active.containsKey(entitlementId);
@@ -174,6 +178,13 @@ class SubscriptionService {
 
   /// Obtenir les détails complets de l'abonnement
   Future<SubscriptionStatus> getSubscriptionStatus() async {
+    if (isDevPremium) {
+      return const SubscriptionStatus(
+        isPremium: true,
+        status: 'premium',
+        productId: 'dev_force_premium',
+      );
+    }
     try {
       final customerInfo = await Purchases.getCustomerInfo();
       final entitlement = customerInfo.entitlements.active[entitlementId];
@@ -211,20 +222,4 @@ class SubscriptionService {
     }
   }
 
-  /// Sync client-side vers Supabase (fallback si webhook retardé)
-  Future<void> syncStatusToSupabase() async {
-    try {
-      final customerInfo = await Purchases.getCustomerInfo();
-      final entitlement = customerInfo.entitlements.active[entitlementId];
-      final isPremium = entitlement != null;
-
-      await _supabase.rpc('sync_client_premium_status', params: {
-        'p_is_premium': isPremium,
-        'p_expires_at': entitlement?.expirationDate,
-        'p_product_id': entitlement?.productIdentifier,
-      });
-    } catch (e) {
-      debugPrint('Erreur sync status fallback: $e');
-    }
-  }
 }
