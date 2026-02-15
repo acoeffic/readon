@@ -35,6 +35,7 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _kindleAutoSyncEnabled = true;
   bool _loadingAutoSync = true;
   bool _isProfilePrivate = false;
+  bool _hideReadingHours = false;
   bool _loadingPrivacy = true;
 
   @override
@@ -74,13 +75,14 @@ class _SettingsPageState extends State<SettingsPage> {
 
       final profile = await supabase
           .from('profiles')
-          .select('is_profile_private')
+          .select('is_profile_private, hide_reading_hours')
           .eq('id', user.id)
           .maybeSingle();
 
       if (mounted) {
         setState(() {
           _isProfilePrivate = profile?['is_profile_private'] as bool? ?? false;
+          _hideReadingHours = profile?['hide_reading_hours'] as bool? ?? false;
           _loadingPrivacy = false;
         });
       }
@@ -111,6 +113,42 @@ class _SettingsPageState extends State<SettingsPage> {
               value
                   ? 'Profil privé activé. Seuls tes amis verront tes statistiques.'
                   : 'Profil public activé. Tout le monde peut voir tes statistiques.',
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _toggleHideReadingHours(bool value) async {
+    try {
+      final user = supabase.auth.currentUser;
+      if (user == null) return;
+
+      await supabase
+          .from('profiles')
+          .update({'hide_reading_hours': value})
+          .eq('id', user.id);
+
+      setState(() => _hideReadingHours = value);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              value
+                  ? 'Heures de lecture masquées.'
+                  : 'Heures de lecture visibles.',
             ),
             backgroundColor: Colors.green,
           ),
@@ -682,6 +720,67 @@ if (!allowedExtensions.contains(fileExtension)) {
                                   _isProfilePrivate
                                       ? 'Les autres utilisateurs ne verront que ton nom et ta photo de profil.'
                                       : 'Les autres utilisateurs pourront voir tes badges, livres, flow et statistiques.',
+                                  style: const TextStyle(fontSize: 12, color: AppColors.primary),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: AppSpace.m),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '⏱️ Masquer les heures de lecture',
+                                    style: Theme.of(context).textTheme.titleMedium,
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    _hideReadingHours
+                                        ? 'Tes heures de lecture sont cachées'
+                                        : 'Tes heures de lecture sont visibles',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            if (_loadingPrivacy)
+                              const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            else
+                              Switch(
+                                value: _hideReadingHours,
+                                onChanged: _toggleHideReadingHours,
+                                activeTrackColor: AppColors.primary,
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: AppSpace.m),
+                        Container(
+                          padding: const EdgeInsets.all(AppSpace.m),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? AppColors.accentDark.withValues(alpha: 0.3)
+                                : AppColors.accentLight.withValues(alpha: 0.3),
+                            borderRadius: BorderRadius.circular(AppRadius.m),
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Icon(Icons.info_outline, size: 20, color: AppColors.primary),
+                              const SizedBox(width: AppSpace.s),
+                              Expanded(
+                                child: Text(
+                                  'Les autres utilisateurs ne verront pas ton temps de lecture total.',
                                   style: const TextStyle(fontSize: 12, color: AppColors.primary),
                                 ),
                               ),

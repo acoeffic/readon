@@ -34,6 +34,7 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
   int _booksFinished = 0;
   int _totalPages = 0;
   int _totalHours = 0;
+  bool _readingHoursHidden = false;
   int _currentFlow = 0;
   List<Map<String, dynamic>> _recentSessions = [];
   List<UserBadge> _badges = [];
@@ -105,10 +106,12 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
         final stats = response is Map<String, dynamic>
             ? response
             : Map<String, dynamic>.from(response as Map);
+        final totalMinutes = stats['total_minutes'];
         setState(() {
           _booksFinished = (stats['books_finished'] as num?)?.toInt() ?? 0;
           _totalPages = (stats['total_pages'] as num?)?.toInt() ?? 0;
-          _totalHours = ((stats['total_minutes'] as num?)?.toDouble() ?? 0) ~/ 60;
+          _readingHoursHidden = totalMinutes == null;
+          _totalHours = ((totalMinutes as num?)?.toDouble() ?? 0) ~/ 60;
         });
       }
     } catch (e) {
@@ -442,7 +445,8 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
         children: [
           _buildStatItem(Icons.book, '$_booksFinished', 'Livres'),
           _buildStatItem(Icons.menu_book, '$_totalPages', 'Pages'),
-          _buildStatItem(Icons.schedule, '${_totalHours}h', 'Lecture'),
+          if (!_readingHoursHidden)
+            _buildStatItem(Icons.schedule, '${_totalHours}h', 'Lecture'),
           _buildStatItem(Icons.local_fire_department, '$_currentFlow', 'Flow'),
         ],
       ),
