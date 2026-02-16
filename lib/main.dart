@@ -32,8 +32,10 @@ Future<void> main() async {
   // Initialiser RevenueCat
   await SubscriptionService().initialize();
 
-  // Initialiser les notifications mensuelles (monthly wrapped)
-  await MonthlyNotificationService().initialize();
+  // Initialiser les notifications mensuelles (monthly wrapped) — pas sur le web
+  if (!kIsWeb) {
+    await MonthlyNotificationService().initialize();
+  }
 
   runApp(const LexstaApp());
 }

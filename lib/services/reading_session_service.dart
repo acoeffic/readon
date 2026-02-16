@@ -308,6 +308,71 @@ class ReadingSessionService {
     }
   }
 
+  /// Récupérer les moyennes de lecture globales de l'utilisateur
+  /// Retourne avgMinutesPerPage, avgPagesPerDay, totalPages, totalMinutes
+  Future<Map<String, double>> getUserReadingAverages() async {
+    try {
+      final userId = _supabase.auth.currentUser?.id;
+      if (userId == null) return _emptyAverages;
+
+      final response = await _supabase
+          .from('reading_sessions')
+          .select('start_time, end_time, start_page, end_page')
+          .eq('user_id', userId)
+          .not('end_time', 'is', null)
+          .order('start_time', ascending: true);
+
+      final sessions = List<Map<String, dynamic>>.from(response as List);
+      if (sessions.isEmpty) return _emptyAverages;
+
+      int totalPages = 0;
+      int totalMinutes = 0;
+      final readingDays = <String>{};
+
+      for (final s in sessions) {
+        final st = DateTime.parse(s['start_time'] as String);
+        final et = DateTime.parse(s['end_time'] as String);
+        final mins = et.difference(st).inMinutes;
+        if (mins <= 0) continue;
+
+        final startPage = (s['start_page'] as num?)?.toInt() ?? 0;
+        final endPage = (s['end_page'] as num?)?.toInt() ?? 0;
+        final pages = endPage > startPage ? endPage - startPage : 0;
+
+        totalPages += pages;
+        totalMinutes += mins;
+        readingDays.add('${st.year}-${st.month}-${st.day}');
+      }
+
+      if (totalPages == 0 || totalMinutes == 0) return _emptyAverages;
+
+      final avgMinutesPerPage = totalMinutes / totalPages;
+
+      // Pages par jour basé sur les jours où l'utilisateur a lu
+      final firstSession = DateTime.parse(sessions.first['start_time'] as String);
+      final daysSinceFirst = DateTime.now().difference(firstSession).inDays;
+      final totalDays = daysSinceFirst > 0 ? daysSinceFirst : 1;
+      final avgPagesPerDay = totalPages / totalDays;
+
+      return {
+        'avg_minutes_per_page': avgMinutesPerPage,
+        'avg_pages_per_day': avgPagesPerDay,
+        'total_pages': totalPages.toDouble(),
+        'total_minutes': totalMinutes.toDouble(),
+      };
+    } catch (e) {
+      debugPrint('Erreur getUserReadingAverages: $e');
+      return _emptyAverages;
+    }
+  }
+
+  static const _emptyAverages = {
+    'avg_minutes_per_page': 0.0,
+    'avg_pages_per_day': 0.0,
+    'total_pages': 0.0,
+    'total_minutes': 0.0,
+  };
+
   /// Annuler une session active
   Future<void> cancelSession(String sessionId) async {
     try {

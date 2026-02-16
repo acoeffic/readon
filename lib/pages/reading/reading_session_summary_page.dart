@@ -1,9 +1,14 @@
 // lib/pages/reading/reading_session_summary_page.dart
 
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../models/book.dart';
 import '../../models/reading_session.dart';
 import '../../models/trophy.dart';
+import '../../providers/subscription_provider.dart';
+import '../../pages/profile/upgrade_page.dart';
 import '../../services/books_service.dart';
 import '../../services/flow_service.dart';
 import '../../services/reading_session_service.dart';
@@ -30,6 +35,7 @@ class _ReadingSessionSummaryPageState
     extends State<ReadingSessionSummaryPage> {
   Book? _book;
   int _currentStreak = 0;
+  Map<String, double> _userAverages = {};
 
   @override
   void initState() {
@@ -42,12 +48,14 @@ class _ReadingSessionSummaryPageState
       final results = await Future.wait([
         BooksService().getBookById(int.parse(widget.session.bookId)),
         FlowService().getUserFlow(),
+        ReadingSessionService().getUserReadingAverages(),
       ]);
       if (!mounted) return;
       setState(() {
         _book = results[0] as Book?;
         final flow = results[1] as dynamic;
         _currentStreak = flow.currentFlow as int;
+        _userAverages = results[2] as Map<String, double>;
       });
     } catch (_) {
       // Non-critical — page still renders with fallback data
@@ -58,7 +66,7 @@ class _ReadingSessionSummaryPageState
     if (minutes < 60) return '$minutes min';
     final hours = minutes ~/ 60;
     final mins = minutes % 60;
-    return '${hours}h ${mins}min';
+    return '${hours}h${mins.toString().padLeft(2, '0')}';
   }
 
   String _formatDateTime(DateTime date) {
@@ -82,17 +90,24 @@ class _ReadingSessionSummaryPageState
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFFAF6F0);
 
     return Scaffold(
+      backgroundColor: bgColor,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           child: Column(
             children: [
-              const SizedBox(height: 16),
+              _buildAppBar(isDark),
+              const SizedBox(height: 20),
               _buildHeader(isDark),
-              const SizedBox(height: 28),
-              _buildMainCard(isDark),
+              const SizedBox(height: 24),
+              _buildBookCard(isDark),
+              const SizedBox(height: 16),
+              _buildFreeStatsCard(isDark),
+              const SizedBox(height: 20),
+              _buildInsightsSection(isDark),
               const SizedBox(height: 28),
               _buildShareButton(),
               const SizedBox(height: 12),
@@ -107,6 +122,54 @@ class _ReadingSessionSummaryPageState
     );
   }
 
+  // ── App bar ─────────────────────────────────────────────────────────
+
+  Widget _buildAppBar(bool isDark) {
+    return Row(
+      children: [
+        GestureDetector(
+          onTap: () => Navigator.of(context).pop(),
+          child: Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.white,
+              shape: BoxShape.circle,
+              boxShadow: isDark
+                  ? null
+                  : [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.06),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+            ),
+            child: Icon(
+              Icons.arrow_back,
+              size: 20,
+              color: isDark ? Colors.white : Colors.black87,
+            ),
+          ),
+        ),
+        const Spacer(),
+        Text(
+          'SESSION TERMINÉE',
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 2,
+            color: isDark
+                ? const Color(0xFFD4A54A)
+                : const Color(0xFF8B6914),
+          ),
+        ),
+        const Spacer(),
+        const SizedBox(width: 40),
+      ],
+    );
+  }
+
   // ── Header: emoji + title + date ──────────────────────────────────
 
   Widget _buildHeader(bool isDark) {
@@ -117,7 +180,7 @@ class _ReadingSessionSummaryPageState
         Text(
           'Session terminée !',
           style: TextStyle(
-            fontSize: 24,
+            fontSize: 26,
             fontWeight: FontWeight.bold,
             color: isDark ? AppColors.textPrimaryDark : Colors.black,
           ),
@@ -134,278 +197,481 @@ class _ReadingSessionSummaryPageState
     );
   }
 
-  // ── Main card ─────────────────────────────────────────────────────
+  // ── Book card (cover + title/author + progression) ─────────────────
 
-  Widget _buildMainCard(bool isDark) {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(AppRadius.l),
-        color: isDark ? null : Colors.white,
-        gradient: isDark
-            ? const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Color(0xFF1A2332), Color(0xFF0F1923)],
-              )
-            : null,
-        boxShadow: [
-          BoxShadow(
-            color: isDark
-                ? Colors.black.withValues(alpha: 0.4)
-                : Colors.black.withValues(alpha: 0.08),
-            blurRadius: isDark ? 24 : 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            _buildBookRow(isDark),
-            const SizedBox(height: 20),
-            _buildProgressionSection(isDark),
-            const SizedBox(height: 20),
-            _buildStatsRow(isDark),
-            const SizedBox(height: 20),
-            Text(
-              'R E A D O N',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-                letterSpacing: 6,
-                color: isDark
-                    ? Colors.white.withValues(alpha: 0.25)
-                    : Colors.black.withValues(alpha: 0.15),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ── Book row: cover + title/author ────────────────────────────────
-
-  Widget _buildBookRow(bool isDark) {
+  Widget _buildBookCard(bool isDark) {
     final bookTitle = _book?.title ?? 'Ma lecture';
     final bookAuthor = _book?.author;
-
-    return Row(
-      children: [
-        // Book cover
-        Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(10),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.15),
-                blurRadius: 8,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: CachedBookCover(
-            imageUrl: _book?.coverUrl,
-            width: 80,
-            height: 110,
-            borderRadius: BorderRadius.circular(10),
-          ),
-        ),
-        const SizedBox(width: 16),
-        // Title + author
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                bookTitle,
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? AppColors.textPrimaryDark : Colors.black,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-              if (bookAuthor != null) ...[
-                const SizedBox(height: 4),
-                Text(
-                  bookAuthor,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: isDark
-                        ? AppColors.textSecondaryDark
-                        : AppColors.textSecondary,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  // ── Progression section ───────────────────────────────────────────
-
-  Widget _buildProgressionSection(bool isDark) {
     final session = widget.session;
     final percent = _progressionPercent();
     final pageCount = _book?.pageCount;
 
-    return Column(
-      children: [
-        // Label + percentage
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'Progression',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: isDark
-                    ? AppColors.textSecondaryDark
-                    : AppColors.textSecondary,
-              ),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        borderRadius: BorderRadius.circular(AppRadius.l),
+        boxShadow: [
+          if (!isDark)
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 16,
+              offset: const Offset(0, 4),
             ),
-            if (percent != null)
-              Text(
-                '$percent%',
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primary,
+        ],
+      ),
+      child: Column(
+        children: [
+          // Book row
+          Row(
+            children: [
+              Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.12),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: CachedBookCover(
+                  imageUrl: _book?.coverUrl,
+                  width: 80,
+                  height: 110,
+                  borderRadius: BorderRadius.circular(10),
                 ),
               ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        // Progress bar
-        ClipRRect(
-          borderRadius: BorderRadius.circular(4),
-          child: LinearProgressIndicator(
-            value: percent != null ? percent / 100 : 0.0,
-            minHeight: 6,
-            backgroundColor: isDark
-                ? Colors.white.withValues(alpha: 0.1)
-                : Colors.grey.shade200,
-            valueColor:
-                const AlwaysStoppedAnimation<Color>(AppColors.primary),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      bookTitle,
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? AppColors.textPrimaryDark : Colors.black,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (bookAuthor != null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        bookAuthor,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: isDark
+                              ? AppColors.textSecondaryDark
+                              : AppColors.textSecondary,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                    const SizedBox(height: 12),
+                    // Progress bar
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        value: percent != null ? percent / 100 : 0.0,
+                        minHeight: 6,
+                        backgroundColor: isDark
+                            ? Colors.white.withValues(alpha: 0.1)
+                            : Colors.grey.shade200,
+                        valueColor:
+                            const AlwaysStoppedAnimation<Color>(AppColors.primary),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        if (percent != null)
+                          Text(
+                            '$percent%',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.primary,
+                            ),
+                          )
+                        else
+                          Text(
+                            'p. ${session.startPage} → ${session.endPage}',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: isDark
+                                  ? AppColors.textSecondaryDark
+                                  : AppColors.textSecondary,
+                            ),
+                          ),
+                        if (pageCount != null)
+                          Text(
+                            '$pageCount pages',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: isDark
+                                  ? AppColors.textSecondaryDark
+                                  : AppColors.textSecondary,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ),
-        const SizedBox(height: 6),
-        // Page range
-        Text(
-          pageCount != null
-              ? 'p. ${session.startPage} → ${session.endPage} sur $pageCount'
-              : 'p. ${session.startPage} → ${session.endPage}',
-          style: TextStyle(
-            fontSize: 13,
-            color: isDark
-                ? AppColors.textSecondaryDark
-                : AppColors.textSecondary,
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
-  // ── Stats row ─────────────────────────────────────────────────────
+  // ── Free stats card (3 columns) ────────────────────────────────────
 
-  Widget _buildStatsRow(bool isDark) {
+  Widget _buildFreeStatsCard(bool isDark) {
     final session = widget.session;
 
-    return Row(
-      children: [
-        Expanded(
-          child: _buildStatBox(
-            emoji: '⏱',
-            value: _formatDuration(session.durationMinutes),
-            label: 'DURÉE',
-            isDark: isDark,
-          ),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        borderRadius: BorderRadius.circular(AppRadius.l),
+        boxShadow: [
+          if (!isDark)
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 16,
+              offset: const Offset(0, 4),
+            ),
+        ],
+      ),
+      child: IntrinsicHeight(
+        child: Row(
+          children: [
+            Expanded(
+              child: _buildFreeStat(
+                emoji: '⏱',
+                value: _formatDuration(session.durationMinutes),
+                label: 'durée',
+                isDark: isDark,
+              ),
+            ),
+            VerticalDivider(
+              width: 1,
+              thickness: 1,
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.1)
+                  : Colors.grey.shade200,
+            ),
+            Expanded(
+              child: _buildFreeStat(
+                emoji: '📄',
+                value: '${session.pagesRead}',
+                label: 'pages lues',
+                isDark: isDark,
+              ),
+            ),
+            VerticalDivider(
+              width: 1,
+              thickness: 1,
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.1)
+                  : Colors.grey.shade200,
+            ),
+            Expanded(
+              child: _buildFreeStat(
+                emoji: '🔥',
+                value: '$_currentStreak j.',
+                label: 'série',
+                isDark: isDark,
+              ),
+            ),
+          ],
         ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _buildStatBox(
-            emoji: '📄',
-            value: '${session.pagesRead} p.',
-            label: 'PAGES LUES',
-            isDark: isDark,
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _buildStatBox(
-            emoji: '🔥',
-            value: '$_currentStreak j.',
-            label: 'SÉRIE',
-            isDark: isDark,
-          ),
-        ),
-      ],
+      ),
     );
   }
 
-  Widget _buildStatBox({
+  Widget _buildFreeStat({
     required String emoji,
     required String value,
     required String label,
     required bool isDark,
   }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
-      decoration: BoxDecoration(
-        color: isDark
-            ? Colors.white.withValues(alpha: 0.06)
-            : Colors.white,
-        borderRadius: BorderRadius.circular(AppRadius.m),
-        border: Border.all(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.1)
-              : Colors.grey.shade200,
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(emoji, style: const TextStyle(fontSize: 24)),
+        const SizedBox(height: 8),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+            color: isDark ? AppColors.textPrimaryDark : AppColors.primary,
+          ),
+          textAlign: TextAlign.center,
         ),
-        boxShadow: isDark
-            ? null
-            : [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
+  }
+
+  // ── Insights section ─────────────────────────────────────────────
+
+  Widget _buildInsightsSection(bool isDark) {
+    final isPremium = context.watch<SubscriptionProvider>().isPremium;
+    final session = widget.session;
+    final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+
+    // Compute session metrics
+    final pagesPerMin = session.durationMinutes > 0
+        ? session.pagesRead / session.durationMinutes
+        : 0.0;
+    final minPerPage = session.pagesRead > 0
+        ? session.durationMinutes / session.pagesRead
+        : 0.0;
+
+    // Estimated finish date
+    String? estimatedFinish;
+    final pageCount = _book?.pageCount;
+    final endPage = session.endPage;
+    if (pageCount != null && endPage != null && pageCount > endPage) {
+      final remaining = pageCount - endPage;
+      final avgPagesPerDay = _userAverages['avg_pages_per_day'] ?? 0;
+      if (avgPagesPerDay > 0) {
+        final daysLeft = (remaining / avgPagesPerDay).ceil();
+        final finishDate = DateTime.now().add(Duration(days: daysLeft));
+        estimatedFinish = '${finishDate.day}/${finishDate.month}/${finishDate.year}';
+      }
+    }
+
+    // vs. average
+    String? vsAverage;
+    final userAvgMinPerPage = _userAverages['avg_minutes_per_page'] ?? 0;
+    if (userAvgMinPerPage > 0 && minPerPage > 0) {
+      final diff = ((userAvgMinPerPage - minPerPage) / userAvgMinPerPage * 100).round();
+      if (diff > 0) {
+        vsAverage = '+$diff% plus rapide';
+      } else if (diff < 0) {
+        vsAverage = '${diff.abs()}% plus lent';
+      } else {
+        vsAverage = 'Dans ta moyenne';
+      }
+    }
+
+    // Format values
+    final paceValue = pagesPerMin >= 1
+        ? '${pagesPerMin.toStringAsFixed(1)} p/min'
+        : '${pagesPerMin.toStringAsFixed(2)} p/min';
+    final timePerPageValue = minPerPage < 1
+        ? '${(minPerPage * 60).round()} sec'
+        : '${minPerPage.toStringAsFixed(1)} min';
+
+    final insights = [
+      _InsightRow(emoji: '\u{1F4C8}', label: 'Rythme de lecture', value: paceValue),
+      _InsightRow(emoji: '\u{23F3}', label: 'Temps moyen par page', value: timePerPageValue),
+      if (estimatedFinish != null)
+        _InsightRow(emoji: '\u{1F4C5}', label: 'Fin estimée du livre', value: estimatedFinish),
+      if (vsAverage != null)
+        _InsightRow(emoji: '\u{1F4CA}', label: 'vs. ta moyenne', value: vsAverage),
+    ];
+
+    if (insights.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(AppRadius.l),
+        boxShadow: [
+          if (!isDark)
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 16,
+              offset: const Offset(0, 4),
+            ),
+        ],
       ),
       child: Column(
         children: [
-          Text(emoji, style: const TextStyle(fontSize: 22)),
-          const SizedBox(height: 6),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: isDark ? AppColors.textPrimaryDark : Colors.black,
+          // Header with PREMIUM badge
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFD4A54A),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Text(
+                    'PREMIUM',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  'Insights de la session',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: isDark ? AppColors.textPrimaryDark : Colors.black87,
+                  ),
+                ),
+              ],
             ),
-            textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.5,
-              color: isDark
-                  ? AppColors.textSecondaryDark
-                  : AppColors.textSecondary,
+          const SizedBox(height: 12),
+          // Insight rows (blurred for free users)
+          ...List.generate(insights.length, (i) {
+            return Column(
+              children: [
+                if (i > 0)
+                  Divider(
+                    height: 1,
+                    indent: 20,
+                    endIndent: 20,
+                    color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.grey.shade200,
+                  ),
+                _buildInsightRow(insights[i], isDark, isPremium),
+              ],
+            );
+          }),
+          // CTA for free users
+          if (!isPremium) ...[
+            const SizedBox(height: 4),
+            GestureDetector(
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const UpgradePage()),
+              ),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFF9F0D9),
+                  borderRadius: BorderRadius.only(
+                    bottomLeft: Radius.circular(AppRadius.l),
+                    bottomRight: Radius.circular(AppRadius.l),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '\u{2728} Voir le bilan complet',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.brown.shade800,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Rythme, tendances, estimation de fin et plus',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.brown.shade600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFD4A54A),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: const Text(
+                        'Essayer',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
-            textAlign: TextAlign.center,
+          ] else
+            const SizedBox(height: 12),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInsightRow(_InsightRow insight, bool isDark, bool isPremium) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+      child: Row(
+        children: [
+          Text(insight.emoji, style: const TextStyle(fontSize: 20)),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              insight.label,
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+                color: isDark ? AppColors.textPrimaryDark : Colors.black87,
+              ),
+            ),
           ),
+          if (isPremium)
+            Flexible(
+              child: Text(
+                insight.value,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? AppColors.textPrimaryDark : const Color(0xFFD4A54A),
+                ),
+                textAlign: TextAlign.end,
+                overflow: TextOverflow.ellipsis,
+              ),
+            )
+          else
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: ImageFiltered(
+                imageFilter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+                child: Text(
+                  insight.value,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? AppColors.textPrimaryDark : const Color(0xFFD4A54A),
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -528,4 +794,16 @@ class _ReadingSessionSummaryPageState
       ),
     );
   }
+}
+
+class _InsightRow {
+  final String emoji;
+  final String label;
+  final String value;
+
+  const _InsightRow({
+    required this.emoji,
+    required this.label,
+    required this.value,
+  });
 }

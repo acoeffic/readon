@@ -1,7 +1,11 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../models/reading_session.dart';
 import '../../models/book.dart';
+import '../../providers/subscription_provider.dart';
+import '../../pages/profile/upgrade_page.dart';
 import '../../services/reading_session_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/cached_book_cover.dart';
@@ -24,11 +28,21 @@ class SessionDetailPage extends StatefulWidget {
 
 class _SessionDetailPageState extends State<SessionDetailPage> {
   late bool _isHidden;
+  Map<String, double> _userAverages = {};
 
   @override
   void initState() {
     super.initState();
     _isHidden = widget.session.isHidden;
+    _loadAverages();
+  }
+
+  Future<void> _loadAverages() async {
+    try {
+      final averages = await ReadingSessionService().getUserReadingAverages();
+      if (!mounted) return;
+      setState(() => _userAverages = averages);
+    } catch (_) {}
   }
 
   Future<void> _toggleHidden() async {
@@ -237,6 +251,10 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
 
               // Session Progression
               _buildProgressionCard(isDark, cardColor, terracotta, subtitleColor),
+              const SizedBox(height: 16),
+
+              // Insights
+              _buildInsightsCard(isDark, cardColor),
               const SizedBox(height: 16),
 
               // Timeline
@@ -824,6 +842,237 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
     );
   }
 
+  // ── Insights card ──────────────────────────────────────────────────
+
+  Widget _buildInsightsCard(bool isDark, Color cardColor) {
+    final isPremium = context.watch<SubscriptionProvider>().isPremium;
+    final session = widget.session;
+
+    final pagesPerMin = session.durationMinutes > 0
+        ? session.pagesRead / session.durationMinutes
+        : 0.0;
+    final minPerPage = session.pagesRead > 0
+        ? session.durationMinutes / session.pagesRead
+        : 0.0;
+
+    // Estimated finish date
+    String? estimatedFinish;
+    final pageCount = widget.book?.pageCount;
+    final endPage = session.endPage;
+    if (pageCount != null && endPage != null && pageCount > endPage) {
+      final remaining = pageCount - endPage;
+      final avgPagesPerDay = _userAverages['avg_pages_per_day'] ?? 0;
+      if (avgPagesPerDay > 0) {
+        final daysLeft = (remaining / avgPagesPerDay).ceil();
+        final finishDate = DateTime.now().add(Duration(days: daysLeft));
+        estimatedFinish = '${finishDate.day}/${finishDate.month}/${finishDate.year}';
+      }
+    }
+
+    // vs. average
+    String? vsAverage;
+    final userAvgMinPerPage = _userAverages['avg_minutes_per_page'] ?? 0;
+    if (userAvgMinPerPage > 0 && minPerPage > 0) {
+      final diff = ((userAvgMinPerPage - minPerPage) / userAvgMinPerPage * 100).round();
+      if (diff > 0) {
+        vsAverage = '+$diff% plus rapide';
+      } else if (diff < 0) {
+        vsAverage = '${diff.abs()}% plus lent';
+      } else {
+        vsAverage = 'Dans ta moyenne';
+      }
+    }
+
+    final paceValue = pagesPerMin >= 1
+        ? '${pagesPerMin.toStringAsFixed(1)} p/min'
+        : '${pagesPerMin.toStringAsFixed(2)} p/min';
+    final timePerPageValue = minPerPage < 1
+        ? '${(minPerPage * 60).round()} sec'
+        : '${minPerPage.toStringAsFixed(1)} min';
+
+    final insights = [
+      _InsightData(emoji: '\u{1F4C8}', label: 'Rythme de lecture', value: paceValue),
+      _InsightData(emoji: '\u{23F3}', label: 'Temps moyen par page', value: timePerPageValue),
+      if (estimatedFinish != null)
+        _InsightData(emoji: '\u{1F4C5}', label: 'Fin estimée du livre', value: estimatedFinish),
+      if (vsAverage != null)
+        _InsightData(emoji: '\u{1F4CA}', label: 'vs. ta moyenne', value: vsAverage),
+    ];
+
+    if (insights.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          if (!isDark)
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFD4A54A),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Text(
+                    'PREMIUM',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  'Insights de la session',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: isDark ? Colors.white : Colors.black87,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          ...List.generate(insights.length, (i) {
+            return Column(
+              children: [
+                if (i > 0)
+                  Divider(
+                    height: 1,
+                    indent: 20,
+                    endIndent: 20,
+                    color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.grey.shade200,
+                  ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                  child: Row(
+                    children: [
+                      Text(insights[i].emoji, style: const TextStyle(fontSize: 20)),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          insights[i].label,
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                            color: isDark ? Colors.white : Colors.black87,
+                          ),
+                        ),
+                      ),
+                      if (isPremium)
+                        Text(
+                          insights[i].value,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFFD4A54A),
+                          ),
+                        )
+                      else
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: ImageFiltered(
+                            imageFilter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+                            child: Text(
+                              insights[i].value,
+                              style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFFD4A54A),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            );
+          }),
+          if (!isPremium) ...[
+            const SizedBox(height: 4),
+            GestureDetector(
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const UpgradePage()),
+              ),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFF9F0D9),
+                  borderRadius: BorderRadius.only(
+                    bottomLeft: Radius.circular(20),
+                    bottomRight: Radius.circular(20),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '\u{2728} Débloquer tes insights',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.brown.shade800,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Rythme, tendances, estimation de fin et plus',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.brown.shade600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFD4A54A),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: const Text(
+                        'Essayer',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ] else
+            const SizedBox(height: 12),
+        ],
+      ),
+    );
+  }
+
   // Helpers
 
   double? _getBookProgress() {
@@ -903,4 +1152,16 @@ class _DashedLinePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _InsightData {
+  final String emoji;
+  final String label;
+  final String value;
+
+  const _InsightData({
+    required this.emoji,
+    required this.label,
+    required this.value,
+  });
 }
