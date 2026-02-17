@@ -46,7 +46,21 @@
       "Bash(npx remotion render:*)",
       "Bash(npx tsc:*)",
       "Bash(./node_modules/.bin/tsc:*)",
-      "WebFetch(domain:www.leslibraires.fr)"
+      "WebFetch(domain:www.leslibraires.fr)",
+      "Bash(head:*)",
+      "Bash(for file in /Users/adrien/readon/supabase/migrations/*.sql)",
+      "Bash(do grep -l \"^CREATE TABLE.*books\" \"$file\")",
+      "Bash(done)",
+      "Bash(npm install:*)",
+      "Bash(node --version:*)",
+      "Bash(command -v:*)",
+      "Bash(brew list:*)",
+      "Read(//usr/local/Cellar/**)",
+      "Bash(bash)",
+      "Bash(pip3 install:*)",
+      "Bash(brew install:*)",
+      "Bash(/tmp/svg_convert/bin/pip install:*)",
+      "Bash(/tmp/svg_convert/bin/python3:*)"
     ]
   }
 }

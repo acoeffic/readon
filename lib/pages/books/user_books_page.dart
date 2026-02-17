@@ -11,6 +11,7 @@ import '../../models/reading_session.dart';
 import '../reading/start_reading_session_page_unified.dart';
 import '../reading/end_reading_session_page.dart';
 import '../reading/book_finished_share_service.dart';
+import '../reading/book_completed_summary_page.dart';
 import '../curated_lists/create_custom_list_dialog.dart';
 import '../../widgets/cached_book_cover.dart';
 
@@ -714,12 +715,21 @@ class _UserBooksPageState extends State<UserBooksPage> {
           ),
           trailing: const Icon(Icons.arrow_forward_ios, size: 16),
           onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => BookDetailPage(book: book),
-              ),
-            ).then((_) => _loadAllBooks());
+            if (isFinished) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => BookCompletedSummaryPage(book: book),
+                ),
+              ).then((_) => _loadAllBooks());
+            } else {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => BookDetailPage(book: book),
+                ),
+              ).then((_) => _loadAllBooks());
+            }
           },
         ),
       ),

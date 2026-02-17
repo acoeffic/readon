@@ -19,18 +19,18 @@ import { delayRender, continueRender } from 'remotion';
 // ReadingSession – Single animated card that reproduces the Flutter
 // SessionShareCard exactly, with progressive element reveal.
 //
-// 450 frames (15s @ 30fps). Animation timeline:
-//   0-20:   Card container fades in (border, gradient, particles)
-//  10-30:   "SESSION DE LECTURE" header fades in
-//  20-40:   📚 emoji bounces in (spring)
-//  30-50:   Accent line grows from center
-//  40-70:   Book title fades up
-//  50-80:   Author fades in
-//  70-130:  Stats grid reveals (staggered counters)
-// 130-180:  Progression bar slides in + fills
-// 180-210:  Footer fades in
-// 210-420:  Hold (everything visible – identical to Flutter card)
-// 420-450:  Gentle glow pulse on whole card
+// 180 frames (6s @ 30fps). Animation timeline:
+//   0-10:   Card container fades in (border, gradient, particles)
+//   5-15:   "SESSION DE LECTURE" header fades in
+//  10-20:   📚 emoji bounces in (spring)
+//  15-25:   Accent line grows from center
+//  20-35:   Book title fades up
+//  25-40:   Author fades in
+//  35-60:   Stats grid reveals (staggered counters)
+//  55-75:   Progression bar slides in + fills
+//  70-85:   Footer fades in
+//  85-150:  Hold (everything visible – identical to Flutter card)
+// 150-180:  Gentle glow pulse on whole card
 // ──────────────────────────────────────────────────────────────────────
 
 const ACCENT = SessionColors.accent;
@@ -92,25 +92,25 @@ export const ReadingSession: React.FC<ReadingSessionInput> = (props) => {
   const seed = bookTitle.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
 
   // Spring for emoji bounce
-  const emojiSpring = spring({ frame: frame - 20, fps, config: { damping: 12, stiffness: 200 } });
+  const emojiSpring = spring({ frame: frame - 10, fps, config: { damping: 12, stiffness: 200 } });
 
   // Animated counters
-  const counterProgress = anim(frame, 80, 130);
+  const counterProgress = anim(frame, 35, 60);
   const animatedPages = Math.round(pagesRead * counterProgress);
   const animatedDuration = Math.round(durationMinutes * counterProgress);
 
   // Progress bar fill
-  const barFill = anim(frame, 140, 175);
+  const barFill = anim(frame, 60, 75);
 
   // Glow pulse at end
-  const endGlow = frame > 420
-    ? 0.06 + Math.sin((frame - 420) * 0.15) * 0.04
+  const endGlow = frame > 150
+    ? 0.06 + Math.sin((frame - 150) * 0.15) * 0.04
     : 0;
 
-  // Audio volume: fade-in 0→0.3 over first 30 frames, fade-out 0.3→0 over last 30 frames
+  // Audio volume: fade-in 0→0.3 over first 15 frames, fade-out 0.3→0 over last 15 frames
   const musicVolume = (f: number) => {
-    const fadeIn = interpolate(f, [0, 30], [0, 0.3], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
-    const fadeOut = interpolate(f, [420, 450], [0.3, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
+    const fadeIn = interpolate(f, [0, 15], [0, 0.3], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
+    const fadeOut = interpolate(f, [165, 180], [0.3, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
     return Math.min(fadeIn, fadeOut);
   };
 
@@ -250,19 +250,19 @@ const StoryContent: React.FC<ContentProps> = ({
   barFill = 0,
 }) => {
   // Stagger animations
-  const headerOpacity = anim(frame, 10, 30);
-  const lineWidth = anim(frame, 30, 50, [0, 60]);
-  const titleOpacity = anim(frame, 40, 60);
-  const titleY = anim(frame, 40, 60, [15, 0]);
-  const authorOpacity = anim(frame, 50, 70);
-  const stat1 = anim(frame, 75, 95);
-  const stat2 = anim(frame, 80, 100);
-  const stat3 = anim(frame, 85, 105);
-  const stat4 = anim(frame, 90, 110);
-  const dividerOpacity = anim(frame, 75, 95);
-  const progressOpacity = anim(frame, 130, 150);
-  const footerLineWidth = anim(frame, 180, 200, [0, 30]);
-  const footerOpacity = anim(frame, 190, 210);
+  const headerOpacity = anim(frame, 5, 15);
+  const lineWidth = anim(frame, 15, 25, [0, 60]);
+  const titleOpacity = anim(frame, 20, 32);
+  const titleY = anim(frame, 20, 32, [15, 0]);
+  const authorOpacity = anim(frame, 25, 37);
+  const stat1 = anim(frame, 35, 45);
+  const stat2 = anim(frame, 38, 48);
+  const stat3 = anim(frame, 41, 51);
+  const stat4 = anim(frame, 44, 54);
+  const dividerOpacity = anim(frame, 35, 45);
+  const progressOpacity = anim(frame, 55, 68);
+  const footerLineWidth = anim(frame, 70, 82, [0, 30]);
+  const footerOpacity = anim(frame, 75, 85);
 
   return (
     <div
@@ -481,13 +481,13 @@ const SquareContent: React.FC<ContentProps> = ({
   emojiSpring,
   counterProgress,
 }) => {
-  const headerOpacity = anim(frame, 10, 30);
-  const lineWidth = anim(frame, 40, 60, [0, 40]);
-  const stat1 = anim(frame, 65, 85);
-  const stat2 = anim(frame, 70, 90);
-  const stat3 = anim(frame, 75, 95);
-  const stat4 = anim(frame, 80, 100);
-  const footerOpacity = anim(frame, 140, 160);
+  const headerOpacity = anim(frame, 5, 15);
+  const lineWidth = anim(frame, 18, 28, [0, 40]);
+  const stat1 = anim(frame, 35, 45);
+  const stat2 = anim(frame, 38, 48);
+  const stat3 = anim(frame, 41, 51);
+  const stat4 = anim(frame, 44, 54);
+  const footerOpacity = anim(frame, 70, 82);
 
   return (
     <div

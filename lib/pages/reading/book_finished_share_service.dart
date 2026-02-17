@@ -10,6 +10,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../models/book.dart';
 import '../../models/reading_session.dart';
 import '../../features/wrapped/share/share_format.dart';
+import '../../services/readon_sync_service.dart';
 import '../../theme/app_theme.dart';
 import 'book_finished_share_card.dart';
 
@@ -157,21 +158,58 @@ class _BookFinishedShareSheet extends StatefulWidget {
 class _BookFinishedShareSheetState extends State<_BookFinishedShareSheet> {
   final _service = BookFinishedShareService();
   Uint8List? _capturedImage;
+  File? _videoFile;
   bool _isCapturing = true;
+  bool _hasVideo = false;
   ShareDestination? _loadingDestination;
 
   @override
   void initState() {
     super.initState();
-    _capturePreview();
+    _loadShareAssets();
   }
 
-  Future<void> _capturePreview() async {
-    // Download cover
+  Future<void> _loadShareAssets() async {
+    // Try to fetch pre-rendered assets from readon-sync
+    try {
+      final assets = await ReadonSyncService.getShareAssets(widget.book.id);
+
+      if (assets.hasVideo) {
+        // Download the video for sharing
+        final videoBytes = await http.get(Uri.parse(assets.videoUrl!));
+        if (videoBytes.statusCode == 200 && mounted) {
+          final dir = await getTemporaryDirectory();
+          final file = File('${dir.path}/lexsta_book_${widget.book.id}.mp4');
+          await file.writeAsBytes(videoBytes.bodyBytes);
+          _videoFile = file;
+          _hasVideo = true;
+        }
+      }
+
+      if (assets.hasImage) {
+        // Use pre-rendered PNG from server
+        final imgResponse = await http.get(Uri.parse(assets.imageUrl!));
+        if (imgResponse.statusCode == 200 && mounted) {
+          setState(() {
+            _capturedImage = imgResponse.bodyBytes;
+            _isCapturing = false;
+          });
+          return;
+        }
+      }
+    } catch (e) {
+      debugPrint('readon-sync getShareAssets fallback: $e');
+    }
+
+    // Fallback: capture locally via ScreenshotController
+    if (!mounted) return;
+    await _capturePreviewFallback();
+  }
+
+  Future<void> _capturePreviewFallback() async {
     final coverBytes = await _service.downloadCover(widget.book.coverUrl);
     if (!mounted) return;
 
-    // Capture the card
     final bytes = await _service.captureCard(
       book: widget.book,
       stats: widget.stats,
@@ -195,6 +233,24 @@ class _BookFinishedShareSheetState extends State<_BookFinishedShareSheet> {
     setState(() => _loadingDestination = destination);
 
     try {
+      // If video is available, share it for native share sheet destinations
+      if (_hasVideo && _videoFile != null) {
+        final text = _service.buildShareText(widget.book, widget.stats);
+        if (destination == ShareDestination.whatsapp ||
+            destination == ShareDestination.message ||
+            destination == ShareDestination.more) {
+          await Share.shareXFiles(
+            [XFile(_videoFile!.path)],
+            text: text,
+            sharePositionOrigin: _shareOrigin(),
+          );
+          if (!mounted) return;
+          Navigator.pop(context);
+          return;
+        }
+      }
+
+      // Fallback to image-based sharing
       await _service.shareToDestination(
         imageBytes: _capturedImage!,
         destination: destination,

@@ -117,7 +117,7 @@ export const RemotionRoot: React.FC = () => {
       <Composition
         id="ReadingSession"
         component={ReadingSessionComp}
-        durationInFrames={DURATION_15S}
+        durationInFrames={DURATION_6S}
         fps={FPS}
         width={1080}
         height={1920}
@@ -128,7 +128,7 @@ export const RemotionRoot: React.FC = () => {
       <Composition
         id="ReadingSessionSquare"
         component={ReadingSessionComp}
-        durationInFrames={DURATION_15S}
+        durationInFrames={DURATION_6S}
         fps={FPS}
         width={1080}
         height={1080}

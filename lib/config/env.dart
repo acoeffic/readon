@@ -17,6 +17,9 @@ abstract final class Env {
   static const revenueCatApiKeyIOS = String.fromEnvironment('REVENUECAT_API_KEY_IOS');
   static const revenueCatApiKeyAndroid = String.fromEnvironment('REVENUECAT_API_KEY_ANDROID');
 
+  // ── Readon Sync ───────────────────────────────────────────
+  static const readonSyncUrl = String.fromEnvironment('READON_SYNC_URL');
+
   // ── Dev ──────────────────────────────────────────────────
   /// Forcer le statut premium sans RevenueCat (dev/test uniquement).
   /// Passer `--dart-define=DEV_FORCE_PREMIUM=true` ou l'ajouter dans env.json.

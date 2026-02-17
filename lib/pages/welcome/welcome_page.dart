@@ -22,23 +22,10 @@ class WelcomePage extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Spacer(),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(28),
-                child: Image.asset(
-                  'assets/images/logo.png',
-                  width: 140,
-                  height: 140,
-                  fit: BoxFit.cover,
-                ),
-              ),
-              const SizedBox(height: AppSpace.l),
-              Text(
-                'Lexsta',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      color: AppColors.primary,
-                      fontSize: 26,
-                      fontWeight: FontWeight.w700,
-                    ),
+              Image.network(
+                'https://nzbhmshkcwudzydeahrq.supabase.co/storage/v1/object/public/asset/Image/LogoReadOn.png',
+                width: 200,
+                fit: BoxFit.contain,
               ),
               const Spacer(),
 

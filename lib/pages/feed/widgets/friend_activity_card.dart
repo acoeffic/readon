@@ -19,6 +19,7 @@ import '../../../services/books_service.dart';
 import '../../../services/reading_session_service.dart';
 import '../../reading/book_finished_share_service.dart';
 import '../../sessions/session_detail_page.dart';
+import '../../reading/book_completed_summary_page.dart';
 
 class FriendActivityCard extends StatefulWidget {
   final Map<String, dynamic> activity;
@@ -398,15 +399,24 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
 
     final isOwn = authorId == supabase.auth.currentUser?.id;
 
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => SessionDetailPage(
-          session: session,
-          book: book,
-          isOwn: isOwn,
+    // Si le livre est terminé et qu'on a un Book, ouvrir la page bilan
+    if (_isBookFinished() && book != null) {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => BookCompletedSummaryPage(book: book),
         ),
-      ),
-    );
+      );
+    } else {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => SessionDetailPage(
+            session: session,
+            book: book,
+            isOwn: isOwn,
+          ),
+        ),
+      );
+    }
   }
 
   String _formatDuration(double? durationMinutes) {

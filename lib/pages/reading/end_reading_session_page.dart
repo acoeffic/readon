@@ -11,6 +11,7 @@ import '../../services/books_service.dart';
 import '../../services/badges_service.dart';
 import '../../services/flow_service.dart';
 import '../../services/trophy_service.dart';
+import '../../services/readon_sync_service.dart';
 import '../../models/reading_session.dart';
 import '../../models/reading_flow.dart';
 import '../../models/trophy.dart';
@@ -407,6 +408,9 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
           } catch (e) {
             debugPrint('Erreur updateBookStatus (non bloquante): $e');
           }
+
+          // Déclencher le pré-render vidéo (fire-and-forget, non bloquant)
+          ReadonSyncService.finishBook(bookIdInt);
         }
 
         // Créer une activité spéciale pour le livre terminé

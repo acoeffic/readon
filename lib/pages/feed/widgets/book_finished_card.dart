@@ -22,6 +22,7 @@ import '../../../widgets/reaction_summary.dart';
 import '../../friends/friend_profile_page.dart';
 import '../../reading/book_finished_share_service.dart';
 import '../../books/user_books_page.dart';
+import '../../reading/book_completed_summary_page.dart';
 
 // ---------------------------------------------------------------------------
 // Color constants for the book-finished card (light / dark)
@@ -485,10 +486,7 @@ class _BookFinishedCardState extends State<BookFinishedCard>
 
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => BookDetailPage(
-          book: book!,
-          initialStatus: 'finished',
-        ),
+        builder: (_) => BookCompletedSummaryPage(book: book!),
       ),
     );
   }
