@@ -138,6 +138,46 @@ class BooksService {
     }
   }
 
+  /// Trouver ou créer un livre dans la table books, sans l'ajouter à la bibliothèque (user_books)
+  Future<Book> findOrCreateBook(GoogleBook googleBook) async {
+    try {
+      // Vérifier par Google ID
+      final existingByGoogle = await _supabase
+          .from('books')
+          .select()
+          .eq('google_id', googleBook.id)
+          .maybeSingle();
+
+      if (existingByGoogle != null) {
+        return Book.fromJson(existingByGoogle);
+      }
+
+      // Vérifier par titre + auteur
+      final existingByTitle = await _supabase
+          .rpc('check_duplicate_book_by_title_author', params: {
+            'p_title': googleBook.title,
+            'p_author': googleBook.authorsString,
+          });
+
+      if (existingByTitle != null && existingByTitle > 0) {
+        return await getBookById(existingByTitle as int);
+      }
+
+      // Créer le livre
+      final bookData = Book.fromGoogleBook(googleBook).toInsert();
+      final response = await _supabase
+          .from('books')
+          .insert(bookData)
+          .select()
+          .single();
+
+      return Book.fromJson(response);
+    } catch (e) {
+      debugPrint('Erreur findOrCreateBook: $e');
+      rethrow;
+    }
+  }
+
   /// Récupérer un livre par ID
   Future<Book> getBookById(int bookId) async {
     try {

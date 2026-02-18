@@ -18,14 +18,22 @@ const corsHeaders = {
 
 const MAX_FREE_MONTHLY_MESSAGES = 3;
 
-const SYSTEM_PROMPT = `Tu es un conseiller littéraire passionné et bienveillant pour l'application ReadOn.
-Tu recommandes des livres en te basant sur les goûts de lecture de l'utilisateur.
-Tu réponds toujours en français.
-Tu donnes des recommandations personnalisées en expliquant pourquoi chaque livre pourrait plaire à l'utilisateur en fonction de ses lectures passées et ses préférences.
-Quand tu recommandes un livre, inclus toujours le titre et l'auteur.
-Tu peux aussi discuter de livres, donner ton avis, et aider l'utilisateur à choisir sa prochaine lecture.
-Sois concis mais chaleureux dans tes réponses (3-4 paragraphes maximum).
-Ne recommande pas des livres que l'utilisateur a déjà lus ou qui sont dans sa liste "à lire".
+const SYSTEM_PROMPT = `Tu es Muse, conseillère littéraire passionnée et bienveillante pour l'application ReadOn.
+Tu réponds toujours en français. Sois concise mais chaleureuse (3-4 paragraphes maximum).
+
+RÈGLES IMPORTANTES :
+- Tu ne recommandes QUE des livres dont tu es absolument certaine qu'ils existent réellement (titre exact, auteur exact, date de publication connue).
+- N'invente JAMAIS de titre, d'auteur ou de livre. Si tu n'es pas sûre qu'un livre existe, ne le mentionne pas.
+- FORMATAGE OBLIGATOIRE : quand tu mentionnes un livre, utilise TOUJOURS le format "Titre exact" de Auteur exact (avec les guillemets droits autour du titre). Exemples : "L'Étranger" de Albert Camus, "1984" de George Orwell.
+- Ne recommande pas de livres que l'utilisateur a déjà lus, est en train de lire, ou a dans sa liste "à lire".
+
+PERSONNALISATION :
+- Base tes recommandations principalement sur les lectures passées de l'utilisateur fournies dans le contexte.
+- Analyse les genres, auteurs et thèmes récurrents dans ses lectures pour identifier ses goûts.
+- Si l'utilisateur a lu beaucoup d'un genre/auteur, propose des titres similaires ou du même auteur.
+- Explique le lien entre ta recommandation et les lectures passées de l'utilisateur (ex: "Puisque tu as aimé X de Y, tu devrais apprécier Z car...").
+- Si l'utilisateur n'a pas encore de lectures, propose des classiques reconnus et demande-lui ses préférences.
+
 Si l'utilisateur pose une question sans rapport avec la lecture ou les livres, rappelle-lui poliment que tu es Muse, sa conseillère lecture, et propose-lui de l'aider à trouver son prochain livre.`;
 
 function jsonResponse(body: Record<string, unknown>, status = 200) {
@@ -78,15 +86,39 @@ async function buildUserContext(
       .filter(Boolean)
       .join("\n");
 
+  // Analyse des patterns de lecture
+  const allReadBooks = [...(finished ?? []), ...(reading ?? [])];
+  const genreCounts: Record<string, number> = {};
+  const authorCounts: Record<string, number> = {};
+  for (const b of allReadBooks) {
+    const book = b.books;
+    if (!book) continue;
+    if (book.genre) genreCounts[book.genre] = (genreCounts[book.genre] || 0) + 1;
+    if (book.author) authorCounts[book.author] = (authorCounts[book.author] || 0) + 1;
+  }
+
+  const topGenres = Object.entries(genreCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([genre, count]) => `${genre} (${count} livres)`);
+
+  const topAuthors = Object.entries(authorCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .filter(([_, count]) => count >= 2)
+    .map(([author, count]) => `${author} (${count} livres)`);
+
   let ctx = "";
+  if (topGenres.length) ctx += `Genres préférés: ${topGenres.join(", ")}\n\n`;
+  if (topAuthors.length) ctx += `Auteurs favoris (plusieurs livres lus): ${topAuthors.join(", ")}\n\n`;
   if (finished?.length) ctx += `Livres terminés récemment (${finished.length}):\n${formatBooks(finished)}\n\n`;
   if (reading?.length) ctx += `En cours de lecture:\n${formatBooks(reading)}\n\n`;
-  if (toRead?.length) ctx += `Liste à lire:\n${formatBooks(toRead)}\n\n`;
+  if (toRead?.length) ctx += `Liste à lire (ne pas recommander ceux-ci):\n${formatBooks(toRead)}\n\n`;
   if (goals?.length) {
     ctx += `Objectifs de lecture:\n${goals.map((g: any) => `- ${g.goal_type}: ${g.target_value}`).join("\n")}\n`;
   }
 
-  return ctx || "Aucune donnée de lecture disponible.";
+  return ctx || "Aucune donnée de lecture disponible. Propose des classiques reconnus et demande les préférences du lecteur.";
 }
 
 serve(async (req) => {
@@ -248,7 +280,7 @@ serve(async (req) => {
           model: "gpt-4o-mini",
           messages,
           max_tokens: 1000,
-          temperature: 0.7,
+          temperature: 0.3,
         }),
       }
     );

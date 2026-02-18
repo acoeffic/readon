@@ -96,6 +96,203 @@ class _CustomListDetailPageState extends State<CustomListDetailPage> {
     }
   }
 
+  void _showBookDetailSheet(Book book) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) => DraggableScrollableSheet(
+        initialChildSize: 0.55,
+        minChildSize: 0.3,
+        maxChildSize: 0.85,
+        expand: false,
+        builder: (context, scrollController) => SingleChildScrollView(
+          controller: scrollController,
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  CachedBookCover(
+                    imageUrl: book.coverUrl,
+                    width: 100,
+                    height: 150,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          book.title,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                          ),
+                        ),
+                        if (book.author != null &&
+                            book.author!.isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            book.author!,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurface
+                                  .withValues(alpha: 0.6),
+                            ),
+                          ),
+                        ],
+                        if (book.pageCount != null) ...[
+                          const SizedBox(height: 8),
+                          Text(
+                            '${book.pageCount} pages',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurface
+                                  .withValues(alpha: 0.5),
+                            ),
+                          ),
+                        ],
+                        if (book.genre != null) ...[
+                          const SizedBox(height: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFF6B35)
+                                  .withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              book.genre!,
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: Color(0xFFFF6B35),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 12),
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.pop(context);
+                            _showAddToListSheet(book);
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFF6B35)
+                                  .withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: const Color(0xFFFF6B35)
+                                    .withValues(alpha: 0.3),
+                              ),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  LucideIcons.listPlus,
+                                  size: 14,
+                                  color: Color(0xFFFF6B35),
+                                ),
+                                SizedBox(width: 4),
+                                Text(
+                                  'Ajouter à une liste',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Color(0xFFFF6B35),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              if (book.description != null) ...[
+                const SizedBox(height: 20),
+                Text(
+                  'Description',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  book.description!,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.7),
+                    height: 1.6,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 20),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showAddToListSheet(Book book) async {
+    final results = await Future.wait([
+      _service.getUserLists(),
+      _service.getListIdsContainingBook(book.id),
+    ]);
+
+    final lists = results[0] as List<UserCustomList>;
+    final containingIds = results[1] as Set<int>;
+
+    if (!mounted) return;
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => _AddToListSheet(
+        lists: lists,
+        containingIds: containingIds,
+        bookId: book.id,
+        service: _service,
+      ),
+    );
+  }
+
   Future<void> _addBooks() async {
     final existingBookIds = _list.books.map((b) => b.id).toSet();
     await Navigator.push(
@@ -255,6 +452,7 @@ class _CustomListDetailPageState extends State<CustomListDetailPage> {
                     book: book,
                     gradientColor: gradientColors.last,
                     onRemove: () => _removeBook(book),
+                    onTap: () => _showBookDetailSheet(book),
                   );
                 },
                 childCount: _list.books.length,
@@ -329,11 +527,13 @@ class _CustomBookListItem extends StatelessWidget {
   final Book book;
   final Color gradientColor;
   final VoidCallback onRemove;
+  final VoidCallback? onTap;
 
   const _CustomBookListItem({
     required this.book,
     required this.gradientColor,
     required this.onRemove,
+    this.onTap,
   });
 
   @override
@@ -371,7 +571,9 @@ class _CustomBookListItem extends StatelessWidget {
             false;
       },
       onDismissed: (_) => onRemove(),
-      child: Padding(
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
         padding: const EdgeInsets.symmetric(
           horizontal: AppSpace.l,
           vertical: 10,
@@ -428,6 +630,177 @@ class _CustomBookListItem extends StatelessWidget {
             ),
           ],
         ),
+      ),
+      ),
+    );
+  }
+}
+
+class _AddToListSheet extends StatefulWidget {
+  final List<UserCustomList> lists;
+  final Set<int> containingIds;
+  final int bookId;
+  final UserCustomListsService service;
+
+  const _AddToListSheet({
+    required this.lists,
+    required this.containingIds,
+    required this.bookId,
+    required this.service,
+  });
+
+  @override
+  State<_AddToListSheet> createState() => _AddToListSheetState();
+}
+
+class _AddToListSheetState extends State<_AddToListSheet> {
+  late Set<int> _containingIds;
+
+  @override
+  void initState() {
+    super.initState();
+    _containingIds = Set<int>.from(widget.containingIds);
+  }
+
+  Future<void> _toggleList(UserCustomList list) async {
+    final wasInList = _containingIds.contains(list.id);
+    setState(() {
+      if (wasInList) {
+        _containingIds.remove(list.id);
+      } else {
+        _containingIds.add(list.id);
+      }
+    });
+
+    try {
+      if (wasInList) {
+        await widget.service.removeBookFromList(list.id, widget.bookId);
+      } else {
+        await widget.service.addBookToList(list.id, widget.bookId);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          if (wasInList) {
+            _containingIds.add(list.id);
+          } else {
+            _containingIds.remove(list.id);
+          }
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur : $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  Future<void> _createNewList() async {
+    Navigator.pop(context);
+    final result = await showCreateCustomListSheet(context);
+    if (result != null) {
+      try {
+        await widget.service.addBookToList(result.id, widget.bookId);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Ajouté à "${result.title}"'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        debugPrint('Erreur ajout à nouvelle liste: $e');
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(
+              'Ajouter à une liste',
+              style: Theme.of(context)
+                  .textTheme
+                  .titleMedium
+                  ?.copyWith(fontWeight: FontWeight.bold),
+            ),
+          ),
+          if (widget.lists.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Text(
+                'Aucune liste personnelle.',
+                style: TextStyle(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.5),
+                ),
+              ),
+            )
+          else
+            ...widget.lists.map((list) {
+              final isInList = _containingIds.contains(list.id);
+              final gradientColors = list.gradientColors;
+              return ListTile(
+                leading: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(colors: gradientColors),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(list.icon, size: 18, color: Colors.white),
+                ),
+                title: Text(list.title),
+                trailing: Icon(
+                  isInList ? Icons.check_circle : Icons.circle_outlined,
+                  color: isInList ? const Color(0xFFFF6B35) : null,
+                ),
+                onTap: () => _toggleList(list),
+              );
+            }),
+          const Divider(),
+          ListTile(
+            leading: Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: const Color(0xFFFF6B35).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(LucideIcons.plus,
+                  size: 18, color: Color(0xFFFF6B35)),
+            ),
+            title: const Text(
+              'Créer une nouvelle liste',
+              style: TextStyle(color: Color(0xFFFF6B35)),
+            ),
+            onTap: _createNewList,
+          ),
+          const SizedBox(height: 8),
+        ],
       ),
     );
   }

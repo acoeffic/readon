@@ -1,9 +1,17 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../theme/app_theme.dart';
 import '../../models/ai_message.dart';
 import '../../models/feature_flags.dart';
+import '../../services/books_service.dart';
 import '../../services/chat_service.dart';
+import '../../services/google_books_service.dart';
+import '../../services/user_custom_lists_service.dart';
+import '../../models/user_custom_list.dart';
 import '../profile/upgrade_page.dart';
+import '../curated_lists/create_custom_list_dialog.dart';
 
 class AiChatPage extends StatefulWidget {
   final int? conversationId;
@@ -23,9 +31,17 @@ class AiChatPage extends StatefulWidget {
 
 class _AiChatPageState extends State<AiChatPage> {
   final ChatService _chatService = ChatService();
+  final GoogleBooksService _googleBooksService = GoogleBooksService();
+  final BooksService _booksService = BooksService();
+  final UserCustomListsService _customListsService = UserCustomListsService();
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final FocusNode _focusNode = FocusNode();
+
+  /// Regex pour détecter les mentions de livres : "Titre" de Auteur
+  static final RegExp _bookMentionRegex = RegExp(
+    r""""([^"]+)"\s+d[e']\s*([^.,;!?\n(]+)""",
+  );
 
   List<AiMessage> _messages = [];
   int? _conversationId;
@@ -277,6 +293,12 @@ class _AiChatPageState extends State<AiChatPage> {
 
   Widget _buildMessageBubble(AiMessage message, bool isDark) {
     final isUser = message.isUser;
+    final textColor = isUser
+        ? Colors.white
+        : isDark
+            ? AppColors.textPrimaryDark
+            : Colors.black87;
+
     return Align(
       alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
@@ -304,19 +326,444 @@ class _AiChatPageState extends State<AiChatPage> {
               ),
           ],
         ),
-        child: Text(
-          message.content,
-          style: TextStyle(
-            color: isUser
-                ? Colors.white
-                : isDark
-                    ? AppColors.textPrimaryDark
-                    : Colors.black87,
-            fontSize: 14,
-            height: 1.4,
+        child: isUser
+            ? Text(
+                message.content,
+                style: TextStyle(
+                  color: textColor,
+                  fontSize: 14,
+                  height: 1.4,
+                ),
+              )
+            : _buildRichMessageText(message.content, textColor),
+      ),
+    );
+  }
+
+  /// Construit un RichText qui rend les mentions de livres ("Titre" de Auteur) cliquables
+  Widget _buildRichMessageText(String content, Color textColor) {
+    final matches = _bookMentionRegex.allMatches(content).toList();
+    if (matches.isEmpty) {
+      return Text(
+        content,
+        style: TextStyle(color: textColor, fontSize: 14, height: 1.4),
+      );
+    }
+
+    final spans = <InlineSpan>[];
+    int lastEnd = 0;
+
+    for (final match in matches) {
+      // Texte avant le match
+      if (match.start > lastEnd) {
+        spans.add(TextSpan(
+          text: content.substring(lastEnd, match.start),
+        ));
+      }
+
+      final title = match.group(1)!.trim();
+      final author = match.group(2)!.trim();
+      final fullMatch = match.group(0)!;
+
+      spans.add(TextSpan(
+        text: fullMatch,
+        style: TextStyle(
+          color: AppColors.primary,
+          fontWeight: FontWeight.w600,
+          decoration: TextDecoration.underline,
+          decorationColor: AppColors.primary.withValues(alpha: 0.4),
+        ),
+        recognizer: TapGestureRecognizer()
+          ..onTap = () => _onBookMentionTap(title, author),
+      ));
+
+      lastEnd = match.end;
+    }
+
+    // Texte après le dernier match
+    if (lastEnd < content.length) {
+      spans.add(TextSpan(text: content.substring(lastEnd)));
+    }
+
+    return Text.rich(
+      TextSpan(
+        style: TextStyle(color: textColor, fontSize: 14, height: 1.4),
+        children: spans,
+      ),
+    );
+  }
+
+  /// Recherche un livre sur Google Books et affiche le bottom sheet
+  void _onBookMentionTap(String title, String author) async {
+    // Afficher un loading
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      GoogleBook? googleBook;
+
+      // 1) Recherche par titre + auteur
+      final results = await _googleBooksService.searchByTitleAuthor(title, author);
+      if (results.isNotEmpty) googleBook = results.first;
+
+      // 2) Fallback : recherche libre
+      if (googleBook == null) {
+        final freeResults = await _googleBooksService.searchBooks('$title $author');
+        if (freeResults.isNotEmpty) googleBook = freeResults.first;
+      }
+
+      // 3) Objet minimal si rien trouvé
+      googleBook ??= GoogleBook(
+        id: 'chat-${title.hashCode}',
+        title: title,
+        authors: [author],
+        isbns: [],
+      );
+
+      if (!mounted) return;
+      Navigator.pop(context); // Fermer le loading
+      _showBookDetailSheet(googleBook);
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context); // Fermer le loading
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Impossible de charger le livre : $e')),
+        );
+      }
+    }
+  }
+
+  void _showBookDetailSheet(GoogleBook googleBook) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) => DraggableScrollableSheet(
+        initialChildSize: 0.55,
+        minChildSize: 0.3,
+        maxChildSize: 0.85,
+        expand: false,
+        builder: (ctx, scrollController) => SingleChildScrollView(
+          controller: scrollController,
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (googleBook.coverUrl != null)
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.network(
+                        googleBook.coverUrl!,
+                        width: 100,
+                        height: 150,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => _buildPlaceholderCover(),
+                      ),
+                    )
+                  else
+                    _buildPlaceholderCover(),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          googleBook.title,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          googleBook.authorsString,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Theme.of(ctx)
+                                .colorScheme
+                                .onSurface
+                                .withValues(alpha: 0.6),
+                          ),
+                        ),
+                        if (googleBook.pageCount != null) ...[
+                          const SizedBox(height: 8),
+                          Text(
+                            '${googleBook.pageCount} pages',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Theme.of(ctx)
+                                  .colorScheme
+                                  .onSurface
+                                  .withValues(alpha: 0.5),
+                            ),
+                          ),
+                        ],
+                        if (googleBook.genre != null) ...[
+                          const SizedBox(height: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              googleBook.genre!,
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 12),
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.pop(ctx);
+                            _showAddToListSheet(googleBook);
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: AppColors.primary.withValues(alpha: 0.3),
+                              ),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.playlist_add,
+                                    size: 14, color: AppColors.primary),
+                                SizedBox(width: 4),
+                                Text(
+                                  'Ajouter à une liste',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: AppColors.primary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              if (googleBook.description != null) ...[
+                const SizedBox(height: 20),
+                Text(
+                  'Description',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: Theme.of(ctx).colorScheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  googleBook.description!,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Theme.of(ctx)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.7),
+                    height: 1.6,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 24),
+              Container(
+                decoration: BoxDecoration(
+                  color: Theme.of(ctx)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  children: [
+                    _buildBuyOption(
+                      context: ctx,
+                      emoji: '📖',
+                      label: 'En librairie',
+                      onTap: () {
+                        final query = Uri.encodeComponent(
+                          '${googleBook.title} ${googleBook.authorsString}'.trim(),
+                        );
+                        launchUrl(
+                          Uri.parse('https://www.leslibraires.fr/recherche?q=$query'),
+                          mode: LaunchMode.externalApplication,
+                        );
+                      },
+                    ),
+                    Divider(height: 1, color: Theme.of(ctx).colorScheme.onSurface.withValues(alpha: 0.08)),
+                    _buildBuyOption(
+                      context: ctx,
+                      emoji: '🏪',
+                      label: 'Trouver près de moi',
+                      onTap: () => _openNearbyBookstores(ctx),
+                    ),
+                    Divider(height: 1, color: Theme.of(ctx).colorScheme.onSurface.withValues(alpha: 0.08)),
+                    _buildBuyOption(
+                      context: ctx,
+                      emoji: '📦',
+                      label: 'Amazon',
+                      onTap: () {
+                        final query = Uri.encodeComponent(
+                          '${googleBook.title} ${googleBook.authorsString}'.trim(),
+                        );
+                        launchUrl(
+                          Uri.parse('https://www.amazon.fr/s?k=$query&i=stripbooks'),
+                          mode: LaunchMode.externalApplication,
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
           ),
         ),
       ),
+    );
+  }
+
+  void _showAddToListSheet(GoogleBook googleBook) async {
+    try {
+      final book = await _booksService.findOrCreateBook(googleBook);
+
+      final results = await Future.wait([
+        _customListsService.getUserLists(),
+        _customListsService.getListIdsContainingBook(book.id),
+      ]);
+
+      final lists = results[0] as List<UserCustomList>;
+      final containingIds = results[1] as Set<int>;
+
+      if (!mounted) return;
+
+      showModalBottomSheet(
+        context: context,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        builder: (context) => _ChatAddToListSheet(
+          lists: lists,
+          containingIds: containingIds,
+          bookId: book.id,
+          service: _customListsService,
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur : $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  Future<void> _openNearbyBookstores(BuildContext parentContext) async {
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(parentContext).showSnackBar(
+          const SnackBar(content: Text('Activez la localisation dans les réglages')),
+        );
+        return;
+      }
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(parentContext).showSnackBar(
+          const SnackBar(content: Text('Accès à la localisation requis')),
+        );
+        return;
+      }
+
+      Position? position = await Geolocator.getLastKnownPosition();
+      position ??= await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.low,
+          timeLimit: Duration(seconds: 15),
+        ),
+      );
+
+      final url = Uri.parse(
+        'https://www.google.com/maps/search/librairie/@${position.latitude},${position.longitude},14z',
+      );
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    } catch (e) {
+      debugPrint('Geolocation error: $e');
+      if (!mounted) return;
+      ScaffoldMessenger.of(parentContext).showSnackBar(
+        SnackBar(content: Text('Erreur localisation: $e')),
+      );
+    }
+  }
+
+  Widget _buildBuyOption({
+    required BuildContext context,
+    required String emoji,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return ListTile(
+      leading: Text(emoji, style: const TextStyle(fontSize: 20)),
+      title: Text(label, style: const TextStyle(fontSize: 15)),
+      trailing: Icon(
+        Icons.chevron_right,
+        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
+      ),
+      onTap: onTap,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    );
+  }
+
+  Widget _buildPlaceholderCover() {
+    return Container(
+      width: 100,
+      height: 150,
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Icon(Icons.book, size: 32,
+          color: AppColors.primary.withValues(alpha: 0.4)),
     );
   }
 
@@ -510,5 +957,174 @@ class _AiChatPageState extends State<AiChatPage> {
     _scrollController.dispose();
     _focusNode.dispose();
     super.dispose();
+  }
+}
+
+class _ChatAddToListSheet extends StatefulWidget {
+  final List<UserCustomList> lists;
+  final Set<int> containingIds;
+  final int bookId;
+  final UserCustomListsService service;
+
+  const _ChatAddToListSheet({
+    required this.lists,
+    required this.containingIds,
+    required this.bookId,
+    required this.service,
+  });
+
+  @override
+  State<_ChatAddToListSheet> createState() => _ChatAddToListSheetState();
+}
+
+class _ChatAddToListSheetState extends State<_ChatAddToListSheet> {
+  late Set<int> _containingIds;
+
+  @override
+  void initState() {
+    super.initState();
+    _containingIds = Set<int>.from(widget.containingIds);
+  }
+
+  Future<void> _toggleList(UserCustomList list) async {
+    final wasInList = _containingIds.contains(list.id);
+    setState(() {
+      if (wasInList) {
+        _containingIds.remove(list.id);
+      } else {
+        _containingIds.add(list.id);
+      }
+    });
+
+    try {
+      if (wasInList) {
+        await widget.service.removeBookFromList(list.id, widget.bookId);
+      } else {
+        await widget.service.addBookToList(list.id, widget.bookId);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          if (wasInList) {
+            _containingIds.add(list.id);
+          } else {
+            _containingIds.remove(list.id);
+          }
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur : $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  Future<void> _createNewList() async {
+    Navigator.pop(context);
+    final result = await showCreateCustomListSheet(context);
+    if (result != null) {
+      try {
+        await widget.service.addBookToList(result.id, widget.bookId);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Ajouté à "${result.title}"'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        debugPrint('Erreur ajout à nouvelle liste: $e');
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(
+              'Ajouter à une liste',
+              style: Theme.of(context)
+                  .textTheme
+                  .titleMedium
+                  ?.copyWith(fontWeight: FontWeight.bold),
+            ),
+          ),
+          if (widget.lists.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Text(
+                'Aucune liste personnelle.',
+                style: TextStyle(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.5),
+                ),
+              ),
+            )
+          else
+            ...widget.lists.map((list) {
+              final isInList = _containingIds.contains(list.id);
+              final gradientColors = list.gradientColors;
+              return ListTile(
+                leading: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(colors: gradientColors),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(list.icon, size: 18, color: Colors.white),
+                ),
+                title: Text(list.title),
+                trailing: Icon(
+                  isInList ? Icons.check_circle : Icons.circle_outlined,
+                  color: isInList ? AppColors.primary : null,
+                ),
+                onTap: () => _toggleList(list),
+              );
+            }),
+          const Divider(),
+          ListTile(
+            leading: Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.add, size: 18, color: AppColors.primary),
+            ),
+            title: const Text(
+              'Créer une nouvelle liste',
+              style: TextStyle(color: AppColors.primary),
+            ),
+            onTap: _createNewList,
+          ),
+          const SizedBox(height: 8),
+        ],
+      ),
+    );
   }
 }

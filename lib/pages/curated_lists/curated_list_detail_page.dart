@@ -5,8 +5,12 @@ import '../../services/curated_lists_service.dart';
 import '../../services/google_books_service.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../models/user_custom_list.dart';
+import '../../services/books_service.dart';
+import '../../services/user_custom_lists_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/cached_book_cover.dart';
+import 'create_custom_list_dialog.dart';
 
 class CuratedListDetailPage extends StatefulWidget {
   final CuratedList list;
@@ -20,6 +24,8 @@ class CuratedListDetailPage extends StatefulWidget {
 class _CuratedListDetailPageState extends State<CuratedListDetailPage> {
   final _curatedService = CuratedListsService();
   final _googleBooksService = GoogleBooksService();
+  final _booksService = BooksService();
+  final _customListsService = UserCustomListsService();
 
   bool _isLoading = true;
   bool _isSaved = false;
@@ -342,6 +348,44 @@ class _CuratedListDetailPageState extends State<CuratedListDetailPage> {
                             ),
                           ),
                         ],
+                        const SizedBox(height: 12),
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.pop(context);
+                            _showAddToListSheet(entry, googleBook);
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFF6B35)
+                                  .withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: const Color(0xFFFF6B35)
+                                    .withValues(alpha: 0.3),
+                              ),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  LucideIcons.listPlus,
+                                  size: 14,
+                                  color: Color(0xFFFF6B35),
+                                ),
+                                SizedBox(width: 4),
+                                Text(
+                                  'Ajouter à une liste',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Color(0xFFFF6B35),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -426,6 +470,42 @@ class _CuratedListDetailPageState extends State<CuratedListDetailPage> {
         ),
       ),
     );
+  }
+
+  void _showAddToListSheet(CuratedBookEntry entry, GoogleBook googleBook) async {
+    // Trouver ou créer le livre dans la base sans l'ajouter à la bibliothèque
+    try {
+      final book = await _booksService.findOrCreateBook(googleBook);
+
+      final results = await Future.wait([
+        _customListsService.getUserLists(),
+        _customListsService.getListIdsContainingBook(book.id),
+      ]);
+
+      final lists = results[0] as List<UserCustomList>;
+      final containingIds = results[1] as Set<int>;
+
+      if (!mounted) return;
+
+      showModalBottomSheet(
+        context: context,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        builder: (context) => _CuratedAddToListSheet(
+          lists: lists,
+          containingIds: containingIds,
+          bookId: book.id,
+          service: _customListsService,
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur : $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 
   Future<void> _openNearbyBookstores(BuildContext parentContext) async {
@@ -880,6 +960,176 @@ class _BookCover extends StatelessWidget {
         Icons.book,
         size: 20,
         color: gradientColor.withValues(alpha: 0.4),
+      ),
+    );
+  }
+}
+
+class _CuratedAddToListSheet extends StatefulWidget {
+  final List<UserCustomList> lists;
+  final Set<int> containingIds;
+  final int bookId;
+  final UserCustomListsService service;
+
+  const _CuratedAddToListSheet({
+    required this.lists,
+    required this.containingIds,
+    required this.bookId,
+    required this.service,
+  });
+
+  @override
+  State<_CuratedAddToListSheet> createState() => _CuratedAddToListSheetState();
+}
+
+class _CuratedAddToListSheetState extends State<_CuratedAddToListSheet> {
+  late Set<int> _containingIds;
+
+  @override
+  void initState() {
+    super.initState();
+    _containingIds = Set<int>.from(widget.containingIds);
+  }
+
+  Future<void> _toggleList(UserCustomList list) async {
+    final wasInList = _containingIds.contains(list.id);
+    setState(() {
+      if (wasInList) {
+        _containingIds.remove(list.id);
+      } else {
+        _containingIds.add(list.id);
+      }
+    });
+
+    try {
+      if (wasInList) {
+        await widget.service.removeBookFromList(list.id, widget.bookId);
+      } else {
+        await widget.service.addBookToList(list.id, widget.bookId);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          if (wasInList) {
+            _containingIds.add(list.id);
+          } else {
+            _containingIds.remove(list.id);
+          }
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur : $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  Future<void> _createNewList() async {
+    Navigator.pop(context);
+    final result = await showCreateCustomListSheet(context);
+    if (result != null) {
+      try {
+        await widget.service.addBookToList(result.id, widget.bookId);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Ajouté à "${result.title}"'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        debugPrint('Erreur ajout à nouvelle liste: $e');
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(
+              'Ajouter à une liste',
+              style: Theme.of(context)
+                  .textTheme
+                  .titleMedium
+                  ?.copyWith(fontWeight: FontWeight.bold),
+            ),
+          ),
+          if (widget.lists.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Text(
+                'Aucune liste personnelle.',
+                style: TextStyle(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.5),
+                ),
+              ),
+            )
+          else
+            ...widget.lists.map((list) {
+              final isInList = _containingIds.contains(list.id);
+              final gradientColors = list.gradientColors;
+              return ListTile(
+                leading: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(colors: gradientColors),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(list.icon, size: 18, color: Colors.white),
+                ),
+                title: Text(list.title),
+                trailing: Icon(
+                  isInList ? Icons.check_circle : Icons.circle_outlined,
+                  color: isInList ? const Color(0xFFFF6B35) : null,
+                ),
+                onTap: () => _toggleList(list),
+              );
+            }),
+          const Divider(),
+          ListTile(
+            leading: Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: const Color(0xFFFF6B35).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(LucideIcons.plus,
+                  size: 18, color: Color(0xFFFF6B35)),
+            ),
+            title: const Text(
+              'Créer une nouvelle liste',
+              style: TextStyle(color: Color(0xFFFF6B35)),
+            ),
+            onTap: _createNewList,
+          ),
+          const SizedBox(height: 8),
+        ],
       ),
     );
   }

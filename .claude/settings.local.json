@@ -60,7 +60,10 @@
       "Bash(pip3 install:*)",
       "Bash(brew install:*)",
       "Bash(/tmp/svg_convert/bin/pip install:*)",
-      "Bash(/tmp/svg_convert/bin/python3:*)"
+      "Bash(/tmp/svg_convert/bin/python3:*)",
+      "Bash(pip3 list:*)",
+      "Bash(npx --yes resvg-cli:*)",
+      "Bash(npx resvg-cli:*)"
     ]
   }
 }
