@@ -63,7 +63,10 @@
       "Bash(/tmp/svg_convert/bin/python3:*)",
       "Bash(pip3 list:*)",
       "Bash(npx --yes resvg-cli:*)",
-      "Bash(npx resvg-cli:*)"
+      "Bash(npx resvg-cli:*)",
+      "Bash(pip3 show:*)",
+      "Bash(ipconfig getifaddr:*)",
+      "Bash(ipconfig:*)"
     ]
   }
 }

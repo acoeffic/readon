@@ -8,8 +8,8 @@ import 'providers/subscription_provider.dart';
 import 'providers/locale_provider.dart';
 import 'services/monthly_notification_service.dart';
 
-class LexstaApp extends StatelessWidget {
-  const LexstaApp({super.key});
+class LexDayApp extends StatelessWidget {
+  const LexDayApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -23,7 +23,7 @@ class LexstaApp extends StatelessWidget {
         builder: (context, themeProvider, localeProvider, _) {
           return MaterialApp(
             navigatorKey: MonthlyNotificationService.navigatorKey,
-            title: 'Lexsta',
+            title: 'LexDay',
             debugShowCheckedModeBanner: false,
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,

@@ -284,8 +284,8 @@ class _ContactsSuggestionPageState extends State<ContactsSuggestionPage>
               const SizedBox(height: AppSpace.m),
               Text(
                 _matchedUsers.isEmpty
-                    ? 'Aucun contact n\'utilise encore Lexsta'
-                    : '${_matchedUsers.length} ami${_matchedUsers.length > 1 ? 's' : ''} trouvé${_matchedUsers.length > 1 ? 's' : ''} sur Lexsta',
+                    ? 'Aucun contact n\'utilise encore LexDay'
+                    : '${_matchedUsers.length} ami${_matchedUsers.length > 1 ? 's' : ''} trouvé${_matchedUsers.length > 1 ? 's' : ''} sur LexDay',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 20,
@@ -296,7 +296,7 @@ class _ContactsSuggestionPageState extends State<ContactsSuggestionPage>
               if (_matchedUsers.isEmpty) ...[
                 const SizedBox(height: AppSpace.s),
                 Text(
-                  'Invite tes amis à rejoindre Lexsta !',
+                  'Invite tes amis à rejoindre LexDay !',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 14,

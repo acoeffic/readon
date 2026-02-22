@@ -1,7 +1,11 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
 import '../../monthly_wrapped_data.dart';
 import '../../../share/monthly_share_service.dart';
 import '../../../share/share_format.dart';
+import '../../../../../services/readon_sync_service.dart';
 import '../fade_up_animation.dart';
 
 /// Slide 4 – Conclusion message + mini-stats + share button + direct app links.
@@ -18,9 +22,47 @@ class ShareSlide extends StatefulWidget {
 class _ShareSlideState extends State<ShareSlide> {
   final _service = MonthlyShareService();
   String? _loadingAction; // tracks which action is in progress
+  File? _videoFile;
+  bool _hasVideo = false;
 
   MonthlyWrappedData get data => widget.data;
   MonthTheme get theme => widget.theme;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadVideoAsset();
+  }
+
+  /// Try to fetch the pre-rendered video from readon-sync (background).
+  Future<void> _loadVideoAsset() async {
+    try {
+      final assets = await ReadonSyncService.getMonthlyWrappedShareAssets(
+        data.month,
+        data.year,
+      );
+      if (!mounted) return;
+
+      if (assets.hasVideo) {
+        final videoResponse = await http.get(Uri.parse(assets.videoUrl!));
+        if (videoResponse.statusCode == 200 && mounted) {
+          final dir = await getTemporaryDirectory();
+          final file = File(
+            '${dir.path}/lexday_wrapped_${data.year}_${data.month}.mp4',
+          );
+          await file.writeAsBytes(videoResponse.bodyBytes);
+          if (mounted) {
+            setState(() {
+              _videoFile = file;
+              _hasVideo = true;
+            });
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('ShareSlide video fetch error: $e');
+    }
+  }
 
   // ---------------------------------------------------------------------------
   // Share actions
@@ -32,7 +74,7 @@ class _ShareSlideState extends State<ShareSlide> {
     return box.localToGlobal(Offset.zero) & box.size;
   }
 
-  /// Big button — opens native share sheet with story format.
+  /// Big button — opens native share sheet with video (or image fallback).
   Future<void> _shareGeneric() async {
     if (_loadingAction != null) return;
     setState(() => _loadingAction = 'generic');
@@ -52,6 +94,7 @@ class _ShareSlideState extends State<ShareSlide> {
         imageBytes: bytes,
         year: data.year,
         month: data.month,
+        videoFile: _hasVideo ? _videoFile : null,
         sharePositionOrigin: _shareOrigin(),
       );
     } catch (_) {}
@@ -79,6 +122,7 @@ class _ShareSlideState extends State<ShareSlide> {
         urlScheme: urlScheme,
         year: data.year,
         month: data.month,
+        videoFile: _hasVideo ? _videoFile : null,
         webFallbackUrl: webFallbackUrl,
         sharePositionOrigin: _shareOrigin(),
       );
@@ -93,7 +137,7 @@ class _ShareSlideState extends State<ShareSlide> {
     _reset();
   }
 
-  /// Copies the image via the native share sheet.
+  /// Copies the image/video via the native share sheet.
   Future<void> _shareCopy() async {
     if (_loadingAction != null) return;
     setState(() => _loadingAction = 'copier');
@@ -113,6 +157,7 @@ class _ShareSlideState extends State<ShareSlide> {
         imageBytes: bytes,
         year: data.year,
         month: data.month,
+        videoFile: _hasVideo ? _videoFile : null,
         sharePositionOrigin: _shareOrigin(),
       );
     } catch (e) {

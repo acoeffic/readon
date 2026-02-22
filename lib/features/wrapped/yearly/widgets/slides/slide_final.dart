@@ -136,7 +136,7 @@ class SlideFinal extends StatelessWidget {
   }
 
   String get _shareText =>
-      'Mon Wrapped ${data.year} sur Lexsta :\n'
+      'Mon Wrapped ${data.year} sur LexDay :\n'
       '${data.formattedTotalTime} de lecture\n'
       '${data.booksFinished} livres termines\n'
       '${data.bestFlow} jours de flow !\n'

@@ -35,9 +35,9 @@ class FlowCard extends StatelessWidget {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
 
-    // Calculer le début de la semaine (dimanche)
-    final daysSinceSunday = now.weekday % 7; // 0 = dimanche
-    final weekStart = today.subtract(Duration(days: daysSinceSunday));
+    // Calculer le début de la semaine (lundi)
+    final daysSinceMonday = now.weekday - 1; // 0 = lundi
+    final weekStart = today.subtract(Duration(days: daysSinceMonday));
 
     // Générer les 7 jours de la semaine
     final weekDays = List.generate(7, (index) {
@@ -57,14 +57,7 @@ class FlowCard extends StatelessWidget {
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(8),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                const Color(0xFF2C3E50).withValues(alpha:0.7),
-                const Color(0xFF34495E).withValues(alpha:0.7),
-              ],
-            ),
+            color: const Color(0xFF1E2D45),
           ),
           child: Column(
             children: [
@@ -155,7 +148,7 @@ class FlowCard extends StatelessWidget {
               // Labels des jours
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: ['D', 'L', 'M', 'M', 'J', 'V', 'S']
+                children: ['L', 'M', 'M', 'J', 'V', 'S', 'D']
                     .map((day) => SizedBox(
                           width: 24,
                           child: Text(

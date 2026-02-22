@@ -1,5 +1,5 @@
 // lib/pages/profile/upgrade_page.dart
-// Page paywall pour s'abonner à Lexsta Premium
+// Page paywall pour s'abonner à LexDay Premium
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -81,7 +81,7 @@ class _UpgradePageState extends State<UpgradePage> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Bienvenue dans Lexsta Premium !'),
+              content: Text('Bienvenue dans LexDay Premium !'),
               backgroundColor: Colors.green,
             ),
           );
@@ -154,7 +154,7 @@ class _UpgradePageState extends State<UpgradePage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const BackHeader(
-                title: 'Lexsta Premium',
+                title: 'LexDay Premium',
                 titleColor: AppColors.primary,
               ),
               const SizedBox(height: AppSpace.xl),

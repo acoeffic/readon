@@ -21,19 +21,19 @@ import { getMonthTheme, getMonthName } from '../../shared/month-themes';
 // MonthlyWrappedShareCard with month-specific themes and progressive
 // element reveal.
 //
-// 450 frames (15s @ 30fps). Animation timeline:
-//   0-20:   Card container fades in
-//   5-25:   "LEXDAY WRAPPED" header fades in
-//  15-35:   Emoji bounces in (spring)
-//  25-55:   Month name reveals
-//  35-55:   Year fades in
-//  55-65:   Accent line grows
-//  70-130:  Stats 2x2 grid (staggered)
-// 140-175:  Top book card slides in
-// 180-210:  VS last month fades in
-// 220-250:  Footer
-// 250-420:  Hold
-// 420-450:  Glow pulse
+// 180 frames (6s @ 30fps). Animation timeline:
+//   0-8:    Card container fades in
+//   2-10:   "LEXDAY WRAPPED" header fades in
+//   6-14:   Emoji bounces in (spring)
+//  10-22:   Month name reveals
+//  14-22:   Year fades in
+//  22-26:   Accent line grows
+//  28-52:   Stats 2x2 grid (staggered)
+//  56-70:   Top book card slides in
+//  72-84:   VS last month fades in
+//  88-100:  Footer
+// 100-168:  Hold
+// 168-180:  Glow pulse
 // ──────────────────────────────────────────────────────────────────────
 
 function formatTime(minutes: number): string {
@@ -94,13 +94,13 @@ export const MonthlyWrapped: React.FC<MonthlyWrappedInput> = (props) => {
 
   // Emoji spring
   const emojiSpring = spring({
-    frame: frame - 15,
+    frame: frame - 6,
     fps,
     config: { damping: 12, stiffness: 200 },
   });
 
   // Animated counters
-  const counterProgress = anim(frame, 75, 125);
+  const counterProgress = anim(frame, 30, 50);
   const animatedMinutes = Math.round(totalMinutes * counterProgress);
   const animatedSessions = Math.round(sessions * counterProgress);
   const animatedBooks = Math.round(booksFinished * counterProgress);
@@ -108,12 +108,12 @@ export const MonthlyWrapped: React.FC<MonthlyWrappedInput> = (props) => {
 
   // End glow
   const endGlow =
-    frame > 420 ? 0.04 + Math.sin((frame - 420) * 0.15) * 0.03 : 0;
+    frame > 168 ? 0.04 + Math.sin((frame - 168) * 0.15) * 0.03 : 0;
 
-  // Audio volume: fade-in 0→0.3 over first 30 frames, fade-out 0.3→0 over last 30 frames
+  // Audio volume: fade-in 0→0.3 over first 15 frames, fade-out 0.3→0 over last 15 frames
   const musicVolume = (f: number) => {
-    const fadeIn = interpolate(f, [0, 30], [0, 0.3], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
-    const fadeOut = interpolate(f, [420, 450], [0.3, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
+    const fadeIn = interpolate(f, [0, 15], [0, 0.3], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
+    const fadeOut = interpolate(f, [165, 180], [0.3, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
     return Math.min(fadeIn, fadeOut);
   };
 
@@ -139,7 +139,7 @@ export const MonthlyWrapped: React.FC<MonthlyWrappedInput> = (props) => {
             borderRadius: 24,
             overflow: 'hidden',
             position: 'relative',
-            opacity: anim(frame, 0, 20),
+            opacity: anim(frame, 0, 8),
             background: `radial-gradient(ellipse 120% 120% at 50% ${isStory ? '25%' : '35%'}, ${theme.gradientColors[1]}, ${theme.gradientColors[0]})`,
             border: `1px solid ${accent}14`,
             boxSizing: 'border-box',
@@ -272,20 +272,20 @@ const StoryContent: React.FC<StoryProps> = ({
   previousMonthName,
   emojiSpring,
 }) => {
-  const headerOpacity = anim(frame, 5, 25);
-  const monthOpacity = anim(frame, 25, 45);
-  const monthScale = anim(frame, 25, 45, [0.8, 1]);
-  const yearOpacity = anim(frame, 35, 55);
-  const lineWidth = anim(frame, 55, 70, [0, 50]);
-  const stat1 = anim(frame, 70, 90);
-  const stat2 = anim(frame, 80, 100);
-  const stat3 = anim(frame, 90, 110);
-  const stat4 = anim(frame, 100, 120);
-  const bookOpacity = anim(frame, 140, 165);
-  const bookY = anim(frame, 140, 165, [15, 0]);
-  const vsOpacity = anim(frame, 180, 205);
-  const footerLineWidth = anim(frame, 220, 240, [0, 30]);
-  const footerOpacity = anim(frame, 230, 250);
+  const headerOpacity = anim(frame, 2, 10);
+  const monthOpacity = anim(frame, 10, 18);
+  const monthScale = anim(frame, 10, 18, [0.8, 1]);
+  const yearOpacity = anim(frame, 14, 22);
+  const lineWidth = anim(frame, 22, 28, [0, 50]);
+  const stat1 = anim(frame, 28, 38);
+  const stat2 = anim(frame, 32, 42);
+  const stat3 = anim(frame, 36, 46);
+  const stat4 = anim(frame, 40, 50);
+  const bookOpacity = anim(frame, 56, 68);
+  const bookY = anim(frame, 56, 68, [15, 0]);
+  const vsOpacity = anim(frame, 72, 84);
+  const footerLineWidth = anim(frame, 88, 96, [0, 30]);
+  const footerOpacity = anim(frame, 92, 100);
 
   return (
     <div
@@ -540,14 +540,14 @@ const SquareContent: React.FC<SquareProps> = ({
   topBook,
   emojiSpring,
 }) => {
-  const headerOpacity = anim(frame, 5, 25);
-  const stat1 = anim(frame, 40, 60);
-  const stat2 = anim(frame, 48, 68);
-  const stat3 = anim(frame, 56, 76);
-  const stat4 = anim(frame, 64, 84);
-  const bookOpacity = anim(frame, 100, 125);
-  const flowOpacity = anim(frame, 110, 135);
-  const footerOpacity = anim(frame, 150, 170);
+  const headerOpacity = anim(frame, 2, 10);
+  const stat1 = anim(frame, 16, 26);
+  const stat2 = anim(frame, 20, 30);
+  const stat3 = anim(frame, 24, 34);
+  const stat4 = anim(frame, 28, 38);
+  const bookOpacity = anim(frame, 42, 54);
+  const flowOpacity = anim(frame, 48, 60);
+  const footerOpacity = anim(frame, 68, 78);
 
   return (
     <div

@@ -28,7 +28,7 @@ class SlideEvolution extends StatelessWidget {
               colors: [YearlyColors.cream, YearlyColors.gold],
             ).createShader(bounds),
             child: Text(
-              'Ta premiere annee\nsur Lexsta !',
+              'Ta premiere annee\nsur LexDay !',
               textAlign: TextAlign.center,
               style: GoogleFonts.libreBaskerville(
                 fontSize: 22,

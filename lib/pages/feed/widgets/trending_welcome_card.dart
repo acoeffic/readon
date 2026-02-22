@@ -40,7 +40,7 @@ class TrendingWelcomeCard extends StatelessWidget {
         child: Column(
           children: [
             Text(
-              '📚 Tendances sur Lexsta',
+              '📚 Tendances sur LexDay',
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                     fontSize: 18,

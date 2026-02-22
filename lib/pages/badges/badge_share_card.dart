@@ -67,6 +67,45 @@ Widget _buildBadgeIcon(UserBadge badge, {required double size}) {
   if (isBibliophileBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
     return BibliophileBadge(size: size);
   }
+  if (isOneHourMagicBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return OneHourMagicBadge(size: size);
+  }
+  if (isSundayReaderBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return SundayReaderBadge(size: size);
+  }
+  if (isPassionateBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return PassionateBadge(size: size);
+  }
+  if (isCenturionBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return CenturionBadge(size: size);
+  }
+  if (isMarathonBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return MarathonBadge(size: size);
+  }
+  if (isHalfMillenniumBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return HalfMillenniumBadge(size: size);
+  }
+  if (isMillenniumBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return MillenniumBadge(size: size);
+  }
+  if (isClubFounderBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return ClubFounderBadge(size: size);
+  }
+  if (isClubLeaderBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return ClubLeaderBadge(size: size);
+  }
+  if (isResidentBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return ResidentBadge(size: size);
+  }
+  if (isHabitueBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return HabitueBadge(size: size);
+  }
+  if (isPilierBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return PilierBadge(size: size);
+  }
+  if (isMonumentBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return MonumentBadge(size: size);
+  }
 
   // Fallback: emoji in a circle
   final color = _badgeColor(badge);
@@ -195,7 +234,7 @@ class _StoryCard extends StatelessWidget {
 
                     // Footer
                     Text(
-                      'Suis ma lecture sur lexsta.app',
+                      'Suis ma lecture sur lexday.app',
                       style: GoogleFonts.jetBrainsMono(
                         fontSize: 10,
                         color: Colors.white.withValues(alpha: 0.35),
@@ -315,7 +354,7 @@ class _SquareCard extends StatelessWidget {
 
                     const Spacer(),
                     Text(
-                      'Suis ma lecture sur lexsta.app',
+                      'Suis ma lecture sur lexday.app',
                       style: GoogleFonts.jetBrainsMono(
                         fontSize: 9,
                         color: Colors.white.withValues(alpha: 0.35),

@@ -28,70 +28,67 @@ import '../../reading/book_completed_summary_page.dart';
 // Color constants for the book-finished card (light / dark)
 // ---------------------------------------------------------------------------
 class _BFColors {
-  static const bgLight = Color(0xFFE8EFF8);
-  static const bgDark = Color(0xFF0D1520);
+  static const bgLight = Color(0xFFE8F0EC);
+  static const bgDark = Color(0xFF0D1A16);
 
   // Border conic-gradient
   static const borderColors = [
-    Color(0xFF4A90D9),
-    Color(0xFF7EB8E8),
-    Color(0xFFB8D4F0),
-    Color(0xFF4A90D9),
-    Color(0xFF2E6BB0),
-    Color(0xFF7EB8E8),
-    Color(0xFF4A90D9),
+    Color(0xFF3D5C55),
+    Color(0xFF5A8A7E),
+    Color(0xFF7EB0A2),
+    Color(0xFF3D5C55),
+    Color(0xFF2A4038),
+    Color(0xFF5A8A7E),
+    Color(0xFF3D5C55),
   ];
   static const borderOpacityLight = 0.25;
   static const borderOpacityDark = 0.15;
 
   // Text
-  static const titleLight = Color(0xFF1A2A40);
-  static const titleDark = Color(0xFFF0F4F8);
-  static const authorLight = Color(0xFF7A94B0);
-  static const authorDark = Color(0xFF4D6A88);
+  static const titleLight = Color(0xFF1A2D28);
+  static const titleDark = Color(0xFFE5F0EC);
+  // Badge "Livre terminé" — doré lumineux
+  static const badgeTextLight = Color(0xFFB8923A);
+  static const badgeTextDark = Color(0xFFE8C878);
 
-  // Badge "Livre terminé"
-  static const badgeTextLight = Color(0xFF2E6BB0);
-  static const badgeTextDark = Color(0xFF7EB8E8);
+  // Stat pills — accents dorés
+  static const pillBgLight = Color(0x99FFFFFF);
+  static const pillBgDark = Color(0xFF0D1A16);
+  static const pillBorderLight = Color(0x1FD4A855);
+  static const pillBorderDark = Color(0xFF2A2010);
+  static const pillValueLight = Color(0xFF1A2D28);
+  static const pillValueDark = Color(0xFFC0D8D0);
+  static const pillLabelLight = Color(0xFF8A7A5A);
+  static const pillLabelDark = Color(0xFF6D5A3A);
 
-  // Stat pills
-  static const pillBgLight = Color(0x99FFFFFF); // rgba(255,255,255,0.6)
-  static const pillBgDark = Color(0xFF0A1219);
-  static const pillBorderLight = Color(0x1F4A90D9); // rgba(74,144,217,0.12)
-  static const pillBorderDark = Color(0xFF1A2A3E);
-  static const pillValueLight = Color(0xFF1A2A40);
-  static const pillValueDark = Color(0xFFC8D8E8);
-  static const pillLabelLight = Color(0xFF8A9BB5);
-  static const pillLabelDark = Color(0xFF3D5570);
-
-  // Cover glow
-  static const glowStartLight = Color(0xFFD6E4F0);
-  static const glowEndLight = Color(0xFFC0D4EA);
-  static const glowStartDark = Color(0xFF1A2A40);
-  static const glowEndDark = Color(0xFF0F1C2E);
+  // Cover glow — doré
+  static const glowStartLight = Color(0xFFE8DCC0);
+  static const glowEndLight = Color(0xFFD8C8A0);
+  static const glowStartDark = Color(0xFF2A2010);
+  static const glowEndDark = Color(0xFF1A1408);
 
   // Checkmark border matches card bg
   static const checkBorderLight = bgLight;
   static const checkBorderDark = bgDark;
 
   // Like
-  static const likeActiveLight = Color(0xFF2E6BB0);
-  static const likeActiveDark = Color(0xFF4A90D9);
-  static const likeActiveBgLight = Color(0x1F4A90D9);
-  static const likeActiveBgDark = Color(0x1F4A90D9);
+  static const likeActiveLight = Color(0xFF2A4038);
+  static const likeActiveDark = Color(0xFF3D5C55);
+  static const likeActiveBgLight = Color(0x1F3D5C55);
+  static const likeActiveBgDark = Color(0x1F3D5C55);
   static const likeInactiveBgLight = Color(0x99FFFFFF);
-  static const likeInactiveBgDark = Color(0xFF0A1219);
+  static const likeInactiveBgDark = Color(0xFF0D1A16);
 
   // Secondary text (timestamp etc.)
-  static const secondaryLight = Color(0xFF8A9BB5);
-  static const secondaryDark = Color(0xFF3D5570);
+  static const secondaryLight = Color(0xFF5A7A70);
+  static const secondaryDark = Color(0xFF3A5A50);
 
   // Particles
   static const particleColors = [
-    Color(0xFF4A90D9),
-    Color(0xFF7EB8E8),
-    Color(0xFFB8D4F0),
-    Color(0xFF2E6BB0),
+    Color(0xFF3D5C55),
+    Color(0xFF5A8A7E),
+    Color(0xFF7EB0A2),
+    Color(0xFF2A4038),
     Color(0xFFFFFFFF),
   ];
 }
@@ -580,6 +577,26 @@ class _BookFinishedCardState extends State<BookFinishedCard>
                   child: _FloatingParticlesWidget(isDark: isDark),
                 ),
 
+                // Subtle golden halo at top
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: 120,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: RadialGradient(
+                        center: const Alignment(0, -1),
+                        radius: 1.2,
+                        colors: [
+                          const Color(0xFFD4A855).withValues(alpha: isDark ? 0.08 : 0.12),
+                          Colors.transparent,
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
                 // Main content
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
@@ -659,15 +676,37 @@ class _BookFinishedCardState extends State<BookFinishedCard>
                                     ),
                                   ),
 
-                                  // Book cover
-                                  CachedBookCover(
-                                    imageUrl: _bookCover,
-                                    width: 100,
-                                    height: 150,
-                                    borderRadius: BorderRadius.circular(12),
+                                  // Book cover with golden spine
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Container(
+                                        width: 4,
+                                        height: 140,
+                                        decoration: BoxDecoration(
+                                          borderRadius: BorderRadius.circular(2),
+                                          gradient: const LinearGradient(
+                                            begin: Alignment.topCenter,
+                                            end: Alignment.bottomCenter,
+                                            colors: [
+                                              Color(0xFFE8C878),
+                                              Color(0xFFD4A855),
+                                              Color(0xFFB8923A),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 2),
+                                      CachedBookCover(
+                                        imageUrl: _bookCover,
+                                        width: 100,
+                                        height: 150,
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ],
                                   ),
 
-                                  // Checkmark
+                                  // Checkmark — doré
                                   Positioned(
                                     top: 2,
                                     right: 6,
@@ -675,7 +714,7 @@ class _BookFinishedCardState extends State<BookFinishedCard>
                                       width: 28,
                                       height: 28,
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFF4A90D9),
+                                        color: const Color(0xFFD4A855),
                                         shape: BoxShape.circle,
                                         border: Border.all(
                                           color: isDark
@@ -715,6 +754,14 @@ class _BookFinishedCardState extends State<BookFinishedCard>
                               ),
 
                             if (_bookAuthor != null) ...[
+                              const SizedBox(height: 8),
+                              Text(
+                                '◆',
+                                style: TextStyle(
+                                  fontSize: 8,
+                                  color: const Color(0xFFD4A855).withValues(alpha: 0.5),
+                                ),
+                              ),
                               const SizedBox(height: 6),
                               Text(
                                 _bookAuthor!,
@@ -722,8 +769,8 @@ class _BookFinishedCardState extends State<BookFinishedCard>
                                   fontSize: 14,
                                   fontStyle: FontStyle.italic,
                                   color: isDark
-                                      ? _BFColors.authorDark
-                                      : _BFColors.authorLight,
+                                      ? const Color(0xFFE8C878)
+                                      : const Color(0xFFB8923A),
                                 ),
                                 textAlign: TextAlign.center,
                                 maxLines: 1,
@@ -795,8 +842,8 @@ class _BookFinishedCardState extends State<BookFinishedCard>
             userName: userName,
             radius: 22,
             backgroundColor:
-                const Color(0xFF4A90D9).withValues(alpha: 0.15),
-            textColor: const Color(0xFF4A90D9),
+                const Color(0xFF3D5C55).withValues(alpha: 0.15),
+            textColor: const Color(0xFF3D5C55),
           ),
         ),
         const SizedBox(width: 10),
@@ -1312,7 +1359,7 @@ class _ActivityDetailsSheet extends StatelessWidget {
                   icon: Icons.menu_book,
                   value: '${pagesRead ?? 0}',
                   label: 'pages',
-                  color: const Color(0xFF4A90D9),
+                  color: const Color(0xFF3D5C55),
                 ),
               ),
               const SizedBox(width: 12),
@@ -1323,7 +1370,7 @@ class _ActivityDetailsSheet extends StatelessWidget {
                       ? '${durationMinutes.round()}min'
                       : '-',
                   label: 'durée',
-                  color: const Color(0xFF4A90D9),
+                  color: const Color(0xFF3D5C55),
                 ),
               ),
             ],

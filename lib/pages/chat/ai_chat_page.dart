@@ -6,7 +6,7 @@ import '../../theme/app_theme.dart';
 import '../../models/ai_message.dart';
 import '../../models/feature_flags.dart';
 import '../../services/books_service.dart';
-import '../../services/chat_service.dart';
+import '../../services/chat_service.dart' show ChatService, ChatLimitReachedException;
 import '../../services/google_books_service.dart';
 import '../../services/user_custom_lists_service.dart';
 import '../../models/user_custom_list.dart';
@@ -136,6 +136,17 @@ class _AiChatPageState extends State<AiChatPage> {
         _scrollToBottom();
         _loadMessageQuota();
       }
+    } on ChatLimitReachedException {
+      if (mounted) {
+        setState(() {
+          _isSending = false;
+          _limitReached = true;
+          _remainingMessages = 0;
+          if (_messages.isNotEmpty && _messages.last.role == 'user') {
+            _messages.removeLast();
+          }
+        });
+      }
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -174,24 +185,26 @@ class _AiChatPageState extends State<AiChatPage> {
             Expanded(
               child: _loadingHistory
                   ? const Center(child: CircularProgressIndicator())
-                  : _messages.isEmpty
-                      ? _buildEmptyState(context)
-                      : ListView.builder(
-                          controller: _scrollController,
-                          padding: const EdgeInsets.all(AppSpace.m),
-                          itemCount: _messages.length + (_isSending ? 1 : 0),
-                          itemBuilder: (context, index) {
-                            if (index == _messages.length) {
-                              return _buildTypingIndicator(isDark);
-                            }
-                            return _buildMessageBubble(
-                                _messages[index], isDark);
-                          },
-                        ),
+                  : _limitReached && _messages.isEmpty
+                      ? _buildLimitReachedState(context)
+                      : _messages.isEmpty
+                          ? _buildEmptyState(context)
+                          : ListView.builder(
+                              controller: _scrollController,
+                              padding: const EdgeInsets.all(AppSpace.m),
+                              itemCount: _messages.length + (_isSending ? 1 : 0),
+                              itemBuilder: (context, index) {
+                                if (index == _messages.length) {
+                                  return _buildTypingIndicator(isDark);
+                                }
+                                return _buildMessageBubble(
+                                    _messages[index], isDark);
+                              },
+                            ),
             ),
-            if (!_isPremium) _buildMessageCounter(),
+            if (!_isPremium && !_limitReached) _buildMessageCounter(),
             if (_error != null) _buildErrorBanner(),
-            if (_limitReached) _buildUpgradeBanner(isDark) else _buildInputBar(isDark),
+            if (!_limitReached) _buildInputBar(isDark),
           ],
         ),
       ),
@@ -276,6 +289,90 @@ class _AiChatPageState extends State<AiChatPage> {
                 _buildSuggestionChip('Un livre similaire à mon dernier'),
                 _buildSuggestionChip('Un classique à découvrir'),
               ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLimitReachedState(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(AppSpace.xl),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.auto_awesome,
+              size: 64,
+              color: AppColors.primary.withValues(alpha: 0.5),
+            ),
+            const SizedBox(height: AppSpace.l),
+            Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpace.l,
+                vertical: AppSpace.m,
+              ),
+              decoration: BoxDecoration(
+                color: isDark ? AppColors.surfaceDark : Colors.white,
+                borderRadius: BorderRadius.circular(AppRadius.l),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 4,
+                    offset: const Offset(0, 1),
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  Text(
+                    'Tu as utilisé tes ${FeatureFlags.maxFreeAiMessages} messages gratuits ce mois-ci',
+                    style: TextStyle(
+                      color: isDark ? AppColors.textPrimaryDark : Colors.black87,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      height: 1.4,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: AppSpace.s),
+                  Text(
+                    'Abonne-toi pour discuter sans limite avec Muse !',
+                    style: TextStyle(
+                      color: isDark ? AppColors.textSecondaryDark : Colors.black54,
+                      fontSize: 14,
+                      height: 1.4,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppSpace.l),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const UpgradePage(highlightedFeature: Feature.aiChat),
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppRadius.pill),
+                  ),
+                ),
+                child: const Text(
+                  'Découvrir l\'abonnement',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                ),
+              ),
             ),
           ],
         ),
@@ -640,7 +737,7 @@ class _AiChatPageState extends State<AiChatPage> {
                           '${googleBook.title} ${googleBook.authorsString}'.trim(),
                         );
                         launchUrl(
-                          Uri.parse('https://www.amazon.fr/s?k=$query&i=stripbooks'),
+                          Uri.parse('https://www.amazon.fr/s?k=$query&i=stripbooks&tag=lexday-21'),
                           mode: LaunchMode.externalApplication,
                         );
                       },
@@ -854,48 +951,6 @@ class _AiChatPageState extends State<AiChatPage> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildUpgradeBanner(bool isDark) {
-    return GestureDetector(
-      onTap: () => Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => const UpgradePage(highlightedFeature: Feature.aiChat),
-        ),
-      ),
-      child: Container(
-        padding: const EdgeInsets.all(AppSpace.m),
-        decoration: BoxDecoration(
-          color: AppColors.primary.withValues(alpha: 0.1),
-          border: Border(
-            top: BorderSide(
-              color: AppColors.primary.withValues(alpha: 0.3),
-            ),
-          ),
-        ),
-        child: Row(
-          children: [
-            const Icon(Icons.lock, color: AppColors.primary, size: 20),
-            const SizedBox(width: AppSpace.s),
-            Expanded(
-              child: Text(
-                'Utilisation illimitée du chatbot, abonnez-vous',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-            Icon(
-              Icons.arrow_forward_ios,
-              size: 16,
-              color: AppColors.primary.withValues(alpha: 0.6),
-            ),
-          ],
-        ),
       ),
     );
   }

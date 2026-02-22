@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Lexsta</string>
+	<string>LexDay</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -15,7 +15,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>lexsta</string>
+	<string>LexDay</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -31,18 +31,23 @@
 		<string>twitter</string>
 		<string>linkedin</string>
 	</array>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>Lexsta a besoin d'accéder à votre caméra pour scanner les pages de vos livres et détecter automatiquement les numéros de page.</string>
+	<string>LexDay a besoin d'accéder à votre caméra pour scanner les pages de vos livres et détecter automatiquement les numéros de page.</string>
 	<key>NSContactsUsageDescription</key>
-	<string>Lexsta utilise vos contacts pour trouver vos amis qui utilisent déjà l'application.</string>
+	<string>LexDay utilise vos contacts pour trouver vos amis qui utilisent déjà l'application.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>Lexsta a besoin d'accéder à vos photos pour sauvegarder votre Wrapped.</string>
+	<string>LexDay a besoin d'accéder à vos photos pour sauvegarder votre Wrapped.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Lexsta utilise votre position pour trouver les librairies proches de vous.</string>
+	<string>LexDay utilise votre position pour trouver les librairies proches de vous.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Lexsta a besoin d'accéder à vos photos pour sélectionner des images de pages de livre à analyser.</string>
+	<string>LexDay a besoin d'accéder à vos photos pour sélectionner des images de pages de livre à analyser.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>

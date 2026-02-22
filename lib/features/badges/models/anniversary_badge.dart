@@ -68,7 +68,7 @@ class AnniversaryBadge {
       id: 'anniversary_4',
       name: 'Étoile Littéraire ✨',
       description:
-          'Quatre ans d\'étoiles dans les yeux. Ta constance est remarquable, tu brilles dans la galaxie Lexsta.',
+          'Quatre ans d\'étoiles dans les yeux. Ta constance est remarquable, tu brilles dans la galaxie LexDay.',
       icon: '✨',
       years: 4,
       primaryColor: Color(0xFF7A6FA0),

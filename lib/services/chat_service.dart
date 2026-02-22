@@ -6,6 +6,14 @@ import '../models/ai_message.dart';
 import '../models/feature_flags.dart';
 import 'subscription_service.dart';
 
+/// Exception levée quand l'utilisateur gratuit a atteint sa limite mensuelle.
+class ChatLimitReachedException implements Exception {
+  final String message;
+  const ChatLimitReachedException(this.message);
+  @override
+  String toString() => message;
+}
+
 class ChatService {
   final SupabaseClient _supabase = Supabase.instance.client;
   final SubscriptionService _subscriptionService = SubscriptionService();
@@ -21,9 +29,8 @@ class ChatService {
 
     final count = await getMonthlyMessageCount();
     if (count >= FeatureFlags.maxFreeAiMessages) {
-      throw Exception(
-        'Limite de ${FeatureFlags.maxFreeAiMessages} messages par mois atteinte. '
-        'Abonne-toi pour une utilisation illimitée !',
+      throw const ChatLimitReachedException(
+        'Tu as atteint ta limite de messages gratuits ce mois-ci.',
       );
     }
   }
@@ -78,34 +85,60 @@ class ChatService {
     // Enforce monthly message limit client-side (also enforced server-side)
     await _enforceMessageLimit();
 
-    final response = await _supabase.functions.invoke(
-      'ai-chat',
-      body: {
-        'conversation_id': conversationId,
-        'message': message,
-        'is_new_conversation': isNew,
-      },
-    );
+    try {
+      final response = await _supabase.functions.invoke(
+        'ai-chat',
+        body: {
+          'conversation_id': conversationId,
+          'message': message,
+          'is_new_conversation': isNew,
+        },
+      );
 
-    final data = response.data;
-    if (data is Map<String, dynamic>) {
-      if (data.containsKey('error')) {
-        throw Exception(data['message'] ?? data['error']);
-      }
-      return data;
-    }
-
-    if (data is String) {
-      final decoded = jsonDecode(data);
-      if (decoded is Map<String, dynamic>) {
-        if (decoded.containsKey('error')) {
-          throw Exception(decoded['message'] ?? decoded['error']);
+      final data = response.data;
+      if (data is Map<String, dynamic>) {
+        if (data.containsKey('error')) {
+          _throwFromErrorData(data);
         }
-        return decoded;
+        return data;
       }
-    }
 
-    throw Exception('Réponse inattendue du serveur');
+      if (data is String) {
+        final decoded = jsonDecode(data);
+        if (decoded is Map<String, dynamic>) {
+          if (decoded.containsKey('error')) {
+            _throwFromErrorData(decoded);
+          }
+          return decoded;
+        }
+      }
+
+      throw Exception('Réponse inattendue du serveur');
+    } on FunctionException catch (e) {
+      final details = e.details;
+      if (details is Map<String, dynamic>) {
+        _throwFromErrorData(details);
+      }
+      if (details is String) {
+        try {
+          final decoded = jsonDecode(details);
+          if (decoded is Map<String, dynamic>) {
+            _throwFromErrorData(decoded);
+          }
+        } catch (_) {}
+      }
+      throw Exception('Erreur du serveur');
+    }
+  }
+
+  /// Parse une réponse d'erreur et lève l'exception appropriée.
+  Never _throwFromErrorData(Map<String, dynamic> data) {
+    final errorCode = data['error'] as String?;
+    final message = data['message'] as String? ?? data['error'] as String? ?? 'Erreur inconnue';
+    if (errorCode == 'limit_reached') {
+      throw ChatLimitReachedException(message);
+    }
+    throw Exception(message);
   }
 
   /// Supprimer une conversation

@@ -157,22 +157,22 @@ export const RemotionRoot: React.FC = () => {
         defaultProps={{ ...bookFinishedDefaults, format: 'square' as const }}
       />
 
-      {/* Monthly Wrapped - Story format (9:16) */}
+      {/* Monthly Wrapped - Story format (9:16) – 6 seconds */}
       <Composition
         id="MonthlyWrapped"
         component={MonthlyWrappedComp}
-        durationInFrames={DURATION_15S}
+        durationInFrames={DURATION_6S}
         fps={FPS}
         width={1080}
         height={1920}
         defaultProps={monthlyWrappedDefaults}
       />
 
-      {/* Monthly Wrapped - Square format (1:1) */}
+      {/* Monthly Wrapped - Square format (1:1) – 6 seconds */}
       <Composition
         id="MonthlyWrappedSquare"
         component={MonthlyWrappedComp}
-        durationInFrames={DURATION_15S}
+        durationInFrames={DURATION_6S}
         fps={FPS}
         width={1080}
         height={1080}

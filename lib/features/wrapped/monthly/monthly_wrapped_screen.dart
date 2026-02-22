@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import '../../../config/env.dart';
+import '../../../services/readon_sync_service.dart';
 import 'monthly_wrapped_data.dart';
 import 'monthly_wrapped_service.dart';
 import 'widgets/monthly_slide_container.dart';
@@ -71,6 +72,8 @@ class _MonthlyWrappedScreenState extends State<MonthlyWrappedScreen> {
     if (widget.demoData != null) {
       _data = widget.demoData;
       _isLoading = false;
+      // Trigger video pre-render even in demo mode
+      ReadonSyncService.renderMonthlyWrapped(widget.month, widget.year);
     } else {
       _loadData();
     }
@@ -117,6 +120,9 @@ class _MonthlyWrappedScreenState extends State<MonthlyWrappedScreen> {
       final service = MonthlyWrappedService();
       final data = await service.getMonthlyData(widget.month, widget.year);
       if (mounted) setState(() { _data = data; _isLoading = false; });
+
+      // Fire-and-forget: trigger server-side video pre-render
+      ReadonSyncService.renderMonthlyWrapped(widget.month, widget.year);
     } catch (e) {
       debugPrint('MonthlyWrapped error: $e');
       if (mounted) setState(() { _error = e.toString(); _isLoading = false; });

@@ -72,4 +72,39 @@ class ReadonSyncService {
     }
     return ShareAssets.fromJson(jsonDecode(response.body));
   }
+
+  /// Trigger async video render for a monthly wrapped.
+  static Future<void> renderMonthlyWrapped(int month, int year) async {
+    try {
+      final response = await _client.post(
+        Uri.parse('$_baseUrl/api/wrapped/monthly/$year/$month/render'),
+        headers: await _authHeaders(),
+      );
+      if (response.statusCode != 200) {
+        debugPrint('readon-sync renderMonthlyWrapped error: ${response.body}');
+      }
+    } catch (e) {
+      debugPrint('readon-sync renderMonthlyWrapped error: $e');
+    }
+  }
+
+  /// Poll for monthly wrapped video availability.
+  static Future<ShareAssets> getMonthlyWrappedShareAssets(
+    int month,
+    int year,
+  ) async {
+    try {
+      final response = await _client.get(
+        Uri.parse('$_baseUrl/api/wrapped/monthly/$year/$month/share'),
+        headers: await _authHeaders(),
+      );
+      if (response.statusCode != 200) {
+        return ShareAssets(status: 'none');
+      }
+      return ShareAssets.fromJson(jsonDecode(response.body));
+    } catch (e) {
+      debugPrint('readon-sync getMonthlyWrappedShareAssets error: $e');
+      return ShareAssets(status: 'none');
+    }
+  }
 }

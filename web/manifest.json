@@ -1,6 +1,6 @@
 {
-    "name": "lexsta",
-    "short_name": "lexsta",
+    "name": "LexDay",
+    "short_name": "LexDay",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

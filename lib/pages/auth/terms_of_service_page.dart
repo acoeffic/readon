@@ -33,11 +33,11 @@ class TermsOfServicePage extends StatelessWidget {
                 children: [
                   _buildSection(
                     '1. Objet',
-                    'Les présentes Conditions Générales d\'Utilisation (ci-après les « CGU ») ont pour objet de définir les conditions dans lesquelles les utilisateurs (ci-après l\'« Utilisateur ») peuvent accéder et utiliser l\'application Lexsta (ci-après l\'« Application »).\n\nLexsta est une application de club de lecture social, permettant notamment de :\n• Suivre ses lectures,\n• Partager son activité de lecture,\n• Interagir avec d\'autres utilisateurs,\n• Participer à des défis, badges ou classements.\n\nToute utilisation de l\'Application implique l\'acceptation pleine et entière des présentes CGU.',
+                    'Les présentes Conditions Générales d\'Utilisation (ci-après les « CGU ») ont pour objet de définir les conditions dans lesquelles les utilisateurs (ci-après l\'« Utilisateur ») peuvent accéder et utiliser l\'application LexDay (ci-après l\'« Application »).\n\nLexDay est une application de club de lecture social, permettant notamment de :\n• Suivre ses lectures,\n• Partager son activité de lecture,\n• Interagir avec d\'autres utilisateurs,\n• Participer à des défis, badges ou classements.\n\nToute utilisation de l\'Application implique l\'acceptation pleine et entière des présentes CGU.',
                   ),
                   _buildSection(
                     '2. Éditeur de l\'Application',
-                    'L\'Application est éditée par :\n• Société : Lexsta\n• Adresse email : contact@readon.app',
+                    'L\'Application est éditée par :\n• Société : LexDay\n• Adresse email : contact@readon.app',
                   ),
                   _buildSection(
                     '3. Accès à l\'Application',
@@ -45,11 +45,11 @@ class TermsOfServicePage extends StatelessWidget {
                   ),
                   _buildSection(
                     '4. Création de compte utilisateur',
-                    'L\'accès à certaines fonctionnalités de Lexsta nécessite la création d\'un compte utilisateur.\n\nL\'Utilisateur s\'engage à :\n• Fournir des informations exactes lors de l\'inscription,\n• Mettre à jour ses informations si nécessaire,\n• Conserver la confidentialité de ses identifiants.\n\nToute activité réalisée depuis un compte est réputée effectuée par son titulaire.',
+                    'L\'accès à certaines fonctionnalités de LexDay nécessite la création d\'un compte utilisateur.\n\nL\'Utilisateur s\'engage à :\n• Fournir des informations exactes lors de l\'inscription,\n• Mettre à jour ses informations si nécessaire,\n• Conserver la confidentialité de ses identifiants.\n\nToute activité réalisée depuis un compte est réputée effectuée par son titulaire.',
                   ),
                   _buildSection(
                     '5. Fonctionnalités de l\'Application',
-                    'Lexsta permet notamment à l\'Utilisateur :\n• D\'enregistrer ses lectures,\n• De suivre sa progression de lecture,\n• De publier des activités ou commentaires,\n• D\'interagir avec d\'autres membres de la communauté,\n• De participer à des défis, challenges ou classements.\n\nL\'Éditeur se réserve le droit de faire évoluer les fonctionnalités à tout moment.',
+                    'LexDay permet notamment à l\'Utilisateur :\n• D\'enregistrer ses lectures,\n• De suivre sa progression de lecture,\n• De publier des activités ou commentaires,\n• D\'interagir avec d\'autres membres de la communauté,\n• De participer à des défis, challenges ou classements.\n\nL\'Éditeur se réserve le droit de faire évoluer les fonctionnalités à tout moment.',
                   ),
                   _buildSection(
                     '6. Comportement des Utilisateurs',
@@ -57,7 +57,7 @@ class TermsOfServicePage extends StatelessWidget {
                   ),
                   _buildSection(
                     '7. Contenus publiés par les Utilisateurs',
-                    'Les Utilisateurs sont seuls responsables des contenus qu\'ils publient (textes, commentaires, avis, données de lecture).\n\nEn publiant du contenu sur Lexsta, l\'Utilisateur concède à l\'Éditeur :\n• Une licence non exclusive,\n• Gratuite,\n• Mondiale,\n• Pour la durée de protection légale,\n• Aux fins d\'exploitation, d\'affichage et de promotion de l\'Application.\n\nL\'Utilisateur garantit disposer des droits nécessaires sur les contenus publiés.',
+                    'Les Utilisateurs sont seuls responsables des contenus qu\'ils publient (textes, commentaires, avis, données de lecture).\n\nEn publiant du contenu sur LexDay, l\'Utilisateur concède à l\'Éditeur :\n• Une licence non exclusive,\n• Gratuite,\n• Mondiale,\n• Pour la durée de protection légale,\n• Aux fins d\'exploitation, d\'affichage et de promotion de l\'Application.\n\nL\'Utilisateur garantit disposer des droits nécessaires sur les contenus publiés.',
                   ),
                   _buildSection(
                     '8. Responsabilité',
@@ -65,7 +65,7 @@ class TermsOfServicePage extends StatelessWidget {
                   ),
                   _buildSection(
                     '9. Propriété intellectuelle',
-                    'L\'Application Lexsta, incluant notamment :\n• Son nom,\n• Son interface,\n• Son code,\n• Sa structure,\n• Ses éléments graphiques,\n\nest protégée par le droit de la propriété intellectuelle.\n\nToute reproduction ou exploitation non autorisée est strictement interdite.',
+                    'L\'Application LexDay, incluant notamment :\n• Son nom,\n• Son interface,\n• Son code,\n• Sa structure,\n• Ses éléments graphiques,\n\nest protégée par le droit de la propriété intellectuelle.\n\nToute reproduction ou exploitation non autorisée est strictement interdite.',
                   ),
                   _buildSection(
                     '10. Données personnelles',

@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:home_widget/home_widget.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
@@ -37,5 +38,20 @@ Future<void> main() async {
     await MonthlyNotificationService().initialize();
   }
 
-  runApp(const LexstaApp());
+  await updateWidget();
+
+  runApp(const LexDayApp());
+}
+
+Future<void> updateWidget() async {
+  await HomeWidget.setAppGroupId('group.com.acoeffic.readon');
+
+  // Remplace ces valeurs par tes vraies données depuis Supabase/local storage
+  await HomeWidget.saveWidgetData<String>('currentBook', 'Ton livre en cours');
+  await HomeWidget.saveWidgetData<String>('currentAuthor', 'Auteur');
+  await HomeWidget.saveWidgetData<int>('todayMinutes', 0);
+  await HomeWidget.saveWidgetData<int>('streak', 0);
+  await HomeWidget.saveWidgetData<double>('progressPercent', 0.0);
+
+  await HomeWidget.updateWidget(name: 'LexDayWidget');
 }

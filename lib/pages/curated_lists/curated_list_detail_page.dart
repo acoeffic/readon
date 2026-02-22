@@ -456,7 +456,7 @@ class _CuratedListDetailPageState extends State<CuratedListDetailPage> {
                           '${entry.title} ${entry.author}'.trim(),
                         );
                         launchUrl(
-                          Uri.parse('https://www.amazon.fr/s?k=$query&i=stripbooks'),
+                          Uri.parse('https://www.amazon.fr/s?k=$query&i=stripbooks&tag=lexday-21'),
                           mode: LaunchMode.externalApplication,
                         );
                       },

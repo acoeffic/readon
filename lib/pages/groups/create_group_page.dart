@@ -8,6 +8,8 @@ import '../../services/groups_service.dart';
 import '../../providers/subscription_provider.dart';
 import '../../models/feature_flags.dart';
 import '../../pages/profile/upgrade_page.dart';
+import '../../services/badges_service.dart';
+import '../../widgets/badge_unlocked_dialog.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class CreateGroupPage extends StatefulWidget {
@@ -138,7 +140,24 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
             backgroundColor: Colors.green,
           ),
         );
-        Navigator.pop(context, true);
+
+        // Vérifier si le badge "Fondateur de Club" est débloqué
+        try {
+          final newBadges = await BadgesService().checkAndAwardBadges();
+          if (mounted && newBadges.isNotEmpty) {
+            for (final badge in newBadges) {
+              await showDialog(
+                context: context,
+                barrierDismissible: true,
+                builder: (_) => BadgeUnlockedDialog(badge: badge),
+              );
+            }
+          }
+        } catch (e) {
+          debugPrint('Erreur check badges après création club: $e');
+        }
+
+        if (mounted) Navigator.pop(context, true);
       }
     } catch (e) {
       setState(() => _isCreating = false);

@@ -47,7 +47,7 @@ class SessionShareService {
     Rect? sharePositionOrigin,
   }) async {
     final text =
-        'Je viens de lire ${session.pagesRead} pages \uD83D\uDCDA #Lexsta';
+        'Je viens de lire ${session.pagesRead} pages \uD83D\uDCDA #LexDay';
 
     // Destinations that go directly to the native share sheet
     if (destination == ShareDestination.whatsapp ||

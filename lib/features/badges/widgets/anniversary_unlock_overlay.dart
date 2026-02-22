@@ -633,7 +633,7 @@ class _AnniversaryUnlockOverlayState extends State<AnniversaryUnlockOverlay>
       await Share.shareXFiles(
         [XFile(file.path)],
         text:
-            '$yearsText sur Lexsta ! ${widget.badge.icon} #Lexsta',
+            '$yearsText sur LexDay ! ${widget.badge.icon} #LexDay',
         sharePositionOrigin: origin,
       );
     } catch (e) {
@@ -752,7 +752,7 @@ class _AnniversaryShareCard extends StatelessWidget {
 
           // Branding
           Text(
-            'Lexsta',
+            'LexDay',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,

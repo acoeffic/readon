@@ -31,7 +31,7 @@ class BookFinishedShareCard extends StatelessWidget {
 // Constants
 // ==========================================================================
 
-const _dark = Color(0xFF0A1628);
+const _dark = Color(0xFF1A1408);
 const _gold = Color(0xFFD4A855);
 
 String _formatDuration(int minutes) {
@@ -74,7 +74,7 @@ class _StoryCard extends StatelessWidget {
           gradient: RadialGradient(
             center: const Alignment(0, -0.4),
             radius: 1.4,
-            colors: [const Color(0xFF152040), _dark],
+            colors: [const Color(0xFF2A1E10), _dark],
           ),
           border: Border.all(color: _gold.withValues(alpha: 0.08)),
         ),
@@ -165,7 +165,7 @@ class _StoryCard extends StatelessWidget {
 
                     // ── Footer ──
                     Text(
-                      'Suis ma lecture sur lexsta.app',
+                      'Suis ma lecture sur lexday.app',
                       style: GoogleFonts.jetBrainsMono(
                         fontSize: 10,
                         color: Colors.white.withValues(alpha: 0.35),
@@ -191,7 +191,7 @@ class _Header extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        // Lexsta icon placeholder
+        // LexDay icon placeholder
         Container(
           width: 32,
           height: 32,
@@ -324,8 +324,8 @@ class _BookCoverPlaceholder extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            const Color(0xFF1E2D50),
-            const Color(0xFF152040),
+            const Color(0xFF3A2D18),
+            const Color(0xFF2A1E10),
           ],
         ),
         border: Border.all(

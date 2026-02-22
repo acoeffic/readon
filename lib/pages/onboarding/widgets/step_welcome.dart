@@ -31,7 +31,7 @@ class StepWelcome extends StatelessWidget {
           ),
           const SizedBox(height: AppSpace.l),
           Text(
-            'Lexsta',
+            'LexDay',
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                   color: AppColors.primary,
                   fontSize: 26,

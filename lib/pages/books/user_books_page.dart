@@ -34,6 +34,7 @@ class _UserBooksPageState extends State<UserBooksPage> {
   bool _isEnrichingAuthors = false;
   String _viewMode = 'status'; // 'status' ou 'genre'
   String? _selectedGenre; // null = tous les genres
+  String? _selectedStatus; // null = tous, 'reading' = en cours, 'finished' = terminés
   String _searchQuery = '';
 
   static const int _pageSize = 30;
@@ -471,48 +472,104 @@ class _UserBooksPageState extends State<UserBooksPage> {
     );
   }
 
-  Widget _buildBooksListWithSections() {
-    return ListView(
-      controller: _scrollController,
-      children: [
-        if (_hasBooksWithoutAuthor) _buildEnrichAuthorsButton(),
-        // Section: En cours / À lire
-        if (_readingBooksData.isNotEmpty) ...[
-          _buildSectionHeader(
-            'En cours',
-            Icons.auto_stories,
-            _readingBooksData.length,
-          ),
-          ..._readingBooksData.map((item) => _buildBookCard(
-                item['book'] as Book,
-                isHidden: item['is_hidden'] as bool? ?? false,
-              )),
-        ],
-
-        // Section: Terminés
-        if (_finishedBooksData.isNotEmpty) ...[
-          _buildSectionHeader(
-            'Terminés',
-            Icons.check_circle,
-            _finishedBooksData.length,
-          ),
-          ..._finishedBooksData.map((item) => _buildBookCard(
-                item['book'] as Book,
-                isFinished: true,
-                isHidden: item['is_hidden'] as bool? ?? false,
-              )),
-        ],
-
-        // Loading indicator
-        if (_isLoadingMore || _hasMore)
+  Widget _buildStatusChips() {
+    return SizedBox(
+      height: 44,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        children: [
           Padding(
-            padding: const EdgeInsets.all(16),
-            child: Center(
-              child: _isLoadingMore
-                  ? const CircularProgressIndicator()
-                  : const SizedBox.shrink(),
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: FilterChip(
+              selected: _selectedStatus == null,
+              label: Text('Tous (${_filteredBooks.length})'),
+              avatar: _selectedStatus == null ? null : const Icon(Icons.library_books, size: 16),
+              onSelected: (_) => setState(() => _selectedStatus = null),
             ),
           ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: FilterChip(
+              selected: _selectedStatus == 'reading',
+              label: Text('En cours (${_readingBooksData.length})'),
+              avatar: _selectedStatus == 'reading' ? null : const Icon(Icons.auto_stories, size: 16),
+              onSelected: (_) => setState(() {
+                _selectedStatus = _selectedStatus == 'reading' ? null : 'reading';
+              }),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: FilterChip(
+              selected: _selectedStatus == 'finished',
+              label: Text('Terminés (${_finishedBooksData.length})'),
+              avatar: _selectedStatus == 'finished' ? null : const Icon(Icons.check_circle, size: 16),
+              onSelected: (_) => setState(() {
+                _selectedStatus = _selectedStatus == 'finished' ? null : 'finished';
+              }),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBooksListWithSections() {
+    final showReading = _selectedStatus == null || _selectedStatus == 'reading';
+    final showFinished = _selectedStatus == null || _selectedStatus == 'finished';
+
+    return Column(
+      children: [
+        _buildStatusChips(),
+        const SizedBox(height: 4),
+        Expanded(
+          child: ListView(
+            controller: _scrollController,
+            children: [
+              if (_hasBooksWithoutAuthor) _buildEnrichAuthorsButton(),
+              // Section: En cours / À lire
+              if (showReading && _readingBooksData.isNotEmpty) ...[
+                if (_selectedStatus == null)
+                  _buildSectionHeader(
+                    'En cours',
+                    Icons.auto_stories,
+                    _readingBooksData.length,
+                  ),
+                ..._readingBooksData.map((item) => _buildBookCard(
+                      item['book'] as Book,
+                      isHidden: item['is_hidden'] as bool? ?? false,
+                    )),
+              ],
+
+              // Section: Terminés
+              if (showFinished && _finishedBooksData.isNotEmpty) ...[
+                if (_selectedStatus == null)
+                  _buildSectionHeader(
+                    'Terminés',
+                    Icons.check_circle,
+                    _finishedBooksData.length,
+                  ),
+                ..._finishedBooksData.map((item) => _buildBookCard(
+                      item['book'] as Book,
+                      isFinished: true,
+                      isHidden: item['is_hidden'] as bool? ?? false,
+                    )),
+              ],
+
+              // Loading indicator
+              if (_isLoadingMore || _hasMore)
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Center(
+                    child: _isLoadingMore
+                        ? const CircularProgressIndicator()
+                        : const SizedBox.shrink(),
+                  ),
+                ),
+            ],
+          ),
+        ),
       ],
     );
   }
@@ -996,7 +1053,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
     final query = Uri.encodeComponent(
       '${widget.book.title} ${widget.book.author ?? ''}'.trim(),
     );
-    final url = Uri.parse('https://www.amazon.fr/s?k=$query&i=stripbooks');
+    final url = Uri.parse('https://www.amazon.fr/s?k=$query&i=stripbooks&tag=lexday-21');
     if (await canLaunchUrl(url)) {
       await launchUrl(url, mode: LaunchMode.externalApplication);
     }

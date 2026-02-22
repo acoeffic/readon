@@ -31,22 +31,31 @@ class MonthlyShareService {
     );
   }
 
-  /// Opens the native share sheet with the image.
+  /// Opens the native share sheet with the video (if available) or image.
   Future<void> shareGeneric({
     required Uint8List imageBytes,
     required int year,
     required int month,
+    File? videoFile,
     Rect? sharePositionOrigin,
   }) async {
+    if (videoFile != null) {
+      await Share.shareXFiles(
+        [XFile(videoFile.path)],
+        text: 'Mon wrapped lecture #LexDay',
+        sharePositionOrigin: sharePositionOrigin,
+      );
+      return;
+    }
     final file = await _saveTempFile(imageBytes, year, month);
     await Share.shareXFiles(
       [XFile(file.path)],
-      text: 'Mon wrapped lecture #Lexsta',
+      text: 'Mon wrapped lecture #LexDay',
       sharePositionOrigin: sharePositionOrigin,
     );
   }
 
-  /// Saves image to temp, opens the target app via URL scheme.
+  /// Saves image/video to temp, opens the target app via URL scheme.
   /// Falls back to native share sheet if the app is not installed.
   /// Returns true if the app was opened, false if fallback was used.
   Future<bool> shareToApp({
@@ -54,11 +63,10 @@ class MonthlyShareService {
     required String urlScheme,
     required int year,
     required int month,
+    File? videoFile,
     String? webFallbackUrl,
     Rect? sharePositionOrigin,
   }) async {
-    final file = await _saveTempFile(imageBytes, year, month);
-
     // Try opening the app
     final uri = Uri.parse(urlScheme);
     if (await canLaunchUrl(uri)) {
@@ -75,12 +83,21 @@ class MonthlyShareService {
       return false;
     }
 
-    // Last resort — native share sheet
-    await Share.shareXFiles(
-      [XFile(file.path)],
-      text: 'Mon wrapped lecture #Lexsta',
-      sharePositionOrigin: sharePositionOrigin,
-    );
+    // Last resort — native share sheet (prefer video if available)
+    if (videoFile != null) {
+      await Share.shareXFiles(
+        [XFile(videoFile.path)],
+        text: 'Mon wrapped lecture #LexDay',
+        sharePositionOrigin: sharePositionOrigin,
+      );
+    } else {
+      final file = await _saveTempFile(imageBytes, year, month);
+      await Share.shareXFiles(
+        [XFile(file.path)],
+        text: 'Mon wrapped lecture #LexDay',
+        sharePositionOrigin: sharePositionOrigin,
+      );
+    }
     return false;
   }
 

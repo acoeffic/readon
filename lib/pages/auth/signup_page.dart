@@ -236,7 +236,7 @@ class _SignUpPageState extends State<SignUpPage> {
               const BackHeader(title: 'Créer un compte'),
               const SizedBox(height: AppSpace.l),
 
-              // Logo Lexsta
+              // Logo LexDay
               Center(
                 child: Column(
                   children: [
@@ -257,7 +257,7 @@ class _SignUpPageState extends State<SignUpPage> {
                     ),
                     const SizedBox(height: AppSpace.s),
                     Text(
-                      'Lexsta',
+                      'LexDay',
                       style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                             color: AppColors.primary,
                             fontSize: 26,
@@ -270,7 +270,7 @@ class _SignUpPageState extends State<SignUpPage> {
               const SizedBox(height: AppSpace.l),
 
               Text(
-                'Rejoins Lexsta',
+                'Rejoins LexDay',
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                       fontSize: 26,
                       fontWeight: FontWeight.w700,

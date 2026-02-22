@@ -29,6 +29,137 @@ class _BookBadgeData {
   });
 }
 
+const _allSocialBadges = [
+  _BookBadgeData(
+    id: 'social_club_founder',
+    name: 'Fondateur de Club',
+    description: 'Créer un club de lecture',
+    icon: '🏠',
+    requirement: 1,
+    tier: 'gold',
+    color: '#FF6B00',
+    isPremium: true,
+  ),
+  _BookBadgeData(
+    id: 'social_club_leader',
+    name: 'Leader',
+    description: 'Club avec 10+ membres',
+    icon: '👥',
+    requirement: 10,
+    tier: 'platinum',
+    color: '#FF6B00',
+    isPremium: true,
+  ),
+];
+
+const _allSeniorityBadges = [
+  _BookBadgeData(
+    id: 'seniority_1y',
+    name: 'Résident',
+    description: '1 an sur LexDay',
+    icon: '🏠',
+    requirement: 365,
+    tier: 'gold',
+    color: '#8D6E63',
+  ),
+  _BookBadgeData(
+    id: 'seniority_2y',
+    name: 'Habitué',
+    description: 'Lexsta, c\'est chez toi',
+    icon: '🏡',
+    requirement: 730,
+    tier: 'platinum',
+    color: '#6D4C41',
+  ),
+  _BookBadgeData(
+    id: 'seniority_3y',
+    name: 'Pilier',
+    description: 'La communauté te connaît',
+    icon: '🏛️',
+    requirement: 1095,
+    tier: 'diamond',
+    color: '#4E342E',
+  ),
+  _BookBadgeData(
+    id: 'seniority_5y',
+    name: 'Monument',
+    description: 'Tu étais là depuis le début',
+    icon: '🗿',
+    requirement: 1825,
+    tier: 'legendary',
+    color: '#3E2723',
+  ),
+];
+
+const _allTimeBadges = [
+  _BookBadgeData(
+    id: 'time_1h',
+    name: 'Une Heure de Magie',
+    description: '1h de lecture cumulée',
+    icon: '⌛',
+    requirement: 60,
+    tier: 'bronze',
+    color: '#1E88E5',
+  ),
+  _BookBadgeData(
+    id: 'time_10h',
+    name: 'Lecteur du Dimanche',
+    description: '10h de lecture cumulées',
+    icon: '☕',
+    requirement: 600,
+    tier: 'silver',
+    color: '#1976D2',
+  ),
+  _BookBadgeData(
+    id: 'time_50h',
+    name: 'Passionné',
+    description: '50h de lecture cumulées',
+    icon: '💜',
+    requirement: 3000,
+    tier: 'gold',
+    color: '#1565C0',
+  ),
+  _BookBadgeData(
+    id: 'time_100h',
+    name: 'Centurion',
+    description: '100h de lecture cumulées',
+    icon: '🏆',
+    requirement: 6000,
+    tier: 'platinum',
+    color: '#0D47A1',
+  ),
+  _BookBadgeData(
+    id: 'time_250h',
+    name: 'Marathonien',
+    description: '250h de lecture',
+    icon: '🏃',
+    requirement: 15000,
+    tier: 'diamond',
+    color: '#FFD700',
+    isPremium: true,
+  ),
+  _BookBadgeData(
+    id: 'time_500h',
+    name: 'Demi-Millénaire',
+    description: '500h de lecture',
+    icon: '⚡',
+    requirement: 30000,
+    tier: 'legendary',
+    color: '#FFC107',
+    isPremium: true,
+  ),
+  _BookBadgeData(
+    id: 'time_1000h',
+    name: 'Millénaire',
+    description: '1000h de lecture',
+    icon: '🌟',
+    requirement: 60000,
+    tier: 'mythic',
+    color: '#FF9800',
+    isPremium: true,
+  ),
+];
+
 const _allBookBadges = [
   _BookBadgeData(
     id: 'books_1',
@@ -180,6 +311,48 @@ class _BooksBadgeDebugPageState extends State<BooksBadgeDebugPage> {
       return BibliophileBadge(size: size, isLocked: locked);
     }
 
+    if (isOneHourMagicBadge(id: data.id, category: 'reading_time', requirement: data.requirement)) {
+      return OneHourMagicBadge(size: size, isLocked: locked);
+    }
+    if (isSundayReaderBadge(id: data.id, category: 'reading_time', requirement: data.requirement)) {
+      return SundayReaderBadge(size: size, isLocked: locked);
+    }
+    if (isPassionateBadge(id: data.id, category: 'reading_time', requirement: data.requirement)) {
+      return PassionateBadge(size: size, isLocked: locked);
+    }
+    if (isCenturionBadge(id: data.id, category: 'reading_time', requirement: data.requirement)) {
+      return CenturionBadge(size: size, isLocked: locked);
+    }
+    if (isMarathonBadge(id: data.id, category: 'reading_time', requirement: data.requirement)) {
+      return MarathonBadge(size: size, isLocked: locked);
+    }
+    if (isHalfMillenniumBadge(id: data.id, category: 'reading_time', requirement: data.requirement)) {
+      return HalfMillenniumBadge(size: size, isLocked: locked);
+    }
+    if (isMillenniumBadge(id: data.id, category: 'reading_time', requirement: data.requirement)) {
+      return MillenniumBadge(size: size, isLocked: locked);
+    }
+
+    if (isClubFounderBadge(id: data.id, category: 'social', requirement: data.requirement)) {
+      return ClubFounderBadge(size: size, isLocked: locked);
+    }
+    if (isClubLeaderBadge(id: data.id, category: 'social', requirement: data.requirement)) {
+      return ClubLeaderBadge(size: size, isLocked: locked);
+    }
+
+    if (isResidentBadge(id: data.id, category: 'engagement', requirement: data.requirement)) {
+      return ResidentBadge(size: size, isLocked: locked);
+    }
+    if (isHabitueBadge(id: data.id, category: 'engagement', requirement: data.requirement)) {
+      return HabitueBadge(size: size, isLocked: locked);
+    }
+    if (isPilierBadge(id: data.id, category: 'engagement', requirement: data.requirement)) {
+      return PilierBadge(size: size, isLocked: locked);
+    }
+    if (isMonumentBadge(id: data.id, category: 'engagement', requirement: data.requirement)) {
+      return MonumentBadge(size: size, isLocked: locked);
+    }
+
     // Fallback : emoji dans un cercle
     final color = _hexToColor(data.color);
     return Container(
@@ -202,13 +375,13 @@ class _BooksBadgeDebugPageState extends State<BooksBadgeDebugPage> {
     );
   }
 
-  void _showUnlockDialog(_BookBadgeData data) {
+  void _showUnlockDialog(_BookBadgeData data, {String category = 'books_completed'}) {
     final badge = UserBadge(
       id: data.id,
       name: data.name,
       description: data.description,
       icon: data.icon,
-      category: 'books_completed',
+      category: category,
       requirement: data.requirement,
       color: data.color,
       progress: data.requirement,
@@ -430,6 +603,378 @@ class _BooksBadgeDebugPageState extends State<BooksBadgeDebugPage> {
                                   const Text('👑', style: TextStyle(fontSize: 12)),
                                 ],
                               ],
+                            ),
+
+                            const SizedBox(height: 6),
+
+                            // Play icon
+                            Icon(
+                              Icons.play_circle_outline,
+                              size: 20,
+                              color: tierCol.withValues(alpha: 0.7),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+
+                const SizedBox(height: 24),
+
+                // Titre section temps de lecture
+                Text(
+                  'Badges Temps de Lecture',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // Grid de badges temps
+                GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    childAspectRatio: 0.72,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                  ),
+                  itemCount: _allTimeBadges.length,
+                  itemBuilder: (context, index) {
+                    final data = _allTimeBadges[index];
+                    final tierCol = _tierColor(data.tier);
+
+                    return GestureDetector(
+                      onTap: () => _showUnlockDialog(data, category: 'reading_time'),
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).cardColor,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: _showLocked
+                                ? (isDark ? Colors.grey.shade700 : Colors.grey.shade300)
+                                : tierCol.withValues(alpha: 0.5),
+                            width: 2,
+                          ),
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            // Tier label
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: tierCol.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: tierCol.withValues(alpha: 0.4),
+                                ),
+                              ),
+                              child: Text(
+                                data.tier.toUpperCase(),
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: tierCol,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+
+                            // Badge icon
+                            _buildBadgeIcon(
+                              data,
+                              size: 72,
+                              locked: _showLocked,
+                            ),
+                            const SizedBox(height: 10),
+
+                            // Name
+                            Text(
+                              data.name,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: _showLocked
+                                    ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)
+                                    : Theme.of(context).colorScheme.onSurface,
+                              ),
+                              textAlign: TextAlign.center,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 4),
+
+                            // Requirement + premium
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  '${data.requirement} min',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                                  ),
+                                ),
+                                if (data.isPremium) ...[
+                                  const SizedBox(width: 4),
+                                  const Text('👑', style: TextStyle(fontSize: 12)),
+                                ],
+                              ],
+                            ),
+
+                            const SizedBox(height: 6),
+
+                            // Play icon
+                            Icon(
+                              Icons.play_circle_outline,
+                              size: 20,
+                              color: tierCol.withValues(alpha: 0.7),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+
+                const SizedBox(height: 24),
+
+                // Titre section social
+                Text(
+                  'Badges Social',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // Grid de badges social
+                GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    childAspectRatio: 0.72,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                  ),
+                  itemCount: _allSocialBadges.length,
+                  itemBuilder: (context, index) {
+                    final data = _allSocialBadges[index];
+                    final tierCol = _tierColor(data.tier);
+
+                    return GestureDetector(
+                      onTap: () => _showUnlockDialog(data, category: 'social'),
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).cardColor,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: _showLocked
+                                ? (isDark ? Colors.grey.shade700 : Colors.grey.shade300)
+                                : tierCol.withValues(alpha: 0.5),
+                            width: 2,
+                          ),
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            // Tier label
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: tierCol.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: tierCol.withValues(alpha: 0.4),
+                                ),
+                              ),
+                              child: Text(
+                                data.tier.toUpperCase(),
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: tierCol,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+
+                            // Badge icon
+                            _buildBadgeIcon(
+                              data,
+                              size: 72,
+                              locked: _showLocked,
+                            ),
+                            const SizedBox(height: 10),
+
+                            // Name
+                            Text(
+                              data.name,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: _showLocked
+                                    ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)
+                                    : Theme.of(context).colorScheme.onSurface,
+                              ),
+                              textAlign: TextAlign.center,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 4),
+
+                            // Requirement + premium
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  data.description,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                                  ),
+                                ),
+                                if (data.isPremium) ...[
+                                  const SizedBox(width: 4),
+                                  const Text('👑', style: TextStyle(fontSize: 12)),
+                                ],
+                              ],
+                            ),
+
+                            const SizedBox(height: 6),
+
+                            // Play icon
+                            Icon(
+                              Icons.play_circle_outline,
+                              size: 20,
+                              color: tierCol.withValues(alpha: 0.7),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+
+                const SizedBox(height: 24),
+
+                // Titre section ancienneté
+                Text(
+                  'Badges Ancienneté',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // Grid de badges ancienneté
+                GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    childAspectRatio: 0.72,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                  ),
+                  itemCount: _allSeniorityBadges.length,
+                  itemBuilder: (context, index) {
+                    final data = _allSeniorityBadges[index];
+                    final tierCol = _tierColor(data.tier);
+
+                    return GestureDetector(
+                      onTap: () => _showUnlockDialog(data, category: 'engagement'),
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).cardColor,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: _showLocked
+                                ? (isDark ? Colors.grey.shade700 : Colors.grey.shade300)
+                                : tierCol.withValues(alpha: 0.5),
+                            width: 2,
+                          ),
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            // Tier label
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: tierCol.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: tierCol.withValues(alpha: 0.4),
+                                ),
+                              ),
+                              child: Text(
+                                data.tier.toUpperCase(),
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: tierCol,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+
+                            // Badge icon
+                            _buildBadgeIcon(
+                              data,
+                              size: 72,
+                              locked: _showLocked,
+                            ),
+                            const SizedBox(height: 10),
+
+                            // Name
+                            Text(
+                              data.name,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: _showLocked
+                                    ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)
+                                    : Theme.of(context).colorScheme.onSurface,
+                              ),
+                              textAlign: TextAlign.center,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 4),
+
+                            // Requirement
+                            Text(
+                              data.description,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                              ),
                             ),
 
                             const SizedBox(height: 6),

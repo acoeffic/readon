@@ -39,7 +39,7 @@ class WrappedShareService {
     required int year,
     Rect? sharePositionOrigin,
   }) async {
-    final text = 'Mon annee de lecture $year \uD83D\uDCDA\u2728 #LexstaWrapped';
+    final text = 'Mon annee de lecture $year \uD83D\uDCDA\u2728 #LexDayWrapped';
 
     // Destinations that go directly to the native share sheet
     if (destination == ShareDestination.whatsapp ||

@@ -37,7 +37,7 @@ class BadgeShareService {
     Rect? sharePositionOrigin,
   }) async {
     final text =
-        'Je viens de débloquer le badge "${badge.name}" \uD83C\uDFC6 #Lexsta';
+        'Je viens de débloquer le badge "${badge.name}" \uD83C\uDFC6 #LexDay';
 
     if (destination == ShareDestination.whatsapp ||
         destination == ShareDestination.message ||

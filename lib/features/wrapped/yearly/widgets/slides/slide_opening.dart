@@ -4,7 +4,7 @@ import '../../yearly_wrapped_data.dart';
 import '../yearly_animations.dart';
 import '../common/gold_line.dart';
 
-/// Slide 0 — Opening: "Lexsta présente" + year in gradient + "ANNÉE COMPLÈTE".
+/// Slide 0 — Opening: "LexDay présente" + year in gradient + "ANNÉE COMPLÈTE".
 class SlideOpening extends StatelessWidget {
   final YearlyWrappedData data;
   const SlideOpening({super.key, required this.data});

@@ -59,7 +59,7 @@ class BookFinishedShareService {
         '\u2014 ${stats.totalPagesRead} pages en '
         '${stats.sessionsCount} sessions de lecture !\n\n'
         'Tu lis quoi en ce moment ? \u{1F440}\n'
-        'lexsta.app';
+        'lexday.app';
   }
 
   /// Execute the share action for a specific [destination].
@@ -116,7 +116,7 @@ class BookFinishedShareService {
 
   Future<File> _saveTempFile(Uint8List bytes, int bookId) async {
     final dir = await getTemporaryDirectory();
-    final file = File('${dir.path}/lexsta_book_finished_$bookId.png');
+    final file = File('${dir.path}/lexday_book_finished_$bookId.png');
     await file.writeAsBytes(bytes);
     Future.delayed(const Duration(seconds: 60), () => file.delete().catchError((_) => file));
     return file;
@@ -179,7 +179,7 @@ class _BookFinishedShareSheetState extends State<_BookFinishedShareSheet> {
         final videoBytes = await http.get(Uri.parse(assets.videoUrl!));
         if (videoBytes.statusCode == 200 && mounted) {
           final dir = await getTemporaryDirectory();
-          final file = File('${dir.path}/lexsta_book_${widget.book.id}.mp4');
+          final file = File('${dir.path}/lexday_book_${widget.book.id}.mp4');
           await file.writeAsBytes(videoBytes.bodyBytes);
           _videoFile = file;
           _hasVideo = true;
@@ -287,7 +287,7 @@ class _BookFinishedShareSheetState extends State<_BookFinishedShareSheet> {
 
     return Container(
       decoration: const BoxDecoration(
-        color: Color(0xFF0A1628),
+        color: Color(0xFF1A1408),
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(

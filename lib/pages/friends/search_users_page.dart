@@ -45,10 +45,10 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
     final text = bookTitle != null
         ? '\u{1F4D6} Je suis en train de lire $bookTitle\n\n'
             'Tu lis quoi en ce moment ? \u{1F440}\n'
-            'lexsta.app'
-        : '\u{1F4D6} Rejoins-moi sur Lexsta !\n\n'
+            'lexday.app'
+        : '\u{1F4D6} Rejoins-moi sur LexDay !\n\n'
             'Tu lis quoi en ce moment ? \u{1F440}\n'
-            'lexsta.app';
+            'lexday.app';
     final box = context.findRenderObject() as RenderBox?;
     final origin = box != null ? box.localToGlobal(Offset.zero) & box.size : null;
     Share.share(text, sharePositionOrigin: origin);
