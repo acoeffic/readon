@@ -352,6 +352,62 @@ class _BooksBadgeDebugPageState extends State<BooksBadgeDebugPage> {
     if (isMonumentBadge(id: data.id, category: 'engagement', requirement: data.requirement)) {
       return MonumentBadge(size: size, isLocked: locked);
     }
+    if (isAnnualOnePerMonthBadge(id: data.id, category: 'annual_books', requirement: data.requirement)) {
+      return AnnualOnePerMonthBadge(size: size, isLocked: locked);
+    }
+    if (isAnnualTwoPerMonthBadge(id: data.id, category: 'annual_books', requirement: data.requirement)) {
+      return AnnualTwoPerMonthBadge(size: size, isLocked: locked);
+    }
+    if (isAnnualOnePerWeekBadge(id: data.id, category: 'annual_books', requirement: data.requirement)) {
+      return AnnualOnePerWeekBadge(size: size, isLocked: locked);
+    }
+    if (isAnnualCentenaireBadge(id: data.id, category: 'annual_books', requirement: data.requirement)) {
+      return AnnualCentenaireBadge(size: size, isLocked: locked);
+    }
+    if (isOccasionBastilleDayBadge(id: data.id, category: 'occasion', requirement: data.requirement)) {
+      return OccasionBastilleDayBadge(size: size, isLocked: locked);
+    }
+    if (isOccasionChristmasBadge(id: data.id, category: 'occasion', requirement: data.requirement)) {
+      return OccasionChristmasBadge(size: size, isLocked: locked);
+    }
+    if (isOccasionFeteMusiqueBadge(id: data.id, category: 'occasion', requirement: data.requirement)) {
+      return OccasionFeteMusiqueBadge(size: size, isLocked: locked);
+    }
+    if (isOccasionHalloweenBadge(id: data.id, category: 'occasion', requirement: data.requirement)) {
+      return OccasionHalloweenBadge(size: size, isLocked: locked);
+    }
+    if (isOccasionSummerReadBadge(id: data.id, category: 'occasion', requirement: data.requirement)) {
+      return OccasionSummerReadBadge(size: size, isLocked: locked);
+    }
+    if (isOccasionValentineBadge(id: data.id, category: 'occasion', requirement: data.requirement)) {
+      return OccasionValentineBadge(size: size, isLocked: locked);
+    }
+    if (isOccasionNyeBadge(id: data.id, category: 'occasion', requirement: data.requirement)) {
+      return OccasionNyeBadge(size: size, isLocked: locked);
+    }
+    if (isOccasionLabourDayBadge(id: data.id, category: 'occasion', requirement: data.requirement)) {
+      return OccasionLabourDayBadge(size: size, isLocked: locked);
+    }
+
+    if (isOccasionWorldBookDayBadge(id: data.id, category: 'occasion', requirement: data.requirement)) {
+      return OccasionWorldBookDayBadge(size: size, isLocked: locked);
+    }
+
+    if (isOccasionNewYearBadge(id: data.id, category: 'occasion', requirement: data.requirement)) {
+      return OccasionNewYearBadge(size: size, isLocked: locked);
+    }
+
+    if (isOccasionEasterBadge(id: data.id, category: 'occasion', requirement: data.requirement)) {
+      return OccasionEasterBadge(size: size, isLocked: locked);
+    }
+
+    if (isOccasionAprilFoolsBadge(id: data.id, category: 'occasion', requirement: data.requirement)) {
+      return OccasionAprilFoolsBadge(size: size, isLocked: locked);
+    }
+
+    if (isGenreSfInitieBadge(id: data.id, category: 'genres', requirement: data.requirement)) {
+      return GenreSfInitieBadge(size: size, isLocked: locked);
+    }
 
     // Fallback : emoji dans un cercle
     final color = _hexToColor(data.color);

@@ -88,6 +88,8 @@ class _AllBadgesPageState extends State<AllBadgesPage> {
       'monthly',
       'yearly',
       'anniversary',
+      'annual_books',
+      'occasion',
     ];
 
     for (var category in categoryOrder) {
@@ -138,6 +140,10 @@ class _AllBadgesPageState extends State<AllBadgesPage> {
         return 'Année & Récap';
       case 'anniversary':
         return 'Anniversaire';
+      case 'annual_books':
+        return 'Livres annuels';
+      case 'occasion':
+        return 'Occasions spéciales';
       case 'trophy':
         return 'Trophées';
       default:
@@ -963,6 +969,40 @@ class _BadgeCard extends StatelessWidget {
                     ? PilierBadge(size: 64, isLocked: !badge.isUnlocked)
                     : isMonumentBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
                     ? MonumentBadge(size: 64, isLocked: !badge.isUnlocked)
+                    : isAnnualOnePerMonthBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                    ? AnnualOnePerMonthBadge(size: 64, isLocked: !badge.isUnlocked)
+                    : isAnnualTwoPerMonthBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                    ? AnnualTwoPerMonthBadge(size: 64, isLocked: !badge.isUnlocked)
+                    : isAnnualOnePerWeekBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                    ? AnnualOnePerWeekBadge(size: 64, isLocked: !badge.isUnlocked)
+                    : isAnnualCentenaireBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                    ? AnnualCentenaireBadge(size: 64, isLocked: !badge.isUnlocked)
+                    : isOccasionBastilleDayBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                    ? OccasionBastilleDayBadge(size: 64, isLocked: !badge.isUnlocked)
+                    : isOccasionChristmasBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                    ? OccasionChristmasBadge(size: 64, isLocked: !badge.isUnlocked)
+                    : isOccasionFeteMusiqueBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                    ? OccasionFeteMusiqueBadge(size: 64, isLocked: !badge.isUnlocked)
+                    : isOccasionHalloweenBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                    ? OccasionHalloweenBadge(size: 64, isLocked: !badge.isUnlocked)
+                    : isOccasionSummerReadBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                    ? OccasionSummerReadBadge(size: 64, isLocked: !badge.isUnlocked)
+                    : isOccasionValentineBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                    ? OccasionValentineBadge(size: 64, isLocked: !badge.isUnlocked)
+                    : isOccasionNyeBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                    ? OccasionNyeBadge(size: 64, isLocked: !badge.isUnlocked)
+                    : isOccasionLabourDayBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                    ? OccasionLabourDayBadge(size: 64, isLocked: !badge.isUnlocked)
+                    : isOccasionWorldBookDayBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                    ? OccasionWorldBookDayBadge(size: 64, isLocked: !badge.isUnlocked)
+                    : isOccasionNewYearBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                    ? OccasionNewYearBadge(size: 64, isLocked: !badge.isUnlocked)
+                    : isOccasionEasterBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                    ? OccasionEasterBadge(size: 64, isLocked: !badge.isUnlocked)
+                    : isOccasionAprilFoolsBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                    ? OccasionAprilFoolsBadge(size: 64, isLocked: !badge.isUnlocked)
+                    : isGenreSfInitieBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                    ? GenreSfInitieBadge(size: 64, isLocked: !badge.isUnlocked)
                     : Container(
                         width: 64,
                         height: 64,
@@ -1161,6 +1201,10 @@ class _BadgeCard extends StatelessWidget {
         return 'Annuel';
       case 'anniversary':
         return 'Anniversaire';
+      case 'annual_books':
+        return 'Livres annuels';
+      case 'occasion':
+        return 'Occasion';
       default:
         return category;
     }
@@ -1249,6 +1293,40 @@ class _BadgeCard extends StatelessWidget {
                     ? PilierBadge(size: 100, isLocked: !badge.isUnlocked)
                     : isMonumentBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
                     ? MonumentBadge(size: 100, isLocked: !badge.isUnlocked)
+                    : isAnnualOnePerMonthBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                    ? AnnualOnePerMonthBadge(size: 100, isLocked: !badge.isUnlocked)
+                    : isAnnualTwoPerMonthBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                    ? AnnualTwoPerMonthBadge(size: 100, isLocked: !badge.isUnlocked)
+                    : isAnnualOnePerWeekBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                    ? AnnualOnePerWeekBadge(size: 100, isLocked: !badge.isUnlocked)
+                    : isAnnualCentenaireBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                    ? AnnualCentenaireBadge(size: 100, isLocked: !badge.isUnlocked)
+                    : isOccasionBastilleDayBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                    ? OccasionBastilleDayBadge(size: 100, isLocked: !badge.isUnlocked)
+                    : isOccasionChristmasBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                    ? OccasionChristmasBadge(size: 100, isLocked: !badge.isUnlocked)
+                    : isOccasionFeteMusiqueBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                    ? OccasionFeteMusiqueBadge(size: 100, isLocked: !badge.isUnlocked)
+                    : isOccasionHalloweenBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                    ? OccasionHalloweenBadge(size: 100, isLocked: !badge.isUnlocked)
+                    : isOccasionSummerReadBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                    ? OccasionSummerReadBadge(size: 100, isLocked: !badge.isUnlocked)
+                    : isOccasionValentineBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                    ? OccasionValentineBadge(size: 100, isLocked: !badge.isUnlocked)
+                    : isOccasionNyeBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                    ? OccasionNyeBadge(size: 100, isLocked: !badge.isUnlocked)
+                    : isOccasionLabourDayBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                    ? OccasionLabourDayBadge(size: 100, isLocked: !badge.isUnlocked)
+                    : isOccasionWorldBookDayBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                    ? OccasionWorldBookDayBadge(size: 100, isLocked: !badge.isUnlocked)
+                    : isOccasionNewYearBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                    ? OccasionNewYearBadge(size: 100, isLocked: !badge.isUnlocked)
+                    : isOccasionEasterBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                    ? OccasionEasterBadge(size: 100, isLocked: !badge.isUnlocked)
+                    : isOccasionAprilFoolsBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                    ? OccasionAprilFoolsBadge(size: 100, isLocked: !badge.isUnlocked)
+                    : isGenreSfInitieBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                    ? GenreSfInitieBadge(size: 100, isLocked: !badge.isUnlocked)
                     : Container(
                         width: 100,
                         height: 100,

@@ -81,12 +81,9 @@ class FlowService {
     }
   }
 
-  /// Vérifie si un freeze automatique doit être utilisé
-  /// Retourne true si le freeze a été utilisé avec succès
-  /// NOTE: Pour les utilisateurs premium uniquement (à implémenter)
-  Future<bool> checkAndUseAutoFreeze({bool isPremium = false}) async {
-    if (!isPremium) return false;
-
+  /// Vérifie si un auto-freeze doit être appliqué (fallback client du cron serveur).
+  /// Fonctionne pour tous les utilisateurs (le SQL gère les limites free/premium).
+  Future<bool> checkAndUseAutoFreeze() async {
     try {
       final flow = await getUserFlow();
 
@@ -106,9 +103,9 @@ class FlowService {
         if (lastRead == today) return false;
       }
 
-      // Vérifier si un freeze est disponible
+      // Vérifier si un freeze est disponible (quota + consécutif)
       final freezeStatus = await getFreezeStatus();
-      if (!freezeStatus.freezeAvailable) return false;
+      if (!freezeStatus.canFreeze) return false;
 
       // Utiliser le freeze automatiquement pour hier
       final result = await useFreeze(isAuto: true);

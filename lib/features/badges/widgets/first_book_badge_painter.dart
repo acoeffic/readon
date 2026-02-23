@@ -823,3 +823,784 @@ class MonumentBadge extends StatelessWidget {
     return badge;
   }
 }
+
+/// Vérifie si un badge est le badge "Un par Mois sur un an" (1 livre/mois pendant 12 mois).
+bool isAnnualOnePerMonthBadge({required String id, String? category, int? requirement}) {
+  if (id == 'annual_1_per_month') return true;
+  if (category == 'annual_books' && requirement == 12) return true;
+  return false;
+}
+
+/// Vérifie si un badge est le badge "24 livres par an" (2 livres/mois, cadence soutenue).
+bool isAnnualTwoPerMonthBadge({required String id, String? category, int? requirement}) {
+  if (id == 'annual_2_per_month') return true;
+  if (category == 'annual_books' && requirement == 24) return true;
+  return false;
+}
+
+/// Widget réutilisable pour afficher le badge "Un par Mois sur un an".
+class AnnualOnePerMonthBadge extends StatelessWidget {
+  final double size;
+  final bool isLocked;
+
+  const AnnualOnePerMonthBadge({
+    super.key,
+    this.size = 80,
+    this.isLocked = false,
+  });
+
+  static const ColorFilter _greyscale = ColorFilter.matrix(<double>[
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0,      0,      0,      1, 0,
+  ]);
+
+  @override
+  Widget build(BuildContext context) {
+    Widget badge = SvgPicture.network(
+      '${Env.supabaseStorageUrl}/asset/Image/badge/Livre_annuel/badge_annual_01_un_par_mois.svg',
+      width: size,
+      height: size,
+    );
+
+    if (isLocked) {
+      badge = ColorFiltered(
+        colorFilter: _greyscale,
+        child: Opacity(
+          opacity: 0.45,
+          child: badge,
+        ),
+      );
+    }
+
+    return badge;
+  }
+}
+
+/// Vérifie si un badge est le badge "52 par an" (1 livre/semaine, métronome).
+bool isAnnualOnePerWeekBadge({required String id, String? category, int? requirement}) {
+  if (id == 'annual_1_per_week') return true;
+  if (category == 'annual_books' && requirement == 52) return true;
+  return false;
+}
+
+/// Widget réutilisable pour afficher le badge "24 livres par an" (Cadence).
+class AnnualTwoPerMonthBadge extends StatelessWidget {
+  final double size;
+  final bool isLocked;
+
+  const AnnualTwoPerMonthBadge({
+    super.key,
+    this.size = 80,
+    this.isLocked = false,
+  });
+
+  static const ColorFilter _greyscale = ColorFilter.matrix(<double>[
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0,      0,      0,      1, 0,
+  ]);
+
+  @override
+  Widget build(BuildContext context) {
+    Widget badge = SvgPicture.network(
+      '${Env.supabaseStorageUrl}/asset/Image/badge/Livre_annuel/badge_annual_02_cadence.svg',
+      width: size,
+      height: size,
+    );
+
+    if (isLocked) {
+      badge = ColorFiltered(
+        colorFilter: _greyscale,
+        child: Opacity(
+          opacity: 0.45,
+          child: badge,
+        ),
+      );
+    }
+
+    return badge;
+  }
+}
+
+/// Vérifie si un badge est le badge "Centenaire" (100 livres par an).
+bool isAnnualCentenaireBadge({required String id, String? category, int? requirement}) {
+  if (id == 'annual_centenaire') return true;
+  if (category == 'annual_books' && requirement == 100) return true;
+  return false;
+}
+
+/// Widget réutilisable pour afficher le badge "52 par an" (Métronome).
+class AnnualOnePerWeekBadge extends StatelessWidget {
+  final double size;
+  final bool isLocked;
+
+  const AnnualOnePerWeekBadge({
+    super.key,
+    this.size = 80,
+    this.isLocked = false,
+  });
+
+  static const ColorFilter _greyscale = ColorFilter.matrix(<double>[
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0,      0,      0,      1, 0,
+  ]);
+
+  @override
+  Widget build(BuildContext context) {
+    Widget badge = SvgPicture.network(
+      '${Env.supabaseStorageUrl}/asset/Image/badge/Livre_annuel/badge_annual_03_metronome.svg',
+      width: size,
+      height: size,
+    );
+
+    if (isLocked) {
+      badge = ColorFiltered(
+        colorFilter: _greyscale,
+        child: Opacity(
+          opacity: 0.45,
+          child: badge,
+        ),
+      );
+    }
+
+    return badge;
+  }
+}
+
+/// Vérifie si un badge est le badge "Prise de la Bastille" (14 juillet).
+bool isOccasionBastilleDayBadge({required String id, String? category, int? requirement}) {
+  if (id == 'occasion_bastille_day') return true;
+  return false;
+}
+
+/// Widget réutilisable pour afficher le badge "Prise de la Bastille".
+class OccasionBastilleDayBadge extends StatelessWidget {
+  final double size;
+  final bool isLocked;
+
+  const OccasionBastilleDayBadge({
+    super.key,
+    this.size = 80,
+    this.isLocked = false,
+  });
+
+  static const ColorFilter _greyscale = ColorFilter.matrix(<double>[
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0,      0,      0,      1, 0,
+  ]);
+
+  @override
+  Widget build(BuildContext context) {
+    Widget badge = SvgPicture.network(
+      '${Env.supabaseStorageUrl}/asset/Image/badge/Occasion/badge_bastille_day.svg',
+      width: size,
+      height: size,
+    );
+
+    if (isLocked) {
+      badge = ColorFiltered(
+        colorFilter: _greyscale,
+        child: Opacity(
+          opacity: 0.45,
+          child: badge,
+        ),
+      );
+    }
+
+    return badge;
+  }
+}
+
+/// Vérifie si un badge est le badge "Lecture de Noël" (25 décembre).
+bool isOccasionChristmasBadge({required String id, String? category, int? requirement}) {
+  if (id == 'occasion_christmas') return true;
+  return false;
+}
+
+/// Widget réutilisable pour afficher le badge "Lecture de Noël".
+class OccasionChristmasBadge extends StatelessWidget {
+  final double size;
+  final bool isLocked;
+
+  const OccasionChristmasBadge({
+    super.key,
+    this.size = 80,
+    this.isLocked = false,
+  });
+
+  static const ColorFilter _greyscale = ColorFilter.matrix(<double>[
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0,      0,      0,      1, 0,
+  ]);
+
+  @override
+  Widget build(BuildContext context) {
+    Widget badge = SvgPicture.network(
+      '${Env.supabaseStorageUrl}/asset/Image/badge/Occasion/badge_christmas_read.svg',
+      width: size,
+      height: size,
+    );
+
+    if (isLocked) {
+      badge = ColorFiltered(
+        colorFilter: _greyscale,
+        child: Opacity(
+          opacity: 0.45,
+          child: badge,
+        ),
+      );
+    }
+
+    return badge;
+  }
+}
+
+/// Vérifie si un badge est le badge "Lecture en musique" (21 juin).
+bool isOccasionFeteMusiqueBadge({required String id, String? category, int? requirement}) {
+  if (id == 'occasion_fete_musique') return true;
+  return false;
+}
+
+/// Widget réutilisable pour afficher le badge "Lecture en musique".
+class OccasionFeteMusiqueBadge extends StatelessWidget {
+  final double size;
+  final bool isLocked;
+
+  const OccasionFeteMusiqueBadge({
+    super.key,
+    this.size = 80,
+    this.isLocked = false,
+  });
+
+  static const ColorFilter _greyscale = ColorFilter.matrix(<double>[
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0,      0,      0,      1, 0,
+  ]);
+
+  @override
+  Widget build(BuildContext context) {
+    Widget badge = SvgPicture.network(
+      '${Env.supabaseStorageUrl}/asset/Image/badge/Occasion/badge_fete_musique.svg',
+      width: size,
+      height: size,
+    );
+
+    if (isLocked) {
+      badge = ColorFiltered(
+        colorFilter: _greyscale,
+        child: Opacity(
+          opacity: 0.45,
+          child: badge,
+        ),
+      );
+    }
+
+    return badge;
+  }
+}
+
+/// Vérifie si un badge est le badge "Lecture frisson" (31 octobre).
+bool isOccasionHalloweenBadge({required String id, String? category, int? requirement}) {
+  if (id == 'occasion_halloween') return true;
+  return false;
+}
+
+/// Widget réutilisable pour afficher le badge "Lecture frisson".
+class OccasionHalloweenBadge extends StatelessWidget {
+  final double size;
+  final bool isLocked;
+
+  const OccasionHalloweenBadge({
+    super.key,
+    this.size = 80,
+    this.isLocked = false,
+  });
+
+  static const ColorFilter _greyscale = ColorFilter.matrix(<double>[
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0,      0,      0,      1, 0,
+  ]);
+
+  @override
+  Widget build(BuildContext context) {
+    Widget badge = SvgPicture.network(
+      '${Env.supabaseStorageUrl}/asset/Image/badge/Occasion/badge_halloween.svg',
+      width: size,
+      height: size,
+    );
+
+    if (isLocked) {
+      badge = ColorFiltered(
+        colorFilter: _greyscale,
+        child: Opacity(
+          opacity: 0.45,
+          child: badge,
+        ),
+      );
+    }
+
+    return badge;
+  }
+}
+
+/// Vérifie si un badge est le badge "Lecture au soleil" (15 août).
+bool isOccasionSummerReadBadge({required String id, String? category, int? requirement}) {
+  if (id == 'occasion_summer_read') return true;
+  return false;
+}
+
+/// Widget réutilisable pour afficher le badge "Lecture au soleil".
+class OccasionSummerReadBadge extends StatelessWidget {
+  final double size;
+  final bool isLocked;
+
+  const OccasionSummerReadBadge({
+    super.key,
+    this.size = 80,
+    this.isLocked = false,
+  });
+
+  static const ColorFilter _greyscale = ColorFilter.matrix(<double>[
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0,      0,      0,      1, 0,
+  ]);
+
+  @override
+  Widget build(BuildContext context) {
+    Widget badge = SvgPicture.network(
+      '${Env.supabaseStorageUrl}/asset/Image/badge/Occasion/badge_summer_read.svg',
+      width: size,
+      height: size,
+    );
+
+    if (isLocked) {
+      badge = ColorFiltered(
+        colorFilter: _greyscale,
+        child: Opacity(
+          opacity: 0.45,
+          child: badge,
+        ),
+      );
+    }
+
+    return badge;
+  }
+}
+
+/// Vérifie si un badge est le badge "Lecture de l'amour" (14 février).
+bool isOccasionValentineBadge({required String id, String? category, int? requirement}) {
+  if (id == 'occasion_valentine') return true;
+  return false;
+}
+
+/// Widget réutilisable pour afficher le badge "Lecture de l'amour".
+class OccasionValentineBadge extends StatelessWidget {
+  final double size;
+  final bool isLocked;
+
+  const OccasionValentineBadge({
+    super.key,
+    this.size = 80,
+    this.isLocked = false,
+  });
+
+  static const ColorFilter _greyscale = ColorFilter.matrix(<double>[
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0,      0,      0,      1, 0,
+  ]);
+
+  @override
+  Widget build(BuildContext context) {
+    Widget badge = SvgPicture.network(
+      '${Env.supabaseStorageUrl}/asset/Image/badge/Occasion/badge_valentine_read.svg',
+      width: size,
+      height: size,
+    );
+
+    if (isLocked) {
+      badge = ColorFiltered(
+        colorFilter: _greyscale,
+        child: Opacity(
+          opacity: 0.45,
+          child: badge,
+        ),
+      );
+    }
+
+    return badge;
+  }
+}
+
+/// Vérifie si un badge est le badge "Lecture du Réveillon" (31 décembre).
+bool isOccasionNyeBadge({required String id, String? category, int? requirement}) {
+  if (id == 'occasion_nye') return true;
+  return false;
+}
+
+/// Widget réutilisable pour afficher le badge "Lecture du Réveillon".
+class OccasionNyeBadge extends StatelessWidget {
+  final double size;
+  final bool isLocked;
+
+  const OccasionNyeBadge({
+    super.key,
+    this.size = 80,
+    this.isLocked = false,
+  });
+
+  static const ColorFilter _greyscale = ColorFilter.matrix(<double>[
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0,      0,      0,      1, 0,
+  ]);
+
+  @override
+  Widget build(BuildContext context) {
+    Widget badge = SvgPicture.network(
+      '${Env.supabaseStorageUrl}/asset/Image/badge/Occasion/badge_nye_read.svg',
+      width: size,
+      height: size,
+    );
+
+    if (isLocked) {
+      badge = ColorFiltered(
+        colorFilter: _greyscale,
+        child: Opacity(
+          opacity: 0.45,
+          child: badge,
+        ),
+      );
+    }
+
+    return badge;
+  }
+}
+
+/// Vérifie si un badge est le badge "Pause méritée" (1er mai).
+bool isOccasionLabourDayBadge({required String id, String? category, int? requirement}) {
+  if (id == 'occasion_labour_day') return true;
+  return false;
+}
+
+/// Widget réutilisable pour afficher le badge "Pause méritée".
+class OccasionLabourDayBadge extends StatelessWidget {
+  final double size;
+  final bool isLocked;
+
+  const OccasionLabourDayBadge({
+    super.key,
+    this.size = 80,
+    this.isLocked = false,
+  });
+
+  static const ColorFilter _greyscale = ColorFilter.matrix(<double>[
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0,      0,      0,      1, 0,
+  ]);
+
+  @override
+  Widget build(BuildContext context) {
+    Widget badge = SvgPicture.network(
+      '${Env.supabaseStorageUrl}/asset/Image/badge/Occasion/badge_labour_day.svg',
+      width: size,
+      height: size,
+    );
+
+    if (isLocked) {
+      badge = ColorFiltered(
+        colorFilter: _greyscale,
+        child: Opacity(
+          opacity: 0.45,
+          child: badge,
+        ),
+      );
+    }
+
+    return badge;
+  }
+}
+
+bool isOccasionWorldBookDayBadge({required String id, String? category, int? requirement}) {
+  if (id == 'occasion_world_book_day') return true;
+  return false;
+}
+
+/// Widget réutilisable pour afficher le badge "Journée du livre".
+class OccasionWorldBookDayBadge extends StatelessWidget {
+  final double size;
+  final bool isLocked;
+
+  const OccasionWorldBookDayBadge({
+    super.key,
+    this.size = 80,
+    this.isLocked = false,
+  });
+
+  static const ColorFilter _greyscale = ColorFilter.matrix(<double>[
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0,      0,      0,      1, 0,
+  ]);
+
+  @override
+  Widget build(BuildContext context) {
+    Widget badge = SvgPicture.network(
+      '${Env.supabaseStorageUrl}/asset/Image/badge/Occasion/badge_world_book_day.svg',
+      width: size,
+      height: size,
+    );
+
+    if (isLocked) {
+      badge = ColorFiltered(
+        colorFilter: _greyscale,
+        child: Opacity(
+          opacity: 0.45,
+          child: badge,
+        ),
+      );
+    }
+
+    return badge;
+  }
+}
+
+bool isOccasionNewYearBadge({required String id, String? category, int? requirement}) {
+  if (id == 'occasion_new_year') return true;
+  return false;
+}
+
+/// Widget réutilisable pour afficher le badge "Premier Chapitre de l'Année".
+class OccasionNewYearBadge extends StatelessWidget {
+  final double size;
+  final bool isLocked;
+
+  const OccasionNewYearBadge({
+    super.key,
+    this.size = 80,
+    this.isLocked = false,
+  });
+
+  static const ColorFilter _greyscale = ColorFilter.matrix(<double>[
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0,      0,      0,      1, 0,
+  ]);
+
+  @override
+  Widget build(BuildContext context) {
+    Widget badge = SvgPicture.network(
+      '${Env.supabaseStorageUrl}/asset/Image/badge/Occasion/badge_evt_new_year.svg',
+      width: size,
+      height: size,
+    );
+
+    if (isLocked) {
+      badge = ColorFiltered(
+        colorFilter: _greyscale,
+        child: Opacity(
+          opacity: 0.45,
+          child: badge,
+        ),
+      );
+    }
+
+    return badge;
+  }
+}
+
+bool isOccasionEasterBadge({required String id, String? category, int? requirement}) {
+  if (id == 'occasion_easter') return true;
+  return false;
+}
+
+/// Widget réutilisable pour afficher le badge "Lecture de Pâques".
+class OccasionEasterBadge extends StatelessWidget {
+  final double size;
+  final bool isLocked;
+
+  const OccasionEasterBadge({
+    super.key,
+    this.size = 80,
+    this.isLocked = false,
+  });
+
+  static const ColorFilter _greyscale = ColorFilter.matrix(<double>[
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0,      0,      0,      1, 0,
+  ]);
+
+  @override
+  Widget build(BuildContext context) {
+    Widget badge = SvgPicture.network(
+      '${Env.supabaseStorageUrl}/asset/Image/badge/Occasion/badge_evt_paques.svg',
+      width: size,
+      height: size,
+    );
+
+    if (isLocked) {
+      badge = ColorFiltered(
+        colorFilter: _greyscale,
+        child: Opacity(
+          opacity: 0.45,
+          child: badge,
+        ),
+      );
+    }
+
+    return badge;
+  }
+}
+
+bool isOccasionAprilFoolsBadge({required String id, String? category, int? requirement}) {
+  if (id == 'occasion_april_fools') return true;
+  return false;
+}
+
+/// Widget réutilisable pour afficher le badge "Poisson d'Avril".
+class OccasionAprilFoolsBadge extends StatelessWidget {
+  final double size;
+  final bool isLocked;
+
+  const OccasionAprilFoolsBadge({
+    super.key,
+    this.size = 80,
+    this.isLocked = false,
+  });
+
+  static const ColorFilter _greyscale = ColorFilter.matrix(<double>[
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0,      0,      0,      1, 0,
+  ]);
+
+  @override
+  Widget build(BuildContext context) {
+    Widget badge = SvgPicture.network(
+      '${Env.supabaseStorageUrl}/asset/Image/badge/Occasion/badge_evt_poisson_avril.svg',
+      width: size,
+      height: size,
+    );
+
+    if (isLocked) {
+      badge = ColorFiltered(
+        colorFilter: _greyscale,
+        child: Opacity(
+          opacity: 0.45,
+          child: badge,
+        ),
+      );
+    }
+
+    return badge;
+  }
+}
+
+bool isGenreSfInitieBadge({required String id, String? category, int? requirement}) {
+  if (id == 'genre_sf_initie') return true;
+  return false;
+}
+
+/// Widget réutilisable pour afficher le badge "Initié" (SF).
+class GenreSfInitieBadge extends StatelessWidget {
+  final double size;
+  final bool isLocked;
+
+  const GenreSfInitieBadge({
+    super.key,
+    this.size = 80,
+    this.isLocked = false,
+  });
+
+  static const ColorFilter _greyscale = ColorFilter.matrix(<double>[
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0,      0,      0,      1, 0,
+  ]);
+
+  @override
+  Widget build(BuildContext context) {
+    Widget badge = SvgPicture.network(
+      '${Env.supabaseStorageUrl}/asset/Image/badge/genre/Science-Fiction/badge_sf_01_initie.svg',
+      width: size,
+      height: size,
+    );
+
+    if (isLocked) {
+      badge = ColorFiltered(
+        colorFilter: _greyscale,
+        child: Opacity(
+          opacity: 0.45,
+          child: badge,
+        ),
+      );
+    }
+
+    return badge;
+  }
+}
+
+/// Widget réutilisable pour afficher le badge "Centenaire" (100 par an).
+class AnnualCentenaireBadge extends StatelessWidget {
+  final double size;
+  final bool isLocked;
+
+  const AnnualCentenaireBadge({
+    super.key,
+    this.size = 80,
+    this.isLocked = false,
+  });
+
+  static const ColorFilter _greyscale = ColorFilter.matrix(<double>[
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0,      0,      0,      1, 0,
+  ]);
+
+  @override
+  Widget build(BuildContext context) {
+    Widget badge = SvgPicture.network(
+      '${Env.supabaseStorageUrl}/asset/Image/badge/Livre_annuel/badge_annual_04_centenaire.svg',
+      width: size,
+      height: size,
+    );
+
+    if (isLocked) {
+      badge = ColorFiltered(
+        colorFilter: _greyscale,
+        child: Opacity(
+          opacity: 0.45,
+          child: badge,
+        ),
+      );
+    }
+
+    return badge;
+  }
+}

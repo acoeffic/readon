@@ -61,13 +61,11 @@
       "Bash(brew install:*)",
       "Bash(/tmp/svg_convert/bin/pip install:*)",
       "Bash(/tmp/svg_convert/bin/python3:*)",
-      "Bash(pip3 list:*)",
+<<<<<<< "Bash(pip3 list:*)",
       "Bash(npx --yes resvg-cli:*)",
       "Bash(npx resvg-cli:*)",
-      "Bash(pip3 show:*)",
-      "Bash(ipconfig getifaddr:*)",
-      "Bash(ipconfig:*)",
-      "Bash(sort:*)"
+      "Bash(/usr/local/bin/flutter analyze:*)"
+>>>>>>> c89bfbe (20-02-26)
     ]
   }
 }

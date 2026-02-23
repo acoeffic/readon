@@ -91,6 +91,11 @@ class _FlowDetailPageState extends State<FlowDetailPage> {
         _initMonths();
         _isLoading = false;
       });
+
+      // Fallback client : tenter un auto-freeze si le cron serveur n'a pas encore tourné
+      _flowService.checkAndUseAutoFreeze().then((used) {
+        if (used && mounted) _loadData();
+      });
     } catch (e) {
       debugPrint('Erreur lors du chargement: $e');
       setState(() => _isLoading = false);
@@ -332,16 +337,18 @@ class _FlowDetailPageState extends State<FlowDetailPage> {
   Widget _buildFreezeCard() {
     final freezeStatus = _flow.freezeStatus;
     final isAtRisk = _flow.isAtRisk && _flow.currentFlow > 0;
+    final isPremium = freezeStatus?.isPremium ?? false;
+    final canFreeze = freezeStatus?.canFreeze ?? false;
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: freezeStatus?.freezeAvailable == true
+        color: canFreeze
             ? const Color(0xFF1A237E).withValues(alpha:0.3)
             : Theme.of(context).colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: freezeStatus?.freezeAvailable == true
+          color: canFreeze
               ? const Color(0xFF5C6BC0)
               : Colors.transparent,
           width: 1,
@@ -354,7 +361,7 @@ class _FlowDetailPageState extends State<FlowDetailPage> {
             children: [
               Icon(
                 Icons.ac_unit_rounded,
-                color: freezeStatus?.freezeAvailable == true
+                color: canFreeze
                     ? const Color(0xFF5C6BC0)
                     : Colors.grey,
                 size: 24,
@@ -374,7 +381,7 @@ class _FlowDetailPageState extends State<FlowDetailPage> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      freezeStatus?.statusMessage ?? 'Freeze disponible',
+                      freezeStatus?.statusMessage ?? 'Auto-freeze actif',
                       style: TextStyle(
                         fontSize: 13,
                         color: Theme.of(context).colorScheme.onSurface.withValues(alpha:0.6),
@@ -383,7 +390,8 @@ class _FlowDetailPageState extends State<FlowDetailPage> {
                   ],
                 ),
               ),
-              if (freezeStatus?.freezeAvailable == true && isAtRisk)
+              // Badge + bouton selon le tier
+              if (isPremium && isAtRisk && (freezeStatus?.canManualFreeze ?? false))
                 ElevatedButton.icon(
                   onPressed: _useFreeze,
                   icon: const Icon(Icons.shield, size: 16),
@@ -395,7 +403,7 @@ class _FlowDetailPageState extends State<FlowDetailPage> {
                     textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
                   ),
                 )
-              else if (freezeStatus?.freezeAvailable == true)
+              else if (isPremium)
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
@@ -403,8 +411,24 @@ class _FlowDetailPageState extends State<FlowDetailPage> {
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: const Text(
-                    '1 dispo',
+                    'Illimité',
                     style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF5C6BC0),
+                    ),
+                  ),
+                )
+              else if ((freezeStatus?.autoFreezesRemaining ?? 0) > 0)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF5C6BC0).withValues(alpha:0.2),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    '${freezeStatus?.autoFreezesRemaining ?? 0}/2 dispo',
+                    style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
                       color: Color(0xFF5C6BC0),
@@ -419,7 +443,7 @@ class _FlowDetailPageState extends State<FlowDetailPage> {
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
-                    'Utilisé',
+                    'Épuisé',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
@@ -429,34 +453,100 @@ class _FlowDetailPageState extends State<FlowDetailPage> {
                 ),
             ],
           ),
-          if (isAtRisk && freezeStatus?.freezeAvailable == true) ...[
+          // Message d'alerte quand le flow est en danger
+          if (isAtRisk) ...[
             const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: Colors.orange.withValues(alpha:0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 18),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Ton flow est en danger ! Utilise ton freeze pour le protéger.',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.orange.shade700,
+            if (canFreeze)
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF5C6BC0).withValues(alpha:0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.auto_mode, color: Color(0xFF5C6BC0), size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        isPremium
+                            ? 'Ton flow sera protégé automatiquement, ou utilise le freeze manuel.'
+                            : 'Ton flow sera protégé automatiquement si tu ne lis pas aujourd\'hui.',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF5C6BC0),
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
+              )
+            else
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withValues(alpha:0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        isPremium
+                            ? 'Limite de jours consécutifs atteinte. Lis aujourd\'hui pour protéger ton flow !'
+                            : 'Auto-freezes épuisés ce mois. Lis aujourd\'hui pour protéger ton flow !',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.orange.shade700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+          // Upsell premium pour les utilisateurs gratuits sans freezes
+          if (!isPremium && isAtRisk && !canFreeze) ...[
+            const SizedBox(height: 8),
+            GestureDetector(
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const UpgradePage()),
+              ),
+              child: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha:0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.primary.withValues(alpha:0.3)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.star, color: AppColors.primary, size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Passe Premium pour des auto-freezes illimités et le freeze manuel.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ),
+                    Icon(Icons.arrow_forward_ios, color: AppColors.primary, size: 14),
+                  ],
+                ),
               ),
             ),
           ],
           const SizedBox(height: 8),
           Text(
-            '1 freeze disponible par semaine. Protège ton flow si tu ne peux pas lire un jour.',
+            isPremium
+                ? 'Auto-freeze illimité + freeze manuel. Max ${freezeStatus?.maxConsecutive ?? 2} jours consécutifs.'
+                : '2 auto-freezes/mois. Max ${freezeStatus?.maxConsecutive ?? 1} jour consécutif.',
             style: TextStyle(
               fontSize: 11,
               color: Theme.of(context).colorScheme.onSurface.withValues(alpha:0.5),
@@ -479,7 +569,7 @@ class _FlowDetailPageState extends State<FlowDetailPage> {
           ],
         ),
         content: const Text(
-          'Cela protégera ton flow pour hier. Tu ne pourras plus utiliser de freeze cette semaine.',
+          'Cela protégera ton flow pour hier en utilisant un freeze manuel.',
         ),
         actions: [
           TextButton(

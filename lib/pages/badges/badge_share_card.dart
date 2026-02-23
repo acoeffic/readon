@@ -106,6 +106,62 @@ Widget _buildBadgeIcon(UserBadge badge, {required double size}) {
   if (isMonumentBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
     return MonumentBadge(size: size);
   }
+  if (isAnnualOnePerMonthBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return AnnualOnePerMonthBadge(size: size);
+  }
+  if (isAnnualTwoPerMonthBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return AnnualTwoPerMonthBadge(size: size);
+  }
+  if (isAnnualOnePerWeekBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return AnnualOnePerWeekBadge(size: size);
+  }
+  if (isAnnualCentenaireBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return AnnualCentenaireBadge(size: size);
+  }
+  if (isOccasionBastilleDayBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return OccasionBastilleDayBadge(size: size);
+  }
+  if (isOccasionChristmasBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return OccasionChristmasBadge(size: size);
+  }
+  if (isOccasionFeteMusiqueBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return OccasionFeteMusiqueBadge(size: size);
+  }
+  if (isOccasionHalloweenBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return OccasionHalloweenBadge(size: size);
+  }
+  if (isOccasionSummerReadBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return OccasionSummerReadBadge(size: size);
+  }
+  if (isOccasionValentineBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return OccasionValentineBadge(size: size);
+  }
+  if (isOccasionNyeBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return OccasionNyeBadge(size: size);
+  }
+  if (isOccasionLabourDayBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return OccasionLabourDayBadge(size: size);
+  }
+
+  if (isOccasionWorldBookDayBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return OccasionWorldBookDayBadge(size: size);
+  }
+
+  if (isOccasionNewYearBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return OccasionNewYearBadge(size: size);
+  }
+
+  if (isOccasionEasterBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return OccasionEasterBadge(size: size);
+  }
+
+  if (isOccasionAprilFoolsBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return OccasionAprilFoolsBadge(size: size);
+  }
+
+  if (isGenreSfInitieBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return GenreSfInitieBadge(size: size);
+  }
 
   // Fallback: emoji in a circle
   final color = _badgeColor(badge);

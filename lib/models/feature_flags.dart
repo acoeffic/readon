@@ -4,7 +4,7 @@ import '../providers/subscription_provider.dart';
 
 enum Feature {
   advancedReactions,
-  flowAutoFreeze,
+  flowManualFreeze,
   advancedStats,
   customThemes,
   premiumBadges,
@@ -26,7 +26,7 @@ class FeatureFlags {
 
   static const _premiumFeatures = <Feature>{
     Feature.advancedReactions,
-    Feature.flowAutoFreeze,
+    Feature.flowManualFreeze,
     Feature.advancedStats,
     Feature.customThemes,
     Feature.premiumBadges,
@@ -51,8 +51,8 @@ class FeatureFlags {
     switch (feature) {
       case Feature.advancedReactions:
         return 'Réactions avancées';
-      case Feature.flowAutoFreeze:
-        return 'Flow auto-freeze';
+      case Feature.flowManualFreeze:
+        return 'Freeze manuel';
       case Feature.advancedStats:
         return 'Statistiques avancées';
       case Feature.customThemes:
@@ -74,8 +74,8 @@ class FeatureFlags {
     switch (feature) {
       case Feature.advancedReactions:
         return 'Réagis aux activités de tes amis avec des emojis uniques';
-      case Feature.flowAutoFreeze:
-        return 'Protège automatiquement ton flow quand tu ne lis pas';
+      case Feature.flowManualFreeze:
+        return 'Protège manuellement ton flow quand tu ne peux pas lire';
       case Feature.advancedStats:
         return 'Accède à des statistiques détaillées sur ta lecture';
       case Feature.customThemes:
@@ -97,8 +97,8 @@ class FeatureFlags {
     switch (feature) {
       case Feature.advancedReactions:
         return Icons.emoji_emotions;
-      case Feature.flowAutoFreeze:
-        return Icons.ac_unit;
+      case Feature.flowManualFreeze:
+        return Icons.shield;
       case Feature.advancedStats:
         return Icons.bar_chart;
       case Feature.customThemes:
