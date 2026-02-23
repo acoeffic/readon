@@ -238,6 +238,84 @@ const _allBookBadges = [
   ),
 ];
 
+const _allGenrePolarBadges = [
+  _BookBadgeData(
+    id: 'genre_polar_apprenti',
+    name: 'Apprenti',
+    description: '5 polars/thrillers lus',
+    icon: '🔍',
+    requirement: 5,
+    tier: 'silver',
+    color: '#1B5E20',
+  ),
+  _BookBadgeData(
+    id: 'genre_polar_adepte',
+    name: 'Adepte',
+    description: '15 polars/thrillers lus',
+    icon: '🕵️',
+    requirement: 15,
+    tier: 'gold',
+    color: '#1B5E20',
+  ),
+  _BookBadgeData(
+    id: 'genre_polar_maitre',
+    name: 'Maitre',
+    description: '30 polars/thrillers lus',
+    icon: '🗡️',
+    requirement: 30,
+    tier: 'platinum',
+    color: '#1B5E20',
+  ),
+  _BookBadgeData(
+    id: 'genre_polar_legende',
+    name: 'Légende',
+    description: '50 polars/thrillers lus',
+    icon: '🏆',
+    requirement: 50,
+    tier: 'legendary',
+    color: '#1B5E20',
+  ),
+];
+
+const _allGenreSfBadges = [
+  _BookBadgeData(
+    id: 'genre_sf_apprenti',
+    name: 'Apprenti',
+    description: '5 SF lus',
+    icon: '🚀',
+    requirement: 5,
+    tier: 'silver',
+    color: '#1A237E',
+  ),
+  _BookBadgeData(
+    id: 'genre_sf_adepte',
+    name: 'Adepte',
+    description: '15 SF lus',
+    icon: '🛸',
+    requirement: 15,
+    tier: 'gold',
+    color: '#1A237E',
+  ),
+  _BookBadgeData(
+    id: 'genre_sf_maitre',
+    name: 'Maitre',
+    description: '30 SF lus',
+    icon: '🌌',
+    requirement: 30,
+    tier: 'platinum',
+    color: '#1A237E',
+  ),
+  _BookBadgeData(
+    id: 'genre_sf_legende',
+    name: 'Légende',
+    description: '50 SF lus',
+    icon: '🏆',
+    requirement: 50,
+    tier: 'legendary',
+    color: '#1A237E',
+  ),
+];
+
 class BooksBadgeDebugPage extends StatefulWidget {
   const BooksBadgeDebugPage({super.key});
 
@@ -407,6 +485,30 @@ class _BooksBadgeDebugPageState extends State<BooksBadgeDebugPage> {
 
     if (isGenreSfInitieBadge(id: data.id, category: 'genres', requirement: data.requirement)) {
       return GenreSfInitieBadge(size: size, isLocked: locked);
+    }
+    if (isGenrePolarApprentiBadge(id: data.id, category: 'genres', requirement: data.requirement)) {
+      return GenrePolarApprentiBadge(size: size, isLocked: locked);
+    }
+    if (isGenrePolarAdepteBadge(id: data.id, category: 'genres', requirement: data.requirement)) {
+      return GenrePolarAdepteBadge(size: size, isLocked: locked);
+    }
+    if (isGenrePolarMaitreBadge(id: data.id, category: 'genres', requirement: data.requirement)) {
+      return GenrePolarMaitreBadge(size: size, isLocked: locked);
+    }
+    if (isGenrePolarLegendeBadge(id: data.id, category: 'genres', requirement: data.requirement)) {
+      return GenrePolarLegendeBadge(size: size, isLocked: locked);
+    }
+    if (isGenreSfApprentiBadge(id: data.id, category: 'genres', requirement: data.requirement)) {
+      return GenreSfApprentiBadge(size: size, isLocked: locked);
+    }
+    if (isGenreSfAdepteBadge(id: data.id, category: 'genres', requirement: data.requirement)) {
+      return GenreSfAdepteBadge(size: size, isLocked: locked);
+    }
+    if (isGenreSfMaitreBadge(id: data.id, category: 'genres', requirement: data.requirement)) {
+      return GenreSfMaitreBadge(size: size, isLocked: locked);
+    }
+    if (isGenreSfLegendeBadge(id: data.id, category: 'genres', requirement: data.requirement)) {
+      return GenreSfLegendeBadge(size: size, isLocked: locked);
     }
 
     // Fallback : emoji dans un cercle
@@ -960,6 +1062,242 @@ class _BooksBadgeDebugPageState extends State<BooksBadgeDebugPage> {
 
                     return GestureDetector(
                       onTap: () => _showUnlockDialog(data, category: 'engagement'),
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).cardColor,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: _showLocked
+                                ? (isDark ? Colors.grey.shade700 : Colors.grey.shade300)
+                                : tierCol.withValues(alpha: 0.5),
+                            width: 2,
+                          ),
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            // Tier label
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: tierCol.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: tierCol.withValues(alpha: 0.4),
+                                ),
+                              ),
+                              child: Text(
+                                data.tier.toUpperCase(),
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: tierCol,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+
+                            // Badge icon
+                            _buildBadgeIcon(
+                              data,
+                              size: 72,
+                              locked: _showLocked,
+                            ),
+                            const SizedBox(height: 10),
+
+                            // Name
+                            Text(
+                              data.name,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: _showLocked
+                                    ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)
+                                    : Theme.of(context).colorScheme.onSurface,
+                              ),
+                              textAlign: TextAlign.center,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 4),
+
+                            // Requirement
+                            Text(
+                              data.description,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                              ),
+                            ),
+
+                            const SizedBox(height: 6),
+
+                            // Play icon
+                            Icon(
+                              Icons.play_circle_outline,
+                              size: 20,
+                              color: tierCol.withValues(alpha: 0.7),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+
+                const SizedBox(height: 24),
+
+                // Titre section genre Polar/Thriller
+                Text(
+                  'Badges Genre Polar/Thriller',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // Grid de badges genre Polar
+                GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    childAspectRatio: 0.72,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                  ),
+                  itemCount: _allGenrePolarBadges.length,
+                  itemBuilder: (context, index) {
+                    final data = _allGenrePolarBadges[index];
+                    final tierCol = _tierColor(data.tier);
+
+                    return GestureDetector(
+                      onTap: () => _showUnlockDialog(data, category: 'genres'),
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).cardColor,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: _showLocked
+                                ? (isDark ? Colors.grey.shade700 : Colors.grey.shade300)
+                                : tierCol.withValues(alpha: 0.5),
+                            width: 2,
+                          ),
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            // Tier label
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: tierCol.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: tierCol.withValues(alpha: 0.4),
+                                ),
+                              ),
+                              child: Text(
+                                data.tier.toUpperCase(),
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: tierCol,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+
+                            // Badge icon
+                            _buildBadgeIcon(
+                              data,
+                              size: 72,
+                              locked: _showLocked,
+                            ),
+                            const SizedBox(height: 10),
+
+                            // Name
+                            Text(
+                              data.name,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: _showLocked
+                                    ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)
+                                    : Theme.of(context).colorScheme.onSurface,
+                              ),
+                              textAlign: TextAlign.center,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 4),
+
+                            // Requirement
+                            Text(
+                              data.description,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                              ),
+                            ),
+
+                            const SizedBox(height: 6),
+
+                            // Play icon
+                            Icon(
+                              Icons.play_circle_outline,
+                              size: 20,
+                              color: tierCol.withValues(alpha: 0.7),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+
+                const SizedBox(height: 24),
+
+                // Titre section genre Science-Fiction
+                Text(
+                  'Badges Genre Science-Fiction',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // Grid de badges genre SF
+                GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    childAspectRatio: 0.72,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                  ),
+                  itemCount: _allGenreSfBadges.length,
+                  itemBuilder: (context, index) {
+                    final data = _allGenreSfBadges[index];
+                    final tierCol = _tierColor(data.tier);
+
+                    return GestureDetector(
+                      onTap: () => _showUnlockDialog(data, category: 'genres'),
                       child: Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(

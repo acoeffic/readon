@@ -16,6 +16,7 @@ import 'widgets/step_sync_progress.dart';
 import 'widgets/step_sync_success.dart';
 import 'widgets/step_manual_add.dart';
 import 'widgets/step_first_session.dart';
+import 'widgets/step_suggested_readers.dart';
 
 class OnboardingPage extends StatefulWidget {
   const OnboardingPage({super.key});
@@ -79,6 +80,15 @@ class _OnboardingPageState extends State<OnboardingPage> {
         ),
       );
     }
+
+    // Suggested readers step
+    steps.add(
+      StepSuggestedReaders(
+        readingHabit: _readingHabit,
+        onNext: _goToNext,
+        onSkip: _goToNext,
+      ),
+    );
 
     // Final step
     steps.add(

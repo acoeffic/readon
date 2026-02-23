@@ -12,9 +12,14 @@ class TrendingService {
   // Cache statique (survit aux re-instantiations du service)
   static List<Map<String, dynamic>>? _cachedTrendingBooks;
   static List<Map<String, dynamic>>? _cachedCommunitySessions;
+  static List<Map<String, dynamic>>? _cachedActiveReaders;
+  static List<Map<String, dynamic>>? _cachedBadgeUnlocks;
   static DateTime? _trendingCacheTime;
   static DateTime? _sessionsCacheTime;
+  static DateTime? _activeReadersCacheTime;
+  static DateTime? _badgeUnlocksCacheTime;
   static const _cacheDuration = Duration(minutes: 15);
+  static const _activeReadersCacheDuration = Duration(minutes: 5);
 
   /// Determine le tier du feed selon le nombre d'amis
   FeedTier determineFeedTier(int friendCount) {
@@ -96,11 +101,71 @@ class TrendingService {
     }
   }
 
+  /// Lecteurs actuellement en session (profils publics)
+  Future<List<Map<String, dynamic>>> getActiveReaders({
+    int limit = 10,
+    bool forceRefresh = false,
+  }) async {
+    if (!forceRefresh &&
+        _cachedActiveReaders != null &&
+        _activeReadersCacheTime != null &&
+        DateTime.now().difference(_activeReadersCacheTime!) < _activeReadersCacheDuration) {
+      return _cachedActiveReaders!;
+    }
+
+    try {
+      final result = await _supabase.rpc(
+        'get_active_readers',
+        params: {'p_limit': limit},
+      );
+
+      final readers = List<Map<String, dynamic>>.from(result ?? []);
+      _cachedActiveReaders = readers;
+      _activeReadersCacheTime = DateTime.now();
+      return readers;
+    } catch (e) {
+      debugPrint('Erreur getActiveReaders: $e');
+      return _cachedActiveReaders ?? [];
+    }
+  }
+
+  /// Badges recemment debloques par la communaute
+  Future<List<Map<String, dynamic>>> getCommunityBadgeUnlocks({
+    int limit = 10,
+    bool forceRefresh = false,
+  }) async {
+    if (!forceRefresh &&
+        _cachedBadgeUnlocks != null &&
+        _badgeUnlocksCacheTime != null &&
+        DateTime.now().difference(_badgeUnlocksCacheTime!) < _cacheDuration) {
+      return _cachedBadgeUnlocks!;
+    }
+
+    try {
+      final result = await _supabase.rpc(
+        'get_community_badge_unlocks',
+        params: {'p_limit': limit},
+      );
+
+      final unlocks = List<Map<String, dynamic>>.from(result ?? []);
+      _cachedBadgeUnlocks = unlocks;
+      _badgeUnlocksCacheTime = DateTime.now();
+      return unlocks;
+    } catch (e) {
+      debugPrint('Erreur getCommunityBadgeUnlocks: $e');
+      return _cachedBadgeUnlocks ?? [];
+    }
+  }
+
   /// Vider le cache (a appeler au logout)
   static void clearCache() {
     _cachedTrendingBooks = null;
     _cachedCommunitySessions = null;
+    _cachedActiveReaders = null;
+    _cachedBadgeUnlocks = null;
     _trendingCacheTime = null;
     _sessionsCacheTime = null;
+    _activeReadersCacheTime = null;
+    _badgeUnlocksCacheTime = null;
   }
 }

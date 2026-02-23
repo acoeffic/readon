@@ -1525,6 +1525,46 @@ bool isGenreSfInitieBadge({required String id, String? category, int? requiremen
   return false;
 }
 
+bool isGenrePolarApprentiBadge({required String id, String? category, int? requirement}) {
+  if (id == 'genre_polar_apprenti') return true;
+  return false;
+}
+
+bool isGenrePolarAdepteBadge({required String id, String? category, int? requirement}) {
+  if (id == 'genre_polar_adepte') return true;
+  return false;
+}
+
+bool isGenrePolarMaitreBadge({required String id, String? category, int? requirement}) {
+  if (id == 'genre_polar_maitre') return true;
+  return false;
+}
+
+bool isGenrePolarLegendeBadge({required String id, String? category, int? requirement}) {
+  if (id == 'genre_polar_legende') return true;
+  return false;
+}
+
+bool isGenreSfApprentiBadge({required String id, String? category, int? requirement}) {
+  if (id == 'genre_sf_apprenti') return true;
+  return false;
+}
+
+bool isGenreSfAdepteBadge({required String id, String? category, int? requirement}) {
+  if (id == 'genre_sf_adepte') return true;
+  return false;
+}
+
+bool isGenreSfMaitreBadge({required String id, String? category, int? requirement}) {
+  if (id == 'genre_sf_maitre') return true;
+  return false;
+}
+
+bool isGenreSfLegendeBadge({required String id, String? category, int? requirement}) {
+  if (id == 'genre_sf_legende') return true;
+  return false;
+}
+
 /// Widget réutilisable pour afficher le badge "Initié" (SF).
 class GenreSfInitieBadge extends StatelessWidget {
   final double size;
@@ -1547,6 +1587,326 @@ class GenreSfInitieBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     Widget badge = SvgPicture.network(
       '${Env.supabaseStorageUrl}/asset/Image/badge/genre/Science-Fiction/badge_sf_01_initie.svg',
+      width: size,
+      height: size,
+    );
+
+    if (isLocked) {
+      badge = ColorFiltered(
+        colorFilter: _greyscale,
+        child: Opacity(
+          opacity: 0.45,
+          child: badge,
+        ),
+      );
+    }
+
+    return badge;
+  }
+}
+
+/// Widget réutilisable pour afficher le badge "Apprenti" (Polar/Thriller, 5 livres).
+class GenrePolarApprentiBadge extends StatelessWidget {
+  final double size;
+  final bool isLocked;
+
+  const GenrePolarApprentiBadge({
+    super.key,
+    this.size = 80,
+    this.isLocked = false,
+  });
+
+  static const ColorFilter _greyscale = ColorFilter.matrix(<double>[
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0,      0,      0,      1, 0,
+  ]);
+
+  @override
+  Widget build(BuildContext context) {
+    Widget badge = SvgPicture.network(
+      '${Env.supabaseStorageUrl}/asset/Image/badge/genre/Polar/badge_sf_01_apprenti.svg',
+      width: size,
+      height: size,
+    );
+
+    if (isLocked) {
+      badge = ColorFiltered(
+        colorFilter: _greyscale,
+        child: Opacity(
+          opacity: 0.45,
+          child: badge,
+        ),
+      );
+    }
+
+    return badge;
+  }
+}
+
+/// Widget réutilisable pour afficher le badge "Adepte" (Polar/Thriller, 15 livres).
+class GenrePolarAdepteBadge extends StatelessWidget {
+  final double size;
+  final bool isLocked;
+
+  const GenrePolarAdepteBadge({
+    super.key,
+    this.size = 80,
+    this.isLocked = false,
+  });
+
+  static const ColorFilter _greyscale = ColorFilter.matrix(<double>[
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0,      0,      0,      1, 0,
+  ]);
+
+  @override
+  Widget build(BuildContext context) {
+    Widget badge = SvgPicture.network(
+      '${Env.supabaseStorageUrl}/asset/Image/badge/genre/Polar/badge_sf_02_adepte.svg',
+      width: size,
+      height: size,
+    );
+
+    if (isLocked) {
+      badge = ColorFiltered(
+        colorFilter: _greyscale,
+        child: Opacity(
+          opacity: 0.45,
+          child: badge,
+        ),
+      );
+    }
+
+    return badge;
+  }
+}
+
+/// Widget réutilisable pour afficher le badge "Maitre" (Polar/Thriller, 30 livres).
+class GenrePolarMaitreBadge extends StatelessWidget {
+  final double size;
+  final bool isLocked;
+
+  const GenrePolarMaitreBadge({
+    super.key,
+    this.size = 80,
+    this.isLocked = false,
+  });
+
+  static const ColorFilter _greyscale = ColorFilter.matrix(<double>[
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0,      0,      0,      1, 0,
+  ]);
+
+  @override
+  Widget build(BuildContext context) {
+    Widget badge = SvgPicture.network(
+      '${Env.supabaseStorageUrl}/asset/Image/badge/genre/Polar/badge_sf_03_maitre.svg',
+      width: size,
+      height: size,
+    );
+
+    if (isLocked) {
+      badge = ColorFiltered(
+        colorFilter: _greyscale,
+        child: Opacity(
+          opacity: 0.45,
+          child: badge,
+        ),
+      );
+    }
+
+    return badge;
+  }
+}
+
+/// Widget réutilisable pour afficher le badge "Legende" (Polar/Thriller, 50 livres).
+class GenrePolarLegendeBadge extends StatelessWidget {
+  final double size;
+  final bool isLocked;
+
+  const GenrePolarLegendeBadge({
+    super.key,
+    this.size = 80,
+    this.isLocked = false,
+  });
+
+  static const ColorFilter _greyscale = ColorFilter.matrix(<double>[
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0,      0,      0,      1, 0,
+  ]);
+
+  @override
+  Widget build(BuildContext context) {
+    Widget badge = SvgPicture.network(
+      '${Env.supabaseStorageUrl}/asset/Image/badge/genre/Polar/badge_sf_04_legende.svg',
+      width: size,
+      height: size,
+    );
+
+    if (isLocked) {
+      badge = ColorFiltered(
+        colorFilter: _greyscale,
+        child: Opacity(
+          opacity: 0.45,
+          child: badge,
+        ),
+      );
+    }
+
+    return badge;
+  }
+}
+
+/// Widget réutilisable pour afficher le badge "Apprenti" (SF, 5 livres).
+class GenreSfApprentiBadge extends StatelessWidget {
+  final double size;
+  final bool isLocked;
+
+  const GenreSfApprentiBadge({
+    super.key,
+    this.size = 80,
+    this.isLocked = false,
+  });
+
+  static const ColorFilter _greyscale = ColorFilter.matrix(<double>[
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0,      0,      0,      1, 0,
+  ]);
+
+  @override
+  Widget build(BuildContext context) {
+    Widget badge = SvgPicture.network(
+      '${Env.supabaseStorageUrl}/asset/Image/badge/genre/Science-Fiction/badge_sf_01_apprenti.svg',
+      width: size,
+      height: size,
+    );
+
+    if (isLocked) {
+      badge = ColorFiltered(
+        colorFilter: _greyscale,
+        child: Opacity(
+          opacity: 0.45,
+          child: badge,
+        ),
+      );
+    }
+
+    return badge;
+  }
+}
+
+/// Widget réutilisable pour afficher le badge "Adepte" (SF, 15 livres).
+class GenreSfAdepteBadge extends StatelessWidget {
+  final double size;
+  final bool isLocked;
+
+  const GenreSfAdepteBadge({
+    super.key,
+    this.size = 80,
+    this.isLocked = false,
+  });
+
+  static const ColorFilter _greyscale = ColorFilter.matrix(<double>[
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0,      0,      0,      1, 0,
+  ]);
+
+  @override
+  Widget build(BuildContext context) {
+    Widget badge = SvgPicture.network(
+      '${Env.supabaseStorageUrl}/asset/Image/badge/genre/Science-Fiction/badge_sf_02_adepte.svg',
+      width: size,
+      height: size,
+    );
+
+    if (isLocked) {
+      badge = ColorFiltered(
+        colorFilter: _greyscale,
+        child: Opacity(
+          opacity: 0.45,
+          child: badge,
+        ),
+      );
+    }
+
+    return badge;
+  }
+}
+
+/// Widget réutilisable pour afficher le badge "Maitre" (SF, 30 livres).
+class GenreSfMaitreBadge extends StatelessWidget {
+  final double size;
+  final bool isLocked;
+
+  const GenreSfMaitreBadge({
+    super.key,
+    this.size = 80,
+    this.isLocked = false,
+  });
+
+  static const ColorFilter _greyscale = ColorFilter.matrix(<double>[
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0,      0,      0,      1, 0,
+  ]);
+
+  @override
+  Widget build(BuildContext context) {
+    Widget badge = SvgPicture.network(
+      '${Env.supabaseStorageUrl}/asset/Image/badge/genre/Science-Fiction/badge_sf_03_maitre.svg',
+      width: size,
+      height: size,
+    );
+
+    if (isLocked) {
+      badge = ColorFiltered(
+        colorFilter: _greyscale,
+        child: Opacity(
+          opacity: 0.45,
+          child: badge,
+        ),
+      );
+    }
+
+    return badge;
+  }
+}
+
+/// Widget réutilisable pour afficher le badge "Legende" (SF, 50 livres).
+class GenreSfLegendeBadge extends StatelessWidget {
+  final double size;
+  final bool isLocked;
+
+  const GenreSfLegendeBadge({
+    super.key,
+    this.size = 80,
+    this.isLocked = false,
+  });
+
+  static const ColorFilter _greyscale = ColorFilter.matrix(<double>[
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0,      0,      0,      1, 0,
+  ]);
+
+  @override
+  Widget build(BuildContext context) {
+    Widget badge = SvgPicture.network(
+      '${Env.supabaseStorageUrl}/asset/Image/badge/genre/Science-Fiction/badge_sf_04_legende.svg',
       width: size,
       height: size,
     );

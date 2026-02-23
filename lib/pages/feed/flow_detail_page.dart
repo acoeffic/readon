@@ -337,7 +337,7 @@ class _FlowDetailPageState extends State<FlowDetailPage> {
   Widget _buildFreezeCard() {
     final freezeStatus = _flow.freezeStatus;
     final isAtRisk = _flow.isAtRisk && _flow.currentFlow > 0;
-    final isPremium = freezeStatus?.isPremium ?? false;
+    final isPremium = context.watch<SubscriptionProvider>().isPremium;
     final canFreeze = freezeStatus?.canFreeze ?? false;
 
     return Container(

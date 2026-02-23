@@ -37,6 +37,9 @@ import '../../data/curated_lists_data.dart';
 import '../curated_lists/curated_list_detail_page.dart';
 import '../curated_lists/all_curated_lists_page.dart';
 import '../books/user_books_page.dart';
+import 'widgets/active_readers_card.dart';
+import 'widgets/community_badge_unlock_card.dart';
+import '../friends/friend_profile_page.dart';
 
 class FeedPage extends StatefulWidget {
   const FeedPage({super.key});
@@ -71,18 +74,21 @@ class _FeedPageState extends State<FeedPage> {
   FeedTier feedTier = FeedTier.friendsOnly;
   List<Map<String, dynamic>> trendingBooks = [];
   List<Map<String, dynamic>> communitySessions = [];
+  List<Map<String, dynamic>> activeReaders = [];
+  List<Map<String, dynamic>> badgeUnlocks = [];
 
   // Listes curatées
   Map<int, int> curatedReaderCounts = {};
   Set<int> savedCuratedListIds = {};
 
-  // Ordre aléatoire des sections du feed (sessions, suggestions, trending)
-  List<int> _feedSectionOrder = [0, 1, 2];
+  // Ordre aléatoire des sections du feed
+  // 0 = sessions, 1 = suggestions, 2 = trending books, 3 = lecteurs actifs, 4 = badges
+  List<int> _feedSectionOrder = [0, 1, 2, 3, 4];
 
   @override
   void initState() {
     super.initState();
-    _feedSectionOrder = [0, 1, 2]..shuffle(Random());
+    _feedSectionOrder = [0, 1, 2, 3, 4]..shuffle(Random());
     _scrollController.addListener(_onScroll);
     loadFeed();
   }
@@ -167,6 +173,8 @@ class _FeedPageState extends State<FeedPage> {
       List<Map<String, dynamic>> activities = [];
       List<Map<String, dynamic>> trending = [];
       List<Map<String, dynamic>> community = [];
+      List<Map<String, dynamic>> readers = [];
+      List<Map<String, dynamic>> unlocks = [];
 
       if (tier == FeedTier.friendsOnly || tier == FeedTier.mixed) {
         final activitiesRes = await supabase.rpc('get_feed', params: {
@@ -181,16 +189,20 @@ class _FeedPageState extends State<FeedPage> {
         final trendingResults = await Future.wait([
           trendingService.getTrendingBooks(limit: 5, forceRefresh: false),
           trendingService.getCommunitySessions(limit: 10, forceRefresh: false),
+          trendingService.getActiveReaders(limit: 10, forceRefresh: false),
+          trendingService.getCommunityBadgeUnlocks(limit: 8, forceRefresh: false),
         ]);
         trending = trendingResults[0];
         community = trendingResults[1];
+        readers = trendingResults[2];
+        unlocks = trendingResults[3];
       }
 
       if (!mounted) return;
 
       // Mélanger l'ordre des sections du feed
       final random = Random();
-      final newOrder = [0, 1, 2]..shuffle(random);
+      final newOrder = [0, 1, 2, 3, 4]..shuffle(random);
       debugPrint('Feed tier: $tier, section order: $newOrder');
 
       setState(() {
@@ -201,6 +213,8 @@ class _FeedPageState extends State<FeedPage> {
         friendActivities = activities;
         trendingBooks = trending;
         communitySessions = community;
+        activeReaders = readers;
+        badgeUnlocks = unlocks;
         suggestions = suggestionsRes;
         curatedReaderCounts = readerCountsRes;
         savedCuratedListIds = savedListIdsRes;
@@ -433,12 +447,86 @@ class _FeedPageState extends State<FeedPage> {
     ];
   }
 
+  /// Naviguer vers le profil d'un lecteur communautaire
+  void _openReaderProfile(Map<String, dynamic> data) {
+    final userId = data['user_id'] as String?;
+    if (userId == null) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => FriendProfilePage(userId: userId),
+      ),
+    );
+  }
+
+  /// Construit la section des lecteurs actifs
+  List<Widget> _buildActiveReadersSection() {
+    if (activeReaders.isEmpty) return [];
+    return [
+      ActiveReadersCard(
+        readers: activeReaders,
+        onReaderTap: _openReaderProfile,
+      ),
+      const SizedBox(height: AppSpace.l),
+    ];
+  }
+
+  /// Construit la section des badges communautaires
+  List<Widget> _buildBadgeUnlocksSection() {
+    if (badgeUnlocks.isEmpty) return [];
+    return [
+      Row(
+        children: [
+          const Text('🏅', style: TextStyle(fontSize: 16)),
+          const SizedBox(width: AppSpace.s),
+          Text(
+            'Badges récents',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+        ],
+      ),
+      const SizedBox(height: AppSpace.s),
+      ...badgeUnlocks.map(
+        (unlock) => CommunityBadgeUnlockCard(
+          unlock: unlock,
+          onTap: () => _openReaderProfile(unlock),
+        ),
+      ),
+      const SizedBox(height: AppSpace.l),
+    ];
+  }
+
+  /// Construit la section des badges communautaires (limitée pour feed mixte)
+  List<Widget> _buildBadgeUnlocksSectionLimited() {
+    if (badgeUnlocks.isEmpty) return [];
+    return [
+      Row(
+        children: [
+          const Text('🏅', style: TextStyle(fontSize: 16)),
+          const SizedBox(width: AppSpace.s),
+          Text(
+            'Badges récents',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+        ],
+      ),
+      const SizedBox(height: AppSpace.s),
+      ...badgeUnlocks.take(3).map(
+        (unlock) => CommunityBadgeUnlockCard(
+          unlock: unlock,
+          onTap: () => _openReaderProfile(unlock),
+        ),
+      ),
+      const SizedBox(height: AppSpace.l),
+    ];
+  }
+
   /// Feed tier 3 : 0 amis — contenu tendances communauté
   List<Widget> _buildTrendingFeed() {
     // Construire les sections dans l'ordre aléatoire
-    // 0 = sessions, 1 = suggestions, 2 = trending books
+    // 0 = sessions, 1 = suggestions, 2 = trending books, 3 = lecteurs actifs, 4 = badges
     final sections = <List<Widget>>[];
-    final order = _feedSectionOrder.isNotEmpty ? _feedSectionOrder : [0, 1, 2];
+    final order = _feedSectionOrder.isNotEmpty ? _feedSectionOrder : [0, 1, 2, 3, 4];
     for (final index in order) {
       switch (index) {
         case 0:
@@ -449,6 +537,12 @@ class _FeedPageState extends State<FeedPage> {
           break;
         case 2:
           sections.add(_buildTrendingBooksSection());
+          break;
+        case 3:
+          sections.add(_buildActiveReadersSection());
+          break;
+        case 4:
+          sections.add(_buildBadgeUnlocksSection());
           break;
       }
     }
@@ -498,9 +592,9 @@ class _FeedPageState extends State<FeedPage> {
   /// Feed tier 2 : 1-2 amis — mixte amis + communauté
   List<Widget> _buildMixedFeed() {
     // Construire les sections dans l'ordre aléatoire
-    // 0 = sessions, 1 = suggestions, 2 = trending books
+    // 0 = sessions, 1 = suggestions, 2 = trending books, 3 = lecteurs actifs, 4 = badges
     final sections = <List<Widget>>[];
-    final order = _feedSectionOrder.isNotEmpty ? _feedSectionOrder : [0, 1, 2];
+    final order = _feedSectionOrder.isNotEmpty ? _feedSectionOrder : [0, 1, 2, 3, 4];
     for (final index in order) {
       switch (index) {
         case 0:
@@ -511,6 +605,12 @@ class _FeedPageState extends State<FeedPage> {
           break;
         case 2:
           sections.add(_buildTrendingBooksSection());
+          break;
+        case 3:
+          sections.add(_buildActiveReadersSection());
+          break;
+        case 4:
+          sections.add(_buildBadgeUnlocksSectionLimited());
           break;
       }
     }

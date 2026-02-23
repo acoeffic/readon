@@ -163,6 +163,32 @@ Widget _buildBadgeIcon(UserBadge badge, {required double size}) {
     return GenreSfInitieBadge(size: size);
   }
 
+  if (isGenrePolarApprentiBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return GenrePolarApprentiBadge(size: size);
+  }
+  if (isGenrePolarAdepteBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return GenrePolarAdepteBadge(size: size);
+  }
+  if (isGenrePolarMaitreBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return GenrePolarMaitreBadge(size: size);
+  }
+  if (isGenrePolarLegendeBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return GenrePolarLegendeBadge(size: size);
+  }
+
+  if (isGenreSfApprentiBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return GenreSfApprentiBadge(size: size);
+  }
+  if (isGenreSfAdepteBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return GenreSfAdepteBadge(size: size);
+  }
+  if (isGenreSfMaitreBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return GenreSfMaitreBadge(size: size);
+  }
+  if (isGenreSfLegendeBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return GenreSfLegendeBadge(size: size);
+  }
+
   // Fallback: emoji in a circle
   final color = _badgeColor(badge);
   return Container(

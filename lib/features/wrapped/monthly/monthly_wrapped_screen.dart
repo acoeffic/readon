@@ -83,18 +83,27 @@ class _MonthlyWrappedScreenState extends State<MonthlyWrappedScreen> {
     try {
       final randomTrack =
           _ambientTracks[Random().nextInt(_ambientTracks.length)];
+      debugPrint('🔊 AUDIO: loading $randomTrack');
       await _audioPlayer.setUrl(randomTrack);
+      debugPrint('🔊 AUDIO: setUrl OK, duration=${_audioPlayer.duration}');
       await _audioPlayer.setLoopMode(LoopMode.one);
       await _audioPlayer.setVolume(0);
+      debugPrint('🔊 AUDIO: calling play()');
       await _audioPlayer.play();
+      debugPrint('🔊 AUDIO: play() returned, state=${_audioPlayer.playerState}');
       // Fade in: 0 → 0.5 over ~1.5 s
       for (int i = 1; i <= 15; i++) {
-        if (!mounted) return;
+        if (!mounted) {
+          debugPrint('🔊 AUDIO: not mounted at fade step $i, aborting');
+          return;
+        }
         await Future.delayed(const Duration(milliseconds: 100));
         await _audioPlayer.setVolume(i / 15 * _targetVolume);
       }
-    } catch (e) {
-      debugPrint('Monthly Wrapped audio error: $e');
+      debugPrint('🔊 AUDIO: fade-in complete, volume=${_audioPlayer.volume}');
+    } catch (e, st) {
+      debugPrint('🔊 AUDIO ERROR: $e');
+      debugPrint('🔊 AUDIO STACK: $st');
     }
   }
 
