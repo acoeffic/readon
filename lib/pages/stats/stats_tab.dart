@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import '../../models/feature_flags.dart';
+import '../../widgets/constrained_content.dart';
 import '../../models/reading_statistics.dart';
 import '../../pages/profile/upgrade_page.dart';
 import '../../services/statistics_service.dart';
@@ -157,7 +158,8 @@ class _StatsTabState extends State<StatsTab> {
 
     return RefreshIndicator(
       onRefresh: _loadStats,
-      child: SingleChildScrollView(
+      child: ConstrainedContent(
+        child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(AppSpace.l),
         child: Column(
@@ -217,6 +219,7 @@ class _StatsTabState extends State<StatsTab> {
             const SizedBox(height: AppSpace.l),
           ],
         ),
+      ),
       ),
     );
   }

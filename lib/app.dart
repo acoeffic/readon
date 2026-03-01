@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'l10n/app_localizations.dart';
 import 'theme/app_theme.dart';
-import 'pages/auth/auth_gate.dart';
+import 'pages/splash/splash_screen.dart';
 import 'providers/theme_provider.dart';
 import 'providers/subscription_provider.dart';
 import 'providers/locale_provider.dart';
@@ -31,7 +31,7 @@ class LexDayApp extends StatelessWidget {
             theme: AppTheme.light,
             darkTheme: AppTheme.dark,
             themeMode: themeProvider.themeMode,
-            home: const AuthGate(),
+            home: const SplashScreen(),
           );
         },
       ),

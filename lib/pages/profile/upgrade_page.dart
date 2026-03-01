@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../models/feature_flags.dart';
 import '../../providers/subscription_provider.dart';
 import '../../services/subscription_service.dart';
+import '../../widgets/constrained_content.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/back_header.dart';
 
@@ -148,7 +149,8 @@ class _UpgradePageState extends State<UpgradePage> {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
-        child: SingleChildScrollView(
+        child: ConstrainedContent(
+          child: SingleChildScrollView(
           padding: const EdgeInsets.all(AppSpace.l),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -337,6 +339,7 @@ class _UpgradePageState extends State<UpgradePage> {
               ],
             ],
           ),
+        ),
         ),
       ),
     );

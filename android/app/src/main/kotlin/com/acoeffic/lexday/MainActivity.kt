@@ -1,4 +1,4 @@
-package com.example.readon
+package com.acoeffic.lexday
 
 import io.flutter.embedding.android.FlutterActivity
 

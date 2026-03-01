@@ -8,6 +8,7 @@ import '../../providers/subscription_provider.dart';
 import '../../pages/profile/upgrade_page.dart';
 import '../../services/reading_session_service.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/constrained_content.dart';
 import '../../widgets/cached_book_cover.dart';
 
 class SessionDetailPage extends StatefulWidget {
@@ -203,7 +204,8 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
           ],
         ],
       ),
-      body: SingleChildScrollView(
+      body: ConstrainedContent(
+        child: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 20),
         child: Column(
           children: [
@@ -270,6 +272,7 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
             const SizedBox(height: 32),
           ],
         ),
+      ),
       ),
     );
   }

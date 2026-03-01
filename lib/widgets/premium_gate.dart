@@ -35,6 +35,10 @@ class PremiumGate extends StatelessWidget {
 
         if (isUnlocked) return child;
 
+        if (sub.isBillingIssue) {
+          return lockedWidget ?? _BillingIssueWidget(feature: feature);
+        }
+
         return lockedWidget ?? _DefaultLockedWidget(feature: feature);
       },
     );
@@ -90,6 +94,66 @@ class _DefaultLockedWidget extends StatelessWidget {
               Icons.arrow_forward_ios,
               size: 16,
               color: AppColors.primary.withValues(alpha: 0.6),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BillingIssueWidget extends StatelessWidget {
+  final Feature feature;
+  const _BillingIssueWidget({required this.feature});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => UpgradePage(highlightedFeature: feature),
+        ),
+      ),
+      child: Container(
+        padding: const EdgeInsets.all(AppSpace.l),
+        decoration: BoxDecoration(
+          color: Colors.orange.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(AppRadius.l),
+          border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.warning_amber_rounded,
+                color: Colors.orange, size: 20),
+            const SizedBox(width: AppSpace.s),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Problème de paiement',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                      color: Colors.orange,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Vérifie ton moyen de paiement pour continuer',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.orange.withValues(alpha: 0.7),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.arrow_forward_ios,
+              size: 16,
+              color: Colors.orange.withValues(alpha: 0.6),
             ),
           ],
         ),

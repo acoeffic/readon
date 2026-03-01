@@ -14,6 +14,7 @@ import '../reading/book_finished_share_service.dart';
 import '../reading/book_completed_summary_page.dart';
 import '../curated_lists/create_custom_list_dialog.dart';
 import '../../widgets/cached_book_cover.dart';
+import '../../widgets/constrained_content.dart';
 
 class UserBooksPage extends StatefulWidget {
   const UserBooksPage({super.key});
@@ -257,7 +258,8 @@ class _UserBooksPageState extends State<UserBooksPage> {
               ? _buildEmptyState()
               : RefreshIndicator(
                   onRefresh: _loadBooks,
-                  child: Column(
+                  child: ConstrainedContent(
+                    child: Column(
                     children: [
                       Padding(
                         padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
@@ -311,6 +313,7 @@ class _UserBooksPageState extends State<UserBooksPage> {
                             : _buildBooksListByGenre(),
                       ),
                     ],
+                  ),
                   ),
                 ),
     );

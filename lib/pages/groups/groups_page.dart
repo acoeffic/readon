@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/constrained_content.dart';
 import '../../models/reading_group.dart';
 import '../../models/feature_flags.dart';
 import '../../services/groups_service.dart';
@@ -227,16 +228,18 @@ class _GroupsPageState extends State<GroupsPage>
 
     return RefreshIndicator(
       onRefresh: _loadMyGroups,
-      child: ListView.builder(
-        padding: const EdgeInsets.all(AppSpace.m),
-        itemCount: _myGroups.length,
-        itemBuilder: (context, index) {
-          final group = _myGroups[index];
-          return _GroupCard(
-            group: group,
-            onTap: () => _navigateToGroupDetail(group),
-          );
-        },
+      child: ConstrainedContent(
+        child: ListView.builder(
+          padding: const EdgeInsets.all(AppSpace.m),
+          itemCount: _myGroups.length,
+          itemBuilder: (context, index) {
+            final group = _myGroups[index];
+            return _GroupCard(
+              group: group,
+              onTap: () => _navigateToGroupDetail(group),
+            );
+          },
+        ),
       ),
     );
   }
@@ -269,17 +272,19 @@ class _GroupsPageState extends State<GroupsPage>
 
     return RefreshIndicator(
       onRefresh: _loadPublicGroups,
-      child: ListView.builder(
-        padding: const EdgeInsets.all(AppSpace.m),
-        itemCount: _publicGroups.length,
-        itemBuilder: (context, index) {
-          final group = _publicGroups[index];
-          return _GroupCard(
-            group: group,
-            onTap: () => _navigateToGroupDetail(group),
-            showCreator: true,
-          );
-        },
+      child: ConstrainedContent(
+        child: ListView.builder(
+          padding: const EdgeInsets.all(AppSpace.m),
+          itemCount: _publicGroups.length,
+          itemBuilder: (context, index) {
+            final group = _publicGroups[index];
+            return _GroupCard(
+              group: group,
+              onTap: () => _navigateToGroupDetail(group),
+              showCreator: true,
+            );
+          },
+        ),
       ),
     );
   }

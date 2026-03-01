@@ -3,8 +3,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../theme/app_theme.dart';
 import '../../navigation/main_navigation.dart';
 import '../../services/subscription_service.dart';
-import '../welcome/welcome_page.dart';
 import '../onboarding/onboarding_page.dart';
+import 'login_page.dart';
 
 class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
@@ -28,7 +28,7 @@ class _AuthGateState extends State<AuthGate> {
 
     if (session == null) {
       setState(() {
-        _destination = const WelcomePage();
+        _destination = const LoginPage();
         _loading = false;
       });
       return;

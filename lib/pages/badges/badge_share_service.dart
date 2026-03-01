@@ -1,10 +1,13 @@
+import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:screenshot/screenshot.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../services/badges_service.dart';
 import '../../features/wrapped/share/share_format.dart';
@@ -17,7 +20,49 @@ import 'badge_share_card.dart';
 
 class BadgeShareService {
   final _screenshotController = ScreenshotController();
+  final _supabase = Supabase.instance.client;
 
+  /// Generate badge card server-side via Edge Function.
+  /// Returns the public URL of the generated PNG.
+  Future<String> generateServerCard({required String badgeId}) async {
+    final response = await _supabase.functions.invoke(
+      'generate-badge-card',
+      body: {'badge_id': badgeId},
+    );
+
+    final data = response.data;
+    if (data is Map<String, dynamic>) {
+      if (data.containsKey('error')) {
+        throw Exception(data['message'] ?? data['error'] ?? 'Erreur serveur');
+      }
+      final url = data['url'] as String?;
+      if (url != null) return url;
+    }
+
+    if (data is String) {
+      final decoded = jsonDecode(data);
+      if (decoded is Map<String, dynamic>) {
+        if (decoded.containsKey('error')) {
+          throw Exception(decoded['message'] ?? decoded['error']);
+        }
+        final url = decoded['url'] as String?;
+        if (url != null) return url;
+      }
+    }
+
+    throw Exception('Réponse inattendue du serveur');
+  }
+
+  /// Download a PNG from [url] and return its bytes.
+  Future<Uint8List> downloadImage(String url) async {
+    final response = await http.get(Uri.parse(url));
+    if (response.statusCode != 200) {
+      throw Exception('Erreur téléchargement image');
+    }
+    return response.bodyBytes;
+  }
+
+  /// Capture badge card client-side (fallback).
   Future<Uint8List?> captureCard({
     required UserBadge badge,
     required ShareFormat format,
@@ -123,15 +168,30 @@ class _BadgeShareSheetState extends State<_BadgeShareSheet> {
   }
 
   Future<void> _capturePreview() async {
-    final bytes = await _service.captureCard(
-      badge: widget.badge,
-      format: ShareFormat.story,
-    );
-    if (!mounted) return;
-    setState(() {
-      _capturedImage = bytes;
-      _isCapturing = false;
-    });
+    try {
+      // Try server-side generation first
+      final url = await _service.generateServerCard(
+        badgeId: widget.badge.id,
+      );
+      final bytes = await _service.downloadImage(url);
+      if (!mounted) return;
+      setState(() {
+        _capturedImage = bytes;
+        _isCapturing = false;
+      });
+    } catch (e) {
+      debugPrint('Server card generation failed, falling back to client: $e');
+      // Fallback to client-side capture
+      final bytes = await _service.captureCard(
+        badge: widget.badge,
+        format: ShareFormat.story,
+      );
+      if (!mounted) return;
+      setState(() {
+        _capturedImage = bytes;
+        _isCapturing = false;
+      });
+    }
   }
 
   Rect? _shareOrigin() {

@@ -67,7 +67,13 @@
       "Bash(pip3 show:*)",
       "Bash(ipconfig getifaddr:*)",
       "Bash(ipconfig:*)",
-      "Bash(sort:*)"
+      "Bash(sort:*)",
+      "WebFetch(domain:supabase.com)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:anasrin.dev)",
+      "WebFetch(domain:dev.to)",
+      "Bash(open:*)"
     ]
   }
 }

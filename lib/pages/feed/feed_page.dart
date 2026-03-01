@@ -4,8 +4,10 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/constrained_content.dart';
 import '../feed/widgets/feed_header.dart';
 import 'widgets/friend_activity_card.dart';
 import 'widgets/book_finished_card.dart';
@@ -29,6 +31,7 @@ import 'widgets/community_section_separator.dart';
 import '../../models/reading_session.dart';
 import '../sessions/session_detail_page.dart';
 import 'widgets/find_friends_cta.dart';
+import 'widgets/invite_friends_banner.dart';
 import '../friends/search_users_page.dart';
 import 'widgets/curated_lists_carousel.dart';
 import '../../models/curated_list.dart';
@@ -302,6 +305,15 @@ class _FeedPageState extends State<FeedPage> {
     );
   }
 
+  void _shareInviteLink() {
+    final text = '\u{1F4D6} Rejoins-moi sur LexDay !\n\n'
+        'Tu lis quoi en ce moment ? \u{1F440}\n'
+        'lexday.app';
+    final box = context.findRenderObject() as RenderBox?;
+    final origin = box != null ? box.localToGlobal(Offset.zero) & box.size : null;
+    Share.share(text, sharePositionOrigin: origin);
+  }
+
   Widget _buildSuggestionsSection() {
     if (suggestions.isEmpty) return const SizedBox.shrink();
     return Column(
@@ -548,8 +560,11 @@ class _FeedPageState extends State<FeedPage> {
     }
 
     return [
-      // Message d'accueil (toujours en premier)
-      const TrendingWelcomeCard(),
+      // Bannière d'invitation (toujours en premier)
+      InviteFriendsBanner(
+        onShare: _shareInviteLink,
+        onFindFriends: _navigateToSearchUsers,
+      ),
       const SizedBox(height: AppSpace.l),
 
       // Listes curatées (position fixe)
@@ -616,7 +631,14 @@ class _FeedPageState extends State<FeedPage> {
     }
 
     return [
-      // Activités des amis (toujours en premier)
+      // Bannière d'invitation (en haut du feed mixte)
+      InviteFriendsBanner(
+        onShare: _shareInviteLink,
+        onFindFriends: _navigateToSearchUsers,
+      ),
+      const SizedBox(height: AppSpace.l),
+
+      // Activités des amis
       Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -763,7 +785,8 @@ class _FeedPageState extends State<FeedPage> {
             Expanded(
               child: RefreshIndicator(
                 onRefresh: loadFeed,
-                child: ListView(
+                child: ConstrainedContent(
+                  child: ListView(
                   controller: _scrollController,
                   physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.all(AppSpace.l),
@@ -853,6 +876,7 @@ class _FeedPageState extends State<FeedPage> {
                   ],
                 ),
               ),
+            ),
             ),
           ],
         ),

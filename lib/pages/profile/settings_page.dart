@@ -4,10 +4,12 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'dart:io';
 import '../../theme/app_theme.dart';
+import '../../widgets/constrained_content.dart';
 import '../../widgets/back_header.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/locale_provider.dart';
 import '../../providers/subscription_provider.dart';
+import '../../services/subscription_service.dart';
 import 'notification_settings_page.dart';
 import 'kindle_login_page.dart';
 import 'reading_goals_page.dart';
@@ -544,7 +546,8 @@ if (!allowedExtensions.contains(fileExtension)) {
       TrendingService.clearCache();
       GoogleBooksService.clearCache();
 
-      // Déconnexion et redirection
+      // Déconnexion RevenueCat puis Supabase
+      await SubscriptionService().logoutUser();
       try {
         await Supabase.instance.client.auth.signOut();
       } catch (_) {
@@ -591,7 +594,8 @@ if (!allowedExtensions.contains(fileExtension)) {
               ),
             ),
             Expanded(
-              child: SingleChildScrollView(
+              child: ConstrainedContent(
+                child: SingleChildScrollView(
                 padding: const EdgeInsets.all(AppSpace.l),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1022,6 +1026,7 @@ if (!allowedExtensions.contains(fileExtension)) {
                     if (confirm == true) {
                       TrendingService.clearCache();
                       GoogleBooksService.clearCache();
+                      await SubscriptionService().logoutUser();
                       await Supabase.instance.client.auth.signOut();
 
                       if (context.mounted) {
@@ -1107,6 +1112,7 @@ if (!allowedExtensions.contains(fileExtension)) {
                   ],
                 ),
               ),
+            ),
             ),
           ],
         ),

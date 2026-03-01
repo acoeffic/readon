@@ -159,8 +159,8 @@ Widget _buildBadgeIcon(UserBadge badge, {required double size}) {
     return OccasionAprilFoolsBadge(size: size);
   }
 
-  if (isGenreSfInitieBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
-    return GenreSfInitieBadge(size: size);
+  if (isGenreSfApprentiBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return GenreSfApprentiBadge(size: size);
   }
 
   if (isGenrePolarApprentiBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
@@ -187,6 +187,86 @@ Widget _buildBadgeIcon(UserBadge badge, {required double size}) {
   }
   if (isGenreSfLegendeBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
     return GenreSfLegendeBadge(size: size);
+  }
+
+  if (isGenreRomanceApprentiBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return GenreRomanceApprentiBadge(size: size);
+  }
+
+  if (isGenreRomanceAdepteBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return GenreRomanceAdepteBadge(size: size);
+  }
+
+  if (isGenreRomanceMaitreBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return GenreRomanceMaitreBadge(size: size);
+  }
+
+  if (isGenreRomanceLegendeBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return GenreRomanceLegendeBadge(size: size);
+  }
+
+  if (isGenreHorreurApprentiBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return GenreHorreurApprentiBadge(size: size);
+  }
+
+  if (isGenreHorreurAdepteBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return GenreHorreurAdepteBadge(size: size);
+  }
+
+  if (isGenreHorreurMaitreBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return GenreHorreurMaitreBadge(size: size);
+  }
+
+  if (isGenreHorreurLegendeBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return GenreHorreurLegendeBadge(size: size);
+  }
+
+  if (isGenreBioApprentiBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return GenreBioApprentiBadge(size: size);
+  }
+
+  if (isGenreBioAdepteBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return GenreBioAdepteBadge(size: size);
+  }
+
+  if (isGenreBioMaitreBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return GenreBioMaitreBadge(size: size);
+  }
+
+  if (isGenreBioLegendeBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return GenreBioLegendeBadge(size: size);
+  }
+
+  if (isGenreHistoireApprentiBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return GenreHistoireApprentiBadge(size: size);
+  }
+
+  if (isGenreHistoireAdepteBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return GenreHistoireAdepteBadge(size: size);
+  }
+
+  if (isGenreHistoireMaitreBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return GenreHistoireMaitreBadge(size: size);
+  }
+
+  if (isGenreHistoireLegendeBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return GenreHistoireLegendeBadge(size: size);
+  }
+
+  if (isGenreDevpersoApprentiBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return GenreDevpersoApprentiBadge(size: size);
+  }
+
+  if (isGenreDevpersoAdepteBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return GenreDevpersoAdepteBadge(size: size);
+  }
+
+  if (isGenreDevpersoMaitreBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return GenreDevpersoMaitreBadge(size: size);
+  }
+
+  if (isGenreDevpersoLegendeBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return GenreDevpersoLegendeBadge(size: size);
   }
 
   // Fallback: emoji in a circle

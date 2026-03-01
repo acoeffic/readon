@@ -483,8 +483,8 @@ class _BooksBadgeDebugPageState extends State<BooksBadgeDebugPage> {
       return OccasionAprilFoolsBadge(size: size, isLocked: locked);
     }
 
-    if (isGenreSfInitieBadge(id: data.id, category: 'genres', requirement: data.requirement)) {
-      return GenreSfInitieBadge(size: size, isLocked: locked);
+    if (isGenreSfApprentiBadge(id: data.id, category: 'genres', requirement: data.requirement)) {
+      return GenreSfApprentiBadge(size: size, isLocked: locked);
     }
     if (isGenrePolarApprentiBadge(id: data.id, category: 'genres', requirement: data.requirement)) {
       return GenrePolarApprentiBadge(size: size, isLocked: locked);
@@ -509,6 +509,86 @@ class _BooksBadgeDebugPageState extends State<BooksBadgeDebugPage> {
     }
     if (isGenreSfLegendeBadge(id: data.id, category: 'genres', requirement: data.requirement)) {
       return GenreSfLegendeBadge(size: size, isLocked: locked);
+    }
+
+    if (isGenreRomanceApprentiBadge(id: data.id, category: 'genres', requirement: data.requirement)) {
+      return GenreRomanceApprentiBadge(size: size, isLocked: locked);
+    }
+
+    if (isGenreRomanceAdepteBadge(id: data.id, category: 'genres', requirement: data.requirement)) {
+      return GenreRomanceAdepteBadge(size: size, isLocked: locked);
+    }
+
+    if (isGenreRomanceMaitreBadge(id: data.id, category: 'genres', requirement: data.requirement)) {
+      return GenreRomanceMaitreBadge(size: size, isLocked: locked);
+    }
+
+    if (isGenreRomanceLegendeBadge(id: data.id, category: 'genres', requirement: data.requirement)) {
+      return GenreRomanceLegendeBadge(size: size, isLocked: locked);
+    }
+
+    if (isGenreHorreurApprentiBadge(id: data.id, category: 'genres', requirement: data.requirement)) {
+      return GenreHorreurApprentiBadge(size: size, isLocked: locked);
+    }
+
+    if (isGenreHorreurAdepteBadge(id: data.id, category: 'genres', requirement: data.requirement)) {
+      return GenreHorreurAdepteBadge(size: size, isLocked: locked);
+    }
+
+    if (isGenreHorreurMaitreBadge(id: data.id, category: 'genres', requirement: data.requirement)) {
+      return GenreHorreurMaitreBadge(size: size, isLocked: locked);
+    }
+
+    if (isGenreHorreurLegendeBadge(id: data.id, category: 'genres', requirement: data.requirement)) {
+      return GenreHorreurLegendeBadge(size: size, isLocked: locked);
+    }
+
+    if (isGenreBioApprentiBadge(id: data.id, category: 'genres', requirement: data.requirement)) {
+      return GenreBioApprentiBadge(size: size, isLocked: locked);
+    }
+
+    if (isGenreBioAdepteBadge(id: data.id, category: 'genres', requirement: data.requirement)) {
+      return GenreBioAdepteBadge(size: size, isLocked: locked);
+    }
+
+    if (isGenreBioMaitreBadge(id: data.id, category: 'genres', requirement: data.requirement)) {
+      return GenreBioMaitreBadge(size: size, isLocked: locked);
+    }
+
+    if (isGenreBioLegendeBadge(id: data.id, category: 'genres', requirement: data.requirement)) {
+      return GenreBioLegendeBadge(size: size, isLocked: locked);
+    }
+
+    if (isGenreHistoireApprentiBadge(id: data.id, category: 'genres', requirement: data.requirement)) {
+      return GenreHistoireApprentiBadge(size: size, isLocked: locked);
+    }
+
+    if (isGenreHistoireAdepteBadge(id: data.id, category: 'genres', requirement: data.requirement)) {
+      return GenreHistoireAdepteBadge(size: size, isLocked: locked);
+    }
+
+    if (isGenreHistoireMaitreBadge(id: data.id, category: 'genres', requirement: data.requirement)) {
+      return GenreHistoireMaitreBadge(size: size, isLocked: locked);
+    }
+
+    if (isGenreHistoireLegendeBadge(id: data.id, category: 'genres', requirement: data.requirement)) {
+      return GenreHistoireLegendeBadge(size: size, isLocked: locked);
+    }
+
+    if (isGenreDevpersoApprentiBadge(id: data.id, category: 'genres', requirement: data.requirement)) {
+      return GenreDevpersoApprentiBadge(size: size, isLocked: locked);
+    }
+
+    if (isGenreDevpersoAdepteBadge(id: data.id, category: 'genres', requirement: data.requirement)) {
+      return GenreDevpersoAdepteBadge(size: size, isLocked: locked);
+    }
+
+    if (isGenreDevpersoMaitreBadge(id: data.id, category: 'genres', requirement: data.requirement)) {
+      return GenreDevpersoMaitreBadge(size: size, isLocked: locked);
+    }
+
+    if (isGenreDevpersoLegendeBadge(id: data.id, category: 'genres', requirement: data.requirement)) {
+      return GenreDevpersoLegendeBadge(size: size, isLocked: locked);
     }
 
     // Fallback : emoji dans un cercle

@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/constrained_content.dart';
 import '../../widgets/cached_profile_avatar.dart';
 import '../friends/friends_page.dart';
 import '../books/user_books_page.dart';
@@ -100,7 +101,8 @@ class _ProfileDetailPageState extends State<ProfileDetailPage> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
+      body: ConstrainedContent(
+        child: SingleChildScrollView(
         padding: const EdgeInsets.all(AppSpace.l),
         child: Column(
           children: [
@@ -214,6 +216,7 @@ class _ProfileDetailPageState extends State<ProfileDetailPage> {
             ],
           ],
         ),
+      ),
       ),
     );
   }

@@ -1,6 +1,30 @@
 # ReadOn - Fonctionnalités de l'application
 
-ReadOn est une application sociale de lecture qui permet de suivre ses sessions de lecture, maintenir des streaks, rejoindre des groupes de lecture et interagir avec ses amis lecteurs.
+ReadOn est une application sociale de lecture qui permet de suivre ses sessions de lecture, maintenir des streaks (flow), collecter des badges, rejoindre des clubs de lecture et interagir avec ses amis lecteurs.
+
+---
+
+## Gratuit vs Premium - Résumé
+
+| Fonctionnalité | Gratuit | Premium |
+|----------------|---------|---------|
+| Sessions de lecture | Illimitées | Illimitées |
+| Bibliothèque de livres | Illimitée | Illimitée |
+| Flow (streaks) | Compteur + auto-freeze | + Freeze manuel + historique mois par mois |
+| Objectifs de lecture | Tous disponibles | Tous disponibles |
+| Badges de base | Tous disponibles | Tous disponibles |
+| Badges premium (65+) | Verrouillés | Débloqués (animés, secrets, genres) |
+| Listes personnalisées | 5 max | Illimitées |
+| Clubs de lecture | 5 max | Illimités |
+| Statistiques avancées | Verrouillées | Anneaux d'activité, heatmap, graphiques |
+| Réactions avancées | Likes uniquement | Emojis personnalisés |
+| Kindle auto-sync | Manuel uniquement | Automatique à chaque ouverture |
+| Muse (IA lecture) | 3 messages/mois | Illimité |
+| Thèmes personnalisés | Clair/Sombre | Thèmes supplémentaires |
+| Monthly & Yearly Wrapped | Disponible | Disponible |
+| Feed social | Complet | Complet |
+| Amis & notifications | Complet | Complet |
+| Widget iOS | Disponible | Disponible |
 
 ---
 
@@ -9,6 +33,7 @@ ReadOn est une application sociale de lecture qui permet de suivre ses sessions 
 ### Authentification
 - Inscription par email/mot de passe via Supabase
 - Confirmation d'email obligatoire
+- Réinitialisation de mot de passe
 - Persistance de session automatique
 
 ### Onboarding (8 étapes)
@@ -19,7 +44,7 @@ ReadOn est une application sociale de lecture qui permet de suivre ses sessions 
 5. Confirmation de synchronisation
 6. Ajout manuel de livres (pour les lecteurs papier)
 7. Première session de lecture
-8. Finalisation du profil
+8. Suggestions de lecteurs à suivre
 
 ---
 
@@ -32,7 +57,7 @@ ReadOn est une application sociale de lecture qui permet de suivre ses sessions 
 
 ### Session active
 - Chronomètre en temps réel (HH:MM:SS)
-- Possibilité d'annuler ou terminer la session
+- Possibilité de mettre en pause, annuler ou terminer la session
 
 ### Fin de session
 - Capture du numéro de page final
@@ -55,9 +80,12 @@ ReadOn est une application sociale de lecture qui permet de suivre ses sessions 
 
 ### Gestion de la bibliothèque
 - 3 catégories : En cours / À lire / Terminés
+- Filtrage par genre
+- Recherche par titre et auteur
 - Fiche détaillée par livre (couverture, métadonnées, progression, sessions)
 - Masquer des livres (non visibles par les autres utilisateurs)
 - Suppression par balayage
+- Dates de début et de fin de lecture
 
 ---
 
@@ -74,7 +102,6 @@ ReadOn est une application sociale de lecture qui permet de suivre ses sessions 
 - Intervalle de 24 heures entre chaque synchronisation automatique
 - Activable/désactivable dans les préférences utilisateur (activé par défaut)
 - Conditions intelligentes : ne se déclenche pas si Kindle jamais connecté, si désactivé, ou si dernière sync récente (<24h)
-- Feature flag dédié (`kindleAutoSync`)
 
 ---
 
@@ -92,25 +119,35 @@ Le feed s'adapte au nombre d'amis de l'utilisateur :
 - **Carte "Continuer la lecture"** : accès rapide au livre en cours
 - **Streak actuel** : affichage du streak avec état du freeze
 - **Activités des amis** : livre lu, durée, pages, couverture
+- **Livre terminé** : cartes de célébration pour les livres finis
+- **Progrès de lecture** : mises à jour de progression
+- **Jalons de flow** : milestones de streaks atteints
 - **Suggestions personnalisées** : basées sur les lectures des amis et l'historique
 - **Livres tendance** : les plus lus de la semaine (cache 15 min)
 - **Sessions communautaires** : sessions récentes des profils publics
+- **Badges communautaires** : derniers badges débloqués par la communauté
+- **Listes curées** : collections de lecture éditoriales
+- **Lecteurs actifs** : aperçu des lecteurs actifs
+- **Bannière "Inviter des amis"** : incitation à inviter ses contacts
 - **CTA "Trouver des amis"** : incitation à ajouter des contacts
 
 ---
 
-## 6. Streaks de lecture
+## 6. Flow (Streaks de lecture)
 
-### Suivi des streaks
+### Suivi du flow
 - Compteur de jours consécutifs de lecture
-- Record personnel (plus long streak)
-- Calendrier visuel des jours de lecture
+- Record personnel (plus long flow)
+- Percentile du flow par rapport à la communauté
+- Date de dernière lecture
 
 ### Streak Freeze
-- Protection d'une journée manquée pour maintenir le streak
-- Freeze automatique pour les utilisateurs Premium
-- Historique des jours protégés
-- Gestion depuis la page détail du streak
+- **Auto-freeze** (tous les utilisateurs) : protection automatique gérée par le système
+- **Freeze manuel** (Premium) : protéger manuellement 1 journée passée par mois
+
+### Historique du flow (Premium)
+- Navigation mois par mois dans le calendrier de lecture
+- Visualisation des jours lus, des jours manqués et des jours gelés
 
 ---
 
@@ -119,17 +156,17 @@ Le feed s'adapte au nombre d'amis de l'utilisateur :
 3 catégories d'objectifs configurables :
 
 ### Quantité
-- Nombre de livres par an
+- Nombre de livres par an (6, 12, 24, 52 ou personnalisé)
 
 ### Régularité
 - Jours de lecture par semaine
-- Objectif de streak
+- Objectif de streak (jours consécutifs)
 - Minutes de lecture par jour
 
-### Qualité
+### Qualité / Intention
 - Livres non-fiction lus
 - Livres fiction lus
-- Terminer les livres commencés
+- Terminer les livres commencés (% complétion)
 - Diversité de genres
 
 Chaque objectif affiche une barre de progression et peut être modifié à tout moment.
@@ -139,35 +176,41 @@ Chaque objectif affiche une barre de progression et peut être modifié à tout 
 ## 8. Badges & Trophées
 
 ### Badges (succès permanents)
-- **Catégorie Quantité** : paliers de livres lus (ex : 10, 25, 50 livres)
-- **Catégorie Régularité** : paliers de streak (ex : 7, 30, 100 jours)
-- **Catégorie Qualité** : diversité de genres, habitudes de lecture
-- **Catégorie Anniversaire** : badges spéciaux pour célébrer les anniversaires sur la plateforme
-- Progression visible vers les badges non débloqués
-- Notification popup lors du déblocage
 
-### Badges d'anniversaire
-Badges spéciaux attribués automatiquement pour célébrer la fidélité des utilisateurs :
+#### Badges gratuits
+- **Livres lus** : paliers de livres terminés (ex : 10, 25, 50 livres)
+- **Temps de lecture** : paliers de temps cumulé
+- **Streak** : paliers de jours consécutifs (ex : 7, 30, 100 jours)
+- **Ancienneté** : badges de fidélité sur la plateforme (1 an, 2 ans, 3 ans)
 
+#### Badges premium (65+)
+- **Badges de genre** : SF, biographie, histoire, horreur, romance, développement personnel, etc.
+- **Badges sociaux** : fondateur de club, leader de club (10+ membres)
+- **Badges secrets** : conditions de déblocage cachées
+- **Badges animés** : effets visuels spéciaux
+
+#### Badges d'anniversaire
 | Badge | Année | Statut |
 |-------|-------|--------|
-| Première Bougie 🌱 | 1 an | Gratuit |
-| Lecteur Fidèle 📖 | 2 ans | Gratuit |
-| Sage des Pages 🦉 | 3 ans | Gratuit |
-| Étoile Littéraire ✨ | 4 ans | Premium |
-| Légende Vivante 👑 | 5 ans | Premium |
+| Première Bougie | 1 an | Gratuit |
+| Lecteur Fidèle | 2 ans | Gratuit |
+| Sage des Pages | 3 ans | Gratuit |
+| Étoile Littéraire | 4 ans | Premium |
+| Légende Vivante | 5 ans | Premium |
 
 **Fonctionnement :**
 - Détection automatique au lancement et à la reprise de l'application
 - Fenêtre de grâce de 7 jours après la date d'anniversaire
-- Animation de déblocage en 5 phases :
-  1. Teaser (boîte cadeau pulsante)
-  2. Burst (explosion de particules)
-  3. Révélation du badge (animation scale + rotation)
-  4. Affichage des statistiques de l'année (livres lus, heures, streak, commentaires)
-  5. Boutons d'action (partager ou fermer)
-- Partage : génération d'une carte partageable avec le badge et les stats
+- Animation de déblocage en 5 phases (teaser, burst, révélation, statistiques, partage)
+- Génération d'une carte partageable avec le badge et les stats de l'année
 - Affichage unique (ne se réaffiche pas après fermeture)
+
+### Affichage des badges
+- 3 badges les plus récents affichés sur le profil
+- Grille complète sur la page "Tous les badges" avec filtrage par catégorie
+- Barres de progression pour les badges verrouillés
+- Animation confetti au déblocage
+- Popup de notification lors du déblocage
 
 ### Trophées (récompenses de session)
 Attribués après chaque session selon le contexte :
@@ -187,9 +230,50 @@ Attribués après chaque session selon le contexte :
 | Lecture Du Soir | Session en soirée |
 | Page Du Jour | Beaucoup de pages lues |
 
+Trophées débloquables (long terme) :
+- Lecture imprévue
+- Toujours un livre
+- Fidélité quotidienne
+
 ---
 
-## 9. Amis & social
+## 9. Muse - Conseillère lecture IA (Premium)
+
+### Fonctionnalités
+- Chat conversationnel multi-tour avec une IA spécialisée en lecture
+- Recommandations de livres personnalisées
+- Détection automatique des livres mentionnés dans la conversation
+- Ajout direct des livres recommandés dans la bibliothèque ou les listes
+
+### Limites
+- **Gratuit** : 3 messages par mois
+- **Premium** : illimité
+
+### Conversations
+- Sauvegarde des fils de conversation
+- Reprise de conversations précédentes
+- Historique des conversations passées
+
+---
+
+## 10. Listes de lecture
+
+### Listes personnalisées
+- Création de listes de lecture personnalisées
+- Ajout/suppression de livres dans les listes
+- Renommage et suppression de listes
+- **Gratuit** : 5 listes max
+- **Premium** : illimité
+
+### Listes curées (éditoriales)
+- Collections de lecture recommandées par l'équipe
+- Page de catalogue avec compteurs de lecteurs
+- Ajout de livres en un clic dans la bibliothèque
+- Possibilité de sauvegarder des listes curées en favoris
+
+---
+
+## 11. Amis & Social
 
 ### Gestion des amis
 - Recherche d'utilisateurs par nom/email
@@ -201,21 +285,51 @@ Attribués après chaque session selon le contexte :
 - Import des contacts du téléphone (avec permission)
 - Matching par hash SHA-256 des emails/numéros (respect de la vie privée)
 - Suggestions d'amis basées sur les contacts
+- Suggestions de lecteurs depuis l'onboarding
 
 ### Profil ami
 - Consultation du profil des amis
 - Livres en cours, badges, statistiques
+- Respect des paramètres de confidentialité
 
 ---
 
-## 10. Groupes de lecture
+## 12. Interactions sociales
+
+### Likes
+- Liker les activités de lecture des amis
+- Compteur de likes par activité
+
+### Réactions avancées (Premium)
+4 types de réactions :
+- Feu
+- Livre
+- Applaudissement
+- Coeur
+
+### Commentaires
+- Commenter les activités de lecture
+- Limite de 500 caractères
+- Suppression de ses propres commentaires
+
+### Notifications
+- Types : likes, commentaires, demandes d'amitié, badges débloqués, jalons de flow
+- Marquer comme lu (individuellement ou tout d'un coup)
+- Compteur de notifications non lues
+- Paramètres de notification configurables
+- Rappels mensuels de notification
+
+---
+
+## 13. Clubs de lecture
 
 ### Création et gestion
 - Groupes publics ou privés
 - Rôles : administrateur / membre
 - Invitation de membres
 - Paramètres du groupe (admin)
-- Ajout/suppression de membres
+- **Gratuit** : 5 clubs max
+- **Premium** : illimité
 
 ### Challenges de groupe
 - Création de défis avec :
@@ -229,37 +343,31 @@ Attribués après chaque session selon le contexte :
 
 ### Activité du groupe
 - Feed d'activités spécifique au groupe
+- Chat entre membres
 - Voir ce que les membres lisent
 
 ---
 
-## 11. Interactions sociales
+## 14. Statistiques
 
-### Likes
-- Liker les activités de lecture des amis
-- Compteur de likes par activité
+### Statistiques de base (Gratuit)
+- Total de livres lus
+- Temps de lecture total
+- Streak actuel
+- Genre favori
 
-### Réactions avancées (Premium)
-4 types de réactions :
-- 🔥 Feu
-- 📘 Livre
-- 👏 Applaudissement
-- ❤️ Coeur
-
-### Commentaires
-- Commenter les activités de lecture
-- Limite de 500 caractères
-- Suppression de ses propres commentaires
-
-### Notifications
-- Types : likes, commentaires, demandes d'amitié
-- Marquer comme lu (individuellement ou tout d'un coup)
-- Compteur de notifications non lues
-- Paramètres de notification configurables
+### Statistiques avancées (Premium)
+- Anneaux d'activité (style Apple Watch)
+- Pages par mois (graphique de tendance)
+- Distribution des genres (graphique)
+- Heatmap de lecture (vue calendrier)
+- Records personnels (plus longue session, plus de pages en un jour, etc.)
+- Aperçu des badges
+- Répartition mensuelle détaillée
 
 ---
 
-## 12. Suggestions de livres
+## 15. Suggestions de livres
 
 Moteur de recommandation hybride :
 - **Populaires chez les amis** : livres les plus lus par les amis (max 3)
@@ -267,53 +375,7 @@ Moteur de recommandation hybride :
 - **Google Books API** : suggestions basées sur les centres d'intérêt
 - Déduplication automatique (exclut les livres déjà en bibliothèque)
 - Ajout direct en bibliothèque depuis la suggestion
-
----
-
-## 13. Premium
-
-### Fonctionnalités Premium
-- Réactions avancées (🔥 📘 👏 ❤️)
-- Streak auto-freeze
-- Vérification du statut avec cache (TTL 5 min)
-- Suivi de la date d'expiration
-
----
-
-## 14. Profil & paramètres
-
-### Profil utilisateur
-- Nom d'affichage, avatar (upload photo)
-- Objectif principal affiché
-- Galerie de badges (incluant badges d'anniversaire)
-- Statistiques de lecture
-- Accès au Monthly Wrapped et Yearly Wrapped
-
-### Paramètres
-- **Visibilité du profil** : public / privé
-- **Thème** : clair / sombre
-- **Notifications** : personnalisation par type et fréquence
-- **Suppression de compte** : avec suppression en cascade de toutes les données
-
-### Conditions d'utilisation
-- Page dédiée aux CGU
-- Acceptation obligatoire à l'inscription
-
----
-
-## 15. Navigation
-
-5 onglets principaux :
-
-| Onglet | Contenu |
-|--------|---------|
-| Feed | Activités sociales et tendances |
-| Sessions | Historique des sessions de lecture |
-| Bibliothèque | Collection de livres |
-| Club | Groupes et challenges |
-| Profil | Profil et paramètres |
-
-Bouton flottant global pour démarrer une session de lecture depuis n'importe quel écran.
+- Carrousel de suggestions dans le feed
 
 ---
 
@@ -329,11 +391,11 @@ Résumé mensuel de lecture, inspiré de Spotify Wrapped, avec musique de fond e
 5. **Partage** : comparaison avec le mois précédent, badges gagnés, résumé partageable
 
 ### Caractéristiques
-- **Thème par mois** : chaque mois a des couleurs de dégradé, une couleur d'accent et un emoji uniques (flocon pour janvier, cœur pour février, etc.)
-- **Musique de fond** : mélodie ambiante en boucle (`wrapped_melody.wav`) avec fondu d'entrée/sortie
-- **Toggle mute** : possibilité de couper le son pendant la consultation
-- **Navigation** : points de navigation en bas, gestes de swipe
-- **Agrégation des données** : sessions, livres, heatmap journalier, badges gagnés, comparaison mois précédent (pourcentage d'évolution)
+- **Thème par mois** : chaque mois a des couleurs de dégradé, une couleur d'accent et un emoji uniques
+- **Musique de fond** : mélodie ambiante en boucle avec fondu d'entrée/sortie
+- **Toggle mute** : possibilité de couper le son
+- **Navigation** : points de navigation, gestes de swipe
+- **Comparaison** : évolution par rapport au mois précédent (pourcentage)
 
 ---
 
@@ -357,25 +419,112 @@ Résumé annuel de lecture complet avec 10 slides cinématiques, inspiré de Spo
 - **Musique ambiante** : sélection aléatoire parmi 3 pistes ambiantes depuis Supabase Storage
 - **Thème doré** : fond sombre élégant avec accents dorés et texte crème
 - **Animations** : animations fade-up, décorateurs ligne dorée, graphiques barres mensuels
-- **Profilage lecteur** : analyse des heures de lecture pour classifier en Oiseau de Nuit, Lève-Tôt, Lecteur de Midi ou d'Après-midi
+- **Profilage lecteur** : classification en Oiseau de Nuit, Lève-Tôt, Lecteur de Midi ou d'Après-midi
 - **Comparaison sociale** : classement en percentile par rapport à tous les utilisateurs
-- **Comparaison année précédente** : évolution en temps, livres, sessions, streak
-- **Partage** : génération de cartes partageables
+- **Génération de cartes partageables**
 
 ---
 
-## 18. Stack technique
+## 18. Partage de badges
+
+- Génération de cartes visuelles pour chaque badge débloqué
+- Partage sur les réseaux sociaux
+- Edge function Supabase pour la génération côté serveur
+- Stockage des cartes dans Supabase Storage
+
+---
+
+## 19. Widget iOS (Home Screen)
+
+- Affichage du livre en cours de lecture (titre et auteur)
+- Temps de lecture du jour (en minutes)
+- Streak actuel (icône flamme)
+- Barre de progression du livre
+- Mise à jour horaire
+- Thème vert/crème cohérent avec l'application
+
+---
+
+## 20. Profil & Paramètres
+
+### Profil utilisateur
+- Nom d'affichage, avatar (upload photo depuis caméra/galerie)
+- Message "Lecteur motivé depuis..." basé sur l'ancienneté du compte
+- Galerie de badges (3 plus récents + page complète)
+
+### 3 onglets du profil
+1. **Sessions** : historique de toutes les sessions de lecture avec pagination
+2. **Stats** : statistiques de base (gratuit) et avancées (premium)
+3. **Listes** : listes personnalisées et listes curées sauvegardées
+
+### Paramètres
+- **Photo de profil** : upload/modification de l'avatar
+- **Thème** : clair / sombre / système (+ thèmes personnalisés en premium)
+- **Langue** : français / anglais
+- **Confidentialité** :
+  - Profil privé (seuls les amis voient l'activité)
+  - Masquer les heures de lecture
+- **Kindle** : connexion, dernière sync, re-sync manuelle, auto-sync (premium)
+- **Notifications** : paramètres mensuels, rappels d'objectifs
+- **Objectifs de lecture** : configuration/modification des cibles
+- **Suppression de compte** : avec suppression en cascade de toutes les données
+
+---
+
+## 21. Abonnement Premium
+
+### Intégration RevenueCat
+- Gestion des abonnements via RevenueCat
+- Packages mensuel et annuel
+- Période d'essai (trial)
+- Restauration des achats
+- Gestion des problèmes de facturation
+
+### États d'abonnement
+- `free` : pas d'abonnement actif
+- `trial` : période d'essai en cours
+- `premium` : abonnement payé actif
+- `expired` : abonnement expiré
+- `billing_issue` : problème de moyen de paiement
+
+### Page d'upgrade
+- Présentation de toutes les fonctionnalités premium
+- Toggle annuel/mensuel
+- Affichage des prix
+- Bouton d'achat
+- Option de restauration des achats
+
+---
+
+## 22. Navigation
+
+4 onglets principaux + FAB central :
+
+| Onglet | Contenu |
+|--------|---------|
+| Feed | Activités sociales et tendances |
+| Biblio | Bibliothèque de livres |
+| Club | Groupes et challenges |
+| Mon espace | Profil et paramètres |
+
+Bouton flottant central (FAB) pour démarrer une session de lecture depuis n'importe quel écran.
+
+---
+
+## 23. Stack technique
 
 | Composant | Technologie |
 |-----------|------------|
-| Framework | Flutter 3.9.2+ |
-| Backend | Supabase (auth, DB, RLS, Storage) |
-| State management | Provider 6.1.1 |
+| Framework | Flutter |
+| Backend | Supabase (auth, DB, RLS, Storage, Edge Functions) |
+| State management | Provider |
+| Abonnement | RevenueCat |
 | OCR | Google ML Kit |
 | Recherche de livres | Google Books API |
 | Contacts | flutter_contacts |
-| Authentification Kindle | WebView OAuth |
+| Auth Kindle | WebView OAuth |
 | Audio | audioplayers (musique Wrapped) |
 | Hashing | SHA-256 (pgcrypto + dart crypto) |
 | Polices | Poppins, Inter |
+| Widget iOS | WidgetKit (SwiftUI) |
 | Langue | Français (interface), Anglais (code) |

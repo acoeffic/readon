@@ -5,6 +5,7 @@ import '../../services/badges_service.dart';
 import '../../services/flow_service.dart';
 import '../../widgets/badges_grid.dart';
 import '../../widgets/cached_profile_avatar.dart';
+import '../../widgets/constrained_content.dart';
 
 class FriendProfilePage extends StatefulWidget {
   final String userId;
@@ -330,7 +331,8 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
                 setState(() => _loading = true);
                 await _loadAll();
               },
-              child: SingleChildScrollView(
+              child: ConstrainedContent(
+                child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.all(AppSpace.l),
                 child: Column(
@@ -396,6 +398,7 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
                     const SizedBox(height: AppSpace.l),
                   ],
                 ),
+              ),
               ),
             ),
     );

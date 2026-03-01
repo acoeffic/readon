@@ -4,6 +4,7 @@ import '../../data/curated_lists_data.dart';
 import '../../models/curated_list.dart';
 import '../../services/curated_lists_service.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/constrained_content.dart';
 import 'curated_list_detail_page.dart';
 
 class AllCuratedListsPage extends StatefulWidget {
@@ -90,7 +91,8 @@ class _AllCuratedListsPageState extends State<AllCuratedListsPage> {
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
               onRefresh: _loadData,
-              child: ListView.builder(
+              child: ConstrainedContent(
+                child: ListView.builder(
                 padding: const EdgeInsets.all(AppSpace.l),
                 itemCount: kCuratedLists.length,
                 itemBuilder: (context, index) {
@@ -114,6 +116,7 @@ class _AllCuratedListsPageState extends State<AllCuratedListsPage> {
                     onToggleSave: () => _toggleSave(list.id),
                   );
                 },
+              ),
               ),
             ),
     );

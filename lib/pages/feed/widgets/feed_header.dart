@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../theme/app_theme.dart';
+import '../../../utils/responsive.dart';
 import '../../profile/profile_page.dart';
 import '../../friends/search_users_page.dart';
 import '../../notifications/notifications_page.dart';
@@ -122,7 +123,14 @@ class _FeedHeaderState extends State<FeedHeader> with TickerProviderStateMixin {
               ),
             ),
             // Content
-            Padding(
+            Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: Responsive.isTablet(context)
+                      ? Responsive.contentMaxWidth
+                      : double.infinity,
+                ),
+                child: Padding(
               padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -284,6 +292,8 @@ class _FeedHeaderState extends State<FeedHeader> with TickerProviderStateMixin {
                   ),
                 ],
               ),
+            ),
+            ),
             ),
         ],
       ),

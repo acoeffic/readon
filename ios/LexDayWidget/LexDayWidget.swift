@@ -15,7 +15,7 @@ struct LexstaEntry: TimelineEntry {
 // MARK: - Provider
 
 struct Provider: TimelineProvider {
-    let appGroup = "group.com.acoeffic.readon"
+    let appGroup = "group.com.acoeffic.lexday"
     
     func placeholder(in context: Context) -> LexstaEntry {
         LexstaEntry(date: Date(), currentBook: "Le Petit Prince",

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/reading_session.dart';
+import '../../widgets/constrained_content.dart';
 import '../../models/reading_flow.dart';
 import '../../models/book.dart';
 import '../../services/reading_session_service.dart';
@@ -140,7 +141,8 @@ class _SessionsTabState extends State<SessionsTab> {
     final itemCount =
         1 + grouped.length + (_isLoadingMore || _hasMore ? 1 : 0);
 
-    return ListView.builder(
+    return ConstrainedContent(
+      child: ListView.builder(
       controller: _scrollController,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       itemCount: itemCount,
@@ -198,6 +200,7 @@ class _SessionsTabState extends State<SessionsTab> {
           ],
         );
       },
+    ),
     );
   }
 

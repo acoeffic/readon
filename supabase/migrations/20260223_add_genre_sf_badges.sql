@@ -3,7 +3,7 @@
 
 INSERT INTO badges (id, name, description, icon, category, requirement, color, is_premium, is_secret, progress_unit, sort_order)
 VALUES
-  ('genre_sf_initie', 'Initié', 'Lire 5 livres de science-fiction', '🚀', 'genres', 5, '#1A237E', false, false, 'livres', 20)
+  ('genre_sf_apprenti', 'Apprenti', 'Lire 5 livres de science-fiction', '🚀', 'genres', 5, '#1A237E', false, false, 'livres', 20)
 ON CONFLICT (id) DO UPDATE SET
   name = EXCLUDED.name,
   description = EXCLUDED.description,

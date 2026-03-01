@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/constrained_content.dart';
 import '../../widgets/cached_profile_avatar.dart';
 import 'settings_page.dart';
 import 'profile_detail_page.dart';
@@ -76,7 +77,8 @@ class _ProfilePageState extends State<ProfilePage>
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
-        child: Column(
+        child: ConstrainedContent(
+          child: Column(
           children: [
             // --- HEADER COMPACT ---
             Padding(
@@ -173,6 +175,7 @@ class _ProfilePageState extends State<ProfilePage>
               ),
             ),
           ],
+        ),
         ),
       ),
     );

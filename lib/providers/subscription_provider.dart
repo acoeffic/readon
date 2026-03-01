@@ -21,6 +21,7 @@ class SubscriptionProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get isTrial => _status == 'trial';
   bool get isExpired => _status == 'expired';
+  bool get isBillingIssue => _status == 'billing_issue';
 
   SubscriptionProvider() {
     _init();
