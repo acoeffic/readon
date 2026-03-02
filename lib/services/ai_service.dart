@@ -1,0 +1,96 @@
+// lib/services/ai_service.dart
+
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'subscription_service.dart';
+import '../models/feature_flags.dart';
+
+/// Exception levée quand l'utilisateur gratuit a atteint sa limite mensuelle de résumés.
+class AiSummaryLimitReachedException implements Exception {
+  final String message;
+  const AiSummaryLimitReachedException(this.message);
+  @override
+  String toString() => message;
+}
+
+class AiService {
+  final SupabaseClient _supabase = Supabase.instance.client;
+  final SubscriptionService _subscriptionService = SubscriptionService();
+
+  /// Résume une annotation via la Edge Function summarize-passage.
+  /// Retourne le résumé généré et le nombre de résumés restants ce mois.
+  /// remaining = -1 si premium (illimité).
+  Future<({String summary, int remaining})> summarizeAnnotation(
+    String annotationId,
+  ) async {
+    try {
+      final response = await _supabase.functions.invoke(
+        'summarize-passage',
+        body: {'annotation_id': annotationId},
+      );
+
+      final data = _parseResponse(response.data);
+
+      if (data.containsKey('error')) {
+        _throwFromErrorData(data);
+      }
+
+      return (
+        summary: data['summary'] as String? ?? '',
+        remaining: data['remaining'] as int? ?? -1,
+      );
+    } on FunctionException catch (e) {
+      final details = e.details;
+      if (details is Map<String, dynamic>) {
+        _throwFromErrorData(details);
+      }
+      if (details is String) {
+        try {
+          final decoded = jsonDecode(details);
+          if (decoded is Map<String, dynamic>) {
+            _throwFromErrorData(decoded);
+          }
+        } catch (_) {}
+      }
+      throw Exception('Erreur du serveur');
+    }
+  }
+
+  /// Nombre de résumés IA restants ce mois-ci.
+  /// Retourne -1 si premium (illimité).
+  Future<int> getRemainingAiSummaries() async {
+    try {
+      final premium = await _subscriptionService.isPremium();
+      if (premium) return -1;
+
+      final count = await _supabase.rpc(
+        'get_ai_usage_count',
+        params: {'p_feature': 'summary'},
+      );
+      return FeatureFlags.maxFreeAiSummaries - ((count as int?) ?? 0);
+    } catch (e) {
+      debugPrint('Erreur getRemainingAiSummaries: $e');
+      return FeatureFlags.maxFreeAiSummaries;
+    }
+  }
+
+  Map<String, dynamic> _parseResponse(dynamic data) {
+    if (data is Map<String, dynamic>) return data;
+    if (data is String) {
+      final decoded = jsonDecode(data);
+      if (decoded is Map<String, dynamic>) return decoded;
+    }
+    throw Exception('Réponse inattendue du serveur');
+  }
+
+  Never _throwFromErrorData(Map<String, dynamic> data) {
+    final errorCode = data['error'] as String?;
+    final message =
+        data['message'] as String? ?? data['error'] as String? ?? 'Erreur inconnue';
+    if (errorCode == 'limit_reached') {
+      throw AiSummaryLimitReachedException(message);
+    }
+    throw Exception(message);
+  }
+}

@@ -67,6 +67,18 @@ Widget _buildBadgeIcon(UserBadge badge, {required double size}) {
   if (isBibliophileBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
     return BibliophileBadge(size: size);
   }
+  if (isDevoreurBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return DevoreurBadge(size: size);
+  }
+  if (isCentenaireLivresBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return CentenaireLivresBadge(size: size);
+  }
+  if (isLegendeLitteraireBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return LegendeLitteraireBadge(size: size);
+  }
+  if (isBibliothequeVivanteBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return BibliothequeVivanteBadge(size: size);
+  }
   if (isOneHourMagicBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
     return OneHourMagicBadge(size: size);
   }

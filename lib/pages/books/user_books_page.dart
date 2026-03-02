@@ -15,6 +15,12 @@ import '../reading/book_completed_summary_page.dart';
 import '../curated_lists/create_custom_list_dialog.dart';
 import '../../widgets/cached_book_cover.dart';
 import '../../widgets/constrained_content.dart';
+import '../../theme/app_theme.dart';
+import '../../models/annotation_model.dart';
+import '../../models/feature_flags.dart';
+import '../../services/annotation_service.dart';
+import '../../services/ai_service.dart';
+import '../profile/upgrade_page.dart';
 
 class UserBooksPage extends StatefulWidget {
   const UserBooksPage({super.key});
@@ -816,8 +822,13 @@ class _BookDetailPageState extends State<BookDetailPage> {
   final ReadingSessionService _sessionService = ReadingSessionService();
   final BooksService _booksService = BooksService();
   final UserCustomListsService _customListsService = UserCustomListsService();
+  final AnnotationService _annotationService = AnnotationService();
+  final AiService _aiService = AiService();
   ReadingSession? _activeSession;
   BookReadingStats? _stats;
+  List<Annotation> _annotations = [];
+  int _remainingAiSummaries = -1;
+  final Set<String> _summarizingIds = {};
   String? _bookStatus;
   String? _currentGenre;
   bool _isHidden = false;
@@ -899,9 +910,15 @@ class _BookDetailPageState extends State<BookDetailPage> {
         hidden = userBookData?['is_hidden'] as bool? ?? false;
       }
 
+      final annotations = await _annotationService
+          .getAnnotationsForBook(widget.book.id.toString());
+      final remainingSummaries = await _aiService.getRemainingAiSummaries();
+
       setState(() {
         _activeSession = activeSession;
         _stats = stats;
+        _annotations = annotations;
+        _remainingAiSummaries = remainingSummaries;
         _bookStatus = status;
         _currentGenre = widget.book.genre;
         _isHidden = hidden;
@@ -1172,6 +1189,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
             _buildBookHeader(),
             if (!_isLoading) _buildReadingSessionSection(),
             if (_stats != null && _stats!.sessionsCount > 0) _buildStatsSection(),
+            if (!_isLoading) _buildAnnotationsSection(),
             if (widget.book.description != null) _buildDescriptionSection(),
           ],
         ),
@@ -1602,6 +1620,517 @@ class _BookDetailPageState extends State<BookDetailPage> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildAnnotationsSection() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.edit_note, color: Theme.of(context).primaryColor),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Annotations',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    '${_annotations.length}',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey.shade500,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+              if (_remainingAiSummaries >= 0 && _annotations.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Icon(Icons.auto_awesome, size: 14, color: AppColors.primary),
+                    const SizedBox(width: 4),
+                    Text(
+                      '$_remainingAiSummaries/${FeatureFlags.maxFreeAiSummaries} résumés restants',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+              const SizedBox(height: 12),
+              if (_annotations.isEmpty)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 24),
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.note_alt_outlined,
+                        size: 40,
+                        color: Colors.grey.shade300,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Aucune annotation pour ce livre.\nAnnotez pendant vos sessions !',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.grey.shade500,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                ...List.generate(_annotations.length, (index) {
+                  final annotation = _annotations[index];
+                  return _buildAnnotationCard(annotation, index);
+                }),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAnnotationCard(Annotation annotation, int index) {
+    final dateStr = _formatAnnotationDate(annotation.createdAt);
+
+    return Dismissible(
+      key: Key(annotation.id),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 16),
+        decoration: BoxDecoration(
+          color: Colors.red.shade100,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(Icons.delete, color: Colors.red.shade400),
+      ),
+      confirmDismiss: (direction) async {
+        return await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Supprimer'),
+            content:
+                const Text('Supprimer cette annotation ?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Annuler'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                child:
+                    const Text('Supprimer', style: TextStyle(color: Colors.red)),
+              ),
+            ],
+          ),
+        );
+      },
+      onDismissed: (_) async {
+        final removed = _annotations[index];
+        setState(() => _annotations.removeAt(index));
+        try {
+          await _annotationService.deleteAnnotation(removed.id);
+        } catch (e) {
+          if (mounted) {
+            setState(() => _annotations.insert(index, removed));
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red),
+            );
+          }
+        }
+      },
+      child: Container(
+        margin: EdgeInsets.only(top: index > 0 ? 8 : 0),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Theme.of(context).brightness == Brightness.dark
+              ? Colors.white.withValues(alpha: 0.05)
+              : Colors.grey.shade50,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Photo thumbnail if applicable
+            if (annotation.type == AnnotationType.photo &&
+                annotation.imagePath != null) ...[
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.network(
+                  _annotationService.getImageUrl(annotation.imagePath!),
+                  height: 120,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(
+                    height: 60,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade200,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Center(
+                      child: Icon(Icons.broken_image, color: Colors.grey),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
+            // Content
+            Text(
+              annotation.content,
+              style: const TextStyle(fontSize: 14, height: 1.4),
+            ),
+            // AI Summary section
+            if (annotation.aiSummary != null) ...[
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF0EDE6),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border(
+                    left: BorderSide(
+                      color: AppColors.primary,
+                      width: 3,
+                    ),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.auto_awesome,
+                            size: 12, color: AppColors.primary),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Résumé IA',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                        const Spacer(),
+                        GestureDetector(
+                          onTap: () => _summarizeAnnotation(annotation),
+                          child: Icon(Icons.refresh,
+                              size: 14, color: Colors.grey.shade400),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      annotation.aiSummary!,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontStyle: FontStyle.italic,
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ] else if (annotation.content.length >= 20) ...[
+              const SizedBox(height: 8),
+              _summarizingIds.contains(annotation.id)
+                  ? const SizedBox(
+                      height: 28,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SizedBox(
+                            width: 14,
+                            height: 14,
+                            child:
+                                CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                          SizedBox(width: 6),
+                          Text(
+                            'Résumé en cours...',
+                            style: TextStyle(fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    )
+                  : GestureDetector(
+                      onTap: () => _summarizeAnnotation(annotation),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: AppColors.primary.withValues(alpha: 0.4),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.auto_awesome,
+                                size: 12, color: AppColors.primary),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Résumer',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+            ],
+            const SizedBox(height: 8),
+            // Metadata row
+            Row(
+              children: [
+                if (annotation.pageNumber != null) ...[
+                  Icon(Icons.bookmark_outline,
+                      size: 14, color: Colors.grey.shade500),
+                  const SizedBox(width: 2),
+                  Text(
+                    'p. ${annotation.pageNumber}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade500,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                ],
+                Icon(Icons.access_time, size: 14, color: Colors.grey.shade500),
+                const SizedBox(width: 2),
+                Text(
+                  dateStr,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey.shade500,
+                  ),
+                ),
+                const Spacer(),
+                // Edit button
+                GestureDetector(
+                  onTap: () => _showEditAnnotationDialog(annotation),
+                  child: Icon(Icons.edit_outlined,
+                      size: 16, color: Colors.grey.shade400),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _formatAnnotationDate(DateTime date) {
+    final now = DateTime.now();
+    final diff = now.difference(date);
+    if (diff.inMinutes < 1) return "À l'instant";
+    if (diff.inMinutes < 60) return 'Il y a ${diff.inMinutes}min';
+    if (diff.inHours < 24) return 'Il y a ${diff.inHours}h';
+    final day = date.day.toString().padLeft(2, '0');
+    final month = date.month.toString().padLeft(2, '0');
+    return '$day/$month/${date.year}';
+  }
+
+  Future<void> _summarizeAnnotation(Annotation annotation) async {
+    setState(() => _summarizingIds.add(annotation.id));
+    try {
+      final result = await _aiService.summarizeAnnotation(annotation.id);
+      if (mounted) {
+        setState(() {
+          final idx = _annotations.indexWhere((a) => a.id == annotation.id);
+          if (idx != -1) {
+            _annotations[idx] =
+                _annotations[idx].copyWith(aiSummary: result.summary);
+          }
+          _remainingAiSummaries = result.remaining;
+        });
+      }
+    } on AiSummaryLimitReachedException {
+      if (mounted) _showAiPaywall();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _summarizingIds.remove(annotation.id));
+      }
+    }
+  }
+
+  void _showAiPaywall() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.auto_awesome, size: 48, color: AppColors.primary),
+              const SizedBox(height: 16),
+              const Text(
+                'Vous avez utilisé vos 3 résumés du mois',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Passez en Premium pour résumer tous vos passages sans limite',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey.shade600,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const UpgradePage(
+                          highlightedFeature: Feature.aiSummary,
+                        ),
+                      ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    'Découvrir Premium',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(
+                  'Réessayer le mois prochain',
+                  style: TextStyle(color: Colors.grey.shade500),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showEditAnnotationDialog(Annotation annotation) {
+    final contentController = TextEditingController(text: annotation.content);
+    final pageController = TextEditingController(
+      text: annotation.pageNumber?.toString() ?? '',
+    );
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Modifier l\'annotation'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: contentController,
+              maxLines: 4,
+              decoration: const InputDecoration(
+                hintText: 'Contenu',
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: pageController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                hintText: 'Page',
+                prefixIcon: Icon(Icons.bookmark_outline, size: 20),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Annuler'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final newContent = contentController.text.trim();
+              if (newContent.isEmpty) return;
+
+              Navigator.pop(context);
+
+              try {
+                final updated = await _annotationService.updateAnnotation(
+                  annotation.id,
+                  content: newContent,
+                  pageNumber: int.tryParse(pageController.text),
+                );
+                if (mounted) {
+                  setState(() {
+                    final idx =
+                        _annotations.indexWhere((a) => a.id == annotation.id);
+                    if (idx != -1) _annotations[idx] = updated;
+                  });
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                        content: Text('Erreur: $e'),
+                        backgroundColor: Colors.red),
+                  );
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).primaryColor,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Sauvegarder'),
+          ),
+        ],
       ),
     );
   }

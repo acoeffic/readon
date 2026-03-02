@@ -12,6 +12,7 @@ enum Feature {
   kindleAutoSync,
   customLists,
   aiChat,
+  aiSummary,
 }
 
 class FeatureFlags {
@@ -24,6 +25,9 @@ class FeatureFlags {
   /// Limite de messages IA par mois pour les utilisateurs gratuits
   static const maxFreeAiMessages = 3;
 
+  /// Limite de résumés IA par mois pour les utilisateurs gratuits
+  static const maxFreeAiSummaries = 3;
+
   static const _premiumFeatures = <Feature>{
     Feature.advancedReactions,
     Feature.flowManualFreeze,
@@ -33,6 +37,7 @@ class FeatureFlags {
     Feature.flowHistory,
     Feature.kindleAutoSync,
     Feature.aiChat,
+    Feature.aiSummary,
   };
 
   /// Vérifie si une feature est disponible
@@ -67,6 +72,8 @@ class FeatureFlags {
         return 'Listes de lecture';
       case Feature.aiChat:
         return 'Muse - Conseillère lecture';
+      case Feature.aiSummary:
+        return 'Résumés IA';
     }
   }
 
@@ -90,6 +97,8 @@ class FeatureFlags {
         return 'Crée tes propres listes de lecture personnalisées';
       case Feature.aiChat:
         return 'Discute avec Muse pour obtenir des recommandations de livres personnalisées';
+      case Feature.aiSummary:
+        return 'Résume tes passages annotés en un tap grâce à l\'IA';
     }
   }
 
@@ -112,6 +121,8 @@ class FeatureFlags {
       case Feature.customLists:
         return Icons.playlist_add;
       case Feature.aiChat:
+        return Icons.auto_awesome;
+      case Feature.aiSummary:
         return Icons.auto_awesome;
     }
   }

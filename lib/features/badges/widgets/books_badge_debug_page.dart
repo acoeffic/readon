@@ -388,6 +388,18 @@ class _BooksBadgeDebugPageState extends State<BooksBadgeDebugPage> {
     if (isBibliophileBadge(id: data.id, category: 'books_completed', requirement: data.requirement)) {
       return BibliophileBadge(size: size, isLocked: locked);
     }
+    if (isDevoreurBadge(id: data.id, category: 'books_completed', requirement: data.requirement)) {
+      return DevoreurBadge(size: size, isLocked: locked);
+    }
+    if (isCentenaireLivresBadge(id: data.id, category: 'books_completed', requirement: data.requirement)) {
+      return CentenaireLivresBadge(size: size, isLocked: locked);
+    }
+    if (isLegendeLitteraireBadge(id: data.id, category: 'books_completed', requirement: data.requirement)) {
+      return LegendeLitteraireBadge(size: size, isLocked: locked);
+    }
+    if (isBibliothequeVivanteBadge(id: data.id, category: 'books_completed', requirement: data.requirement)) {
+      return BibliothequeVivanteBadge(size: size, isLocked: locked);
+    }
 
     if (isOneHourMagicBadge(id: data.id, category: 'reading_time', requirement: data.requirement)) {
       return OneHourMagicBadge(size: size, isLocked: locked);

@@ -33,6 +33,34 @@ bool isBibliophileBadge({required String id, String? category, int? requirement}
   return false;
 }
 
+/// Vérifie si un badge est le badge "Dévoreur de Pages" (50 livres terminés).
+bool isDevoreurBadge({required String id, String? category, int? requirement}) {
+  if (id == 'books_50') return true;
+  if (category == 'books_completed' && requirement == 50) return true;
+  return false;
+}
+
+/// Vérifie si un badge est le badge "Centenaire" (100 livres terminés).
+bool isCentenaireLivresBadge({required String id, String? category, int? requirement}) {
+  if (id == 'books_100') return true;
+  if (category == 'books_completed' && requirement == 100) return true;
+  return false;
+}
+
+/// Vérifie si un badge est le badge "Légende Littéraire" (200 livres terminés).
+bool isLegendeLitteraireBadge({required String id, String? category, int? requirement}) {
+  if (id == 'books_200') return true;
+  if (category == 'books_completed' && requirement == 200) return true;
+  return false;
+}
+
+/// Vérifie si un badge est le badge "Bibliothèque Vivante" (500 livres terminés).
+bool isBibliothequeVivanteBadge({required String id, String? category, int? requirement}) {
+  if (id == 'books_500') return true;
+  if (category == 'books_completed' && requirement == 500) return true;
+  return false;
+}
+
 /// Vérifie si un badge est le badge "Une Heure de Magie" (1h de lecture cumulée).
 bool isOneHourMagicBadge({required String id, String? category, int? requirement}) {
   if (id == 'time_1h') return true;
@@ -139,7 +167,7 @@ class FirstBookBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Widget badge = SvgPicture.network(
-      '${Env.supabaseStorageUrl}/asset/Image/badge_premier_chapitre.svg',
+      '${Env.supabaseStorageUrl}/asset/Image/badge/nombre_livre/badge_livres_001.svg',
       width: size,
       height: size,
     );
@@ -179,7 +207,7 @@ class ApprenticeReaderBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Widget badge = SvgPicture.network(
-      '${Env.supabaseStorageUrl}/asset/Image/badge_apprenti_lecteur.svg',
+      '${Env.supabaseStorageUrl}/asset/Image/badge/nombre_livre/badge_livres_005.svg',
       width: size,
       height: size,
     );
@@ -199,7 +227,6 @@ class ApprenticeReaderBadge extends StatelessWidget {
 }
 
 /// Widget réutilisable pour afficher le badge Bibliophile (25 livres).
-/// Utilise un SVG light/dark selon le thème.
 class BibliophileBadge extends StatelessWidget {
   final double size;
   final bool isLocked;
@@ -219,11 +246,8 @@ class BibliophileBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final variant = isDark ? 'dark' : 'light';
-
     Widget badge = SvgPicture.network(
-      '${Env.supabaseStorageUrl}/asset/Image/badge/badge_books_25_$variant.svg',
+      '${Env.supabaseStorageUrl}/asset/Image/badge/nombre_livre/badge_livres_025.svg',
       width: size,
       height: size,
     );
@@ -243,7 +267,6 @@ class BibliophileBadge extends StatelessWidget {
 }
 
 /// Widget pour le badge "Lecteur Confirmé" (10 livres).
-/// SVG light/dark depuis Supabase Storage + animations BadgeDisplay.
 class ConfirmedReaderBadge extends StatelessWidget {
   final double size;
   final bool isLocked;
@@ -258,8 +281,45 @@ class ConfirmedReaderBadge extends StatelessWidget {
     this.showUnlockBurst = false,
   });
 
-  static final _baseUrl =
-      '${Env.supabaseStorageUrl}/asset/Image/badge/badge_books_10';
+  static const ColorFilter _greyscale = ColorFilter.matrix(<double>[
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0,      0,      0,      1, 0,
+  ]);
+
+  @override
+  Widget build(BuildContext context) {
+    Widget badge = SvgPicture.network(
+      '${Env.supabaseStorageUrl}/asset/Image/badge/nombre_livre/badge_livres_010.svg',
+      width: size,
+      height: size,
+    );
+
+    if (isLocked) {
+      badge = ColorFiltered(
+        colorFilter: _greyscale,
+        child: Opacity(
+          opacity: 0.45,
+          child: badge,
+        ),
+      );
+    }
+
+    return badge;
+  }
+}
+
+/// Widget réutilisable pour afficher le badge "Dévoreur de Pages" (50 livres).
+class DevoreurBadge extends StatelessWidget {
+  final double size;
+  final bool isLocked;
+
+  const DevoreurBadge({
+    super.key,
+    this.size = 80,
+    this.isLocked = false,
+  });
 
   static const ColorFilter _greyscale = ColorFilter.matrix(<double>[
     0.2126, 0.7152, 0.0722, 0, 0,
@@ -270,22 +330,128 @@ class ConfirmedReaderBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (animate && !isLocked) {
-      return BadgeDisplay(
-        svgBasePath: _baseUrl,
-        size: size,
-        animate: true,
-        showUnlockBurst: showUnlockBurst,
-        tierColorLight: const Color(0xFFFFD700),
-        tierColorDark: const Color(0xFFFFD700),
+    Widget badge = SvgPicture.network(
+      '${Env.supabaseStorageUrl}/asset/Image/badge/nombre_livre/badge_livres_050.svg',
+      width: size,
+      height: size,
+    );
+
+    if (isLocked) {
+      badge = ColorFiltered(
+        colorFilter: _greyscale,
+        child: Opacity(
+          opacity: 0.45,
+          child: badge,
+        ),
       );
     }
 
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final variant = isDark ? 'dark' : 'light';
+    return badge;
+  }
+}
 
+/// Widget réutilisable pour afficher le badge "Centenaire" (100 livres).
+class CentenaireLivresBadge extends StatelessWidget {
+  final double size;
+  final bool isLocked;
+
+  const CentenaireLivresBadge({
+    super.key,
+    this.size = 80,
+    this.isLocked = false,
+  });
+
+  static const ColorFilter _greyscale = ColorFilter.matrix(<double>[
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0,      0,      0,      1, 0,
+  ]);
+
+  @override
+  Widget build(BuildContext context) {
     Widget badge = SvgPicture.network(
-      '${_baseUrl}_$variant.svg',
+      '${Env.supabaseStorageUrl}/asset/Image/badge/nombre_livre/badge_livres_100.svg',
+      width: size,
+      height: size,
+    );
+
+    if (isLocked) {
+      badge = ColorFiltered(
+        colorFilter: _greyscale,
+        child: Opacity(
+          opacity: 0.45,
+          child: badge,
+        ),
+      );
+    }
+
+    return badge;
+  }
+}
+
+/// Widget réutilisable pour afficher le badge "Légende Littéraire" (200 livres).
+class LegendeLitteraireBadge extends StatelessWidget {
+  final double size;
+  final bool isLocked;
+
+  const LegendeLitteraireBadge({
+    super.key,
+    this.size = 80,
+    this.isLocked = false,
+  });
+
+  static const ColorFilter _greyscale = ColorFilter.matrix(<double>[
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0,      0,      0,      1, 0,
+  ]);
+
+  @override
+  Widget build(BuildContext context) {
+    Widget badge = SvgPicture.network(
+      '${Env.supabaseStorageUrl}/asset/Image/badge/nombre_livre/badge_livres_200.svg',
+      width: size,
+      height: size,
+    );
+
+    if (isLocked) {
+      badge = ColorFiltered(
+        colorFilter: _greyscale,
+        child: Opacity(
+          opacity: 0.45,
+          child: badge,
+        ),
+      );
+    }
+
+    return badge;
+  }
+}
+
+/// Widget réutilisable pour afficher le badge "Bibliothèque Vivante" (500 livres).
+class BibliothequeVivanteBadge extends StatelessWidget {
+  final double size;
+  final bool isLocked;
+
+  const BibliothequeVivanteBadge({
+    super.key,
+    this.size = 80,
+    this.isLocked = false,
+  });
+
+  static const ColorFilter _greyscale = ColorFilter.matrix(<double>[
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0,      0,      0,      1, 0,
+  ]);
+
+  @override
+  Widget build(BuildContext context) {
+    Widget badge = SvgPicture.network(
+      '${Env.supabaseStorageUrl}/asset/Image/badge/nombre_livre/badge_livres_500.svg',
       width: size,
       height: size,
     );
