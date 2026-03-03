@@ -217,6 +217,8 @@ class BadgeItem extends StatelessWidget {
                   ? GenreDevpersoMaitreBadge(size: 100, isLocked: !badge.isUnlocked)
                   : isGenreDevpersoLegendeBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
                   ? GenreDevpersoLegendeBadge(size: 100, isLocked: !badge.isUnlocked)
+                  : isComebackBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                  ? ComebackBadge(badgeId: badge.id, size: 100, isLocked: !badge.isUnlocked)
                   : Container(
                       width: 100,
                       height: 100,
@@ -431,6 +433,8 @@ class BadgeItem extends StatelessWidget {
                     ? GenreDevpersoMaitreBadge(size: 120, isLocked: !badge.isUnlocked)
                     : isGenreDevpersoLegendeBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
                     ? GenreDevpersoLegendeBadge(size: 120, isLocked: !badge.isUnlocked)
+                    : isComebackBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                    ? ComebackBadge(badgeId: badge.id, size: 120, isLocked: !badge.isUnlocked)
                     : Container(
                         width: 120,
                         height: 120,

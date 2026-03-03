@@ -281,6 +281,10 @@ Widget _buildBadgeIcon(UserBadge badge, {required double size}) {
     return GenreDevpersoLegendeBadge(size: size);
   }
 
+  if (isComebackBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return ComebackBadge(badgeId: badge.id, size: size);
+  }
+
   // Fallback: emoji in a circle
   final color = _badgeColor(badge);
   return Container(

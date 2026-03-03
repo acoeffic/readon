@@ -224,6 +224,8 @@ class CommunityBadgeUnlockCard extends StatelessWidget {
         return 'Annuel';
       case 'occasions':
         return 'Occasions';
+      case 'comeback':
+        return 'Retour';
       default:
         return 'Badge';
     }

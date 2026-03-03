@@ -1067,6 +1067,8 @@ class _BadgeCard extends StatelessWidget {
                     ? GenreDevpersoMaitreBadge(size: 80, isLocked: !badge.isUnlocked)
                     : isGenreDevpersoLegendeBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
                     ? GenreDevpersoLegendeBadge(size: 80, isLocked: !badge.isUnlocked)
+                    : isComebackBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                    ? ComebackBadge(badgeId: badge.id, size: 80, isLocked: !badge.isUnlocked)
                     : Container(
                         width: 80,
                         height: 80,
@@ -1269,6 +1271,8 @@ class _BadgeCard extends StatelessWidget {
         return 'Livres annuels';
       case 'occasion':
         return 'Occasion';
+      case 'comeback':
+        return 'Retour';
       default:
         return category;
     }
@@ -1447,6 +1451,8 @@ class _BadgeCard extends StatelessWidget {
                     ? GenreDevpersoMaitreBadge(size: 120, isLocked: !badge.isUnlocked)
                     : isGenreDevpersoLegendeBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
                     ? GenreDevpersoLegendeBadge(size: 120, isLocked: !badge.isUnlocked)
+                    : isComebackBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                    ? ComebackBadge(badgeId: badge.id, size: 120, isLocked: !badge.isUnlocked)
                     : Container(
                         width: 120,
                         height: 120,

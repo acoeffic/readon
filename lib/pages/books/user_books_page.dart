@@ -3,6 +3,8 @@ import 'package:lucide_icons/lucide_icons.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../services/books_service.dart';
+import '../../services/badges_service.dart';
+import '../../widgets/badge_unlocked_dialog.dart';
 import '../../models/book.dart';
 import '../../models/user_custom_list.dart';
 import '../../services/reading_session_service.dart';
@@ -18,9 +20,11 @@ import '../../widgets/constrained_content.dart';
 import '../../theme/app_theme.dart';
 import '../../models/annotation_model.dart';
 import '../../models/feature_flags.dart';
+import '../../models/reading_sheet.dart';
 import '../../services/annotation_service.dart';
 import '../../services/ai_service.dart';
 import '../profile/upgrade_page.dart';
+import 'reading_sheet_share_service.dart';
 
 class UserBooksPage extends StatefulWidget {
   const UserBooksPage({super.key});
@@ -833,6 +837,8 @@ class _BookDetailPageState extends State<BookDetailPage> {
   String? _currentGenre;
   bool _isHidden = false;
   bool _isLoading = true;
+  ReadingSheet? _readingSheet;
+  bool _isGeneratingSheet = false;
 
   static const List<String> _availableGenres = [
     'Roman',
@@ -913,12 +919,14 @@ class _BookDetailPageState extends State<BookDetailPage> {
       final annotations = await _annotationService
           .getAnnotationsForBook(widget.book.id.toString());
       final remainingSummaries = await _aiService.getRemainingAiSummaries();
+      final cachedSheet = await _aiService.getCachedReadingSheet(widget.book.id);
 
       setState(() {
         _activeSession = activeSession;
         _stats = stats;
         _annotations = annotations;
         _remainingAiSummaries = remainingSummaries;
+        _readingSheet = cachedSheet;
         _bookStatus = status;
         _currentGenre = widget.book.genre;
         _isHidden = hidden;
@@ -1137,14 +1145,30 @@ class _BookDetailPageState extends State<BookDetailPage> {
     if (confirm == true) {
       try {
         await _booksService.updateBookStatus(widget.book.id, 'finished');
-        if (mounted) {
-          setState(() => _bookStatus = 'finished');
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Livre marqué comme terminé !'),
-              backgroundColor: Colors.green,
-            ),
-          );
+        if (!mounted) return;
+
+        setState(() => _bookStatus = 'finished');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Livre marqué comme terminé !'),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        // Vérifier et attribuer les badges (livres terminés, etc.)
+        try {
+          final newBadges = await BadgesService().checkAndAwardBadges();
+          if (newBadges.isNotEmpty && mounted) {
+            for (final badge in newBadges) {
+              await showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (context) => BadgeUnlockedDialog(badge: badge),
+              );
+            }
+          }
+        } catch (e) {
+          debugPrint('Erreur checkAndAwardBadges (non bloquante): $e');
         }
       } catch (e) {
         if (mounted) {
@@ -1190,6 +1214,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
             if (!_isLoading) _buildReadingSessionSection(),
             if (_stats != null && _stats!.sessionsCount > 0) _buildStatsSection(),
             if (!_isLoading) _buildAnnotationsSection(),
+            if (!_isLoading && _annotations.length >= 3) _buildReadingSheetSection(),
             if (widget.book.description != null) _buildDescriptionSection(),
           ],
         ),
@@ -1706,6 +1731,416 @@ class _BookDetailPageState extends State<BookDetailPage> {
         ),
       ),
     );
+  }
+
+  // ── Reading Sheet Section ──────────────────────────────────────────
+
+  Widget _buildReadingSheetSection() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isPremium = FeatureFlags.isUnlocked(context, Feature.readingSheet);
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
+              Row(
+                children: [
+                  Icon(Icons.menu_book, color: Theme.of(context).primaryColor),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Text(
+                      'Ma Fiche de Lecture',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFD4A54A),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Text(
+                      'PREMIUM',
+                      style: TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+
+              // Content based on state
+              if (_isGeneratingSheet)
+                _buildSheetLoadingState()
+              else if (_readingSheet != null)
+                _buildSheetContent(isDark)
+              else
+                _buildSheetCTA(isPremium),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSheetCTA(bool isPremium) {
+    return Column(
+      children: [
+        Text(
+          'L\'IA analyse vos ${_annotations.length} annotations pour créer une fiche de lecture personnalisée : thèmes clés, citations marquantes, progression et synthèse.',
+          style: TextStyle(
+            fontSize: 13,
+            color: Colors.grey.shade600,
+            height: 1.4,
+          ),
+        ),
+        const SizedBox(height: 14),
+        SizedBox(
+          width: double.infinity,
+          child: isPremium
+              ? ElevatedButton.icon(
+                  onPressed: () => _generateReadingSheet(),
+                  icon: const Icon(Icons.auto_awesome, size: 18),
+                  label: const Text('Générer ma fiche'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 0,
+                  ),
+                )
+              : OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const UpgradePage(
+                          highlightedFeature: Feature.readingSheet,
+                        ),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.lock_outline, size: 18),
+                  label: const Text('Fonctionnalité Premium'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFFD4A54A),
+                    side: const BorderSide(color: Color(0xFFD4A54A)),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSheetLoadingState() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 24),
+      child: Column(
+        children: [
+          const SizedBox(
+            width: 28,
+            height: 28,
+            child: CircularProgressIndicator(strokeWidth: 2.5),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'L\'IA analyse vos ${_annotations.length} annotations...',
+            style: TextStyle(
+              fontSize: 13,
+              color: Colors.grey.shade600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSheetContent(bool isDark) {
+    final sheet = _readingSheet!;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Themes
+        if (sheet.themes.isNotEmpty) ...[
+          _buildSheetSubheader('Thèmes principaux', Icons.category_outlined),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: sheet.themes.map((theme) {
+              return Tooltip(
+                message: theme.description,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: AppColors.primary.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Text(
+                    theme.title,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+          // Theme descriptions
+          const SizedBox(height: 8),
+          ...sheet.themes.map((theme) => Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('• ', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+                    Expanded(
+                      child: RichText(
+                        text: TextSpan(
+                          style: TextStyle(
+                            fontSize: 13,
+                            height: 1.4,
+                            color: isDark ? Colors.white70 : Colors.black87,
+                          ),
+                          children: [
+                            TextSpan(
+                              text: '${theme.title} : ',
+                              style: const TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                            TextSpan(text: theme.description),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              )),
+          const SizedBox(height: 16),
+        ],
+
+        // Quotes
+        if (sheet.quotes.isNotEmpty) ...[
+          _buildSheetSubheader('Citations marquantes', Icons.format_quote),
+          const SizedBox(height: 8),
+          ...sheet.quotes.map((quote) => Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF0EDE6),
+                  borderRadius: BorderRadius.circular(8),
+                  border: const Border(
+                    left: BorderSide(
+                      color: Color(0xFFD4A54A),
+                      width: 3,
+                    ),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '« ${quote.text} »',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontStyle: FontStyle.italic,
+                        height: 1.4,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        if (quote.page != null) ...[
+                          Text(
+                            'p. ${quote.page}',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey.shade500,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                        ],
+                        Expanded(
+                          child: Text(
+                            quote.comment,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              )),
+          const SizedBox(height: 8),
+        ],
+
+        // Progression
+        if (sheet.progression.isNotEmpty) ...[
+          _buildSheetSubheader('Progression de pensée', Icons.timeline),
+          const SizedBox(height: 8),
+          Text(
+            sheet.progression,
+            style: TextStyle(
+              fontSize: 13,
+              height: 1.5,
+              color: isDark ? Colors.white70 : Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
+
+        // Synthesis
+        if (sheet.synthesis.isNotEmpty) ...[
+          _buildSheetSubheader('Synthèse personnelle', Icons.lightbulb_outline),
+          const SizedBox(height: 8),
+          Text(
+            sheet.synthesis,
+            style: TextStyle(
+              fontSize: 13,
+              height: 1.5,
+              color: isDark ? Colors.white70 : Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
+
+        // Action buttons
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () => _generateReadingSheet(force: true),
+                icon: const Icon(Icons.refresh, size: 16),
+                label: const Text('Régénérer'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.grey.shade600,
+                  side: BorderSide(color: Colors.grey.shade300),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  showReadingSheetShareSheet(
+                    context: context,
+                    book: widget.book,
+                    readingSheet: _readingSheet!,
+                  );
+                },
+                icon: const Icon(Icons.share_outlined, size: 16),
+                label: const Text('Partager'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  elevation: 0,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSheetSubheader(String title, IconData icon) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: Colors.grey.shade600),
+        const SizedBox(width: 6),
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+            color: Colors.grey.shade700,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _generateReadingSheet({bool force = false}) async {
+    if (!FeatureFlags.isUnlocked(context, Feature.readingSheet)) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const UpgradePage(
+            highlightedFeature: Feature.readingSheet,
+          ),
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isGeneratingSheet = true);
+    try {
+      final sheet = await _aiService.generateReadingSheet(
+        widget.book.id,
+        force: force,
+      );
+      if (mounted) {
+        setState(() {
+          _readingSheet = sheet;
+          _isGeneratingSheet = false;
+        });
+      }
+    } on AiPremiumRequiredException {
+      if (mounted) {
+        setState(() => _isGeneratingSheet = false);
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const UpgradePage(
+              highlightedFeature: Feature.readingSheet,
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isGeneratingSheet = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 
   Widget _buildAnnotationCard(Annotation annotation, int index) {

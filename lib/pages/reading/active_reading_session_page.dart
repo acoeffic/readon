@@ -192,10 +192,34 @@ class _ActiveReadingSessionPageState extends State<ActiveReadingSessionPage> {
       },
       child: Scaffold(
         backgroundColor: AppColors.bgLight,
-        floatingActionButton: FloatingActionButton.small(
-          onPressed: _showAnnotationSheet,
-          backgroundColor: AppColors.primary,
-          child: const Icon(Icons.edit_note, color: Colors.white),
+        floatingActionButton: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFF8FB8A8), Color(0xFF6B9B8A)],
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.primary.withValues(alpha: 0.4),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: _showAnnotationSheet,
+              borderRadius: BorderRadius.circular(16),
+              child: const SizedBox(
+                width: 52,
+                height: 52,
+                child: Icon(Icons.draw_outlined, color: Colors.white, size: 24),
+              ),
+            ),
+          ),
         ),
         body: SafeArea(
           child: Padding(

@@ -308,6 +308,8 @@ class UserSearchCard extends StatelessWidget {
                             const GenreDevpersoMaitreBadge(size: 26)
                           else if (isGenreDevpersoLegendeBadge(id: badge.id))
                             const GenreDevpersoLegendeBadge(size: 26)
+                          else if (badge.id.startsWith('comeback_'))
+                            ComebackBadge(badgeId: badge.id, size: 26)
                           else
                             Text(
                               badge.icon,

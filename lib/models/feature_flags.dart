@@ -13,6 +13,7 @@ enum Feature {
   customLists,
   aiChat,
   aiSummary,
+  readingSheet,
 }
 
 class FeatureFlags {
@@ -38,6 +39,7 @@ class FeatureFlags {
     Feature.kindleAutoSync,
     Feature.aiChat,
     Feature.aiSummary,
+    Feature.readingSheet,
   };
 
   /// Vérifie si une feature est disponible
@@ -74,6 +76,8 @@ class FeatureFlags {
         return 'Muse - Conseillère lecture';
       case Feature.aiSummary:
         return 'Résumés IA';
+      case Feature.readingSheet:
+        return 'Fiche de lecture IA';
     }
   }
 
@@ -99,6 +103,8 @@ class FeatureFlags {
         return 'Discute avec Muse pour obtenir des recommandations de livres personnalisées';
       case Feature.aiSummary:
         return 'Résume tes passages annotés en un tap grâce à l\'IA';
+      case Feature.readingSheet:
+        return 'Génère une fiche de lecture structurée à partir de toutes tes annotations';
     }
   }
 
@@ -124,6 +130,62 @@ class FeatureFlags {
         return Icons.auto_awesome;
       case Feature.aiSummary:
         return Icons.auto_awesome;
+      case Feature.readingSheet:
+        return Icons.menu_book;
+    }
+  }
+
+  static String freeDescription(Feature feature) {
+    switch (feature) {
+      case Feature.advancedStats:
+        return 'Basiques';
+      case Feature.premiumBadges:
+        return 'Verrouillés';
+      case Feature.aiChat:
+        return '3 msg/mois';
+      case Feature.aiSummary:
+        return '3/mois';
+      case Feature.customLists:
+        return '5 max';
+      case Feature.customThemes:
+        return 'Clair / Sombre';
+      case Feature.kindleAutoSync:
+        return 'Manuel';
+      case Feature.flowManualFreeze:
+        return 'Compteur simple';
+      case Feature.flowHistory:
+        return 'Compteur simple';
+      case Feature.advancedReactions:
+        return 'Likes';
+      case Feature.readingSheet:
+        return 'Non disponible';
+    }
+  }
+
+  static String premiumDescription(Feature feature) {
+    switch (feature) {
+      case Feature.advancedStats:
+        return 'Anneaux, heatmap, graphiques';
+      case Feature.premiumBadges:
+        return 'Animés, secrets, genres';
+      case Feature.aiChat:
+        return 'Illimité';
+      case Feature.aiSummary:
+        return 'Illimité';
+      case Feature.customLists:
+        return 'Illimitées';
+      case Feature.customThemes:
+        return 'Thèmes supplémentaires';
+      case Feature.kindleAutoSync:
+        return 'Automatique';
+      case Feature.flowManualFreeze:
+        return 'Freeze + historique';
+      case Feature.flowHistory:
+        return 'Freeze + historique';
+      case Feature.advancedReactions:
+        return 'Emojis personnalisés';
+      case Feature.readingSheet:
+        return 'Illimitée';
     }
   }
 }

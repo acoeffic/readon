@@ -238,6 +238,8 @@ class BadgeOverviewCard extends StatelessWidget {
                                 ? const GenreDevpersoMaitreBadge(size: 56)
                                 : isGenreDevpersoLegendeBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
                                 ? const GenreDevpersoLegendeBadge(size: 56)
+                                : isComebackBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                                ? ComebackBadge(badgeId: badge.id, size: 56)
                                 : Container(
                                     width: 56,
                                     height: 56,

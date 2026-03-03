@@ -5,6 +5,7 @@ import 'dart:math' as math;
 import '../services/badges_service.dart';
 import '../theme/app_theme.dart';
 import '../features/badges/widgets/first_book_badge_painter.dart';
+import '../features/badges/data/comeback_phrases.dart';
 import '../pages/badges/badge_share_service.dart';
 
 class BadgeUnlockedDialog extends StatefulWidget {
@@ -27,10 +28,16 @@ class _BadgeUnlockedDialogState extends State<BadgeUnlockedDialog>
   late AnimationController? _shimmerController;
   late Animation<double> _scaleAnimation;
   late Animation<double> _rotationAnimation;
+  late final String _comebackPhrase;
+
+  bool get _isComeback => widget.badge.category == 'comeback';
 
   @override
   void initState() {
     super.initState();
+
+    // Phrase de bienvenue pour les badges comeback (fixée à l'init pour éviter de changer au rebuild)
+    _comebackPhrase = _isComeback ? getRandomComebackPhrase(widget.badge.id) : '';
 
     // Animation d'échelle pour le badge
     _scaleController = AnimationController(
@@ -98,6 +105,7 @@ class _BadgeUnlockedDialogState extends State<BadgeUnlockedDialog>
   }
 
   String get _dialogTitle {
+    if (_isComeback) return 'Bon Retour !';
     if (widget.badge.isSecret) return 'Badge Secret Révélé!';
     if (widget.badge.isPremium) return 'Badge Premium!';
     return 'Nouveau Badge!';
@@ -136,6 +144,11 @@ class _BadgeUnlockedDialogState extends State<BadgeUnlockedDialog>
                               ['🕵️', '✨', '🔮', '⭐', '💫'][index % 5],
                               style: const TextStyle(fontSize: 16),
                             )
+                          : _isComeback
+                          ? Text(
+                              ['👋', '📖', '🌟', '🎉', '💫'][index % 5],
+                              style: const TextStyle(fontSize: 16),
+                            )
                           : Container(
                               width: 8,
                               height: 8,
@@ -166,9 +179,11 @@ class _BadgeUnlockedDialogState extends State<BadgeUnlockedDialog>
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                    color: isSecret
-                        ? Colors.purple.withValues(alpha: 0.3)
-                        : Colors.black.withValues(alpha: 0.2),
+                    color: _isComeback
+                        ? const Color(0xFF4CAF50).withValues(alpha: 0.3)
+                        : isSecret
+                            ? Colors.purple.withValues(alpha: 0.3)
+                            : Colors.black.withValues(alpha: 0.2),
                     blurRadius: 20,
                     spreadRadius: 5,
                   ),
@@ -189,7 +204,11 @@ class _BadgeUnlockedDialogState extends State<BadgeUnlockedDialog>
                     style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
-                      color: isSecret ? Colors.purple : AppColors.primary,
+                      color: _isComeback
+                          ? const Color(0xFF388E3C)
+                          : isSecret
+                              ? Colors.purple
+                              : AppColors.primary,
                     ),
                   ),
                   const SizedBox(height: 24),
@@ -334,6 +353,8 @@ class _BadgeUnlockedDialogState extends State<BadgeUnlockedDialog>
                               ? const GenreDevpersoMaitreBadge(size: 150)
                               : isGenreDevpersoLegendeBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
                               ? const GenreDevpersoLegendeBadge(size: 150)
+                              : isComebackBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
+                              ? ComebackBadge(badgeId: widget.badge.id, size: 150)
                               : Container(
                                   width: 150,
                                   height: 150,
@@ -383,6 +404,20 @@ class _BadgeUnlockedDialogState extends State<BadgeUnlockedDialog>
                   ),
 
                   const SizedBox(height: 12),
+
+                  // Phrase de bienvenue pour les badges comeback
+                  if (_isComeback && _comebackPhrase.isNotEmpty) ...[
+                    Text(
+                      _comebackPhrase,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontStyle: FontStyle.italic,
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.8),
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 8),
+                  ],
 
                   // Description
                   if (widget.badge.description.isNotEmpty)

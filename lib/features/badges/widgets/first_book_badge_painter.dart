@@ -2985,3 +2985,64 @@ class AnnualCentenaireBadge extends StatelessWidget {
     return badge;
   }
 }
+
+// ─────────────────────────────────────────────
+// COMEBACK (RETOUR) BADGES
+// ─────────────────────────────────────────────
+
+bool isComebackBadge({required String id, String? category, int? requirement}) {
+  return category == 'comeback';
+}
+
+/// Mapping badge_id → nom de fichier SVG dans le storage.
+const _comebackSvgFiles = {
+  'comeback_3d': 'badge_retour_3j',
+  'comeback_5d': 'badge_retour_5j',
+  'comeback_1w': 'badge_retour_1s',
+  'comeback_2w': 'badge_retour_2s',
+  'comeback_1m': 'badge_retour_1m',
+  'comeback_3m': 'badge_retour_3m',
+};
+
+/// Widget générique pour afficher un badge Comeback (Retour).
+class ComebackBadge extends StatelessWidget {
+  final String badgeId;
+  final double size;
+  final bool isLocked;
+
+  const ComebackBadge({
+    super.key,
+    required this.badgeId,
+    this.size = 80,
+    this.isLocked = false,
+  });
+
+  static const ColorFilter _greyscale = ColorFilter.matrix(<double>[
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0,      0,      0,      1, 0,
+  ]);
+
+  @override
+  Widget build(BuildContext context) {
+    final svgName = _comebackSvgFiles[badgeId] ?? 'badge_retour_3j';
+    Widget badge = SvgPicture.network(
+      '${Env.supabaseStorageUrl}/asset/Image/badge/Retour/$svgName.svg',
+      width: size,
+      height: size,
+    );
+
+    if (isLocked) {
+      badge = ColorFiltered(
+        colorFilter: _greyscale,
+        child: Opacity(
+          opacity: 0.45,
+          child: badge,
+        ),
+      );
+    }
+
+    return badge;
+  }
+}
