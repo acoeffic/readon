@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../config/env.dart';
+import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import 'auth_gate.dart';
 import 'signup_page.dart';
@@ -29,7 +30,7 @@ class _LoginPageState extends State<LoginPage> {
 
     if (email.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Entre ton email pour réinitialiser')),
+        SnackBar(content: Text(AppLocalizations.of(context).enterEmailToReset)),
       );
       return;
     }
@@ -43,7 +44,7 @@ class _LoginPageState extends State<LoginPage> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Email envoyé, vérifie ta boîte.')),
+        SnackBar(content: Text(AppLocalizations.of(context).emailSentCheckInbox)),
       );
     } on AuthException catch (e) {
       if (!mounted) return;
@@ -52,7 +53,7 @@ class _LoginPageState extends State<LoginPage> {
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Erreur lors de l'envoi de l'email")),
+        SnackBar(content: Text(AppLocalizations.of(context).errorSendingEmail)),
       );
     }
   }
@@ -62,7 +63,7 @@ class _LoginPageState extends State<LoginPage> {
     if (_lockoutUntil != null && DateTime.now().isBefore(_lockoutUntil!)) {
       final remaining = _lockoutUntil!.difference(DateTime.now()).inSeconds;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Trop de tentatives. Réessaie dans ${remaining}s')),
+        SnackBar(content: Text(AppLocalizations.of(context).tooManyAttemptsRetryIn(remaining))),
       );
       return;
     }
@@ -72,7 +73,7 @@ class _LoginPageState extends State<LoginPage> {
 
     if (email.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Email et mot de passe requis')),
+        SnackBar(content: Text(AppLocalizations.of(context).emailAndPasswordRequired)),
       );
       return;
     }
@@ -86,7 +87,7 @@ class _LoginPageState extends State<LoginPage> {
       if (res.session == null) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Connexion impossible')),
+          SnackBar(content: Text(AppLocalizations.of(context).loginFailed)),
         );
         return;
       }
@@ -113,7 +114,7 @@ class _LoginPageState extends State<LoginPage> {
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Erreur inconnue')));
+          .showSnackBar(SnackBar(content: Text(AppLocalizations.of(context).unknownError)));
     }
   }
 
@@ -126,7 +127,7 @@ class _LoginPageState extends State<LoginPage> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Erreur lors de la connexion avec Apple')),
+        SnackBar(content: Text(AppLocalizations.of(context).errorSignInApple)),
       );
     }
   }
@@ -140,13 +141,14 @@ class _LoginPageState extends State<LoginPage> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Erreur lors de la connexion avec Google')),
+        SnackBar(content: Text(AppLocalizations.of(context).errorSignInGoogle)),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Theme(
       data: AppTheme.light.copyWith(
         textTheme: AppTheme.light.textTheme.copyWith(
@@ -232,7 +234,7 @@ class _LoginPageState extends State<LoginPage> {
 
                 // Welcome text
                 Text(
-                  'Welcome back,',
+                  l10n.welcomeBack,
                   style: GoogleFonts.playfairDisplay(
                     fontSize: 28,
                     fontWeight: FontWeight.w400,
@@ -241,7 +243,7 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                 ),
                 Text(
-                  'reader.',
+                  l10n.reader,
                   style: GoogleFonts.playfairDisplay(
                     fontSize: 28,
                     fontWeight: FontWeight.w400,
@@ -253,9 +255,9 @@ class _LoginPageState extends State<LoginPage> {
                 const SizedBox(height: 36),
 
                 // Email
-                const Text(
-                  'EMAIL',
-                  style: TextStyle(
+                Text(
+                  l10n.email,
+                  style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                     letterSpacing: 2.0,
@@ -297,9 +299,9 @@ class _LoginPageState extends State<LoginPage> {
                 const SizedBox(height: 20),
 
                 // Password
-                const Text(
-                  'PASSWORD',
-                  style: TextStyle(
+                Text(
+                  l10n.password,
+                  style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                     letterSpacing: 2.0,
@@ -346,9 +348,9 @@ class _LoginPageState extends State<LoginPage> {
                     style: TextButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 8),
                     ),
-                    child: const Text(
-                      'Forgot password?',
-                      style: TextStyle(
+                    child: Text(
+                      l10n.forgotPassword,
+                      style: const TextStyle(
                         color: AppColors.primary,
                         fontSize: 14,
                         fontFamily: 'Poppins',
@@ -373,9 +375,9 @@ class _LoginPageState extends State<LoginPage> {
                       elevation: 0,
                     ),
                     onPressed: login,
-                    child: const Text(
-                      'Continue Reading',
-                      style: TextStyle(
+                    child: Text(
+                      l10n.continueReading,
+                      style: const TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w600,
                         fontFamily: 'Poppins',
@@ -398,7 +400,7 @@ class _LoginPageState extends State<LoginPage> {
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: Text(
-                        'or',
+                        l10n.or,
                         style: TextStyle(
                           color: const Color(0xFF9A9590),
                           fontSize: 14,
@@ -485,9 +487,9 @@ class _LoginPageState extends State<LoginPage> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Text(
-                        'New to LexDay? ',
-                        style: TextStyle(
+                      Text(
+                        l10n.newToLexDay,
+                        style: const TextStyle(
                           color: Color(0xFF6A6A6A),
                           fontSize: 14,
                           fontFamily: 'Poppins',
@@ -501,9 +503,9 @@ class _LoginPageState extends State<LoginPage> {
                             ),
                           );
                         },
-                        child: const Text(
-                          'Create an account',
-                          style: TextStyle(
+                        child: Text(
+                          l10n.createAnAccount,
+                          style: const TextStyle(
                             color: AppColors.primary,
                             fontSize: 14,
                             fontWeight: FontWeight.w500,

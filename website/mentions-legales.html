@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mentions légales - LexDay</title>
+  <meta name="description" content="Mentions légales de l'application LexDay." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300..800;1,9..40,300..800&display=swap" rel="stylesheet" />
+  <style>
+    :root{
+      --bg: #FAF3E8;
+      --ink: #191919;
+      --muted: rgba(25,25,25,.62);
+      --line: rgba(25,25,25,.10);
+      --sage: #6B988D;
+      --sageDeep: #517E73;
+      --max: 740px;
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{
+      font-family:"DM Sans", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      color:var(--ink);
+      background:var(--bg);
+      line-height:1.7;
+      -webkit-font-smoothing:antialiased;
+    }
+    .wrap{width:min(var(--max), calc(100% - 48px));margin:0 auto;padding:60px 0 80px;}
+    h1{font-size:28px;font-weight:700;margin-bottom:32px;color:var(--sageDeep);}
+    h2{font-size:20px;font-weight:700;margin-top:36px;margin-bottom:12px;color:var(--sageDeep);}
+    p{font-size:15px;color:var(--muted);margin-bottom:12px;}
+    a{color:var(--sageDeep);text-decoration:underline;}
+    .back{display:inline-flex;align-items:center;gap:6px;font-size:14px;color:var(--muted);text-decoration:none;margin-bottom:24px;}
+    .back:hover{color:var(--ink);}
+    footer{border-top:1px solid var(--line);padding:24px 0;margin-top:60px;font-size:13px;color:var(--muted);display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;}
+    footer a{text-decoration:none;color:var(--muted);}
+    footer a:hover{color:var(--ink);}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <a class="back" href="index.html">&larr; Retour</a>
+
+    <h1>Mentions légales</h1>
+
+    <h2>Éditeur de l'application</h2>
+    <p>Nom de la société : LexDay SAS</p>
+    <p>Forme juridique : SAS</p>
+    <p>Capital social : 1 000 €</p>
+    <p>Siège social : 60 rue François 1er, 75008 Paris</p>
+    <p>Immatriculation : RCS Paris – 101 652 329</p>
+    <p>Adresse email de contact : <a href="mailto:hello@lexday.fr">hello@lexday.fr</a></p>
+
+    <h2>Hébergement</h2>
+    <p>Hébergeur : Supabase Inc.</p>
+    <p>Adresse : 970 Toa Payoh North, Singapore 318992</p>
+    <p>Contact : support@supabase.io</p>
+
+    <h2>Propriété intellectuelle</h2>
+    <p>L'ensemble de l'application LexDay, incluant notamment les textes, graphismes, logos, interfaces, fonctionnalités et code source, est protégé par le droit de la propriété intellectuelle.</p>
+    <p>Toute reproduction, représentation, modification ou exploitation, totale ou partielle, sans autorisation préalable, est strictement interdite.</p>
+
+    <h2>Données personnelles</h2>
+    <p>Le traitement des données personnelles des utilisateurs est effectué conformément à la réglementation en vigueur.</p>
+    <p>Les modalités de collecte et de traitement sont détaillées dans la <a href="privacy.html">Politique de confidentialité</a>, accessible depuis l'application.</p>
+
+    <h2>Responsabilité</h2>
+    <p>L'éditeur s'efforce d'assurer l'exactitude et la mise à jour des informations diffusées via l'application LexDay. Toutefois, il ne saurait être tenu responsable d'erreurs, d'omissions ou d'une indisponibilité temporaire du service.</p>
+
+    <h2>Droit applicable</h2>
+    <p>Les présentes mentions légales sont soumises au droit français.</p>
+
+    <footer>
+      <div>&copy; <span id="y"></span> LexDay</div>
+      <div style="display:flex;gap:14px;flex-wrap:wrap;">
+        <a href="index.html">Accueil</a>
+        <a href="cgu.html">CGU</a>
+        <a href="privacy.html">Confidentialité</a>
+      </div>
+    </footer>
+  </div>
+  <script>document.getElementById('y').textContent=new Date().getFullYear();</script>
+</body>
+</html>

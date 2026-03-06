@@ -14,6 +14,7 @@ import 'cached_book_cover.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../theme/app_theme.dart';
 import '../pages/chat/ai_conversations_page.dart';
+import '../l10n/app_localizations.dart';
 
 final _supabase = Supabase.instance.client;
 
@@ -70,7 +71,7 @@ class GlobalReadingSessionFAB extends StatelessWidget {
 
       if (allBooks.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Votre bibliothèque est vide')),
+          SnackBar(content: Text(AppLocalizations.of(context).libraryEmpty)),
         );
         return;
       }
@@ -175,8 +176,8 @@ class GlobalReadingSessionFAB extends StatelessWidget {
 
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Session abandonnée'),
+                    SnackBar(
+                      content: Text(AppLocalizations.of(context).sessionAbandoned),
                       backgroundColor: Colors.orange,
                     ),
                   );
@@ -307,6 +308,7 @@ class _ExpandableFABState extends State<_ExpandableFAB> with SingleTickerProvide
 
   OverlayEntry _createOverlayEntry(Offset fabOffset, Size fabSize) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final l10n = AppLocalizations.of(context);
     // Le menu se positionne au-dessus du FAB, centré horizontalement
     final fabCenterX = fabOffset.dx + fabSize.width / 2;
 
@@ -350,7 +352,7 @@ class _ExpandableFABState extends State<_ExpandableFAB> with SingleTickerProvide
                   children: [
                     _buildLiquidGlassOption(
                       index: 2,
-                      label: '\u{1F4A1} Muse',
+                      label: l10n.muse,
                       icon: Icons.auto_awesome,
                       accentColor: const Color(0xFFE49B0F),
                       onTap: () {
@@ -362,7 +364,7 @@ class _ExpandableFABState extends State<_ExpandableFAB> with SingleTickerProvide
                     const SizedBox(height: 12),
                     _buildLiquidGlassOption(
                       index: 1,
-                      label: 'Nouveau livre',
+                      label: l10n.newBook,
                       icon: Icons.camera_alt_rounded,
                       accentColor: const Color(0xFF8B5CF6),
                       onTap: () {
@@ -374,7 +376,7 @@ class _ExpandableFABState extends State<_ExpandableFAB> with SingleTickerProvide
                     const SizedBox(height: 12),
                     _buildLiquidGlassOption(
                       index: 0,
-                      label: 'Ma bibliothèque',
+                      label: l10n.myLibraryFab,
                       icon: Icons.menu_book_rounded,
                       accentColor: const Color(0xFF10B981),
                       onTap: () {
@@ -662,7 +664,7 @@ class _UnifiedBookSelectorSheetState extends State<_UnifiedBookSelectorSheet> {
         children: [
           Row(
             children: [
-              const Text('Ma bibliothèque', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              Text(AppLocalizations.of(context).myLibraryFab, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
               const Spacer(),
               IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
             ],
@@ -670,7 +672,7 @@ class _UnifiedBookSelectorSheetState extends State<_UnifiedBookSelectorSheet> {
           const SizedBox(height: 16),
           TextField(
             decoration: InputDecoration(
-              hintText: 'Rechercher...',
+              hintText: AppLocalizations.of(context).searchEllipsis,
               prefixIcon: const Icon(Icons.search),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             ),
@@ -679,7 +681,7 @@ class _UnifiedBookSelectorSheetState extends State<_UnifiedBookSelectorSheet> {
           const SizedBox(height: 16),
           Expanded(
             child: _filteredBooks.isEmpty
-                ? const Center(child: Text('Aucun livre trouvé'))
+                ? Center(child: Text(AppLocalizations.of(context).noBookFound))
                 : ListView.builder(
                     itemCount: _filteredBooks.length,
                     itemBuilder: (context, index) {

@@ -6,12 +6,17 @@ import 'dart:io';
 import 'dart:math';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:record/record.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:just_audio/just_audio.dart';
 import '../../models/reading_session.dart';
 import '../../models/book.dart';
 import '../../models/annotation_model.dart';
 import '../../navigation/main_navigation.dart';
 import '../../services/flow_service.dart';
 import '../../services/annotation_service.dart';
+import '../../services/ai_service.dart';
 import '../../services/ocr_service.dart';
 import 'end_reading_session_page.dart';
 import '../../theme/app_theme.dart';
@@ -690,7 +695,7 @@ class _SlideToEndButtonState extends State<_SlideToEndButton>
 
 // ── Annotation bottom sheet ─────────────────────────────────────────
 
-enum _AnnotationMode { text, photo }
+enum _AnnotationMode { text, photo, voice }
 
 class _AnnotationBottomSheet extends StatefulWidget {
   final String bookId;
@@ -719,6 +724,18 @@ class _AnnotationBottomSheetState extends State<_AnnotationBottomSheet> {
   bool _isProcessingOcr = false;
   bool _isSaving = false;
 
+  // Voice recording state
+  AudioRecorder? _audioRecorder;
+  bool _isRecording = false;
+  bool _hasRecording = false;
+  String? _recordingPath;
+  Duration _recordingDuration = Duration.zero;
+  Timer? _recordingTimer;
+  bool _isTranscribing = false;
+  AudioPlayer? _audioPlayer;
+  bool _isPlayingPreview = false;
+  static const _maxRecordingDuration = Duration(minutes: 3);
+
   @override
   void initState() {
     super.initState();
@@ -730,7 +747,110 @@ class _AnnotationBottomSheetState extends State<_AnnotationBottomSheet> {
     _contentController.dispose();
     _pageController.dispose();
     _ocrService.dispose();
+    _recordingTimer?.cancel();
+    _audioRecorder?.dispose();
+    _audioPlayer?.dispose();
+    // Cleanup temp recording file if not saved
+    if (_recordingPath != null) {
+      try { File(_recordingPath!).deleteSync(); } catch (_) {}
+    }
     super.dispose();
+  }
+
+  // ── Voice recording methods ──
+
+  Future<void> _startRecording() async {
+    final status = await Permission.microphone.request();
+    if (!status.isGranted) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Permission microphone requise')),
+        );
+      }
+      return;
+    }
+
+    final tempDir = await getTemporaryDirectory();
+    _recordingPath = '${tempDir.path}/voice_annotation_${DateTime.now().millisecondsSinceEpoch}.m4a';
+
+    _audioRecorder = AudioRecorder();
+    await _audioRecorder!.start(
+      const RecordConfig(
+        encoder: AudioEncoder.aacLc,
+        bitRate: 128000,
+        sampleRate: 44100,
+      ),
+      path: _recordingPath!,
+    );
+
+    setState(() {
+      _isRecording = true;
+      _recordingDuration = Duration.zero;
+    });
+
+    _recordingTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) { timer.cancel(); return; }
+      final newDuration = _recordingDuration + const Duration(seconds: 1);
+      if (newDuration >= _maxRecordingDuration) {
+        _stopRecording();
+        return;
+      }
+      setState(() => _recordingDuration = newDuration);
+    });
+  }
+
+  Future<void> _stopRecording() async {
+    _recordingTimer?.cancel();
+    _recordingTimer = null;
+    final path = await _audioRecorder?.stop();
+    _audioRecorder?.dispose();
+    _audioRecorder = null;
+
+    if (path != null && mounted) {
+      setState(() {
+        _isRecording = false;
+        _hasRecording = true;
+        _recordingPath = path;
+      });
+    }
+  }
+
+  void _retakeRecording() {
+    _audioPlayer?.stop();
+    if (_recordingPath != null) {
+      try { File(_recordingPath!).deleteSync(); } catch (_) {}
+    }
+    setState(() {
+      _hasRecording = false;
+      _isRecording = false;
+      _isPlayingPreview = false;
+      _recordingPath = null;
+      _recordingDuration = Duration.zero;
+      _contentController.clear();
+    });
+  }
+
+  Future<void> _togglePlayback() async {
+    if (_isPlayingPreview) {
+      await _audioPlayer?.stop();
+      setState(() => _isPlayingPreview = false);
+    } else {
+      _audioPlayer ??= AudioPlayer();
+      await _audioPlayer!.setFilePath(_recordingPath!);
+      _audioPlayer!.playerStateStream.listen((state) {
+        if (state.processingState == ProcessingState.completed && mounted) {
+          setState(() => _isPlayingPreview = false);
+        }
+      });
+      await _audioPlayer!.play();
+      setState(() => _isPlayingPreview = true);
+    }
+  }
+
+  String _formatDuration(Duration d) {
+    final minutes = d.inMinutes.remainder(60).toString();
+    final seconds = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return '$minutes:$seconds';
   }
 
   Future<void> _takePhoto() async {
@@ -763,17 +883,62 @@ class _AnnotationBottomSheetState extends State<_AnnotationBottomSheet> {
   }
 
   Future<void> _save() async {
-    final content = _contentController.text.trim();
-    if (content.isEmpty) return;
+    // Validation selon le mode
+    if (_mode == _AnnotationMode.voice) {
+      if (!_hasRecording || _recordingPath == null) return;
+    } else {
+      final content = _contentController.text.trim();
+      if (content.isEmpty) return;
+    }
 
     setState(() => _isSaving = true);
 
     try {
-      String? imagePath;
+      if (_mode == _AnnotationMode.voice) {
+        // 1. Créer l'annotation avec placeholder
+        final content = _contentController.text.trim();
+        final annotation = await _annotationService.createAnnotation(
+          bookId: widget.bookId,
+          sessionId: widget.sessionId,
+          content: content.isNotEmpty ? content : '...',
+          pageNumber: int.tryParse(_pageController.text),
+          type: AnnotationType.voice,
+        );
 
-      // Si mode photo, uploader l'image d'abord
-      if (_mode == _AnnotationMode.photo && _capturedImage != null) {
-        // Créer l'annotation pour obtenir l'ID
+        // 2. Uploader l'audio
+        final audioPath = await _annotationService.uploadAnnotationAudio(
+          annotation.id,
+          _recordingPath!,
+        );
+
+        // 3. Sauvegarder audio_path
+        await Supabase.instance.client
+            .from('annotations')
+            .update({'audio_path': audioPath})
+            .eq('id', annotation.id);
+
+        // 4. Transcrire si pas de contenu manuel
+        if (content.isEmpty) {
+          setState(() => _isTranscribing = true);
+          try {
+            final aiService = AiService();
+            await aiService.transcribeAudio(annotation.id);
+          } catch (e) {
+            debugPrint('Transcription failed: $e');
+          }
+        }
+
+        // Don't delete the temp file — it was uploaded successfully
+        _recordingPath = null;
+
+        if (mounted) {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Annotation vocale sauvegardée !')),
+          );
+        }
+      } else if (_mode == _AnnotationMode.photo && _capturedImage != null) {
+        final content = _contentController.text.trim();
         final annotation = await _annotationService.createAnnotation(
           bookId: widget.bookId,
           sessionId: widget.sessionId,
@@ -782,8 +947,7 @@ class _AnnotationBottomSheetState extends State<_AnnotationBottomSheet> {
           type: AnnotationType.photo,
         );
 
-        // Uploader l'image puis enregistrer le chemin
-        imagePath = await _annotationService.uploadAnnotationImage(
+        final imagePath = await _annotationService.uploadAnnotationImage(
           annotation.id,
           _capturedImage!.path,
         );
@@ -791,25 +955,35 @@ class _AnnotationBottomSheetState extends State<_AnnotationBottomSheet> {
             .from('annotations')
             .update({'image_path': imagePath})
             .eq('id', annotation.id);
+
+        if (mounted) {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Annotation sauvegardée !')),
+          );
+        }
       } else {
         await _annotationService.createAnnotation(
           bookId: widget.bookId,
           sessionId: widget.sessionId,
-          content: content,
+          content: _contentController.text.trim(),
           pageNumber: int.tryParse(_pageController.text),
           type: AnnotationType.text,
         );
-      }
 
-      if (mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Annotation sauvegardée !')),
-        );
+        if (mounted) {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Annotation sauvegardée !')),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
-        setState(() => _isSaving = false);
+        setState(() {
+          _isSaving = false;
+          _isTranscribing = false;
+        });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Erreur: $e'),
@@ -874,6 +1048,11 @@ class _AnnotationBottomSheetState extends State<_AnnotationBottomSheet> {
                       value: _AnnotationMode.photo,
                       label: Text('Photo'),
                       icon: Icon(Icons.camera_alt, size: 18),
+                    ),
+                    ButtonSegment(
+                      value: _AnnotationMode.voice,
+                      label: Text('Vocal'),
+                      icon: Icon(Icons.mic, size: 18),
                     ),
                   ],
                   selected: {_mode},
@@ -953,14 +1132,137 @@ class _AnnotationBottomSheetState extends State<_AnnotationBottomSheet> {
                   const SizedBox(height: 12),
                 ],
 
-                // Content text field
-                TextField(
-                  controller: _contentController,
-                  maxLines: 4,
-                  decoration: InputDecoration(
-                    hintText: _mode == _AnnotationMode.photo
-                        ? 'Texte extrait (modifiable)...'
-                        : 'Notez votre pensée, une citation...',
+                // Voice mode: recording controls
+                if (_mode == _AnnotationMode.voice) ...[
+                  if (!_hasRecording && !_isRecording)
+                    // Initial state: record button
+                    Center(
+                      child: Column(
+                        children: [
+                          GestureDetector(
+                            onTap: _startRecording,
+                            child: Container(
+                              width: 72,
+                              height: 72,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFE53935),
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(0xFFE53935).withValues(alpha: 0.3),
+                                    blurRadius: 12,
+                                    spreadRadius: 2,
+                                  ),
+                                ],
+                              ),
+                              child: const Icon(Icons.mic, color: Colors.white, size: 32),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Appuyez pour enregistrer',
+                            style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                          ),
+                        ],
+                      ),
+                    )
+                  else if (_isRecording)
+                    // Recording in progress
+                    Center(
+                      child: Column(
+                        children: [
+                          Text(
+                            _formatDuration(_recordingDuration),
+                            style: const TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                width: 8,
+                                height: 8,
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFFE53935),
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              const Text('Enregistrement en cours...', style: TextStyle(fontSize: 13)),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          GestureDetector(
+                            onTap: _stopRecording,
+                            child: Container(
+                              width: 56,
+                              height: 56,
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade800,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.stop, color: Colors.white, size: 28),
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  else if (_hasRecording) ...[
+                    // Review state: playback + retake
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        IconButton(
+                          onPressed: _togglePlayback,
+                          icon: Icon(
+                            _isPlayingPreview ? Icons.pause_circle_filled : Icons.play_circle_filled,
+                            color: AppColors.primary,
+                            size: 40,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          _formatDuration(_recordingDuration),
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                        ),
+                        const Spacer(),
+                        TextButton.icon(
+                          onPressed: _retakeRecording,
+                          icon: const Icon(Icons.refresh, size: 18),
+                          label: const Text('Refaire'),
+                          style: TextButton.styleFrom(foregroundColor: AppColors.primary),
+                        ),
+                      ],
+                    ),
+                    if (_isTranscribing) ...[
+                      const SizedBox(height: 12),
+                      const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
+                          SizedBox(width: 8),
+                          Text('Transcription en cours...'),
+                        ],
+                      ),
+                    ],
+                  ],
+                  const SizedBox(height: 12),
+                ],
+
+                // Content text field (hidden in voice mode until recording is done)
+                if (_mode != _AnnotationMode.voice || _hasRecording) ...[
+                  TextField(
+                    controller: _contentController,
+                    maxLines: 4,
+                    decoration: InputDecoration(
+                      hintText: _mode == _AnnotationMode.photo
+                          ? 'Texte extrait (modifiable)...'
+                          : _mode == _AnnotationMode.voice
+                              ? 'Transcription (modifiable)...'
+                              : 'Notez votre pensée, une citation...',
                     filled: true,
                     fillColor: Colors.white,
                     border: OutlineInputBorder(
@@ -976,9 +1278,10 @@ class _AnnotationBottomSheetState extends State<_AnnotationBottomSheet> {
                       borderSide:
                           const BorderSide(color: AppColors.primary, width: 2),
                     ),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 12),
+                  const SizedBox(height: 12),
+                ],
 
                 // Page number field
                 TextField(
@@ -1019,13 +1322,23 @@ class _AnnotationBottomSheetState extends State<_AnnotationBottomSheet> {
                     ),
                   ),
                   child: _isSaving
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
+                      ? Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            ),
+                            if (_isTranscribing) ...[
+                              const SizedBox(width: 8),
+                              const Text('Transcription...', style: TextStyle(color: Colors.white)),
+                            ],
+                          ],
                         )
                       : const Text(
                           'Sauvegarder',

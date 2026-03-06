@@ -17,6 +17,9 @@ abstract final class Env {
   static const revenueCatApiKeyIOS = String.fromEnvironment('REVENUECAT_API_KEY_IOS');
   static const revenueCatApiKeyAndroid = String.fromEnvironment('REVENUECAT_API_KEY_ANDROID');
 
+  // ── Notion ────────────────────────────────────────────────
+  static const notionClientId = String.fromEnvironment('NOTION_CLIENT_ID');
+
   // ── Readon Sync ───────────────────────────────────────────
   static const readonSyncUrl = String.fromEnvironment('READON_SYNC_URL');
 

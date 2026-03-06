@@ -22,6 +22,7 @@ class Annotation {
   final int? pageNumber;
   final AnnotationType type;
   final String? imagePath;
+  final String? audioPath;
   final String? aiSummary;
   final bool isPublic;
   final DateTime createdAt;
@@ -36,6 +37,7 @@ class Annotation {
     this.pageNumber,
     this.type = AnnotationType.text,
     this.imagePath,
+    this.audioPath,
     this.aiSummary,
     this.isPublic = false,
     required this.createdAt,
@@ -52,6 +54,7 @@ class Annotation {
       pageNumber: json['page_number'] as int?,
       type: AnnotationType.fromString(json['type'] as String? ?? 'text'),
       imagePath: json['image_path'] as String?,
+      audioPath: json['audio_path'] as String?,
       aiSummary: json['ai_summary'] as String?,
       isPublic: json['is_public'] as bool? ?? false,
       createdAt: DateTime.parse(json['created_at'] as String).toLocal(),
@@ -69,6 +72,7 @@ class Annotation {
       'page_number': pageNumber,
       'type': type.name,
       'image_path': imagePath,
+      'audio_path': audioPath,
       'ai_summary': aiSummary,
       'is_public': isPublic,
       'created_at': createdAt.toUtc().toIso8601String(),
@@ -85,6 +89,7 @@ class Annotation {
     int? pageNumber,
     AnnotationType? type,
     String? imagePath,
+    String? audioPath,
     String? aiSummary,
     bool? isPublic,
     DateTime? createdAt,
@@ -99,6 +104,7 @@ class Annotation {
       pageNumber: pageNumber ?? this.pageNumber,
       type: type ?? this.type,
       imagePath: imagePath ?? this.imagePath,
+      audioPath: audioPath ?? this.audioPath,
       aiSummary: aiSummary ?? this.aiSummary,
       isPublic: isPublic ?? this.isPublic,
       createdAt: createdAt ?? this.createdAt,

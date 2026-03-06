@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:just_audio/just_audio.dart';
+import '../../l10n/app_localizations.dart';
 import '../../services/books_service.dart';
 import '../../services/badges_service.dart';
 import '../../widgets/badge_unlocked_dialog.dart';
@@ -23,6 +25,7 @@ import '../../models/feature_flags.dart';
 import '../../models/reading_sheet.dart';
 import '../../services/annotation_service.dart';
 import '../../services/ai_service.dart';
+import '../../services/notion_service.dart';
 import '../profile/upgrade_page.dart';
 import 'reading_sheet_share_service.dart';
 
@@ -253,12 +256,12 @@ class _UserBooksPageState extends State<UserBooksPage> {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: const Text('Ma Bibliothèque'),
+        title: Text(AppLocalizations.of(context).myLibrary),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadAllBooks,
-            tooltip: 'Rafraîchir',
+            tooltip: AppLocalizations.of(context).refreshTooltip,
           ),
         ],
       ),
@@ -276,7 +279,7 @@ class _UserBooksPageState extends State<UserBooksPage> {
                         child: TextField(
                           controller: _searchController,
                           decoration: InputDecoration(
-                            hintText: 'Rechercher un livre...',
+                            hintText: AppLocalizations.of(context).searchBook,
                             prefixIcon: const Icon(Icons.search),
                             suffixIcon: _searchQuery.isNotEmpty
                                 ? IconButton(
@@ -299,16 +302,16 @@ class _UserBooksPageState extends State<UserBooksPage> {
                       Padding(
                         padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
                         child: SegmentedButton<String>(
-                          segments: const [
+                          segments: [
                             ButtonSegment(
                               value: 'status',
-                              label: Text('Statut'),
-                              icon: Icon(Icons.playlist_add_check),
+                              label: Text(AppLocalizations.of(context).statusLabel),
+                              icon: const Icon(Icons.playlist_add_check),
                             ),
                             ButtonSegment(
                               value: 'genre',
-                              label: Text('Genre'),
-                              icon: Icon(Icons.category),
+                              label: Text(AppLocalizations.of(context).genreLabel),
+                              icon: const Icon(Icons.category),
                             ),
                           ],
                           selected: {_viewMode},
@@ -336,10 +339,10 @@ class _UserBooksPageState extends State<UserBooksPage> {
         children: [
           const Icon(Icons.book, size: 64, color: Colors.grey),
           const SizedBox(height: 16),
-          const Text('Aucun livre dans votre bibliothèque'),
+          Text(AppLocalizations.of(context).noBooksInLibrary),
           const SizedBox(height: 8),
           Text(
-            'Scannez une couverture ou synchronisez vos livres Kindle',
+            AppLocalizations.of(context).scanOrSyncBooks,
             style: TextStyle(color: Colors.grey),
             textAlign: TextAlign.center,
           ),
@@ -356,8 +359,8 @@ class _UserBooksPageState extends State<UserBooksPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(count > 0
-                ? 'Auteur trouvé pour $count livre${count > 1 ? 's' : ''}'
-                : 'Aucun auteur trouvé'),
+                ? AppLocalizations.of(context).authorFoundForBooks(count)
+                : AppLocalizations.of(context).noAuthorFound),
           ),
         );
         if (count > 0) _loadAllBooks();
@@ -365,7 +368,7 @@ class _UserBooksPageState extends State<UserBooksPage> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Erreur lors de la recherche des auteurs')),
+          SnackBar(content: Text(AppLocalizations.of(context).errorSearchingAuthors)),
         );
       }
     } finally {
@@ -393,8 +396,8 @@ class _UserBooksPageState extends State<UserBooksPage> {
               )
             : const Icon(Icons.person_search),
         label: Text(_isEnrichingAuthors
-            ? 'Recherche en cours...'
-            : 'Rechercher les auteurs manquants'),
+            ? AppLocalizations.of(context).searchingInProgress
+            : AppLocalizations.of(context).searchMissingAuthors),
       ),
     );
   }
@@ -839,6 +842,9 @@ class _BookDetailPageState extends State<BookDetailPage> {
   bool _isLoading = true;
   ReadingSheet? _readingSheet;
   bool _isGeneratingSheet = false;
+  bool _isSyncingNotion = false;
+  String? _playingAnnotationId;
+  AudioPlayer? _annotationAudioPlayer;
 
   static const List<String> _availableGenres = [
     'Roman',
@@ -889,7 +895,27 @@ class _BookDetailPageState extends State<BookDetailPage> {
   @override
   void dispose() {
     _sessionService.dispose();
+    _annotationAudioPlayer?.dispose();
     super.dispose();
+  }
+
+  Future<void> _toggleAnnotationPlayback(Annotation annotation) async {
+    if (_playingAnnotationId == annotation.id) {
+      await _annotationAudioPlayer?.stop();
+      setState(() => _playingAnnotationId = null);
+    } else {
+      _annotationAudioPlayer?.dispose();
+      _annotationAudioPlayer = AudioPlayer();
+      final url = _annotationService.getAudioUrl(annotation.audioPath!);
+      await _annotationAudioPlayer!.setUrl(url);
+      _annotationAudioPlayer!.playerStateStream.listen((state) {
+        if (state.processingState == ProcessingState.completed && mounted) {
+          setState(() => _playingAnnotationId = null);
+        }
+      });
+      await _annotationAudioPlayer!.play();
+      setState(() => _playingAnnotationId = annotation.id);
+    }
   }
 
   Future<void> _loadSessionData() async {
@@ -2075,6 +2101,39 @@ class _BookDetailPageState extends State<BookDetailPage> {
             ),
           ],
         ),
+
+        // Notion sync button
+        FutureBuilder<bool>(
+          future: NotionService().isConnected(),
+          builder: (context, snapshot) {
+            if (!(snapshot.data ?? false)) return const SizedBox.shrink();
+            return Padding(
+              padding: const EdgeInsets.only(top: 10),
+              child: SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _isSyncingNotion ? null : _syncToNotion,
+                  icon: _isSyncingNotion
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.upload_outlined, size: 16),
+                  label: Text(_isSyncingNotion ? 'Envoi en cours...' : 'Envoyer vers Notion'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.grey.shade700,
+                    side: BorderSide(color: Colors.grey.shade300),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
       ],
     );
   }
@@ -2136,6 +2195,36 @@ class _BookDetailPageState extends State<BookDetailPage> {
     } catch (e) {
       if (mounted) {
         setState(() => _isGeneratingSheet = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  Future<void> _syncToNotion() async {
+    setState(() => _isSyncingNotion = true);
+    try {
+      final notionUrl = await NotionService().syncReadingSheet(widget.book.id);
+      if (mounted) {
+        setState(() => _isSyncingNotion = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Fiche envoyée vers Notion !'),
+            backgroundColor: Colors.green,
+            action: notionUrl.isNotEmpty
+                ? SnackBarAction(
+                    label: 'Ouvrir',
+                    textColor: Colors.white,
+                    onPressed: () => launchUrl(Uri.parse(notionUrl)),
+                  )
+                : null,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isSyncingNotion = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red),
         );
@@ -2224,6 +2313,42 @@ class _BookDetailPageState extends State<BookDetailPage> {
                     child: const Center(
                       child: Icon(Icons.broken_image, color: Colors.grey),
                     ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
+            // Voice playback button
+            if (annotation.type == AnnotationType.voice &&
+                annotation.audioPath != null) ...[
+              GestureDetector(
+                onTap: () => _toggleAnnotationPlayback(annotation),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        _playingAnnotationId == annotation.id
+                            ? Icons.pause_circle_filled
+                            : Icons.play_circle_filled,
+                        color: AppColors.primary,
+                        size: 24,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Note vocale',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -2341,6 +2466,12 @@ class _BookDetailPageState extends State<BookDetailPage> {
             // Metadata row
             Row(
               children: [
+                if (annotation.type == AnnotationType.voice) ...[
+                  Icon(Icons.mic, size: 14, color: Colors.grey.shade500),
+                  const SizedBox(width: 2),
+                  Text('Vocal', style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
+                  const SizedBox(width: 12),
+                ],
                 if (annotation.pageNumber != null) ...[
                   Icon(Icons.bookmark_outline,
                       size: 14, color: Colors.grey.shade500),

@@ -172,8 +172,7 @@ serve(async (req) => {
       .eq("id", user.id)
       .single();
 
-    const devForcePremium = Deno.env.get("DEV_FORCE_PREMIUM") === "true";
-    const isPremium = devForcePremium || profile?.is_premium === true;
+    const isPremium = profile?.is_premium === true;
 
     if (!isPremium) {
       const startOfMonth = new Date();

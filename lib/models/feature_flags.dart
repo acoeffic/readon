@@ -29,6 +29,9 @@ class FeatureFlags {
   /// Limite de résumés IA par mois pour les utilisateurs gratuits
   static const maxFreeAiSummaries = 3;
 
+  /// Limite de transcriptions vocales par mois pour les utilisateurs gratuits
+  static const maxFreeVoiceTranscriptions = 3;
+
   static const _premiumFeatures = <Feature>{
     Feature.advancedReactions,
     Feature.flowManualFreeze,

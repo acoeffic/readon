@@ -157,7 +157,7 @@ class FlowService {
       for (final session in response) {
         final endTime = session['end_time'] as String?;
         if (endTime != null) {
-          final date = DateTime.parse(endTime);
+          final date = DateTime.parse(endTime).toLocal();
           final dateKey = _dateToKey(date);
           if (!uniqueDates.contains(dateKey)) {
             uniqueDates.add(dateKey);
@@ -217,7 +217,7 @@ class FlowService {
       for (final session in response) {
         final endTime = session['end_time'] as String?;
         if (endTime != null) {
-          final date = DateTime.parse(endTime);
+          final date = DateTime.parse(endTime).toLocal();
           final dateKey = _dateToKey(date);
           if (!uniqueDates.contains(dateKey)) {
             uniqueDates.add(dateKey);
@@ -475,7 +475,7 @@ class FlowService {
       for (final session in response as List) {
         final endTime = session['end_time'] as String?;
         if (endTime != null) {
-          final date = DateTime.parse(endTime);
+          final date = DateTime.parse(endTime).toLocal();
           final dateKey = _dateToKey(date);
           history[dateKey] = (history[dateKey] ?? 0) + 1;
         }

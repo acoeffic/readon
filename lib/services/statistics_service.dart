@@ -80,12 +80,43 @@ class StatisticsService {
       }
       heatmap.putIfAbsent(weekday, () => {});
       heatmap[weekday]![timeSlot] =
-          (heatmap[weekday]![timeSlot] ?? 0) + 1;
+          (heatmap[weekday]![timeSlot] ?? 0) + durationMin;
 
       // Longest session
       if (durationMin > longestSessionMin) {
         longestSessionMin = durationMin;
         longestSessionDate = startTime;
+      }
+    }
+
+    // Fallback: si aucune session cette année, heatmap all-time
+    if (heatmap.isEmpty) {
+      final allSessions = await _supabase
+          .from('reading_sessions')
+          .select('start_time, end_time')
+          .eq('user_id', userId)
+          .not('end_time', 'is', null);
+      for (final s in List<Map<String, dynamic>>.from(allSessions as List)) {
+        final startTime =
+            DateTime.parse(s['start_time'] as String).toLocal();
+        final endTime = DateTime.parse(s['end_time'] as String).toLocal();
+        final durationMin = endTime.difference(startTime).inMinutes;
+        if (durationMin <= 0) continue;
+        final weekday = startTime.weekday;
+        final hour = startTime.hour;
+        final int timeSlot;
+        if (hour >= 6 && hour < 12) {
+          timeSlot = 0;
+        } else if (hour >= 12 && hour < 17) {
+          timeSlot = 1;
+        } else if (hour >= 17 && hour < 22) {
+          timeSlot = 2;
+        } else {
+          timeSlot = 3;
+        }
+        heatmap.putIfAbsent(weekday, () => {});
+        heatmap[weekday]![timeSlot] =
+            (heatmap[weekday]![timeSlot] ?? 0) + durationMin;
       }
     }
 

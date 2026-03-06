@@ -106,6 +106,45 @@ class AiService {
     throw Exception(message);
   }
 
+  /// Transcrit une annotation vocale via la Edge Function transcribe-audio.
+  /// Retourne la transcription et le nombre de transcriptions restantes ce mois.
+  /// remaining = -1 si premium (illimité).
+  Future<({String transcription, int remaining})> transcribeAudio(
+    String annotationId,
+  ) async {
+    try {
+      final response = await _supabase.functions.invoke(
+        'transcribe-audio',
+        body: {'annotation_id': annotationId},
+      );
+
+      final data = _parseResponse(response.data);
+
+      if (data.containsKey('error')) {
+        _throwFromErrorData(data);
+      }
+
+      return (
+        transcription: data['transcription'] as String? ?? '',
+        remaining: data['remaining'] as int? ?? -1,
+      );
+    } on FunctionException catch (e) {
+      final details = e.details;
+      if (details is Map<String, dynamic>) {
+        _throwFromErrorData(details);
+      }
+      if (details is String) {
+        try {
+          final decoded = jsonDecode(details);
+          if (decoded is Map<String, dynamic>) {
+            _throwFromErrorData(decoded);
+          }
+        } catch (_) {}
+      }
+      throw Exception('Erreur du serveur');
+    }
+  }
+
   /// Génère une fiche de lecture IA pour un livre à partir de toutes ses annotations.
   /// Feature 100% premium.
   /// Si [force] est true, regénère même si une fiche existe déjà.

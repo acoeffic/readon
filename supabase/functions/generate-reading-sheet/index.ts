@@ -105,8 +105,7 @@ serve(async (req) => {
       .eq("id", user.id)
       .single();
 
-    const devForcePremium = Deno.env.get("DEV_FORCE_PREMIUM") === "true";
-    const isPremium = devForcePremium || profile?.is_premium === true;
+    const isPremium = profile?.is_premium === true;
 
     if (!isPremium) {
       return jsonResponse({ error: "premium_required", message: "Cette fonctionnalité est réservée aux utilisateurs Premium." }, 403);

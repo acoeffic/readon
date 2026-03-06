@@ -4,6 +4,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/back_header.dart';
 import 'auth_gate.dart';
@@ -54,7 +55,7 @@ class _ConfirmEmailPageState extends State<ConfirmEmailPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const BackHeader(title: 'Email envoyé'),
+              BackHeader(title: AppLocalizations.of(context).emailSent),
               const SizedBox(height: AppSpace.xl),
 
               Icon(Icons.mark_email_read,
@@ -62,7 +63,7 @@ class _ConfirmEmailPageState extends State<ConfirmEmailPage> {
 
               const SizedBox(height: AppSpace.l),
               Text(
-                'Vérifie ta boîte mail',
+                AppLocalizations.of(context).checkYourEmail,
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                       fontSize: 26,
@@ -72,7 +73,7 @@ class _ConfirmEmailPageState extends State<ConfirmEmailPage> {
 
               const SizedBox(height: AppSpace.s),
               Text(
-                "Nous t'avons envoyé un lien pour confirmer ton adresse email.",
+                AppLocalizations.of(context).confirmEmailSent,
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
@@ -91,9 +92,9 @@ class _ConfirmEmailPageState extends State<ConfirmEmailPage> {
                     ),
                   ),
                   onPressed: _goToAuthGate,
-                  child: const Text(
-                    'J\'ai confirmé mon email',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  child: Text(
+                    AppLocalizations.of(context).iConfirmedMyEmail,
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                   ),
                 ),
               ),

@@ -37,7 +37,7 @@ class TermsOfServicePage extends StatelessWidget {
                   ),
                   _buildSection(
                     '2. Éditeur de l\'Application',
-                    'L\'Application est éditée par :\n• Société : LexDay\n• Adresse email : contact@readon.app',
+                    'L\'Application est éditée par :\n• Société : LexDay SAS\n• Forme juridique : SAS\n• Capital social : 1 000 €\n• Siège social : 60 rue François 1er, 75008 Paris\n• RCS : 101 652 329 R.C.S. Paris\n• Adresse email : hello@lexday.fr',
                   ),
                   _buildSection(
                     '3. Accès à l\'Application',

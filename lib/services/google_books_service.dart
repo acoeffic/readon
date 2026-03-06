@@ -176,138 +176,201 @@ class GoogleBook {
 }
 
 /// Mappe une catégorie brute Google Books vers un genre lisible en français.
-/// Les catégories Google Books sont en anglais, souvent sous forme
+/// Les catégories Google Books sont en anglais ou en français, souvent sous forme
 /// "Category / Subcategory / Detail" (ex: "Fiction / Science Fiction / General").
 /// L'ordre des vérifications est important : les plus spécifiques d'abord.
 String? mapGoogleBooksCategory(String raw) {
   final lower = raw.toLowerCase();
 
   // --- Science-Fiction & Fantasy ---
-  if (lower.contains('science fiction')) return 'Science-Fiction';
+  if (lower.contains('science fiction') || lower.contains('science-fiction')) return 'Science-Fiction';
   if (lower.contains('fantasy')) return 'Fantasy';
   if (lower.contains('dystopi')) return 'Science-Fiction'; // dystopia, dystopian
 
   // --- Policier / Thriller / Suspense ---
   if (lower.contains('thriller')) return 'Thriller';
   if (lower.contains('suspense')) return 'Thriller';
-  if (lower.contains('mystery')) return 'Policier';
-  if (lower.contains('detective')) return 'Policier';
+  if (lower.contains('mystery') || lower.contains('mystère')) return 'Policier';
+  if (lower.contains('detective') || lower.contains('détective')) return 'Policier';
   if (lower.contains('crime')) return 'Policier';
   if (lower.contains('true crime')) return 'Policier';
+  if (lower.contains('polar')) return 'Policier';
+  if (lower.contains('policier')) return 'Policier';
+  if (lower.contains('enquête')) return 'Policier';
 
   // --- Horreur ---
-  if (lower.contains('horror')) return 'Horreur';
-  if (lower.contains('ghost')) return 'Horreur';
-  if (lower.contains('occult')) return 'Horreur';
+  if (lower.contains('horror') || lower.contains('horreur')) return 'Horreur';
+  if (lower.contains('ghost') || lower.contains('fantôme')) return 'Horreur';
+  if (lower.contains('occult') || lower.contains('occulte')) return 'Horreur';
+  if (lower.contains('épouvante')) return 'Horreur';
 
   // --- Romance ---
   if (lower.contains('romance')) return 'Romance';
-  if (lower.contains('erotica')) return 'Romance';
-  if (lower.contains('love')) return 'Romance';
+  if (lower.contains('erotica') || lower.contains('érotique')) return 'Romance';
+  if (lower.contains('love') || lower.contains('amour')) return 'Romance';
+  if (lower.contains('sentimental')) return 'Romance';
 
   // --- Biographie & Autobiographie ---
-  if (lower.contains('biography')) return 'Biographie';
-  if (lower.contains('autobiography')) return 'Biographie';
-  if (lower.contains('memoir')) return 'Biographie';
+  if (lower.contains('biograph') || lower.contains('biograph')) return 'Biographie'; // biography, biographical, biographie
+  if (lower.contains('autobiograph')) return 'Biographie'; // autobiography, autobiographie
+  if (lower.contains('memoir') || lower.contains('mémoire')) return 'Biographie';
+  if (lower.contains('témoignage')) return 'Biographie';
+  if (lower.contains('récit personnel')) return 'Biographie';
+  if (lower.contains('récit de vie')) return 'Biographie';
+  if (lower.contains('portrait')) return 'Biographie';
 
   // --- Histoire ---
-  if (lower.contains('history')) return 'Histoire';
-  if (lower.contains('historical')) return 'Historique';
+  if (lower.contains('history') || lower.contains('histoire')) return 'Histoire';
+  if (lower.contains('historical') || lower.contains('historique')) return 'Historique';
 
   // --- Philosophie ---
-  if (lower.contains('philosophy')) return 'Philosophie';
+  if (lower.contains('philosoph')) return 'Philosophie'; // philosophy, philosophie
 
   // --- Psychologie / Développement personnel ---
-  if (lower.contains('self-help')) return 'Développement personnel';
-  if (lower.contains('self help')) return 'Développement personnel';
-  if (lower.contains('personal growth')) return 'Développement personnel';
+  if (lower.contains('self-help') || lower.contains('self help')) return 'Développement personnel';
+  if (lower.contains('développement personnel')) return 'Développement personnel';
+  if (lower.contains('personal growth') || lower.contains('croissance personnelle')) return 'Développement personnel';
   if (lower.contains('motivation')) return 'Développement personnel';
-  if (lower.contains('psychology')) return 'Psychologie';
+  if (lower.contains('coaching')) return 'Développement personnel';
+  if (lower.contains('psycholog')) return 'Psychologie'; // psychology, psychologie
 
   // --- Sciences ---
-  if (lower.contains('mathematics')) return 'Sciences';
-  if (lower.contains('physics')) return 'Sciences';
-  if (lower.contains('chemistry')) return 'Sciences';
-  if (lower.contains('biology')) return 'Sciences';
-  if (lower.contains('evolution')) return 'Sciences';
-  if (lower.contains('science') && !lower.contains('fiction') && !lower.contains('political')) {
+  if (lower.contains('mathématique') || lower.contains('mathematics')) return 'Sciences';
+  if (lower.contains('physics') || lower.contains('physique')) return 'Sciences';
+  if (lower.contains('chemistry') || lower.contains('chimie')) return 'Sciences';
+  if (lower.contains('biology') || lower.contains('biologie')) return 'Sciences';
+  if (lower.contains('evolution') || lower.contains('évolution')) return 'Sciences';
+  if (lower.contains('science') && !lower.contains('fiction') && !lower.contains('political') && !lower.contains('politique')) {
     return 'Sciences';
   }
 
   // --- Informatique / Technologie ---
-  if (lower.contains('computer')) return 'Informatique';
-  if (lower.contains('programming')) return 'Informatique';
-  if (lower.contains('software')) return 'Informatique';
-  if (lower.contains('technology')) return 'Technologie';
+  if (lower.contains('computer') || lower.contains('informatique') || lower.contains('ordinateur')) return 'Informatique';
+  if (lower.contains('programming') || lower.contains('programmation')) return 'Informatique';
+  if (lower.contains('software') || lower.contains('logiciel')) return 'Informatique';
+  if (lower.contains('technology') || lower.contains('technologie')) return 'Technologie';
 
   // --- Business / Économie ---
-  if (lower.contains('business')) return 'Business';
-  if (lower.contains('economics')) return 'Économie';
+  if (lower.contains('business') || lower.contains('affaires')) return 'Business';
+  if (lower.contains('economics') || lower.contains('économie')) return 'Économie';
   if (lower.contains('finance')) return 'Business';
   if (lower.contains('entrepreneur')) return 'Business';
-  if (lower.contains('management')) return 'Business';
+  if (lower.contains('management') || lower.contains('gestion')) return 'Business';
 
   // --- Politique / Société ---
-  if (lower.contains('politic')) return 'Politique';
-  if (lower.contains('social science')) return 'Société';
-  if (lower.contains('sociology')) return 'Société';
+  if (lower.contains('politic') || lower.contains('politique')) return 'Politique';
+  if (lower.contains('social science') || lower.contains('sciences sociales')) return 'Société';
+  if (lower.contains('sociolog') || lower.contains('société')) return 'Société'; // sociology, sociologie
 
   // --- Religion / Spiritualité ---
   if (lower.contains('religion')) return 'Religion';
-  if (lower.contains('spiritual')) return 'Spiritualité';
-  if (lower.contains('body, mind')) return 'Bien-être';
-  if (lower.contains('mind & body')) return 'Bien-être';
+  if (lower.contains('spiritual') || lower.contains('spiritualité')) return 'Spiritualité';
+  if (lower.contains('body, mind') || lower.contains('mind & body') || lower.contains('bien-être')) return 'Bien-être';
 
   // --- Art / Musique / Cinéma ---
-  if (lower.contains('art')) return 'Art';
-  if (lower.contains('music')) return 'Musique';
-  if (lower.contains('film')) return 'Cinéma';
-  if (lower.contains('photography')) return 'Art';
+  if (lower.contains('musique') || lower.contains('music')) return 'Musique';
+  if (lower.contains('film') || lower.contains('cinéma')) return 'Cinéma';
+  if (lower.contains('photography') || lower.contains('photographie')) return 'Art';
   if (lower.contains('architecture')) return 'Art';
+  if (lower.contains('art') || lower.contains('beaux-arts')) return 'Art';
 
   // --- Cuisine / Lifestyle ---
-  if (lower.contains('cooking')) return 'Cuisine';
-  if (lower.contains('food')) return 'Cuisine';
-  if (lower.contains('health')) return 'Santé';
+  if (lower.contains('cooking') || lower.contains('cuisine') || lower.contains('gastronomie')) return 'Cuisine';
+  if (lower.contains('food') || lower.contains('recette')) return 'Cuisine';
+  if (lower.contains('health') || lower.contains('santé')) return 'Santé';
   if (lower.contains('fitness')) return 'Santé';
-  if (lower.contains('travel')) return 'Voyage';
+  if (lower.contains('travel') || lower.contains('voyage')) return 'Voyage';
   if (lower.contains('nature')) return 'Nature';
-  if (lower.contains('garden')) return 'Nature';
+  if (lower.contains('garden') || lower.contains('jardin')) return 'Nature';
 
   // --- Sport ---
   if (lower.contains('sport')) return 'Sport';
 
   // --- Éducation / Référence ---
-  if (lower.contains('education')) return 'Éducation';
-  if (lower.contains('reference')) return 'Référence';
-  if (lower.contains('study')) return 'Éducation';
-  if (lower.contains('language')) return 'Langues';
+  if (lower.contains('education') || lower.contains('éducation') || lower.contains('enseignement')) return 'Éducation';
+  if (lower.contains('reference') || lower.contains('référence')) return 'Référence';
+  if (lower.contains('study') || lower.contains('étude')) return 'Éducation';
+  if (lower.contains('language') || lower.contains('langue')) return 'Langues';
 
   // --- Jeunesse ---
-  if (lower.contains('juvenile')) return 'Jeunesse';
+  if (lower.contains('juvenile') || lower.contains('jeunesse')) return 'Jeunesse';
   if (lower.contains('young adult')) return 'Young Adult';
-  if (lower.contains('children')) return 'Jeunesse';
+  if (lower.contains('children') || lower.contains('enfant')) return 'Jeunesse';
 
   // --- Bande dessinée / Comics ---
-  if (lower.contains('comic')) return 'BD / Comics';
-  if (lower.contains('graphic novel')) return 'BD / Comics';
+  if (lower.contains('comic') || lower.contains('bande dessinée') || lower.contains('bd')) return 'BD / Comics';
+  if (lower.contains('graphic novel') || lower.contains('roman graphique')) return 'BD / Comics';
   if (lower.contains('manga')) return 'Manga';
 
   // --- Poésie / Théâtre ---
-  if (lower.contains('poetry')) return 'Poésie';
-  if (lower.contains('drama')) return 'Théâtre';
+  if (lower.contains('poetry') || lower.contains('poésie')) return 'Poésie';
+  if (lower.contains('drama') || lower.contains('théâtre')) return 'Théâtre';
 
   // --- Humour ---
-  if (lower.contains('humor')) return 'Humour';
-  if (lower.contains('comedy')) return 'Humour';
+  if (lower.contains('humor') || lower.contains('humour')) return 'Humour';
+  if (lower.contains('comedy') || lower.contains('comédie')) return 'Humour';
+
+  // --- Essai (FR spécifique, avant fiction générique) ---
+  if (lower.contains('essai')) return 'Non-fiction';
 
   // --- Fiction générique (en dernier car très large) ---
-  if (lower.contains('literary fiction')) return 'Roman littéraire';
+  if (lower.contains('literary fiction') || lower.contains('fiction littéraire')) return 'Roman littéraire';
+  if (lower.contains('roman')) return 'Roman';
   if (lower.contains('fiction')) return 'Roman';
-  if (lower.contains('novel')) return 'Roman';
+  if (lower.contains('novel') || lower.contains('nouvelle')) return 'Roman';
+  if (lower.contains('conte')) return 'Roman';
+  if (lower.contains('récit')) return 'Roman';
 
   // --- Non-fiction générique ---
   if (lower.contains('nonfiction') || lower.contains('non-fiction')) return 'Non-fiction';
+
+  return null;
+}
+
+/// Tente d'inférer le genre d'un livre à partir de son titre et/ou auteur.
+/// Utilisé en fallback quand Google Books ne retourne aucune catégorie.
+/// Retourne null si aucun pattern n'est détecté.
+String? inferGenreFromTitle(String title, String? author) {
+  final lower = title.toLowerCase();
+
+  // --- Biographie / Autobiographie (patterns très courants) ---
+  if (lower.contains('biographie') || lower.contains('autobiography')) return 'Biographie';
+  if (lower.contains('autobiographie')) return 'Biographie';
+  if (RegExp(r'\bmémoires?\b').hasMatch(lower)) return 'Biographie';
+  if (lower.contains('vie de ') || lower.contains('la vie de ')) return 'Biographie';
+  if (lower.contains('journal de ') || lower.contains("journal d'")) return 'Biographie';
+  if (lower.contains('correspondance')) return 'Biographie';
+  if (lower.contains('lettres de ') || lower.contains('lettres à ')) return 'Biographie';
+  if (lower.contains('portrait de ') || lower.contains("portrait d'")) return 'Biographie';
+  if (lower.contains('témoignage')) return 'Biographie';
+  if (lower.contains('confessions')) return 'Biographie';
+  if (lower.contains('souvenirs')) return 'Biographie';
+
+  // --- Histoire ---
+  if (RegExp(r"\bhistoire (de |du |des |d')").hasMatch(lower)) return 'Histoire';
+
+  // --- Philosophie ---
+  if (lower.contains('philosophie') || lower.contains('philosopher')) return 'Philosophie';
+  if (RegExp(r'\bessai sur\b').hasMatch(lower)) return 'Non-fiction';
+
+  // --- Développement personnel ---
+  if (lower.contains('développement personnel')) return 'Développement personnel';
+  if (lower.contains('comment réussir') || lower.contains('les clés de')) return 'Développement personnel';
+  if (lower.contains('habitudes') && lower.contains('succès')) return 'Développement personnel';
+
+  // --- Cuisine ---
+  if (lower.contains('recettes') || lower.contains('cuisine')) return 'Cuisine';
+  if (lower.contains('gastronomie')) return 'Cuisine';
+
+  // --- Guide / Manuel ---
+  if (RegExp(r"\bguide (de |du |des |d')").hasMatch(lower)) return 'Non-fiction';
+  if (RegExp(r"\bmanuel (de |du |des |d')").hasMatch(lower)) return 'Non-fiction';
+
+  // --- Poésie ---
+  if (lower.contains('poèmes') || lower.contains('poésie') || lower.contains('poésies')) return 'Poésie';
+
+  // --- Conte ---
+  if (RegExp(r'\bcontes?\b').hasMatch(lower)) return 'Roman';
 
   return null;
 }

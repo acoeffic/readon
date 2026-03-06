@@ -18,10 +18,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-const MAX_FREE_MONTHLY_SUMMARIES = 3;
-const MIN_CONTENT_LENGTH = 20;
-
-const SYSTEM_PROMPT = `Tu es un assistant littéraire. Résume le passage suivant de manière concise et claire, en 2-3 phrases maximum. Capture l'idée principale et le ton du texte. Réponds en français si le texte est en français, en anglais si le texte est en anglais.`;
+const MAX_FREE_MONTHLY_TRANSCRIPTIONS = 3;
 
 function jsonResponse(body: Record<string, unknown>, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -78,7 +75,7 @@ serve(async (req) => {
     // --- Fetch annotation ---
     const { data: annotation, error: annotationError } = await supabase
       .from("annotations")
-      .select("id, user_id, content, ai_summary")
+      .select("id, user_id, content, audio_path")
       .eq("id", annotation_id)
       .single();
 
@@ -89,6 +86,11 @@ serve(async (req) => {
     // Verify ownership
     if (annotation.user_id !== user.id) {
       return jsonResponse({ error: "Annotation non trouvée" }, 404);
+    }
+
+    // Check audio exists
+    if (!annotation.audio_path) {
+      return jsonResponse({ error: "Pas de fichier audio pour cette annotation" }, 400);
     }
 
     // --- Premium check ---
@@ -109,89 +111,85 @@ serve(async (req) => {
       .from("ai_usage")
       .select("id", { count: "exact", head: true })
       .eq("user_id", user.id)
-      .eq("feature", "summary")
+      .eq("feature", "transcription")
       .gte("used_at", startOfMonth.toISOString());
 
     const currentCount = usageCount ?? 0;
 
-    // --- If already summarized, return existing without consuming credit ---
-    if (annotation.ai_summary) {
+    // --- If already transcribed, return existing without consuming credit ---
+    if (annotation.content && annotation.content.trim() !== "" && annotation.content.trim() !== "...") {
       const remaining = isPremium
         ? -1
-        : Math.max(0, MAX_FREE_MONTHLY_SUMMARIES - currentCount);
+        : Math.max(0, MAX_FREE_MONTHLY_TRANSCRIPTIONS - currentCount);
       return jsonResponse({
-        summary: annotation.ai_summary,
+        transcription: annotation.content,
         remaining,
       });
     }
 
-    // --- Validate content length ---
-    if (
-      !annotation.content ||
-      annotation.content.trim().length < MIN_CONTENT_LENGTH
-    ) {
-      return jsonResponse({ error: "text_too_short" }, 400);
-    }
-
     // --- Enforce free tier limit ---
-    if (!isPremium && currentCount >= MAX_FREE_MONTHLY_SUMMARIES) {
+    if (!isPremium && currentCount >= MAX_FREE_MONTHLY_TRANSCRIPTIONS) {
       return jsonResponse({ error: "limit_reached", remaining: 0 }, 429);
     }
 
-    // --- Call OpenAI API ---
-    const openaiResponse = await fetch(
-      "https://api.openai.com/v1/chat/completions",
+    // --- Download audio from Storage ---
+    const { data: audioData, error: downloadError } = await supabase.storage
+      .from("annotations")
+      .download(annotation.audio_path);
+
+    if (downloadError || !audioData) {
+      console.error("Audio download error:", downloadError);
+      return jsonResponse({ error: "Fichier audio introuvable" }, 404);
+    }
+
+    // --- Call OpenAI Whisper API ---
+    const formData = new FormData();
+    formData.append("file", audioData, "recording.m4a");
+    formData.append("model", "whisper-1");
+
+    const whisperResponse = await fetch(
+      "https://api.openai.com/v1/audio/transcriptions",
       {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
           Authorization: `Bearer ${OPENAI_API_KEY}`,
         },
-        body: JSON.stringify({
-          model: "gpt-4o-mini",
-          max_tokens: 300,
-          temperature: 0.3,
-          messages: [
-            { role: "system", content: SYSTEM_PROMPT },
-            { role: "user", content: annotation.content },
-          ],
-        }),
+        body: formData,
       }
     );
 
-    if (!openaiResponse.ok) {
-      const error = await openaiResponse.text();
-      console.error("OpenAI error:", error);
-      return jsonResponse({ error: "Erreur du service IA" }, 502);
+    if (!whisperResponse.ok) {
+      const error = await whisperResponse.text();
+      console.error("Whisper error:", error);
+      return jsonResponse({ error: "Erreur du service de transcription" }, 502);
     }
 
-    const openaiData = await openaiResponse.json();
-    const summary =
-      openaiData.choices?.[0]?.message?.content ?? "";
+    const whisperData = await whisperResponse.json();
+    const transcription = whisperData.text ?? "";
 
-    if (!summary) {
-      return jsonResponse({ error: "Réponse IA vide" }, 502);
+    if (!transcription) {
+      return jsonResponse({ error: "Transcription vide" }, 502);
     }
 
-    // --- Update annotation with summary ---
+    // --- Update annotation with transcription ---
     await supabase
       .from("annotations")
-      .update({ ai_summary: summary })
+      .update({ content: transcription })
       .eq("id", annotation_id);
 
     // --- Record usage ---
     await supabase.from("ai_usage").insert({
       user_id: user.id,
-      feature: "summary",
+      feature: "transcription",
     });
 
     const remaining = isPremium
       ? -1
-      : Math.max(0, MAX_FREE_MONTHLY_SUMMARIES - currentCount - 1);
+      : Math.max(0, MAX_FREE_MONTHLY_TRANSCRIPTIONS - currentCount - 1);
 
-    return jsonResponse({ summary, remaining });
+    return jsonResponse({ transcription, remaining });
   } catch (error) {
-    console.error("Summarize error:", error);
+    console.error("Transcribe error:", error);
     return jsonResponse({ error: "Erreur interne" }, 500);
   }
 });

@@ -5,7 +5,7 @@ const _timeSlotLabels = ['Matin', 'Midi', 'Soir', 'Nuit'];
 const _dayLabels = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 
 class ReadingHeatmap extends StatelessWidget {
-  final Map<int, Map<int, int>> data; // weekday (1-7) -> {timeSlot (0-3) -> count}
+  final Map<int, Map<int, int>> data; // weekday (1-7) -> {timeSlot (0-3) -> minutes}
   final bool showHeader;
 
   const ReadingHeatmap({super.key, required this.data, this.showHeader = true});

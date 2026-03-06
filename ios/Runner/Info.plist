@@ -31,6 +31,17 @@
 		<string>twitter</string>
 		<string>linkedin</string>
 	</array>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.acoeffic.lexday</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>lexday</string>
+			</array>
+		</dict>
+	</array>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsLocalNetworking</key>
@@ -40,6 +51,8 @@
 	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>LexDay a besoin d'accéder à votre caméra pour scanner les pages de vos livres et détecter automatiquement les numéros de page.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>LexDay utilise le microphone pour enregistrer vos annotations vocales pendant la lecture.</string>
 	<key>NSContactsUsageDescription</key>
 	<string>LexDay utilise vos contacts pour trouver vos amis qui utilisent déjà l'application.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>

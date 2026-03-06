@@ -1,3 +1,269 @@
 {
-  "@@locale": "fr"
+  "@@locale": "fr",
+
+  "navFeed": "Feed",
+  "navLibrary": "Biblio",
+  "navClub": "Club",
+  "navProfile": "Mon espace",
+
+  "kindleSyncedAutomatically": "Kindle synchronisé automatiquement",
+
+  "enterEmailToReset": "Entre ton email pour réinitialiser",
+  "emailSentCheckInbox": "Email envoyé, vérifie ta boîte.",
+  "errorSendingEmail": "Erreur lors de l'envoi de l'email",
+  "tooManyAttemptsRetryIn": "Trop de tentatives. Réessaie dans {seconds}s",
+  "@tooManyAttemptsRetryIn": {
+    "placeholders": {
+      "seconds": {"type": "int"}
+    }
+  },
+  "emailAndPasswordRequired": "Email et mot de passe requis",
+  "loginFailed": "Connexion impossible",
+  "unknownError": "Erreur inconnue",
+  "errorSignInApple": "Erreur lors de la connexion avec Apple",
+  "errorSignInGoogle": "Erreur lors de la connexion avec Google",
+  "welcomeBack": "Welcome back,",
+  "reader": "reader.",
+  "email": "EMAIL",
+  "emailLower": "Email",
+  "password": "PASSWORD",
+  "forgotPassword": "Forgot password?",
+  "continueReading": "Continue Reading",
+  "or": "or",
+  "newToLexDay": "New to LexDay? ",
+  "createAnAccount": "Create an account",
+
+  "emailAlreadyUsed": "Email déjà utilisé",
+  "emailAlreadyUsedMessage": "Cette adresse email est déjà associée à un compte existant. Souhaitez-vous réinitialiser votre mot de passe ?",
+  "back": "Retour",
+  "reset": "Réinitialiser",
+  "resetEmailSent": "Email de réinitialisation envoyé. Vérifie ta boîte mail.",
+  "passwordMin8Chars": "Le mot de passe doit contenir au moins 8 caractères",
+  "passwordRequirements": "Le mot de passe doit contenir majuscule, minuscule et chiffre",
+  "mustAcceptTerms": "Vous devez accepter les conditions d'utilisation",
+  "accountCreatedCheckEmail": "Compte créé, vérifie tes emails.",
+  "createAccountTitle": "Créer un compte",
+  "joinLexDay": "Rejoins LexDay",
+  "enterInfoToStart": "Entre tes informations pour commencer à lire",
+  "name": "Nom",
+  "yourName": "Ton nom",
+  "yourEmail": "ton.email@mail.com",
+  "passwordLabel": "Mot de passe",
+  "createAccount": "Créer un compte",
+  "alreadyHaveAccount": "Déjà un compte ? Se connecter",
+  "legalNotices": "Mentions légales",
+
+  "emailSent": "Email envoyé",
+  "checkYourEmail": "Vérifie ta boîte mail",
+  "confirmEmailSent": "Nous t'avons envoyé un lien pour confirmer ton adresse email.",
+  "iConfirmedMyEmail": "J'ai confirmé mon email",
+
+  "suggestionsForYou": "Suggestions pour toi",
+  "bookAddedToLibrary": "{title} ajouté à votre bibliothèque",
+  "@bookAddedToLibrary": {
+    "placeholders": {
+      "title": {"type": "String"}
+    }
+  },
+  "errorAddingBook": "Erreur lors de l'ajout du livre",
+  "recentSessions": "Sessions récentes",
+  "recentBadges": "Badges récents",
+  "friendsActivity": "Activité de tes amis",
+  "refresh": "Rafraîchir",
+  "friendsNotReadToday": "Tes amis n'ont pas encore lu aujourd'hui",
+  "noActivityYet": "Pas encore d'activité",
+  "addFriendsToSeeActivity": "Ajoutez des amis pour voir leurs lectures!",
+  "shareInviteText": "📖 Rejoins-moi sur LexDay !\n\nTu lis quoi en ce moment ? 👀\nlexday.app",
+  "errorGeneric": "Erreur: {message}",
+  "@errorGeneric": {
+    "placeholders": {
+      "message": {"type": "String"}
+    }
+  },
+
+  "myLibrary": "Ma Bibliothèque",
+  "refreshTooltip": "Rafraîchir",
+  "searchBook": "Rechercher un livre...",
+  "statusLabel": "Statut",
+  "genreLabel": "Genre",
+  "noBooksInLibrary": "Aucun livre dans votre bibliothèque",
+  "scanOrSyncBooks": "Scannez une couverture ou synchronisez vos livres Kindle",
+  "authorFoundForBooks": "Auteur trouvé pour {count} livre{count, plural, =1{} other{s}}",
+  "@authorFoundForBooks": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "noAuthorFound": "Aucun auteur trouvé",
+  "errorSearchingAuthors": "Erreur lors de la recherche des auteurs",
+  "searchingInProgress": "Recherche en cours...",
+  "searchMissingAuthors": "Rechercher les auteurs manquants",
+
+  "settings": "Paramètres",
+  "profileSection": "Profil",
+  "editName": "✏️ Modifier le nom",
+  "uploadingPhoto": "📸 Upload en cours...",
+  "changeProfilePicture": "📸 Changer la photo de profil",
+  "subscriptionSection": "Abonnement",
+  "upgradeToPremium": "Passer à Premium",
+  "freeTrial": "Essai gratuit",
+  "freeTrialUntil": "Essai gratuit (jusqu'au {date})",
+  "@freeTrialUntil": {
+    "placeholders": {
+      "date": {"type": "String"}
+    }
+  },
+  "premiumActive": "Premium actif",
+  "premiumActiveUntil": "Premium actif (jusqu'au {date})",
+  "@premiumActiveUntil": {
+    "placeholders": {
+      "date": {"type": "String"}
+    }
+  },
+  "privacySection": "Confidentialité",
+  "privateProfile": "🔒 Profil privé",
+  "statsHidden": "Tes statistiques sont cachées",
+  "statsPublic": "Tes statistiques sont publiques",
+  "privateProfileInfoOn": "Les autres utilisateurs ne verront que ton nom et ta photo de profil.",
+  "privateProfileInfoOff": "Les autres utilisateurs pourront voir tes badges, livres, flow et statistiques.",
+  "hideReadingHours": "⏱️ Masquer les heures de lecture",
+  "readingHoursHidden": "Tes heures de lecture sont cachées",
+  "readingHoursVisible": "Tes heures de lecture sont visibles",
+  "readingHoursInfo": "Les autres utilisateurs ne verront pas ton temps de lecture total.",
+  "profilePrivateEnabled": "Profil privé activé. Seuls tes amis verront tes statistiques.",
+  "profilePublicEnabled": "Profil public activé. Tout le monde peut voir tes statistiques.",
+  "readingHoursHiddenSnack": "Heures de lecture masquées.",
+  "readingHoursVisibleSnack": "Heures de lecture visibles.",
+  "readingSection": "Lecture",
+  "editReadingGoal": "🎯 Modifier l'objectif de lecture",
+  "flowNotifications": "🔔 Notifications de flow",
+  "kindleSection": "Kindle",
+  "resyncKindle": "📚 Resynchroniser Kindle",
+  "connectKindle": "📚 Connecter Kindle",
+  "lastSync": "✅ Dernière sync: {date}",
+  "@lastSync": {
+    "placeholders": {
+      "date": {"type": "String"}
+    }
+  },
+  "autoSync": "Sync automatique",
+  "kindleAutoSyncDescription": "Synchronise tes livres Kindle à chaque ouverture",
+  "kindleSyncedSuccess": "Kindle synchronisé avec succès !",
+  "notionSection": "Notion",
+  "connectedTo": "Connecté à {name}",
+  "@connectedTo": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "notionSheetsDescription": "Tes fiches de lecture peuvent être envoyées vers Notion",
+  "reconnect": "Reconnecter",
+  "disconnect": "Déconnecter",
+  "connectNotion": "📝 Connecter Notion",
+  "notionSyncDescription": "Synchronise tes fiches de lecture IA vers une base Notion",
+  "disconnectNotionTitle": "Déconnecter Notion ?",
+  "disconnectNotionMessage": "Tes fiches déjà synchronisées resteront dans Notion.",
+  "notionDisconnected": "Notion déconnecté",
+  "appearanceSection": "Apparence",
+  "lightTheme": "🌞 Thème clair",
+  "lightThemeActive": "🌞 Thème clair (actif)",
+  "darkTheme": "🌙 Thème sombre",
+  "darkThemeActive": "🌙 Thème sombre (actif)",
+  "languageSection": "Langue",
+  "frenchActive": "🇫🇷 Français (actif)",
+  "french": "🇫🇷 Français",
+  "english": "🇬🇧 English",
+  "englishActive": "🇬🇧 English (active)",
+  "accountSection": "Compte",
+  "manageConnections": "🖥️ Gérer connexions & appareils",
+  "legalSection": "Légal",
+  "termsOfService": "📜 Conditions d'utilisation",
+  "privacyPolicy": "🔐 Politique de confidentialité",
+  "legalNoticesItem": "⚖️ Mentions légales",
+  "logoutTitle": "Se déconnecter ?",
+  "logoutMessage": "Tu vas être déconnecté. Continuer ?",
+  "cancel": "Annuler",
+  "confirm": "Confirmer",
+  "logout": "❌ Se déconnecter",
+  "dangerZone": "Zone de danger",
+  "deleteAccountWarning": "La suppression du compte est irréversible.",
+  "deleteMyAccount": "Supprimer mon compte",
+  "deleteAccountTitle": "Supprimer ton compte ?",
+  "deleteAccountMessage": "Cette action est irréversible. Toutes tes données (livres, sessions de lecture, badges, amis, groupes) seront définitivement supprimées.",
+  "continueButton": "Continuer",
+  "confirmDeletion": "Confirmer la suppression",
+  "typeDeleteToConfirm": "Pour confirmer, tape SUPPRIMER ci-dessous :",
+  "deleteKeyword": "SUPPRIMER",
+  "deleteForever": "Supprimer définitivement",
+  "errorDeletingAccount": "Erreur lors de la suppression : {error}",
+  "@errorDeletingAccount": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "editNameTitle": "Modifier le nom",
+  "displayName": "Nom d'affichage",
+  "save": "Enregistrer",
+  "nameMinLength": "Le nom doit contenir au moins 2 caractères",
+  "nameMaxLength": "Le nom ne doit pas dépasser 50 caractères",
+  "nameUpdated": "Nom mis à jour!",
+  "takePhoto": "Prendre une photo",
+  "chooseFromGallery": "Choisir dans la galerie",
+  "imageTooLarge": "Image trop grande. Taille maximum: 5MB",
+  "unsupportedFormat": "Format non supporté. Utilisez JPG, PNG ou WebP",
+  "notConnected": "Non connecté",
+  "profilePictureUpdated": "✅ Photo de profil mise à jour!",
+
+  "timeAgoMinutes": "il y a {minutes} min",
+  "@timeAgoMinutes": {
+    "placeholders": {
+      "minutes": {"type": "int"}
+    }
+  },
+  "timeAgoHours": "il y a {hours}h",
+  "@timeAgoHours": {
+    "placeholders": {
+      "hours": {"type": "int"}
+    }
+  },
+  "timeAgoDays": "il y a {days}j",
+  "@timeAgoDays": {
+    "placeholders": {
+      "days": {"type": "int"}
+    }
+  },
+
+  "libraryEmpty": "Votre bibliothèque est vide",
+  "sessionAbandoned": "Session abandonnée",
+  "muse": "💡 Muse",
+  "newBook": "Nouveau livre",
+  "myLibraryFab": "Ma bibliothèque",
+  "searchEllipsis": "Rechercher...",
+  "noBookFound": "Aucun livre trouvé",
+
+  "abandonSessionTitle": "Abandonner la session",
+  "abandonSessionMessage": "Voulez-vous vraiment abandonner cette session de lecture ?",
+  "no": "Non",
+  "yes": "Oui",
+  "leaveSessionTitle": "Quitter la session",
+  "leaveSessionMessage": "La session reste active. Vous pourrez la terminer plus tard.",
+  "stay": "Rester",
+  "leave": "Quitter",
+  "sessionInProgress": "SESSION EN COURS",
+
+  "cancelSessionTitle": "Annuler la session",
+  "cancelSessionMessage": "Êtes-vous sûr de vouloir annuler cette session de lecture ?",
+
+  "errorCapture": "Erreur lors de la capture: {error}",
+  "@errorCapture": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "errorGoogleBooks": "Erreur recherche Google Books",
+
+  "termsOfServiceTitle": "Conditions d'utilisation",
+  "privacyPolicyTitle": "Politique de confidentialité",
+  "legalNoticesTitle": "Mentions légales",
+  "iAcceptTerms": "J'accepte les conditions"
 }

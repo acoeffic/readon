@@ -10,6 +10,41 @@ class BooksService {
   final SupabaseClient _supabase = Supabase.instance.client;
   final GoogleBooksService _googleBooksService = GoogleBooksService();
 
+  /// Insérer un livre via la RPC sécurisée (gère doublons et validation).
+  /// Retourne l'ID du livre (existant ou nouveau).
+  Future<int> _insertBookRpc({
+    required String title,
+    String? author,
+    String? isbn,
+    String? coverUrl,
+    int? pageCount,
+    String? description,
+    String? googleId,
+    String source = 'manual',
+    String? publisher,
+    String language = 'fr',
+    String? genre,
+    String? publishedDate,
+    String? externalId,
+  }) async {
+    final result = await _supabase.rpc('insert_book_if_not_exists', params: {
+      'p_title': title,
+      'p_author': author,
+      'p_isbn': isbn,
+      'p_cover_url': coverUrl,
+      'p_page_count': pageCount,
+      'p_description': description,
+      'p_google_id': googleId,
+      'p_source': source,
+      'p_publisher': publisher,
+      'p_language': language,
+      'p_genre': genre,
+      'p_published_date': publishedDate,
+      'p_external_id': externalId,
+    });
+    return result as int;
+  }
+
   /// Ajouter un livre depuis Google Books
   Future<Book> addBookFromGoogleBooks(GoogleBook googleBook) async {
     try {
@@ -40,16 +75,25 @@ class BooksService {
         return book;
       }
 
-      // Créer le nouveau livre
-      final bookData = Book.fromGoogleBook(googleBook).toInsert();
-      
-      final response = await _supabase
-          .from('books')
-          .insert(bookData)
-          .select()
-          .single();
+      // Créer le nouveau livre via RPC sécurisée
+      final gb = Book.fromGoogleBook(googleBook);
+      final bookId = await _insertBookRpc(
+        title: gb.title,
+        author: gb.author,
+        isbn: gb.isbn,
+        coverUrl: gb.coverUrl,
+        pageCount: gb.pageCount,
+        description: gb.description,
+        googleId: gb.googleId,
+        source: gb.source,
+        publisher: gb.publisher,
+        language: gb.language,
+        genre: gb.genre,
+        publishedDate: gb.publishedDate,
+        externalId: gb.externalId,
+      );
 
-      final book = Book.fromJson(response);
+      final book = await getBookById(bookId);
 
       // Ajouter à user_books
       await _addToUserBooks(book.id);
@@ -84,22 +128,18 @@ class BooksService {
         return book;
       }
 
-      // Créer le livre
-      final response = await _supabase
-          .from('books')
-          .insert({
-            'title': title,
-            'author': author,
-            'isbn': isbn,
-            'cover_url': coverUrl,
-            'page_count': pageCount,
-            'description': description,
-            'source': 'manual',
-          })
-          .select()
-          .single();
+      // Créer le livre via RPC sécurisée
+      final bookId = await _insertBookRpc(
+        title: title,
+        author: author,
+        isbn: isbn,
+        coverUrl: coverUrl,
+        pageCount: pageCount,
+        description: description,
+        source: 'manual',
+      );
 
-      final book = Book.fromJson(response);
+      final book = await getBookById(bookId);
       await _addToUserBooks(book.id);
       return book;
     } catch (e) {
@@ -163,15 +203,25 @@ class BooksService {
         return await getBookById(existingByTitle as int);
       }
 
-      // Créer le livre
-      final bookData = Book.fromGoogleBook(googleBook).toInsert();
-      final response = await _supabase
-          .from('books')
-          .insert(bookData)
-          .select()
-          .single();
+      // Créer le livre via RPC sécurisée
+      final gb = Book.fromGoogleBook(googleBook);
+      final bookId = await _insertBookRpc(
+        title: gb.title,
+        author: gb.author,
+        isbn: gb.isbn,
+        coverUrl: gb.coverUrl,
+        pageCount: gb.pageCount,
+        description: gb.description,
+        googleId: gb.googleId,
+        source: gb.source,
+        publisher: gb.publisher,
+        language: gb.language,
+        genre: gb.genre,
+        publishedDate: gb.publishedDate,
+        externalId: gb.externalId,
+      );
 
-      return Book.fromJson(response);
+      return await getBookById(bookId);
     } catch (e) {
       debugPrint('Erreur findOrCreateBook: $e');
       rethrow;
@@ -474,39 +524,29 @@ class BooksService {
                 await _supabase.rpc('update_book_metadata', params: {'p_book_id': bookId, 'p_cover_url': kindleBook.coverUrl});
               }
             } else {
-              // Créer le livre avec métadonnées et google_id
-              final response = await _supabase
-                  .from('books')
-                  .insert({
-                    'title': kindleBook.title,
-                    'author': metadata?['author'] ?? kindleBook.author,
-                    'source': 'kindle',
-                    'cover_url': coverUrl,
-                    'description': metadata?['description'],
-                    'page_count': metadata?['page_count'],
-                    'google_id': googleIdToUse,
-                    'genre': metadata?['genre'],
-                  })
-                  .select()
-                  .single();
-              bookId = response['id'] as int;
+              // Créer le livre avec métadonnées et google_id via RPC
+              bookId = await _insertBookRpc(
+                title: kindleBook.title,
+                author: metadata?['author'] as String? ?? kindleBook.author,
+                source: 'kindle',
+                coverUrl: coverUrl,
+                description: metadata?['description'] as String?,
+                pageCount: metadata?['page_count'] as int?,
+                googleId: googleIdToUse,
+                genre: metadata?['genre'] as String?,
+              );
             }
           } else {
-            // Pas de google_id, créer sans
-            final response = await _supabase
-                .from('books')
-                .insert({
-                  'title': kindleBook.title,
-                  'author': metadata?['author'] ?? kindleBook.author,
-                  'source': 'kindle',
-                  'cover_url': coverUrl,
-                  'description': metadata?['description'],
-                  'page_count': metadata?['page_count'],
-                  'genre': metadata?['genre'],
-                })
-                .select()
-                .single();
-            bookId = response['id'] as int;
+            // Pas de google_id, créer via RPC
+            bookId = await _insertBookRpc(
+              title: kindleBook.title,
+              author: metadata?['author'] as String? ?? kindleBook.author,
+              source: 'kindle',
+              coverUrl: coverUrl,
+              description: metadata?['description'] as String?,
+              pageCount: metadata?['page_count'] as int?,
+              genre: metadata?['genre'] as String?,
+            );
           }
         }
 
@@ -839,7 +879,10 @@ class BooksService {
             _cleanBookTitle(title),
             kindleAuthor: author,
           );
-          final genre = metadata?['genre'] as String?;
+          var genre = metadata?['genre'] as String?;
+
+          // Fallback : inférer le genre depuis le titre si Google Books n'a rien
+          genre ??= inferGenreFromTitle(title, author);
 
           if (genre != null) {
             await _supabase

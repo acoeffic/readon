@@ -5,8 +5,10 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const REVENUECAT_WEBHOOK_SECRET = Deno.env.get("REVENUECAT_WEBHOOK_SECRET");
 
-if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-  throw new Error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
+if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY || !REVENUECAT_WEBHOOK_SECRET) {
+  throw new Error(
+    "Missing SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY or REVENUECAT_WEBHOOK_SECRET"
+  );
 }
 
 const corsHeaders = {
@@ -33,19 +35,21 @@ function jsonResponse(body: Record<string, unknown>, status = 200) {
   });
 }
 
-async function verifyWebhookSignature(
-  body: string,
-  authorization: string | null
-): Promise<boolean> {
-  if (!REVENUECAT_WEBHOOK_SECRET) {
-    console.warn("REVENUECAT_WEBHOOK_SECRET not set, skipping verification");
-    return true;
-  }
-
+function verifyWebhookSignature(authorization: string | null): boolean {
   // RevenueCat sends the secret as Bearer token in Authorization header
   if (!authorization) return false;
   const token = authorization.replace("Bearer ", "");
-  return token === REVENUECAT_WEBHOOK_SECRET;
+
+  // Timing-safe comparison to prevent timing attacks
+  const a = new TextEncoder().encode(token);
+  const b = new TextEncoder().encode(REVENUECAT_WEBHOOK_SECRET!);
+  if (a.byteLength !== b.byteLength) return false;
+
+  let result = 0;
+  for (let i = 0; i < a.byteLength; i++) {
+    result |= a[i] ^ b[i];
+  }
+  return result === 0;
 }
 
 function mapPlatform(store?: string): string | null {
@@ -67,10 +71,7 @@ serve(async (req) => {
   const body = await req.text();
 
   // Vérifier la signature
-  const isValid = await verifyWebhookSignature(
-    body,
-    req.headers.get("authorization")
-  );
+  const isValid = verifyWebhookSignature(req.headers.get("authorization"));
   if (!isValid) {
     return jsonResponse({ error: "Invalid webhook signature" }, 401);
   }

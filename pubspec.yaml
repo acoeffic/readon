@@ -68,6 +68,8 @@ dependencies:
   flutter_timezone: ^3.0.1               # Device timezone detection
   geolocator: ^13.0.2                    # GPS location for nearby bookstores
   home_widget: ^0.9.0
+  record: ^5.1.0                          # Audio recording for voice annotations
+  app_links: ^6.1.0                        # Deep links for Notion OAuth callback
 
 dev_dependencies:
   flutter_test:

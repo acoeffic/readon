@@ -62,7 +62,7 @@ class ReadingStatistics {
   final List<ReadingGoal> activeGoals;
   final List<MonthlyPageCount> pagesPerMonth;
   final List<GenreStatData> genreDistribution;
-  final Map<int, Map<int, int>> readingHeatmap; // weekday -> {timeSlot -> count}
+  final Map<int, Map<int, int>> readingHeatmap; // weekday -> {timeSlot -> minutes}
   final PersonalRecords records;
   final int unlockedBadges;
   final int totalBadges;

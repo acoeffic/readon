@@ -22,6 +22,7 @@ import '../services/kindle_auto_sync_service.dart';
 import '../services/monthly_notification_service.dart';
 import '../widgets/kindle_auto_sync_widget.dart';
 import '../utils/responsive.dart';
+import '../l10n/app_localizations.dart';
 
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
@@ -213,9 +214,9 @@ class _MainNavigationState extends State<MainNavigation>
   void _onKindleAutoSyncSuccess(_) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Kindle synchronisé automatiquement'),
-        duration: Duration(seconds: 2),
+      SnackBar(
+        content: Text(AppLocalizations.of(context).kindleSyncedAutomatically),
+        duration: const Duration(seconds: 2),
         backgroundColor: Colors.green,
       ),
     );
@@ -283,26 +284,26 @@ class _MainNavigationState extends State<MainNavigation>
                   padding: EdgeInsets.only(top: 8, bottom: 24),
                   child: GlobalReadingSessionFAB(),
                 ),
-                destinations: const [
+                destinations: [
                   NavigationRailDestination(
-                    icon: Icon(Icons.home_outlined),
-                    selectedIcon: Icon(Icons.home),
-                    label: Text('Feed'),
+                    icon: const Icon(Icons.home_outlined),
+                    selectedIcon: const Icon(Icons.home),
+                    label: Text(AppLocalizations.of(context).navFeed),
                   ),
                   NavigationRailDestination(
-                    icon: Icon(Icons.library_books_outlined),
-                    selectedIcon: Icon(Icons.library_books),
-                    label: Text('Biblio'),
+                    icon: const Icon(Icons.library_books_outlined),
+                    selectedIcon: const Icon(Icons.library_books),
+                    label: Text(AppLocalizations.of(context).navLibrary),
                   ),
                   NavigationRailDestination(
-                    icon: Icon(Icons.groups_outlined),
-                    selectedIcon: Icon(Icons.groups),
-                    label: Text('Club'),
+                    icon: const Icon(Icons.groups_outlined),
+                    selectedIcon: const Icon(Icons.groups),
+                    label: Text(AppLocalizations.of(context).navClub),
                   ),
                   NavigationRailDestination(
-                    icon: Icon(Icons.person_outline),
-                    selectedIcon: Icon(Icons.person),
-                    label: Text('Mon espace'),
+                    icon: const Icon(Icons.person_outline),
+                    selectedIcon: const Icon(Icons.person),
+                    label: Text(AppLocalizations.of(context).navProfile),
                   ),
                 ],
               ),
@@ -327,11 +328,11 @@ class _MainNavigationState extends State<MainNavigation>
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            _buildNavItem(context, 0, Icons.home_outlined, Icons.home, 'Feed'),
-            _buildNavItem(context, 1, Icons.library_books_outlined, Icons.library_books, 'Biblio'),
+            _buildNavItem(context, 0, Icons.home_outlined, Icons.home, AppLocalizations.of(context).navFeed),
+            _buildNavItem(context, 1, Icons.library_books_outlined, Icons.library_books, AppLocalizations.of(context).navLibrary),
             const SizedBox(width: 60), // espace pour le notch du FAB
-            _buildNavItem(context, 2, Icons.groups_outlined, Icons.groups, 'Club'),
-            _buildNavItem(context, 3, Icons.person_outline, Icons.person, 'Mon espace'),
+            _buildNavItem(context, 2, Icons.groups_outlined, Icons.groups, AppLocalizations.of(context).navClub),
+            _buildNavItem(context, 3, Icons.person_outline, Icons.person, AppLocalizations.of(context).navProfile),
           ],
         ),
       ),

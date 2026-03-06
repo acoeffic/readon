@@ -6,6 +6,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/constrained_content.dart';
 import '../feed/widgets/feed_header.dart';
@@ -233,7 +234,7 @@ class _FeedPageState extends State<FeedPage> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur: $e')),
+          SnackBar(content: Text(AppLocalizations.of(context).errorGeneric(e.toString()))),
         );
       }
     }
@@ -306,9 +307,7 @@ class _FeedPageState extends State<FeedPage> {
   }
 
   void _shareInviteLink() {
-    final text = '\u{1F4D6} Rejoins-moi sur LexDay !\n\n'
-        'Tu lis quoi en ce moment ? \u{1F440}\n'
-        'lexday.app';
+    final text = AppLocalizations.of(context).shareInviteText;
     final box = context.findRenderObject() as RenderBox?;
     final origin = box != null ? box.localToGlobal(Offset.zero) & box.size : null;
     Share.share(text, sharePositionOrigin: origin);
@@ -321,7 +320,7 @@ class _FeedPageState extends State<FeedPage> {
       children: [
         const SizedBox(height: AppSpace.l),
         Text(
-          "Suggestions pour toi",
+          AppLocalizations.of(context).suggestionsForYou,
           style: Theme.of(context).textTheme.titleMedium,
         ),
         const SizedBox(height: AppSpace.s),
@@ -333,15 +332,15 @@ class _FeedPageState extends State<FeedPage> {
             if (success) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('${suggestion.book.title} ajouté à votre bibliothèque'),
+                  content: Text(AppLocalizations.of(context).bookAddedToLibrary(suggestion.book.title)),
                   backgroundColor: Colors.green,
                 ),
               );
               loadFeed();
             } else {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Erreur lors de l\'ajout du livre'),
+                SnackBar(
+                  content: Text(AppLocalizations.of(context).errorAddingBook),
                   backgroundColor: Colors.red,
                 ),
               );
@@ -361,7 +360,7 @@ class _FeedPageState extends State<FeedPage> {
           const Text('✨', style: TextStyle(fontSize: 16)),
           const SizedBox(width: AppSpace.s),
           Text(
-            'Sessions récentes',
+            AppLocalizations.of(context).recentSessions,
             style: Theme.of(context).textTheme.titleMedium,
           ),
         ],
@@ -492,7 +491,7 @@ class _FeedPageState extends State<FeedPage> {
           const Text('🏅', style: TextStyle(fontSize: 16)),
           const SizedBox(width: AppSpace.s),
           Text(
-            'Badges récents',
+            AppLocalizations.of(context).recentBadges,
             style: Theme.of(context).textTheme.titleMedium,
           ),
         ],
@@ -517,7 +516,7 @@ class _FeedPageState extends State<FeedPage> {
           const Text('🏅', style: TextStyle(fontSize: 16)),
           const SizedBox(width: AppSpace.s),
           Text(
-            'Badges récents',
+            AppLocalizations.of(context).recentBadges,
             style: Theme.of(context).textTheme.titleMedium,
           ),
         ],
@@ -588,7 +587,7 @@ class _FeedPageState extends State<FeedPage> {
           const Text('✨', style: TextStyle(fontSize: 16)),
           const SizedBox(width: AppSpace.s),
           Text(
-            'Sessions récentes',
+            AppLocalizations.of(context).recentSessions,
             style: Theme.of(context).textTheme.titleMedium,
           ),
         ],
@@ -643,13 +642,13 @@ class _FeedPageState extends State<FeedPage> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
-            "Activité de tes amis",
+            AppLocalizations.of(context).friendsActivity,
             style: Theme.of(context).textTheme.titleMedium,
           ),
           if (friendActivities.isNotEmpty)
             TextButton(
               onPressed: loadFeed,
-              child: const Text('Rafraîchir'),
+              child: Text(AppLocalizations.of(context).refresh),
             ),
         ],
       ),
@@ -664,7 +663,7 @@ class _FeedPageState extends State<FeedPage> {
                 Icon(Icons.schedule, size: 32, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4)),
                 const SizedBox(height: 8),
                 Text(
-                  'Tes amis n\'ont pas encore lu aujourd\'hui',
+                  AppLocalizations.of(context).friendsNotReadToday,
                   style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
                   textAlign: TextAlign.center,
                 ),
@@ -703,13 +702,13 @@ class _FeedPageState extends State<FeedPage> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
-            "Activité de tes amis",
+            AppLocalizations.of(context).friendsActivity,
             style: Theme.of(context).textTheme.titleMedium,
           ),
           if (friendActivities.isNotEmpty)
             TextButton(
               onPressed: loadFeed,
-              child: const Text('Rafraîchir'),
+              child: Text(AppLocalizations.of(context).refresh),
             ),
         ],
       ),
@@ -724,12 +723,12 @@ class _FeedPageState extends State<FeedPage> {
                 Icon(Icons.people_outline, size: 48, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4)),
                 const SizedBox(height: 8),
                 Text(
-                  'Pas encore d\'activité',
+                  AppLocalizations.of(context).noActivityYet,
                   style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Ajoutez des amis pour voir leurs lectures!',
+                  AppLocalizations.of(context).addFriendsToSeeActivity,
                   style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
                   textAlign: TextAlign.center,
                 ),

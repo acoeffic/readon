@@ -8,6 +8,7 @@ import '../../widgets/constrained_content.dart';
 import '../../widgets/back_header.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/locale_provider.dart';
+import '../../l10n/app_localizations.dart';
 import '../../providers/subscription_provider.dart';
 import '../../services/subscription_service.dart';
 import 'notification_settings_page.dart';
@@ -18,8 +19,13 @@ import '../../services/kindle_webview_service.dart';
 import '../../services/kindle_auto_sync_service.dart';
 import '../../models/feature_flags.dart';
 import '../auth/auth_gate.dart';
+import '../auth/terms_of_service_page.dart';
+import '../auth/legal_notice_page.dart';
+import '../auth/privacy_policy_page.dart';
 import '../../services/trending_service.dart';
 import '../../services/google_books_service.dart';
+import '../../services/notion_service.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -39,6 +45,9 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _isProfilePrivate = false;
   bool _hideReadingHours = false;
   bool _loadingPrivacy = true;
+  bool _notionConnected = false;
+  String? _notionWorkspaceName;
+  bool _loadingNotion = true;
 
   @override
   void initState() {
@@ -46,6 +55,7 @@ class _SettingsPageState extends State<SettingsPage> {
     _loadKindleSyncStatus();
     _loadKindleAutoSyncStatus();
     _loadPrivacySettings();
+    _loadNotionStatus();
   }
 
   Future<void> _loadKindleSyncStatus() async {
@@ -113,8 +123,8 @@ class _SettingsPageState extends State<SettingsPage> {
           SnackBar(
             content: Text(
               value
-                  ? 'Profil privé activé. Seuls tes amis verront tes statistiques.'
-                  : 'Profil public activé. Tout le monde peut voir tes statistiques.',
+                  ? AppLocalizations.of(context).profilePrivateEnabled
+                  : AppLocalizations.of(context).profilePublicEnabled,
             ),
             backgroundColor: Colors.green,
           ),
@@ -149,8 +159,8 @@ class _SettingsPageState extends State<SettingsPage> {
           SnackBar(
             content: Text(
               value
-                  ? 'Heures de lecture masquées.'
-                  : 'Heures de lecture visibles.',
+                  ? AppLocalizations.of(context).readingHoursHiddenSnack
+                  : AppLocalizations.of(context).readingHoursVisibleSnack,
             ),
             backgroundColor: Colors.green,
           ),
@@ -173,9 +183,9 @@ class _SettingsPageState extends State<SettingsPage> {
       final date = DateTime.parse(isoDate);
       final now = DateTime.now();
       final diff = now.difference(date);
-      if (diff.inMinutes < 60) return 'il y a ${diff.inMinutes} min';
-      if (diff.inHours < 24) return 'il y a ${diff.inHours}h';
-      if (diff.inDays < 7) return 'il y a ${diff.inDays}j';
+      if (diff.inMinutes < 60) return AppLocalizations.of(context).timeAgoMinutes(diff.inMinutes);
+      if (diff.inHours < 24) return AppLocalizations.of(context).timeAgoHours(diff.inHours);
+      if (diff.inDays < 7) return AppLocalizations.of(context).timeAgoDays(diff.inDays);
       return '${date.day}/${date.month}/${date.year}';
     } catch (_) {
       return isoDate;
@@ -191,11 +201,119 @@ class _SettingsPageState extends State<SettingsPage> {
       await _loadKindleSyncStatus();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Kindle synchronisé avec succès !'),
+        SnackBar(
+          content: Text(AppLocalizations.of(context).kindleSyncedSuccess),
           backgroundColor: Colors.green,
         ),
       );
+    }
+  }
+
+  Future<void> _loadNotionStatus() async {
+    final notion = NotionService();
+    await notion.refreshConnectionStatus();
+    final connected = await notion.isConnected();
+    final name = await notion.getWorkspaceName();
+    if (mounted) {
+      setState(() {
+        _notionConnected = connected;
+        _notionWorkspaceName = name;
+        _loadingNotion = false;
+      });
+    }
+  }
+
+  Future<void> _connectNotion() async {
+    final sub = context.read<SubscriptionProvider>();
+    if (!sub.isPremium) {
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const UpgradePage()),
+      );
+      return;
+    }
+
+    final notion = NotionService();
+    notion.onOAuthCallback = (code) async {
+      try {
+        final workspaceName = await notion.exchangeCode(code);
+        if (mounted) {
+          setState(() {
+            _notionConnected = true;
+            _notionWorkspaceName = workspaceName;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Connecté à $workspaceName'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Erreur: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    };
+
+    final url = Uri.parse(notion.getOAuthUrl());
+    await launchUrl(url, mode: LaunchMode.externalApplication);
+  }
+
+  Future<void> _disconnectNotion() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.l),
+        ),
+        title: Text(AppLocalizations.of(context).disconnectNotionTitle),
+        content: Text(AppLocalizations.of(context).disconnectNotionMessage),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(AppLocalizations.of(context).cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(
+              AppLocalizations.of(context).disconnect,
+              style: const TextStyle(color: AppColors.error),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      await NotionService().disconnect();
+      if (mounted) {
+        setState(() {
+          _notionConnected = false;
+          _notionWorkspaceName = null;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context).notionDisconnected),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -210,17 +328,17 @@ class _SettingsPageState extends State<SettingsPage> {
             children: [
               ListTile(
                 leading: const Icon(Icons.camera_alt),
-                title: const Text('Prendre une photo'),
+                title: Text(AppLocalizations.of(context).takePhoto),
                 onTap: () => Navigator.pop(context, ImageSource.camera),
               ),
               ListTile(
                 leading: const Icon(Icons.photo_library),
-                title: const Text('Choisir dans la galerie'),
+                title: Text(AppLocalizations.of(context).chooseFromGallery),
                 onTap: () => Navigator.pop(context, ImageSource.gallery),
               ),
               ListTile(
                 leading: const Icon(Icons.cancel),
-                title: const Text('Annuler'),
+                title: Text(AppLocalizations.of(context).cancel),
                 onTap: () => Navigator.pop(context),
               ),
             ],
@@ -247,7 +365,7 @@ class _SettingsPageState extends State<SettingsPage> {
       const maxSize = 5 * 1024 * 1024; // 5MB en bytes
       
       if (fileSize > maxSize) {
-        throw Exception('Image trop grande. Taille maximum: 5MB');
+        throw Exception(AppLocalizations.of(context).imageTooLarge);
       }
 
       // VALIDATION: Vérifier que c'est bien une image
@@ -255,12 +373,12 @@ class _SettingsPageState extends State<SettingsPage> {
 final allowedExtensions = ['jpg', 'jpeg', 'png', 'webp'];
 
 if (!allowedExtensions.contains(fileExtension)) {
-  throw Exception('Format non supporté. Utilisez JPG, PNG ou WebP');
+  throw Exception(AppLocalizations.of(context).unsupportedFormat);
 }
 
       final user = supabase.auth.currentUser;
       if (user == null) {
-        throw Exception('Non connecté');
+        throw Exception(AppLocalizations.of(context).notConnected);
       }
 
       // Nom du fichier unique avec extension appropriée
@@ -317,8 +435,8 @@ if (!allowedExtensions.contains(fileExtension)) {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('✅ Photo de profil mise à jour!'),
+          SnackBar(
+            content: Text(AppLocalizations.of(context).profilePictureUpdated),
             backgroundColor: Colors.green,
           ),
         );
@@ -368,23 +486,23 @@ if (!allowedExtensions.contains(fileExtension)) {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadius.l),
         ),
-        title: const Text('Modifier le nom'),
+        title: Text(AppLocalizations.of(context).editNameTitle),
         content: TextField(
           controller: controller,
-          decoration: const InputDecoration(
-            labelText: 'Nom d\'affichage',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            labelText: AppLocalizations.of(context).displayName,
+            border: const OutlineInputBorder(),
           ),
           autofocus: true,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Annuler'),
+            child: Text(AppLocalizations.of(context).cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, controller.text),
-            child: const Text('Enregistrer'),
+            child: Text(AppLocalizations.of(context).save),
           ),
         ],
       ),
@@ -396,7 +514,7 @@ if (!allowedExtensions.contains(fileExtension)) {
     if (cleaned.length < 2) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Le nom doit contenir au moins 2 caractères')),
+          SnackBar(content: Text(AppLocalizations.of(context).nameMinLength)),
         );
       }
       return;
@@ -404,7 +522,7 @@ if (!allowedExtensions.contains(fileExtension)) {
     if (cleaned.length > 50) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Le nom ne doit pas dépasser 50 caractères')),
+          SnackBar(content: Text(AppLocalizations.of(context).nameMaxLength)),
         );
       }
       return;
@@ -421,8 +539,8 @@ if (!allowedExtensions.contains(fileExtension)) {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Nom mis à jour!'),
+          SnackBar(
+            content: Text(AppLocalizations.of(context).nameUpdated),
             backgroundColor: Colors.green,
           ),
         );
@@ -447,22 +565,18 @@ if (!allowedExtensions.contains(fileExtension)) {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadius.l),
         ),
-        title: const Text('Supprimer ton compte ?'),
-        content: const Text(
-          'Cette action est irréversible. Toutes tes données '
-          '(livres, sessions de lecture, badges, amis, groupes) '
-          'seront définitivement supprimées.',
-        ),
+        title: Text(AppLocalizations.of(context).deleteAccountTitle),
+        content: Text(AppLocalizations.of(context).deleteAccountMessage),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Annuler'),
+            child: Text(AppLocalizations.of(context).cancel),
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text(
-              'Continuer',
-              style: TextStyle(color: AppColors.error),
+            child: Text(
+              AppLocalizations.of(context).continueButton,
+              style: const TextStyle(color: AppColors.error),
             ),
           ),
         ],
@@ -474,6 +588,7 @@ if (!allowedExtensions.contains(fileExtension)) {
 
     // Dialog 2 : taper "SUPPRIMER" pour confirmer
     final confirmController = TextEditingController();
+    final deleteKeyword = AppLocalizations.of(context).deleteKeyword;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) {
@@ -483,18 +598,18 @@ if (!allowedExtensions.contains(fileExtension)) {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(AppRadius.l),
               ),
-              title: const Text('Confirmer la suppression'),
+              title: Text(AppLocalizations.of(context).confirmDeletion),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text('Pour confirmer, tape SUPPRIMER ci-dessous :'),
+                  Text(AppLocalizations.of(context).typeDeleteToConfirm),
                   const SizedBox(height: AppSpace.m),
                   TextField(
                     controller: confirmController,
                     autofocus: true,
-                    decoration: const InputDecoration(
-                      hintText: 'SUPPRIMER',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      hintText: deleteKeyword,
+                      border: const OutlineInputBorder(),
                     ),
                     onChanged: (_) => setDialogState(() {}),
                   ),
@@ -503,16 +618,16 @@ if (!allowedExtensions.contains(fileExtension)) {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(ctx).pop(false),
-                  child: const Text('Annuler'),
+                  child: Text(AppLocalizations.of(context).cancel),
                 ),
                 TextButton(
-                  onPressed: confirmController.text == 'SUPPRIMER'
+                  onPressed: confirmController.text == deleteKeyword
                       ? () => Navigator.of(ctx).pop(true)
                       : null,
                   child: Text(
-                    'Supprimer définitivement',
+                    AppLocalizations.of(context).deleteForever,
                     style: TextStyle(
-                      color: confirmController.text == 'SUPPRIMER'
+                      color: confirmController.text == deleteKeyword
                           ? AppColors.error
                           : Theme.of(ctx)
                               .colorScheme
@@ -565,7 +680,7 @@ if (!allowedExtensions.contains(fileExtension)) {
         setState(() => _isDeleting = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erreur lors de la suppression : $e'),
+            content: Text(AppLocalizations.of(context).errorDeletingAccount(e.toString())),
             backgroundColor: Colors.red,
             duration: const Duration(seconds: 4),
           ),
@@ -580,6 +695,7 @@ if (!allowedExtensions.contains(fileExtension)) {
     final isDark = themeProvider.isDarkMode;
     final localeProvider = Provider.of<LocaleProvider>(context);
     final isFrench = localeProvider.locale.languageCode == 'fr';
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -588,8 +704,8 @@ if (!allowedExtensions.contains(fileExtension)) {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(AppSpace.l, AppSpace.l, AppSpace.l, 0),
-              child: const BackHeader(
-                title: 'Paramètres',
+              child: BackHeader(
+                title: l10n.settings,
                 titleColor: AppColors.primary,
               ),
             ),
@@ -603,16 +719,16 @@ if (!allowedExtensions.contains(fileExtension)) {
 
               // --- Section Profil ---
               _SettingsSection(
-                title: 'Profil',
+                title: l10n.profileSection,
                 items: [
                   _SettingsItem(
-                    label: '✏️ Modifier le nom',
+                    label: l10n.editName,
                     onTap: _changeDisplayName,
                   ),
                   _SettingsItem(
                     label: _isUploading
-                        ? '📸 Upload en cours...'
-                        : '📸 Changer la photo de profil',
+                        ? l10n.uploadingPhoto
+                        : l10n.changeProfilePicture,
                     onTap: _isUploading ? null : _changeProfilePicture,
                   ),
                 ],
@@ -629,16 +745,16 @@ if (!allowedExtensions.contains(fileExtension)) {
                       ? '${sub.expiresAt!.day}/${sub.expiresAt!.month}/${sub.expiresAt!.year}'
                       : '';
                   subLabel = sub.isTrial
-                      ? 'Essai gratuit${expStr.isNotEmpty ? ' (jusqu\'au $expStr)' : ''}'
-                      : 'Premium actif${expStr.isNotEmpty ? ' (jusqu\'au $expStr)' : ''}';
+                      ? (expStr.isNotEmpty ? l10n.freeTrialUntil(expStr) : l10n.freeTrial)
+                      : (expStr.isNotEmpty ? l10n.premiumActiveUntil(expStr) : l10n.premiumActive);
                 } else {
-                  subLabel = 'Passer à Premium';
+                  subLabel = l10n.upgradeToPremium;
                 }
                 return _SettingsSection(
-                  title: 'Abonnement',
+                  title: l10n.subscriptionSection,
                   items: [
                     _SettingsItem(
-                      label: sub.isPremium ? subLabel : 'Passer à Premium',
+                      label: sub.isPremium ? subLabel : l10n.upgradeToPremium,
                       onTap: () => Navigator.of(context).push(
                         MaterialPageRoute(builder: (_) => const UpgradePage()),
                       ),
@@ -654,7 +770,7 @@ if (!allowedExtensions.contains(fileExtension)) {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Confidentialité',
+                    l10n.privacySection,
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontSize: 20),
                   ),
                   const SizedBox(height: AppSpace.s),
@@ -675,14 +791,14 @@ if (!allowedExtensions.contains(fileExtension)) {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    '🔒 Profil privé',
+                                    l10n.privateProfile,
                                     style: Theme.of(context).textTheme.titleMedium,
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
                                     _isProfilePrivate
-                                        ? 'Tes statistiques sont cachées'
-                                        : 'Tes statistiques sont publiques',
+                                        ? l10n.statsHidden
+                                        : l10n.statsPublic,
                                     style: TextStyle(
                                       fontSize: 12,
                                       color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
@@ -722,8 +838,8 @@ if (!allowedExtensions.contains(fileExtension)) {
                               Expanded(
                                 child: Text(
                                   _isProfilePrivate
-                                      ? 'Les autres utilisateurs ne verront que ton nom et ta photo de profil.'
-                                      : 'Les autres utilisateurs pourront voir tes badges, livres, flow et statistiques.',
+                                      ? l10n.privateProfileInfoOn
+                                      : l10n.privateProfileInfoOff,
                                   style: const TextStyle(fontSize: 12, color: AppColors.primary),
                                 ),
                               ),
@@ -738,14 +854,14 @@ if (!allowedExtensions.contains(fileExtension)) {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    '⏱️ Masquer les heures de lecture',
+                                    l10n.hideReadingHours,
                                     style: Theme.of(context).textTheme.titleMedium,
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
                                     _hideReadingHours
-                                        ? 'Tes heures de lecture sont cachées'
-                                        : 'Tes heures de lecture sont visibles',
+                                        ? l10n.readingHoursHidden
+                                        : l10n.readingHoursVisible,
                                     style: TextStyle(
                                       fontSize: 12,
                                       color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
@@ -784,7 +900,7 @@ if (!allowedExtensions.contains(fileExtension)) {
                               const SizedBox(width: AppSpace.s),
                               Expanded(
                                 child: Text(
-                                  'Les autres utilisateurs ne verront pas ton temps de lecture total.',
+                                  l10n.readingHoursInfo,
                                   style: const TextStyle(fontSize: 12, color: AppColors.primary),
                                 ),
                               ),
@@ -801,10 +917,10 @@ if (!allowedExtensions.contains(fileExtension)) {
 
               // --- Section Lecture ---
               _SettingsSection(
-                title: 'Lecture',
+                title: l10n.readingSection,
                 items: [
                   _SettingsItem(
-                    label: '🎯 Modifier l\'objectif de lecture',
+                    label: l10n.editReadingGoal,
                     onTap: () {
                       Navigator.of(context).push(
                         MaterialPageRoute(
@@ -814,7 +930,7 @@ if (!allowedExtensions.contains(fileExtension)) {
                     },
                   ),
                   _SettingsItem(
-                    label: '🔔 Notifications de flow',
+                    label: l10n.flowNotifications,
                     onTap: () {
                       Navigator.of(context).push(
                         MaterialPageRoute(
@@ -833,7 +949,7 @@ if (!allowedExtensions.contains(fileExtension)) {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Kindle',
+                    l10n.kindleSection,
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontSize: 20),
                   ),
                   const SizedBox(height: AppSpace.s),
@@ -849,15 +965,15 @@ if (!allowedExtensions.contains(fileExtension)) {
                       children: [
                         _SettingsItem(
                           label: _kindleLastSync != null
-                              ? '📚 Resynchroniser Kindle'
-                              : '📚 Connecter Kindle',
+                              ? l10n.resyncKindle
+                              : l10n.connectKindle,
                           onTap: _openKindleLogin,
                         ),
                         if (_kindleLastSync != null) ...[
                           Padding(
                             padding: const EdgeInsets.only(bottom: AppSpace.s),
                             child: _SettingsItem(
-                              label: '✅ Dernière sync: ${_formatSyncDate(_kindleLastSync!)}',
+                              label: l10n.lastSync(_formatSyncDate(_kindleLastSync!)),
                             ),
                           ),
                           const Divider(height: 1),
@@ -874,7 +990,7 @@ if (!allowedExtensions.contains(fileExtension)) {
                                       Row(
                                         children: [
                                           Text(
-                                            'Sync automatique',
+                                            l10n.autoSync,
                                             style: Theme.of(context).textTheme.titleMedium,
                                           ),
                                           if (!isPremium) ...[
@@ -904,7 +1020,7 @@ if (!allowedExtensions.contains(fileExtension)) {
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
-                                        'Synchronise tes livres Kindle à chaque ouverture',
+                                        l10n.kindleAutoSyncDescription,
                                         style: TextStyle(
                                           fontSize: 12,
                                           color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
@@ -937,18 +1053,147 @@ if (!allowedExtensions.contains(fileExtension)) {
 
               const SizedBox(height: AppSpace.m),
 
+              // --- Section Notion ---
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l10n.notionSection,
+                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontSize: 20),
+                  ),
+                  const SizedBox(height: AppSpace.s),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(AppSpace.l),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).cardColor,
+                      borderRadius: BorderRadius.circular(AppRadius.l),
+                    ),
+                    child: _loadingNotion
+                        ? const Center(
+                            child: SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          )
+                        : _notionConnected
+                            ? Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      const Icon(Icons.check_circle, color: Colors.green, size: 20),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          l10n.connectedTo(_notionWorkspaceName ?? "Notion"),
+                                          style: Theme.of(context).textTheme.titleMedium,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    l10n.notionSheetsDescription,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                                    ),
+                                  ),
+                                  const SizedBox(height: AppSpace.m),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: OutlinedButton(
+                                          onPressed: _connectNotion,
+                                          style: OutlinedButton.styleFrom(
+                                            foregroundColor: AppColors.primary,
+                                            side: BorderSide(color: Colors.grey.shade300),
+                                          ),
+                                          child: Text(l10n.reconnect),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: OutlinedButton(
+                                          onPressed: _disconnectNotion,
+                                          style: OutlinedButton.styleFrom(
+                                            foregroundColor: AppColors.error,
+                                            side: BorderSide(color: AppColors.error.withValues(alpha: 0.3)),
+                                          ),
+                                          child: Text(l10n.disconnect),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              )
+                            : Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _SettingsItem(
+                                    label: l10n.connectNotion,
+                                    onTap: _connectNotion,
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          l10n.notionSyncDescription,
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                                          ),
+                                        ),
+                                      ),
+                                      Builder(builder: (context) {
+                                        final isPremium = context.watch<SubscriptionProvider>().isPremium;
+                                        if (isPremium) return const SizedBox.shrink();
+                                        return GestureDetector(
+                                          onTap: () => Navigator.of(context).push(
+                                            MaterialPageRoute(builder: (_) => const UpgradePage()),
+                                          ),
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: AppColors.primary.withValues(alpha: 0.15),
+                                              borderRadius: BorderRadius.circular(4),
+                                            ),
+                                            child: const Text(
+                                              'Premium',
+                                              style: TextStyle(
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.w600,
+                                                color: AppColors.primary,
+                                              ),
+                                            ),
+                                          ),
+                                        );
+                                      }),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: AppSpace.m),
+
               // --- Section Apparence ---
               _SettingsSection(
-                title: 'Apparence',
+                title: l10n.appearanceSection,
                 items: [
                   _SettingsItem(
-                    label: isDark ? '🌞 Thème clair' : '🌞 Thème clair (actif)',
+                    label: isDark ? l10n.lightTheme : l10n.lightThemeActive,
                     onTap: isDark
                         ? () => themeProvider.setThemeMode(ThemeMode.light)
                         : null,
                   ),
                   _SettingsItem(
-                    label: isDark ? '🌙 Thème sombre (actif)' : '🌙 Thème sombre',
+                    label: isDark ? l10n.darkThemeActive : l10n.darkTheme,
                     onTap: !isDark
                         ? () => themeProvider.setThemeMode(ThemeMode.dark)
                         : null,
@@ -960,16 +1205,16 @@ if (!allowedExtensions.contains(fileExtension)) {
 
               // --- Section Langue ---
               _SettingsSection(
-                title: 'Langue',
+                title: l10n.languageSection,
                 items: [
                   _SettingsItem(
-                    label: isFrench ? '🇫🇷 Français (actif)' : '🇫🇷 Français',
+                    label: isFrench ? l10n.frenchActive : l10n.french,
                     onTap: !isFrench
                         ? () => localeProvider.setLocale(const Locale('fr'))
                         : null,
                   ),
                   _SettingsItem(
-                    label: isFrench ? '🇬🇧 English' : '🇬🇧 English (active)',
+                    label: isFrench ? l10n.english : l10n.englishActive,
                     onTap: isFrench
                         ? () => localeProvider.setLocale(const Locale('en'))
                         : null,
@@ -981,9 +1226,36 @@ if (!allowedExtensions.contains(fileExtension)) {
 
               // --- Section Compte ---
               _SettingsSection(
-                title: 'Compte',
-                items: const [
-                  _SettingsItem(label: '🖥️ Gérer connexions & appareils'),
+                title: l10n.accountSection,
+                items: [
+                  _SettingsItem(label: l10n.manageConnections),
+                ],
+              ),
+
+              const SizedBox(height: AppSpace.m),
+
+              // --- Section Légal ---
+              _SettingsSection(
+                title: l10n.legalSection,
+                items: [
+                  _SettingsItem(
+                    label: l10n.termsOfService,
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const TermsOfServicePage()),
+                    ),
+                  ),
+                  _SettingsItem(
+                    label: l10n.privacyPolicy,
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const PrivacyPolicyPage()),
+                    ),
+                  ),
+                  _SettingsItem(
+                    label: l10n.legalNoticesItem,
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const LegalNoticePage()),
+                    ),
+                  ),
                 ],
               ),
 
@@ -1005,18 +1277,18 @@ if (!allowedExtensions.contains(fileExtension)) {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(AppRadius.l),
                         ),
-                        title: const Text('Se déconnecter ?'),
-                        content: const Text('Tu vas être déconnecté. Continuer ?'),
+                        title: Text(l10n.logoutTitle),
+                        content: Text(l10n.logoutMessage),
                         actions: [
                           TextButton(
                             onPressed: () => Navigator.of(ctx).pop(false),
-                            child: const Text('Annuler'),
+                            child: Text(l10n.cancel),
                           ),
                           TextButton(
                             onPressed: () => Navigator.of(ctx).pop(true),
-                            child: const Text(
-                              'Confirmer',
-                              style: TextStyle(color: AppColors.error),
+                            child: Text(
+                              l10n.confirm,
+                              style: const TextStyle(color: AppColors.error),
                             ),
                           ),
                         ],
@@ -1037,9 +1309,9 @@ if (!allowedExtensions.contains(fileExtension)) {
                       }
                     }
                   },
-                  child: const Text(
-                    '❌ Se déconnecter',
-                    style: TextStyle(
+                  child: Text(
+                    l10n.logout,
+                    style: const TextStyle(
                       color: AppColors.error,
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -1065,7 +1337,7 @@ if (!allowedExtensions.contains(fileExtension)) {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Zone de danger',
+                      l10n.dangerZone,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         color: AppColors.error,
                         fontWeight: FontWeight.w600,
@@ -1073,7 +1345,7 @@ if (!allowedExtensions.contains(fileExtension)) {
                     ),
                     const SizedBox(height: AppSpace.s),
                     Text(
-                      'La suppression du compte est irréversible.',
+                      l10n.deleteAccountWarning,
                       style: TextStyle(
                         fontSize: 12,
                         color: Theme.of(context)
@@ -1096,9 +1368,9 @@ if (!allowedExtensions.contains(fileExtension)) {
                                   color: AppColors.error,
                                 ),
                               )
-                            : const Text(
-                                'Supprimer mon compte',
-                                style: TextStyle(
+                            : Text(
+                                l10n.deleteMyAccount,
+                                style: const TextStyle(
                                   color: AppColors.error,
                                   fontSize: 16,
                                   fontWeight: FontWeight.w600,

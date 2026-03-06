@@ -1,3 +1,269 @@
 {
-  "@@locale": "en"
+  "@@locale": "en",
+
+  "navFeed": "Feed",
+  "navLibrary": "Library",
+  "navClub": "Club",
+  "navProfile": "My space",
+
+  "kindleSyncedAutomatically": "Kindle synced automatically",
+
+  "enterEmailToReset": "Enter your email to reset",
+  "emailSentCheckInbox": "Email sent, check your inbox.",
+  "errorSendingEmail": "Error sending email",
+  "tooManyAttemptsRetryIn": "Too many attempts. Retry in {seconds}s",
+  "@tooManyAttemptsRetryIn": {
+    "placeholders": {
+      "seconds": {"type": "int"}
+    }
+  },
+  "emailAndPasswordRequired": "Email and password required",
+  "loginFailed": "Login failed",
+  "unknownError": "Unknown error",
+  "errorSignInApple": "Error signing in with Apple",
+  "errorSignInGoogle": "Error signing in with Google",
+  "welcomeBack": "Welcome back,",
+  "reader": "reader.",
+  "email": "EMAIL",
+  "emailLower": "Email",
+  "password": "PASSWORD",
+  "forgotPassword": "Forgot password?",
+  "continueReading": "Continue Reading",
+  "or": "or",
+  "newToLexDay": "New to LexDay? ",
+  "createAnAccount": "Create an account",
+
+  "emailAlreadyUsed": "Email already in use",
+  "emailAlreadyUsedMessage": "This email is already associated with an existing account. Would you like to reset your password?",
+  "back": "Back",
+  "reset": "Reset",
+  "resetEmailSent": "Reset email sent. Check your inbox.",
+  "passwordMin8Chars": "Password must be at least 8 characters",
+  "passwordRequirements": "Password must contain uppercase, lowercase and a number",
+  "mustAcceptTerms": "You must accept the terms of use",
+  "accountCreatedCheckEmail": "Account created, check your emails.",
+  "createAccountTitle": "Create an account",
+  "joinLexDay": "Join LexDay",
+  "enterInfoToStart": "Enter your information to start reading",
+  "name": "Name",
+  "yourName": "Your name",
+  "yourEmail": "your.email@mail.com",
+  "passwordLabel": "Password",
+  "createAccount": "Create an account",
+  "alreadyHaveAccount": "Already have an account? Sign in",
+  "legalNotices": "Legal notices",
+
+  "emailSent": "Email sent",
+  "checkYourEmail": "Check your email",
+  "confirmEmailSent": "We sent you a link to confirm your email address.",
+  "iConfirmedMyEmail": "I confirmed my email",
+
+  "suggestionsForYou": "Suggestions for you",
+  "bookAddedToLibrary": "{title} added to your library",
+  "@bookAddedToLibrary": {
+    "placeholders": {
+      "title": {"type": "String"}
+    }
+  },
+  "errorAddingBook": "Error adding book",
+  "recentSessions": "Recent sessions",
+  "recentBadges": "Recent badges",
+  "friendsActivity": "Your friends' activity",
+  "refresh": "Refresh",
+  "friendsNotReadToday": "Your friends haven't read today yet",
+  "noActivityYet": "No activity yet",
+  "addFriendsToSeeActivity": "Add friends to see their reading!",
+  "shareInviteText": "📖 Join me on LexDay!\n\nWhat are you reading? 👀\nlexday.app",
+  "errorGeneric": "Error: {message}",
+  "@errorGeneric": {
+    "placeholders": {
+      "message": {"type": "String"}
+    }
+  },
+
+  "myLibrary": "My Library",
+  "refreshTooltip": "Refresh",
+  "searchBook": "Search a book...",
+  "statusLabel": "Status",
+  "genreLabel": "Genre",
+  "noBooksInLibrary": "No books in your library",
+  "scanOrSyncBooks": "Scan a cover or sync your Kindle books",
+  "authorFoundForBooks": "Author found for {count} book{count, plural, =1{} other{s}}",
+  "@authorFoundForBooks": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "noAuthorFound": "No author found",
+  "errorSearchingAuthors": "Error searching for authors",
+  "searchingInProgress": "Searching...",
+  "searchMissingAuthors": "Search for missing authors",
+
+  "settings": "Settings",
+  "profileSection": "Profile",
+  "editName": "✏️ Edit name",
+  "uploadingPhoto": "📸 Uploading...",
+  "changeProfilePicture": "📸 Change profile picture",
+  "subscriptionSection": "Subscription",
+  "upgradeToPremium": "Upgrade to Premium",
+  "freeTrial": "Free trial",
+  "freeTrialUntil": "Free trial (until {date})",
+  "@freeTrialUntil": {
+    "placeholders": {
+      "date": {"type": "String"}
+    }
+  },
+  "premiumActive": "Premium active",
+  "premiumActiveUntil": "Premium active (until {date})",
+  "@premiumActiveUntil": {
+    "placeholders": {
+      "date": {"type": "String"}
+    }
+  },
+  "privacySection": "Privacy",
+  "privateProfile": "🔒 Private profile",
+  "statsHidden": "Your stats are hidden",
+  "statsPublic": "Your stats are public",
+  "privateProfileInfoOn": "Other users will only see your name and profile picture.",
+  "privateProfileInfoOff": "Other users can see your badges, books, flow and statistics.",
+  "hideReadingHours": "⏱️ Hide reading hours",
+  "readingHoursHidden": "Your reading hours are hidden",
+  "readingHoursVisible": "Your reading hours are visible",
+  "readingHoursInfo": "Other users won't see your total reading time.",
+  "profilePrivateEnabled": "Private profile enabled. Only your friends will see your stats.",
+  "profilePublicEnabled": "Public profile enabled. Everyone can see your stats.",
+  "readingHoursHiddenSnack": "Reading hours hidden.",
+  "readingHoursVisibleSnack": "Reading hours visible.",
+  "readingSection": "Reading",
+  "editReadingGoal": "🎯 Edit reading goal",
+  "flowNotifications": "🔔 Flow notifications",
+  "kindleSection": "Kindle",
+  "resyncKindle": "📚 Resync Kindle",
+  "connectKindle": "📚 Connect Kindle",
+  "lastSync": "✅ Last sync: {date}",
+  "@lastSync": {
+    "placeholders": {
+      "date": {"type": "String"}
+    }
+  },
+  "autoSync": "Auto sync",
+  "kindleAutoSyncDescription": "Sync your Kindle books at each app launch",
+  "kindleSyncedSuccess": "Kindle synced successfully!",
+  "notionSection": "Notion",
+  "connectedTo": "Connected to {name}",
+  "@connectedTo": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "notionSheetsDescription": "Your reading sheets can be sent to Notion",
+  "reconnect": "Reconnect",
+  "disconnect": "Disconnect",
+  "connectNotion": "📝 Connect Notion",
+  "notionSyncDescription": "Sync your AI reading sheets to a Notion database",
+  "disconnectNotionTitle": "Disconnect Notion?",
+  "disconnectNotionMessage": "Your already synced sheets will remain in Notion.",
+  "notionDisconnected": "Notion disconnected",
+  "appearanceSection": "Appearance",
+  "lightTheme": "🌞 Light theme",
+  "lightThemeActive": "🌞 Light theme (active)",
+  "darkTheme": "🌙 Dark theme",
+  "darkThemeActive": "🌙 Dark theme (active)",
+  "languageSection": "Language",
+  "frenchActive": "🇫🇷 Français (actif)",
+  "french": "🇫🇷 Français",
+  "english": "🇬🇧 English",
+  "englishActive": "🇬🇧 English (active)",
+  "accountSection": "Account",
+  "manageConnections": "🖥️ Manage connections & devices",
+  "legalSection": "Legal",
+  "termsOfService": "📜 Terms of service",
+  "privacyPolicy": "🔐 Privacy policy",
+  "legalNoticesItem": "⚖️ Legal notices",
+  "logoutTitle": "Sign out?",
+  "logoutMessage": "You will be signed out. Continue?",
+  "cancel": "Cancel",
+  "confirm": "Confirm",
+  "logout": "❌ Sign out",
+  "dangerZone": "Danger zone",
+  "deleteAccountWarning": "Account deletion is irreversible.",
+  "deleteMyAccount": "Delete my account",
+  "deleteAccountTitle": "Delete your account?",
+  "deleteAccountMessage": "This action is irreversible. All your data (books, reading sessions, badges, friends, groups) will be permanently deleted.",
+  "continueButton": "Continue",
+  "confirmDeletion": "Confirm deletion",
+  "typeDeleteToConfirm": "To confirm, type DELETE below:",
+  "deleteKeyword": "DELETE",
+  "deleteForever": "Delete forever",
+  "errorDeletingAccount": "Error deleting account: {error}",
+  "@errorDeletingAccount": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "editNameTitle": "Edit name",
+  "displayName": "Display name",
+  "save": "Save",
+  "nameMinLength": "Name must be at least 2 characters",
+  "nameMaxLength": "Name must not exceed 50 characters",
+  "nameUpdated": "Name updated!",
+  "takePhoto": "Take a photo",
+  "chooseFromGallery": "Choose from gallery",
+  "imageTooLarge": "Image too large. Maximum size: 5MB",
+  "unsupportedFormat": "Unsupported format. Use JPG, PNG or WebP",
+  "notConnected": "Not connected",
+  "profilePictureUpdated": "✅ Profile picture updated!",
+
+  "timeAgoMinutes": "{minutes} min ago",
+  "@timeAgoMinutes": {
+    "placeholders": {
+      "minutes": {"type": "int"}
+    }
+  },
+  "timeAgoHours": "{hours}h ago",
+  "@timeAgoHours": {
+    "placeholders": {
+      "hours": {"type": "int"}
+    }
+  },
+  "timeAgoDays": "{days}d ago",
+  "@timeAgoDays": {
+    "placeholders": {
+      "days": {"type": "int"}
+    }
+  },
+
+  "libraryEmpty": "Your library is empty",
+  "sessionAbandoned": "Session abandoned",
+  "muse": "💡 Muse",
+  "newBook": "New book",
+  "myLibraryFab": "My library",
+  "searchEllipsis": "Search...",
+  "noBookFound": "No book found",
+
+  "abandonSessionTitle": "Abandon session",
+  "abandonSessionMessage": "Do you really want to abandon this reading session?",
+  "no": "No",
+  "yes": "Yes",
+  "leaveSessionTitle": "Leave session",
+  "leaveSessionMessage": "The session stays active. You can finish it later.",
+  "stay": "Stay",
+  "leave": "Leave",
+  "sessionInProgress": "SESSION IN PROGRESS",
+
+  "cancelSessionTitle": "Cancel session",
+  "cancelSessionMessage": "Are you sure you want to cancel this reading session?",
+
+  "errorCapture": "Error during capture: {error}",
+  "@errorCapture": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "errorGoogleBooks": "Google Books search error",
+
+  "termsOfServiceTitle": "Terms of Service",
+  "privacyPolicyTitle": "Privacy Policy",
+  "legalNoticesTitle": "Legal Notices",
+  "iAcceptTerms": "I accept the terms"
 }

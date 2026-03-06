@@ -56,6 +56,7 @@ class AnnotationService {
     int? pageNumber,
     AnnotationType type = AnnotationType.text,
     String? imagePath,
+    String? audioPath,
   }) async {
     try {
       final userId = _supabase.auth.currentUser!.id;
@@ -69,6 +70,7 @@ class AnnotationService {
       if (sessionId != null) insertData['session_id'] = sessionId;
       if (pageNumber != null) insertData['page_number'] = pageNumber;
       if (imagePath != null) insertData['image_path'] = imagePath;
+      if (audioPath != null) insertData['audio_path'] = audioPath;
 
       final response = await _supabase
           .from('annotations')
@@ -134,6 +136,18 @@ class AnnotationService {
         }
       }
 
+      // Supprimer l'audio du storage si c'est une annotation vocale
+      if (annotation.type == AnnotationType.voice &&
+          annotation.audioPath != null) {
+        try {
+          await _supabase.storage
+              .from('annotations')
+              .remove([annotation.audioPath!]);
+        } catch (e) {
+          debugPrint('Erreur suppression audio annotation: $e');
+        }
+      }
+
       await _supabase.from('annotations').delete().eq('id', id);
     } catch (e) {
       debugPrint('Erreur deleteAnnotation: $e');
@@ -167,8 +181,39 @@ class AnnotationService {
     }
   }
 
+  /// Uploader un enregistrement audio dans Supabase Storage
+  /// Retourne le chemin relatif dans le bucket (pour stocker dans audio_path)
+  Future<String> uploadAnnotationAudio(
+    String annotationId,
+    String filePath,
+  ) async {
+    try {
+      final userId = _supabase.auth.currentUser!.id;
+      final storagePath = '$userId/$annotationId.m4a';
+
+      await _supabase.storage.from('annotations').upload(
+            storagePath,
+            File(filePath),
+            fileOptions: const FileOptions(
+              contentType: 'audio/mp4',
+              upsert: true,
+            ),
+          );
+
+      return storagePath;
+    } catch (e) {
+      debugPrint('Erreur uploadAnnotationAudio: $e');
+      rethrow;
+    }
+  }
+
   /// Obtenir l'URL publique d'une image d'annotation
   String getImageUrl(String imagePath) {
     return _supabase.storage.from('annotations').getPublicUrl(imagePath);
+  }
+
+  /// Obtenir l'URL publique d'un audio d'annotation
+  String getAudioUrl(String audioPath) {
+    return _supabase.storage.from('annotations').getPublicUrl(audioPath);
   }
 }

@@ -545,8 +545,8 @@ class _FlowDetailPageState extends State<FlowDetailPage> {
           const SizedBox(height: 8),
           Text(
             isPremium
-                ? 'Auto-freeze illimité + freeze manuel. Max ${freezeStatus?.maxConsecutive ?? 2} jours consécutifs.'
-                : '2 auto-freezes/mois. Max ${freezeStatus?.maxConsecutive ?? 1} jour consécutif.',
+                ? 'Ton flow est protégé automatiquement si tu ne lis pas. Max ${freezeStatus?.maxConsecutive ?? 2} jours consécutifs sans lire.'
+                : '2 auto-freezes/mois. Max ${freezeStatus?.maxConsecutive ?? 1} jour consécutif sans lire.',
             style: TextStyle(
               fontSize: 11,
               color: Theme.of(context).colorScheme.onSurface.withValues(alpha:0.5),

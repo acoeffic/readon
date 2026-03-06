@@ -122,17 +122,13 @@ class _AddBookPageState extends State<AddBookPage> {
       }
 
       if (bookId == null) {
-        final inserted = await supabase
-            .from('books')
-            .insert({
-              'title': title ?? 'Titre inconnu',
-              'author': author,
-              'cover_url': book['cover_url'],
-              'description': book['description'],
-            })
-            .select('id')
-            .single();
-        bookId = (inserted['id'] as num).toInt();
+        final result = await supabase.rpc('insert_book_if_not_exists', params: {
+          'p_title': title ?? 'Titre inconnu',
+          'p_author': author,
+          'p_cover_url': book['cover_url'],
+          'p_description': book['description'],
+        });
+        bookId = result as int;
       }
 
       await supabase.from('user_books').insert({
@@ -173,13 +169,11 @@ class _AddBookPageState extends State<AddBookPage> {
 
     try {
       final supabase = Supabase.instance.client;
-      final inserted = await supabase
-          .from('books')
-          .insert({'title': title, 'author': author, 'total_pages': pages})
-          .select('id')
-          .single();
-
-      final bookId = (inserted['id'] as num).toInt();
+      final bookId = await supabase.rpc('insert_book_if_not_exists', params: {
+        'p_title': title,
+        'p_author': author,
+        'p_page_count': pages,
+      }) as int;
 
       await supabase.from('user_books').insert({
         'user_id': user.id,
