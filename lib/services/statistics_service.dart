@@ -21,9 +21,19 @@ class StatisticsService {
     final userId = _supabase.auth.currentUser?.id;
     if (userId == null) throw Exception('Utilisateur non connecte');
 
-    final targetYear = year ?? DateTime.now().year;
-    final startIso = DateTime.utc(targetYear).toIso8601String();
-    final endIso = DateTime.utc(targetYear + 1).toIso8601String();
+    final now = DateTime.now();
+    final targetYear = year ?? now.year;
+
+    // Rolling 6-month window when no specific year is requested
+    final String startIso;
+    final String endIso;
+    if (year != null) {
+      startIso = DateTime.utc(year).toIso8601String();
+      endIso = DateTime.utc(year + 1).toIso8601String();
+    } else {
+      startIso = DateTime.utc(now.year, now.month - 5, 1).toIso8601String();
+      endIso = DateTime.utc(now.year, now.month + 1, 1).toIso8601String();
+    }
 
     final results = await Future.wait([
       _goalsService.getActiveGoalsWithProgress(year: targetYear), // 0
@@ -122,12 +132,24 @@ class StatisticsService {
 
     // Build pages per month
     final pagesPerMonth = <MonthlyPageCount>[];
-    for (int m = 1; m <= 12; m++) {
-      pagesPerMonth.add(MonthlyPageCount(
-        label: _frenchMonths[m],
-        month: m,
-        pages: monthlyPages[m] ?? 0,
-      ));
+    if (year != null) {
+      for (int m = 1; m <= 12; m++) {
+        pagesPerMonth.add(MonthlyPageCount(
+          label: _frenchMonths[m],
+          month: m,
+          pages: monthlyPages[m] ?? 0,
+        ));
+      }
+    } else {
+      for (int i = 0; i < 6; i++) {
+        final monthDate = DateTime(now.year, now.month - 5 + i, 1);
+        final m = monthDate.month;
+        pagesPerMonth.add(MonthlyPageCount(
+          label: _frenchMonths[m],
+          month: m,
+          pages: monthlyPages[m] ?? 0,
+        ));
+      }
     }
 
     // Build genre distribution
@@ -202,7 +224,7 @@ class StatisticsService {
       final results = await Future.wait([
         _supabase
             .from('reading_sessions')
-            .select('start_time, end_time, start_page, end_page')
+            .select('start_time, end_time, start_page, end_page, book_id')
             .eq('user_id', userId)
             .not('end_time', 'is', null),
         _supabase
@@ -218,6 +240,9 @@ class StatisticsService {
       int totalMinutes = 0;
       int totalPages = 0;
 
+      // Count sessions per book to filter finished books with < 3 sessions
+      final sessionCountPerBook = <String, int>{};
+
       for (final s in allSessions) {
         final st = DateTime.parse(s['start_time'] as String);
         final et = DateTime.parse(s['end_time'] as String);
@@ -226,13 +251,24 @@ class StatisticsService {
         final startPage = (s['start_page'] as num?)?.toInt() ?? 0;
         final endPage = (s['end_page'] as num?)?.toInt() ?? 0;
         if (endPage > startPage) totalPages += endPage - startPage;
+
+        final bookId = s['book_id']?.toString() ?? '';
+        if (bookId.isNotEmpty) {
+          sessionCountPerBook[bookId] = (sessionCountPerBook[bookId] ?? 0) + 1;
+        }
       }
+
+      // Only count finished books with at least 3 completed sessions
+      final validFinishedBooks = finishedBooks.where((b) {
+        final bookId = b['book_id']?.toString() ?? '';
+        return (sessionCountPerBook[bookId] ?? 0) >= 3;
+      }).toList();
 
       return {
         'minutes': totalMinutes,
         'pages': totalPages,
         'sessions': allSessions.length,
-        'books': finishedBooks.length,
+        'books': validFinishedBooks.length,
       };
     } catch (e) {
       debugPrint('Erreur _getAllTimeTotals: $e');

@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
+import '../../l10n/app_localizations.dart';
 import '../../models/reading_session.dart';
 import '../../models/trophy.dart';
 import '../../models/book.dart';
@@ -99,17 +100,18 @@ class _ContactsSuggestionPageState extends State<ContactsSuggestionPage>
   }
 
   Future<void> _sendRequest(ContactMatch user) async {
+    final l = AppLocalizations.of(context);
     final success = await _contactsService.sendFriendRequest(user.id);
     if (!mounted) return;
 
     if (success) {
       setState(() => _requestsSent.add(user.id));
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Invitation envoyée à ${user.displayName}')),
+        SnackBar(content: Text(l.invitationSent(user.displayName))),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Demande déjà envoyée')),
+        SnackBar(content: Text(l.requestSent)),
       );
     }
   }
@@ -165,6 +167,7 @@ class _ContactsSuggestionPageState extends State<ContactsSuggestionPage>
   }
 
   Widget _buildCongratulations(bool isDark) {
+    final l = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.all(AppSpace.l),
       child: Column(
@@ -189,7 +192,7 @@ class _ContactsSuggestionPageState extends State<ContactsSuggestionPage>
           ),
           const SizedBox(height: AppSpace.xl),
           Text(
-            'Bravo pour ta première\nsession de lecture !',
+            l.firstSessionBravo,
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 24,
@@ -199,7 +202,7 @@ class _ContactsSuggestionPageState extends State<ContactsSuggestionPage>
           ),
           const SizedBox(height: AppSpace.m),
           Text(
-            'Tes amis lisent aussi.\nAjoute-les pour voir leur activité !',
+            l.friendsReadToo,
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 16,
@@ -219,14 +222,14 @@ class _ContactsSuggestionPageState extends State<ContactsSuggestionPage>
                   borderRadius: BorderRadius.circular(AppRadius.pill),
                 ),
               ),
-              child: const Row(
+              child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.people, size: 20),
-                  SizedBox(width: AppSpace.s),
+                  const Icon(Icons.people, size: 20),
+                  const SizedBox(width: AppSpace.s),
                   Text(
-                    'Trouver mes amis',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    l.findMyFriends,
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                   ),
                 ],
               ),
@@ -236,7 +239,7 @@ class _ContactsSuggestionPageState extends State<ContactsSuggestionPage>
           TextButton(
             onPressed: _skip,
             child: Text(
-              'Plus tard',
+              l.skip,
               style: TextStyle(
                 fontSize: 15,
                 color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
@@ -250,6 +253,7 @@ class _ContactsSuggestionPageState extends State<ContactsSuggestionPage>
   }
 
   Widget _buildLoading(bool isDark) {
+    final l = AppLocalizations.of(context);
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -257,7 +261,7 @@ class _ContactsSuggestionPageState extends State<ContactsSuggestionPage>
           const CircularProgressIndicator(color: AppColors.primary),
           const SizedBox(height: AppSpace.l),
           Text(
-            'Recherche de tes amis...',
+            l.searchingContacts,
             style: TextStyle(
               fontSize: 16,
               color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
@@ -269,6 +273,7 @@ class _ContactsSuggestionPageState extends State<ContactsSuggestionPage>
   }
 
   Widget _buildResults(bool isDark) {
+    final l = AppLocalizations.of(context);
     return Column(
       children: [
         Padding(
@@ -284,8 +289,8 @@ class _ContactsSuggestionPageState extends State<ContactsSuggestionPage>
               const SizedBox(height: AppSpace.m),
               Text(
                 _matchedUsers.isEmpty
-                    ? 'Aucun contact n\'utilise encore LexDay'
-                    : '${_matchedUsers.length} ami${_matchedUsers.length > 1 ? 's' : ''} trouvé${_matchedUsers.length > 1 ? 's' : ''} sur LexDay',
+                    ? l.noContactOnLexDay
+                    : l.friendsFoundOnLexDay(_matchedUsers.length),
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 20,
@@ -296,7 +301,7 @@ class _ContactsSuggestionPageState extends State<ContactsSuggestionPage>
               if (_matchedUsers.isEmpty) ...[
                 const SizedBox(height: AppSpace.s),
                 Text(
-                  'Invite tes amis à rejoindre LexDay !',
+                  l.inviteFriendsToJoin,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 14,
@@ -336,9 +341,9 @@ class _ContactsSuggestionPageState extends State<ContactsSuggestionPage>
                   borderRadius: BorderRadius.circular(AppRadius.pill),
                 ),
               ),
-              child: const Text(
-                'Continuer',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              child: Text(
+                l.continueButton,
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
             ),
           ),
@@ -348,6 +353,7 @@ class _ContactsSuggestionPageState extends State<ContactsSuggestionPage>
   }
 
   Widget _buildUserItem(ContactMatch user, bool isDark) {
+    final l = AppLocalizations.of(context);
     final alreadySent = _requestsSent.contains(user.id);
 
     return Padding(
@@ -421,7 +427,7 @@ class _ContactsSuggestionPageState extends State<ContactsSuggestionPage>
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    'Envoyé',
+                    l.sent,
                     style: TextStyle(
                       fontSize: 13,
                       color: isDark
@@ -448,9 +454,9 @@ class _ContactsSuggestionPageState extends State<ContactsSuggestionPage>
                 minimumSize: Size.zero,
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
-              child: const Text(
-                'Ajouter',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+              child: Text(
+                l.addFriend,
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
               ),
             ),
         ],
@@ -459,6 +465,7 @@ class _ContactsSuggestionPageState extends State<ContactsSuggestionPage>
   }
 
   Widget _buildError(bool isDark) {
+    final l = AppLocalizations.of(context);
     final isPermanentlyDenied = _errorMessage == 'permission_denied_permanently';
 
     return Padding(
@@ -474,8 +481,8 @@ class _ContactsSuggestionPageState extends State<ContactsSuggestionPage>
           const SizedBox(height: AppSpace.l),
           Text(
             isPermanentlyDenied
-                ? 'Accès aux contacts refusé'
-                : 'Impossible d\'accéder aux contacts',
+                ? l.contactsAccessDenied
+                : l.cannotAccessContacts,
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 20,
@@ -486,8 +493,8 @@ class _ContactsSuggestionPageState extends State<ContactsSuggestionPage>
           const SizedBox(height: AppSpace.s),
           Text(
             isPermanentlyDenied
-                ? 'Pour trouver tes amis, autorise l\'accès aux contacts dans les réglages.'
-                : 'Une erreur est survenue. Réessaie plus tard.',
+                ? l.authorizeContactsSettings
+                : l.errorOccurredRetryLater,
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 14,
@@ -508,9 +515,9 @@ class _ContactsSuggestionPageState extends State<ContactsSuggestionPage>
                     borderRadius: BorderRadius.circular(AppRadius.pill),
                   ),
                 ),
-                child: const Text(
-                  'Ouvrir les réglages',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                child: Text(
+                  l.openSettings,
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                 ),
               ),
             ),
@@ -527,9 +534,9 @@ class _ContactsSuggestionPageState extends State<ContactsSuggestionPage>
                     borderRadius: BorderRadius.circular(AppRadius.pill),
                   ),
                 ),
-                child: const Text(
-                  'Réessayer',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                child: Text(
+                  l.retry,
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                 ),
               ),
             ),
@@ -537,7 +544,7 @@ class _ContactsSuggestionPageState extends State<ContactsSuggestionPage>
           TextButton(
             onPressed: _skip,
             child: Text(
-              'Plus tard',
+              l.skip,
               style: TextStyle(
                 fontSize: 15,
                 color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,

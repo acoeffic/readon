@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../l10n/app_localizations.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../models/curated_list.dart';
 import '../../services/curated_lists_service.dart';
@@ -245,6 +246,7 @@ class _CuratedListDetailPageState extends State<CuratedListDetailPage> {
   }
 
   void _showBookDetailSheet(CuratedBookEntry entry, GoogleBook googleBook) {
+    final l = AppLocalizations.of(context)!;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -278,20 +280,12 @@ class _CuratedListDetailPageState extends State<CuratedListDetailPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Cover
-                  if (googleBook.coverUrl != null)
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: Image.network(
-                        googleBook.coverUrl!,
-                        width: 100,
-                        height: 150,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => _buildPlaceholderCover(
-                            width: 100, height: 150),
-                      ),
-                    )
-                  else
-                    _buildPlaceholderCover(width: 100, height: 150),
+                  CachedBookCover(
+                    imageUrl: googleBook.coverUrl,
+                    width: 100,
+                    height: 150,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                   const SizedBox(width: 16),
                   Expanded(
                     child: Column(
@@ -366,18 +360,18 @@ class _CuratedListDetailPageState extends State<CuratedListDetailPage> {
                                     .withValues(alpha: 0.3),
                               ),
                             ),
-                            child: const Row(
+                            child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(
+                                const Icon(
                                   LucideIcons.listPlus,
                                   size: 14,
                                   color: Color(0xFFFF6B35),
                                 ),
-                                SizedBox(width: 4),
+                                const SizedBox(width: 4),
                                 Text(
-                                  'Ajouter à une liste',
-                                  style: TextStyle(
+                                  l.addToList,
+                                  style: const TextStyle(
                                     fontSize: 12,
                                     color: Color(0xFFFF6B35),
                                   ),
@@ -394,7 +388,7 @@ class _CuratedListDetailPageState extends State<CuratedListDetailPage> {
               if (googleBook.description != null) ...[
                 const SizedBox(height: 20),
                 Text(
-                  'Description',
+                  l.description,
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
@@ -428,7 +422,7 @@ class _CuratedListDetailPageState extends State<CuratedListDetailPage> {
                     _buildBuyOption(
                       context: context,
                       emoji: '📖',
-                      label: 'En librairie',
+                      label: l.inBookstore,
                       onTap: () {
                         final query = Uri.encodeComponent(
                           '${entry.title} ${entry.author}'.trim(),
@@ -443,14 +437,14 @@ class _CuratedListDetailPageState extends State<CuratedListDetailPage> {
                     _buildBuyOption(
                       context: context,
                       emoji: '🏪',
-                      label: 'Trouver près de moi',
+                      label: l.findNearMe,
                       onTap: () => _openNearbyBookstores(context),
                     ),
                     Divider(height: 1, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.08)),
                     _buildBuyOption(
                       context: context,
                       emoji: '📦',
-                      label: 'Amazon',
+                      label: l.amazon,
                       onTap: () {
                         final query = Uri.encodeComponent(
                           '${entry.title} ${entry.author}'.trim(),
@@ -514,7 +508,7 @@ class _CuratedListDetailPageState extends State<CuratedListDetailPage> {
       if (!serviceEnabled) {
         if (!mounted) return;
         ScaffoldMessenger.of(parentContext).showSnackBar(
-          const SnackBar(content: Text('Activez la localisation dans les réglages')),
+          SnackBar(content: Text(AppLocalizations.of(parentContext)!.enableLocationSettings)),
         );
         return;
       }
@@ -527,7 +521,7 @@ class _CuratedListDetailPageState extends State<CuratedListDetailPage> {
           permission == LocationPermission.deniedForever) {
         if (!mounted) return;
         ScaffoldMessenger.of(parentContext).showSnackBar(
-          const SnackBar(content: Text('Accès à la localisation requis')),
+          SnackBar(content: Text(AppLocalizations.of(parentContext)!.locationAccessRequired)),
         );
         return;
       }
@@ -572,23 +566,9 @@ class _CuratedListDetailPageState extends State<CuratedListDetailPage> {
     );
   }
 
-  Widget _buildPlaceholderCover(
-      {required double width, required double height}) {
-    return Container(
-      width: width,
-      height: height,
-      decoration: BoxDecoration(
-        color: widget.list.gradientColors.last.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Icon(Icons.book,
-          size: 32,
-          color: widget.list.gradientColors.last.withValues(alpha: 0.4)),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
     final readCount = _readIsbns.length;
     final totalBooks = widget.list.bookCount;
     final progress = totalBooks > 0 ? readCount / totalBooks : 0.0;
@@ -695,7 +675,7 @@ class _CuratedListDetailPageState extends State<CuratedListDetailPage> {
                               .withValues(alpha: 0.5)),
                       const SizedBox(width: 4),
                       Text(
-                        '$totalBooks livres',
+                        l.nBooks(totalBooks),
                         style: TextStyle(
                           fontSize: 13,
                           color: Theme.of(context)
@@ -713,7 +693,7 @@ class _CuratedListDetailPageState extends State<CuratedListDetailPage> {
                               .withValues(alpha: 0.5)),
                       const SizedBox(width: 4),
                       Text(
-                        '$_readerCount lecteur${_readerCount > 1 ? 's' : ''}',
+                        l.nReaders(_readerCount),
                         style: TextStyle(
                           fontSize: 13,
                           color: Theme.of(context)
@@ -758,7 +738,7 @@ class _CuratedListDetailPageState extends State<CuratedListDetailPage> {
                       ),
                       const SizedBox(width: 12),
                       Text(
-                        '$readCount/$totalBooks lus',
+                        l.nRead(readCount, totalBooks),
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
@@ -1024,6 +1004,7 @@ class _CuratedAddToListSheetState extends State<_CuratedAddToListSheet> {
   }
 
   Future<void> _createNewList() async {
+    final l = AppLocalizations.of(context)!;
     Navigator.pop(context);
     final result = await showCreateCustomListSheet(context);
     if (result != null) {
@@ -1032,7 +1013,7 @@ class _CuratedAddToListSheetState extends State<_CuratedAddToListSheet> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Ajouté à "${result.title}"'),
+              content: Text(l.addedToList(result.title)),
               backgroundColor: Colors.green,
             ),
           );
@@ -1045,6 +1026,7 @@ class _CuratedAddToListSheetState extends State<_CuratedAddToListSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
     return SafeArea(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -1068,7 +1050,7 @@ class _CuratedAddToListSheetState extends State<_CuratedAddToListSheet> {
           Padding(
             padding: const EdgeInsets.all(16),
             child: Text(
-              'Ajouter à une liste',
+              l.addToList,
               style: Theme.of(context)
                   .textTheme
                   .titleMedium
@@ -1079,7 +1061,7 @@ class _CuratedAddToListSheetState extends State<_CuratedAddToListSheet> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Text(
-                'Aucune liste personnelle.',
+                l.noPersonalList,
                 style: TextStyle(
                   color: Theme.of(context)
                       .colorScheme
@@ -1122,9 +1104,9 @@ class _CuratedAddToListSheetState extends State<_CuratedAddToListSheet> {
               child: const Icon(LucideIcons.plus,
                   size: 18, color: Color(0xFFFF6B35)),
             ),
-            title: const Text(
-              'Créer une nouvelle liste',
-              style: TextStyle(color: Color(0xFFFF6B35)),
+            title: Text(
+              l.createNewList,
+              style: const TextStyle(color: Color(0xFFFF6B35)),
             ),
             onTap: _createNewList,
           ),

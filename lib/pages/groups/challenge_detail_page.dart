@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/back_header.dart';
 import '../../models/group_challenge.dart';
@@ -54,7 +55,7 @@ class _ChallengeDetailPageState extends State<ChallengeDetailPage> {
         setState(() => _userJoined = false);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Vous avez quitté le défi')),
+            SnackBar(content: Text(AppLocalizations.of(context).leftChallenge)),
           );
         }
       } else {
@@ -62,8 +63,8 @@ class _ChallengeDetailPageState extends State<ChallengeDetailPage> {
         setState(() => _userJoined = true);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Vous participez au défi !'),
+            SnackBar(
+              content: Text(AppLocalizations.of(context).joinedChallenge),
               backgroundColor: Colors.green,
             ),
           );
@@ -82,24 +83,25 @@ class _ChallengeDetailPageState extends State<ChallengeDetailPage> {
   }
 
   Future<void> _deleteChallenge() async {
+    final l = AppLocalizations.of(context);
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadius.l),
         ),
-        title: const Text('Supprimer le défi ?'),
-        content: const Text('Cette action est irréversible.'),
+        title: Text(l.deleteChallengeTitle),
+        content: Text(l.deleteChallengeMessage),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Annuler'),
+            child: Text(l.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text(
-              'Supprimer',
-              style: TextStyle(color: AppColors.error),
+            child: Text(
+              l.deleteButton,
+              style: const TextStyle(color: AppColors.error),
             ),
           ),
         ],
@@ -112,8 +114,8 @@ class _ChallengeDetailPageState extends State<ChallengeDetailPage> {
       await _challengeService.deleteChallenge(widget.challenge.id);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Défi supprimé'),
+          SnackBar(
+            content: Text(AppLocalizations.of(context).challengeDeleted),
             backgroundColor: Colors.orange,
           ),
         );
@@ -128,25 +130,27 @@ class _ChallengeDetailPageState extends State<ChallengeDetailPage> {
     }
   }
 
-  String _formatTimeRemaining(Duration duration) {
-    if (duration.isNegative) return 'Expiré';
+  String _formatTimeRemaining(BuildContext context, Duration duration) {
+    final l = AppLocalizations.of(context);
+    if (duration.isNegative) return l.expired;
     if (duration.inDays > 0) {
-      return '${duration.inDays}j restants';
+      return l.daysRemaining(duration.inDays);
     } else if (duration.inHours > 0) {
-      return '${duration.inHours}h restantes';
+      return l.hoursRemaining(duration.inHours);
     } else {
-      return '${duration.inMinutes}min restantes';
+      return l.minutesRemaining(duration.inMinutes);
     }
   }
 
-  String _getTargetDescription() {
+  String _getTargetDescription(BuildContext context) {
+    final l = AppLocalizations.of(context);
     switch (widget.challenge.type) {
       case 'read_book':
-        return widget.challenge.targetBookTitle ?? 'Lire un livre';
+        return widget.challenge.targetBookTitle ?? l.readABook;
       case 'read_pages':
-        return '${widget.challenge.targetValue} pages à lire';
+        return l.pagesToRead(widget.challenge.targetValue);
       case 'read_daily':
-        return '${widget.challenge.targetValue} min/jour pendant ${widget.challenge.targetDays} jours';
+        return l.dailyChallenge(widget.challenge.targetValue, widget.challenge.targetDays ?? 7);
       default:
         return '';
     }
@@ -167,6 +171,7 @@ class _ChallengeDetailPageState extends State<ChallengeDetailPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final challenge = widget.challenge;
 
     return Scaffold(
@@ -182,11 +187,11 @@ class _ChallengeDetailPageState extends State<ChallengeDetailPage> {
                     icon: const Icon(Icons.arrow_back),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
-                  const Expanded(
+                  Expanded(
                     child: Center(
                       child: Text(
-                        'Détail du défi',
-                        style: TextStyle(
+                        l.challengeDetail,
+                        style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w700,
                         ),
@@ -260,8 +265,8 @@ class _ChallengeDetailPageState extends State<ChallengeDetailPage> {
                                       ),
                                       child: Text(
                                         challenge.isActive
-                                            ? _formatTimeRemaining(challenge.timeRemaining)
-                                            : 'Expiré',
+                                            ? _formatTimeRemaining(context, challenge.timeRemaining)
+                                            : l.expired,
                                         style: TextStyle(
                                           fontSize: 12,
                                           fontWeight: FontWeight.w600,
@@ -294,7 +299,7 @@ class _ChallengeDetailPageState extends State<ChallengeDetailPage> {
                               Icon(Icons.flag, size: 16, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
                               const SizedBox(width: 8),
                               Text(
-                                _getTargetDescription(),
+                                _getTargetDescription(context),
                                 style: TextStyle(
                                   fontSize: 14,
                                   color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
@@ -310,7 +315,7 @@ class _ChallengeDetailPageState extends State<ChallengeDetailPage> {
 
                     // User progress (if joined)
                     if (_userJoined) ...[
-                      _buildProgressCard(challenge),
+                      _buildProgressCard(context, challenge),
                       const SizedBox(height: AppSpace.l),
                     ],
 
@@ -340,7 +345,7 @@ class _ChallengeDetailPageState extends State<ChallengeDetailPage> {
                                   ),
                                 )
                               : Text(
-                                  _userJoined ? 'Quitter le défi' : 'Rejoindre le défi',
+                                  _userJoined ? l.leaveChallenge : l.joinChallenge,
                                   style: const TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w600,
@@ -352,7 +357,7 @@ class _ChallengeDetailPageState extends State<ChallengeDetailPage> {
 
                     // Participants section
                     Text(
-                      'Participants (${_participants.length})',
+                      l.participantsCount(_participants.length),
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -375,7 +380,7 @@ class _ChallengeDetailPageState extends State<ChallengeDetailPage> {
                               ),
                               const SizedBox(height: AppSpace.m),
                               Text(
-                                'Aucun participant',
+                                l.noParticipants,
                                 style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
                               ),
                             ],
@@ -383,7 +388,7 @@ class _ChallengeDetailPageState extends State<ChallengeDetailPage> {
                         ),
                       )
                     else
-                      ...(_participants.map((p) => _buildParticipantTile(p, challenge))),
+                      ...(_participants.map((p) => _buildParticipantTile(context, p, challenge))),
 
                     const SizedBox(height: AppSpace.xl),
                   ],
@@ -396,20 +401,21 @@ class _ChallengeDetailPageState extends State<ChallengeDetailPage> {
     );
   }
 
-  Widget _buildProgressCard(GroupChallenge challenge) {
+  Widget _buildProgressCard(BuildContext context, GroupChallenge challenge) {
+    final l = AppLocalizations.of(context);
     final progress = challenge.userProgress ?? 0;
     final percent = challenge.progressPercent;
 
     String progressLabel;
     switch (challenge.type) {
       case 'read_book':
-        progressLabel = challenge.userCompleted ? 'Terminé !' : 'En cours...';
+        progressLabel = challenge.userCompleted ? l.challengeCompleted : l.challengeInProgress;
         break;
       case 'read_pages':
-        progressLabel = '$progress / ${challenge.targetValue} pages';
+        progressLabel = l.progressPages(progress, challenge.targetValue);
         break;
       case 'read_daily':
-        progressLabel = '$progress / ${challenge.targetDays ?? 7} jours';
+        progressLabel = l.progressDays(progress, challenge.targetDays ?? 7);
         break;
       default:
         progressLabel = '$progress';
@@ -427,9 +433,9 @@ class _ChallengeDetailPageState extends State<ChallengeDetailPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Ma progression',
-                style: TextStyle(
+              Text(
+                l.myProgress,
+                style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                 ),
@@ -441,9 +447,9 @@ class _ChallengeDetailPageState extends State<ChallengeDetailPage> {
                     color: Colors.green.withValues(alpha:0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Text(
-                    'Complété',
-                    style: TextStyle(
+                  child: Text(
+                    l.completedTag,
+                    style: const TextStyle(
                       fontSize: 12,
                       color: Colors.green,
                       fontWeight: FontWeight.w600,
@@ -477,7 +483,7 @@ class _ChallengeDetailPageState extends State<ChallengeDetailPage> {
     );
   }
 
-  Widget _buildParticipantTile(ChallengeParticipant participant, GroupChallenge challenge) {
+  Widget _buildParticipantTile(BuildContext context, ChallengeParticipant participant, GroupChallenge challenge) {
     double percent;
     if (challenge.type == 'read_daily') {
       final target = challenge.targetDays ?? 7;

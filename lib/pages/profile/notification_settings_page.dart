@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/back_header.dart';
 class NotificationSettingsPage extends StatefulWidget {
@@ -209,6 +210,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     if (_isLoading) {
       return Scaffold(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -228,11 +230,11 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const BackHeader(title: 'Notifications'),
+              BackHeader(title: l.notifications),
               const SizedBox(height: AppSpace.l),
 
               Text(
-                'Rappels de lecture',
+                l.readingReminders,
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                       fontSize: 24,
                       fontWeight: FontWeight.w700,
@@ -240,7 +242,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
               ),
               const SizedBox(height: AppSpace.s),
               Text(
-                'Reste motivé avec des rappels quotidiens pour maintenir ton flow de lecture.',
+                l.remindersDescription,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
@@ -281,7 +283,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Activer les notifications',
+                                l.enableNotifications,
                                 style: Theme.of(context)
                                     .textTheme
                                     .titleMedium
@@ -290,7 +292,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                                     ),
                               ),
                               Text(
-                                'Reçois des rappels quotidiens',
+                                l.receiveDailyReminders,
                                 style: Theme.of(context)
                                     .textTheme
                                     .bodySmall
@@ -331,7 +333,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Jours de rappel',
+                                  l.reminderDays,
                                   style: Theme.of(context)
                                       .textTheme
                                       .titleMedium
@@ -340,7 +342,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                                       ),
                                 ),
                                 Text(
-                                  'Quels jours veux-tu être notifié ?',
+                                  l.whichDays,
                                   style: Theme.of(context)
                                       .textTheme
                                       .bodySmall
@@ -408,7 +410,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Heure du rappel',
+                                    l.reminderTime,
                                     style: Theme.of(context)
                                         .textTheme
                                         .titleMedium
@@ -417,7 +419,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                                         ),
                                   ),
                                   Text(
-                                    'Quand veux-tu recevoir le rappel ?',
+                                    l.whenReminder,
                                     style: Theme.of(context)
                                         .textTheme
                                         .bodySmall
@@ -476,7 +478,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'À propos des notifications',
+                            l.aboutNotifications,
                             style: Theme.of(context)
                                 .textTheme
                                 .titleSmall
@@ -487,7 +489,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Tu recevras une notification les jours sélectionnés pour te rappeler de lire et maintenir ton flow.',
+                            l.notificationInfo,
                             style: Theme.of(context)
                                 .textTheme
                                 .bodySmall

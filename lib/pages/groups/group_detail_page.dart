@@ -1,5 +1,8 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../models/reading_group.dart';
 import '../../models/group_challenge.dart';
@@ -10,6 +13,11 @@ import 'group_settings_page.dart';
 import 'create_challenge_page.dart';
 import 'challenge_detail_page.dart';
 import 'package:intl/intl.dart';
+
+const _kBg = Color(0xFFFAF3E8);
+const _kCard = Color(0xFFF0E8D8);
+const _kSageGreen = Color(0xFF6B988D);
+const _kGold = Color(0xFFC6A85A);
 
 class GroupDetailPage extends StatefulWidget {
   final String groupId;
@@ -111,24 +119,25 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
   }
 
   Future<void> _leaveGroup() async {
+    final l = AppLocalizations.of(context);
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadius.l),
         ),
-        title: const Text('Quitter le groupe ?'),
-        content: const Text('Voulez-vous vraiment quitter ce groupe ?'),
+        title: Text(l.leaveGroupTitle),
+        content: Text(l.leaveGroupMessage),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Annuler'),
+            child: Text(l.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text(
-              'Quitter',
-              style: TextStyle(color: AppColors.error),
+            child: Text(
+              l.leave,
+              style: const TextStyle(color: AppColors.error),
             ),
           ),
         ],
@@ -141,8 +150,8 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
       await _groupsService.leaveGroup(widget.groupId);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Vous avez quitté le groupe'),
+          SnackBar(
+            content: Text(AppLocalizations.of(context).leftGroup),
             backgroundColor: Colors.orange,
           ),
         );
@@ -186,186 +195,100 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
     }
   }
 
+  bool get _isDark => Theme.of(context).brightness == Brightness.dark;
+
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final bg = _isDark ? AppColors.bgDark : _kBg;
+
     if (_isLoading) {
       return Scaffold(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        appBar: AppBar(
-          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        ),
+        backgroundColor: bg,
+        appBar: AppBar(backgroundColor: bg),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
 
     if (_group == null) {
       return Scaffold(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        appBar: AppBar(
-          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        ),
-        body: const Center(child: Text('Groupe introuvable')),
+        backgroundColor: bg,
+        appBar: AppBar(backgroundColor: bg),
+        body: Center(child: Text(l.groupNotFound)),
       );
     }
 
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: bg,
       body: CustomScrollView(
         slivers: [
-          // App bar with cover image
-          SliverAppBar(
-            expandedHeight: 200,
-            pinned: true,
-            backgroundColor: AppColors.primary,
-            flexibleSpace: FlexibleSpaceBar(
-              background: _group!.coverUrl != null
-                  ? CachedNetworkImage(
-                      imageUrl: _group!.coverUrl!,
-                      fit: BoxFit.cover,
-                      placeholder: (context, url) => Container(
-                        color: AppColors.primary.withValues(alpha: 0.3),
-                        child: const Center(child: CircularProgressIndicator()),
-                      ),
-                      errorWidget: (context, url, error) => Container(
-                        color: AppColors.primary.withValues(alpha: 0.3),
-                        child: const Icon(Icons.group, size: 80, color: Colors.white),
-                      ),
-                    )
-                  : Container(
-                      color: AppColors.primary.withValues(alpha:0.3),
-                      child: const Icon(
-                        Icons.group,
-                        size: 80,
-                        color: Colors.white,
-                      ),
-                    ),
-            ),
-            actions: [
-              if (_group!.isAdmin)
-                IconButton(
-                  icon: const Icon(Icons.settings),
-                  onPressed: _navigateToSettings,
-                )
-              else
-                IconButton(
-                  icon: const Icon(Icons.exit_to_app),
-                  onPressed: _leaveGroup,
-                ),
-            ],
-          ),
+          // Hero with cover image
+          SliverToBoxAdapter(child: _buildHero(context)),
 
-          // Group info
+          // Content
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.all(AppSpace.l),
+              padding: const EdgeInsets.symmetric(horizontal: AppSpace.l),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          _group!.name,
-                          style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      if (_group!.isPrivate)
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.orange.withValues(alpha:0.2),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: const Row(
-                            children: [
-                              Icon(Icons.lock, size: 14, color: Colors.orange),
-                              SizedBox(width: 4),
-                              Text(
-                                'Privé',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.orange,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      if (_group!.isAdmin)
-                        Container(
-                          margin: const EdgeInsets.only(left: 8),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withValues(alpha:0.2),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: const Text(
-                            'Admin',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                  if (_group!.description != null) ...[
-                    const SizedBox(height: AppSpace.m),
-                    Text(
-                      _group!.description!,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
-                      ),
-                    ),
-                  ],
                   const SizedBox(height: AppSpace.l),
 
                   // Stats row
                   Row(
                     children: [
                       _StatCard(
-                        icon: Icons.people,
-                        label: 'Membres',
+                        icon: Icons.people_outline,
+                        label: l.members,
                         value: '${_group!.memberCount ?? 0}',
                         onTap: _navigateToMembers,
+                        isDark: _isDark,
                       ),
                       const SizedBox(width: AppSpace.m),
                       _StatCard(
-                        icon: Icons.auto_stories,
-                        label: 'Activités',
+                        icon: Icons.auto_stories_outlined,
+                        label: l.sessions,
                         value: '${_activities.length}',
+                        isDark: _isDark,
+                      ),
+                      const SizedBox(width: AppSpace.m),
+                      _StatCard(
+                        icon: Icons.flag_outlined,
+                        label: l.activeChallenges,
+                        value: '${_challenges.length}',
+                        isDark: _isDark,
                       ),
                     ],
                   ),
+                  const SizedBox(height: AppSpace.xl),
+
+                  // Current reading card
+                  _buildCurrentReadingCard(context),
                   const SizedBox(height: AppSpace.xl),
 
                   // Challenges section
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        'Défis actifs',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                      Text(
+                        l.activeChallenges,
+                        style: GoogleFonts.cormorantGaramond(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w700,
+                          color: _isDark ? Colors.white : Colors.black,
                         ),
                       ),
                       if (_group!.isAdmin)
-                        IconButton(
-                          icon: const Icon(Icons.add_circle_outline, color: AppColors.primary),
-                          onPressed: _navigateToCreateChallenge,
-                          tooltip: 'Créer un défi',
+                        GestureDetector(
+                          onTap: _navigateToCreateChallenge,
+                          child: Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: _kSageGreen.withValues(alpha: 0.15),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.add, color: _kSageGreen, size: 20),
+                          ),
                         ),
                     ],
                   ),
@@ -377,16 +300,20 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                       width: double.infinity,
                       padding: const EdgeInsets.all(AppSpace.l),
                       decoration: BoxDecoration(
-                        color: Theme.of(context).cardColor,
-                        borderRadius: BorderRadius.circular(AppRadius.m),
+                        color: _isDark ? AppColors.surfaceDark : _kCard,
+                        borderRadius: BorderRadius.circular(14),
                       ),
                       child: Column(
                         children: [
-                          Icon(Icons.flag_outlined, size: 40, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4)),
+                          Icon(Icons.flag_outlined, size: 40,
+                              color: (_isDark ? Colors.white : Colors.black).withValues(alpha: 0.3)),
                           const SizedBox(height: AppSpace.s),
                           Text(
-                            'Aucun défi actif',
-                            style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6), fontSize: 14),
+                            l.noChallengeActive,
+                            style: GoogleFonts.dmSans(
+                              color: (_isDark ? Colors.white : Colors.black).withValues(alpha: 0.5),
+                              fontSize: 14,
+                            ),
                           ),
                         ],
                       ),
@@ -395,6 +322,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                     ..._challenges.map((challenge) => _ChallengeCard(
                           challenge: challenge,
                           onTap: () => _navigateToChallengeDetail(challenge),
+                          isDark: _isDark,
                         )),
                   const SizedBox(height: AppSpace.xl),
 
@@ -402,19 +330,22 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        'Activités du groupe',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                      Text(
+                        l.groupActivities,
+                        style: GoogleFonts.cormorantGaramond(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w700,
+                          color: _isDark ? Colors.white : Colors.black,
                         ),
                       ),
-                      IconButton(
-                        icon: const Icon(Icons.refresh),
-                        onPressed: _loadActivities,
+                      GestureDetector(
+                        onTap: _loadActivities,
+                        child: Icon(Icons.refresh, size: 20,
+                            color: (_isDark ? Colors.white : Colors.black).withValues(alpha: 0.4)),
                       ),
                     ],
                   ),
+                  const SizedBox(height: AppSpace.m),
                 ],
               ),
             ),
@@ -437,25 +368,22 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                           padding: const EdgeInsets.all(AppSpace.xl),
                           child: Column(
                             children: [
-                              Icon(
-                                Icons.auto_stories_outlined,
-                                size: 64,
-                                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
-                              ),
+                              Icon(Icons.auto_stories_outlined, size: 64,
+                                  color: (_isDark ? Colors.white : Colors.black).withValues(alpha: 0.3)),
                               const SizedBox(height: AppSpace.m),
                               Text(
-                                'Aucune activité',
-                                style: TextStyle(
+                                l.noActivity,
+                                style: GoogleFonts.dmSans(
                                   fontSize: 16,
-                                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                                  color: (_isDark ? Colors.white : Colors.black).withValues(alpha: 0.5),
                                 ),
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                'Les activités des membres apparaîtront ici',
-                                style: TextStyle(
+                                l.activitiesWillAppear,
+                                style: GoogleFonts.dmSans(
                                   fontSize: 13,
-                                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                                  color: (_isDark ? Colors.white : Colors.black).withValues(alpha: 0.4),
                                 ),
                               ),
                             ],
@@ -469,60 +397,339 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                         delegate: SliverChildBuilderDelegate(
                           (context, index) {
                             final activity = _activities[index];
-                            return _ActivityCard(activity: activity);
+                            return _ActivityCard(activity: activity, isDark: _isDark);
                           },
                           childCount: _activities.length,
                         ),
                       ),
                     ),
+
+          // Invite CTA button
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(AppSpace.l, AppSpace.l, AppSpace.l, AppSpace.xl),
+              child: SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [_kSageGreen, Color(0xFF5A8A7E)],
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: ElevatedButton.icon(
+                    onPressed: _navigateToMembers,
+                    icon: const Icon(Icons.person_add_outlined, color: Colors.white),
+                    label: Text(
+                      l.inviteMembers,
+                      style: GoogleFonts.dmSans(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHero(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    return SizedBox(
+      height: 200,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Cover image
+          if (_group!.coverUrl != null)
+            CachedNetworkImage(
+              imageUrl: _group!.coverUrl!,
+              fit: BoxFit.cover,
+              memCacheWidth: (MediaQuery.of(context).size.width * MediaQuery.of(context).devicePixelRatio).toInt(),
+              memCacheHeight: (200 * MediaQuery.of(context).devicePixelRatio).toInt(),
+              placeholder: (context, url) => Container(
+                color: _kSageGreen.withValues(alpha: 0.3),
+                child: const Center(child: CircularProgressIndicator(color: Colors.white)),
+              ),
+              errorWidget: (context, url, error) => Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [_kSageGreen, _kSageGreen.withValues(alpha: 0.6)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+                child: const Icon(Icons.menu_book, size: 60, color: Colors.white38),
+              ),
+            )
+          else
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [_kSageGreen, _kSageGreen.withValues(alpha: 0.6)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+              child: const Icon(Icons.menu_book, size: 60, color: Colors.white38),
+            ),
+
+          // Gradient overlay: transparent top → dark bottom
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                stops: const [0.0, 0.5, 1.0],
+                colors: [
+                  Colors.transparent,
+                  Colors.black.withValues(alpha: 0.15),
+                  Colors.black.withValues(alpha: 0.65),
+                ],
+              ),
+            ),
+          ),
+
+          // Back button top-left
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 8,
+            left: 12,
+            child: _HeroButton(
+              icon: Icons.arrow_back,
+              onTap: () => Navigator.pop(context),
+            ),
+          ),
+
+          // Settings / Leave button top-right
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 8,
+            right: 12,
+            child: _group!.isAdmin
+                ? _HeroButton(
+                    icon: Icons.settings_outlined,
+                    onTap: _navigateToSettings,
+                  )
+                : _HeroButton(
+                    icon: Icons.exit_to_app,
+                    onTap: _leaveGroup,
+                  ),
+          ),
+
+          // Club name + badges at bottom
+          Positioned(
+            bottom: 16,
+            left: 16,
+            right: 16,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Badges row
+                Row(
+                  children: [
+                    if (_group!.isPrivate)
+                      _HeroBadge(label: l.privateTag, icon: Icons.lock),
+                    if (_group!.isPrivate && _group!.isAdmin)
+                      const SizedBox(width: 6),
+                    if (_group!.isAdmin)
+                      _HeroBadge(label: l.adminTag),
+                  ],
+                ),
+                if (_group!.isPrivate || _group!.isAdmin) const SizedBox(height: 6),
+                Text(
+                  _group!.name,
+                  style: GoogleFonts.cormorantGaramond(
+                    fontSize: 26,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCurrentReadingCard(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          l.currentReading,
+          style: GoogleFonts.cormorantGaramond(
+            fontSize: 22,
+            fontWeight: FontWeight.w700,
+            color: _isDark ? Colors.white : Colors.black,
+          ),
+        ),
+        const SizedBox(height: AppSpace.m),
+        // Dashed empty state
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: (_isDark ? Colors.white : Colors.black).withValues(alpha: 0.15),
+              width: 1.5,
+              strokeAlign: BorderSide.strokeAlignInside,
+            ),
+          ),
+          child: Column(
+            children: [
+              Icon(Icons.menu_book_outlined, size: 36,
+                  color: (_isDark ? Colors.white : Colors.black).withValues(alpha: 0.25)),
+              const SizedBox(height: AppSpace.s),
+              Text(
+                l.noCurrentReading,
+                style: GoogleFonts.dmSans(
+                  fontSize: 14,
+                  color: (_isDark ? Colors.white : Colors.black).withValues(alpha: 0.4),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ──────────────────────────────────────────────
+// Hero helper widgets
+// ──────────────────────────────────────────────
+
+class _HeroButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+
+  const _HeroButton({required this.icon, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.25),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: Colors.white, size: 22),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HeroBadge extends StatelessWidget {
+  final String label;
+  final IconData? icon;
+
+  const _HeroBadge({required this.label, this.icon});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.2),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: 10, color: Colors.white),
+            const SizedBox(width: 3),
+          ],
+          Text(
+            label,
+            style: GoogleFonts.dmSans(
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
+          ),
         ],
       ),
     );
   }
 }
 
+// ──────────────────────────────────────────────
+// Stat card
+// ──────────────────────────────────────────────
+
 class _StatCard extends StatelessWidget {
   final IconData icon;
   final String label;
   final String value;
   final VoidCallback? onTap;
+  final bool isDark;
 
   const _StatCard({
     required this.icon,
     required this.label,
     required this.value,
     this.onTap,
+    required this.isDark,
   });
 
   @override
   Widget build(BuildContext context) {
     return Expanded(
-      child: InkWell(
+      child: GestureDetector(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(AppRadius.m),
         child: Container(
-          padding: const EdgeInsets.all(AppSpace.m),
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
           decoration: BoxDecoration(
-            color: Theme.of(context).cardColor,
-            borderRadius: BorderRadius.circular(AppRadius.m),
+            color: isDark ? AppColors.surfaceDark : _kCard,
+            borderRadius: BorderRadius.circular(14),
           ),
           child: Column(
             children: [
-              Icon(icon, color: AppColors.primary, size: 32),
-              const SizedBox(height: 8),
+              Icon(icon, color: _kSageGreen, size: 24),
+              const SizedBox(height: 6),
               Text(
                 value,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
+                style: GoogleFonts.cormorantGaramond(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                  color: isDark ? Colors.white : Colors.black,
                 ),
               ),
               Text(
                 label,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                style: GoogleFonts.dmSans(
+                  fontSize: 11,
+                  color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.5),
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
               ),
             ],
           ),
@@ -532,44 +739,51 @@ class _StatCard extends StatelessWidget {
   }
 }
 
+// ──────────────────────────────────────────────
+// Activity card
+// ──────────────────────────────────────────────
+
 class _ActivityCard extends StatelessWidget {
   final GroupActivity activity;
+  final bool isDark;
 
-  const _ActivityCard({required this.activity});
+  const _ActivityCard({required this.activity, required this.isDark});
 
-  String _getActivityDescription() {
+  String _getActivityDescription(BuildContext context) {
+    final l = AppLocalizations.of(context);
     switch (activity.activityType) {
       case 'reading_session':
         final pages = activity.payload['pages_read'] ?? 0;
         final bookTitle = activity.payload['book_title'] ?? 'un livre';
-        return 'a lu $pages pages de "$bookTitle"';
+        return l.readPagesOf(pages as int, bookTitle as String);
       case 'book_finished':
         final bookTitle = activity.payload['book_title'] ?? 'un livre';
-        return 'a terminé "$bookTitle" 🎉';
+        return l.finishedBook(bookTitle as String);
       case 'joined':
-        return 'a rejoint le groupe';
+        return l.joinedGroup;
       case 'comment':
         return activity.payload['content'] ?? 'a laissé un commentaire';
       case 'book_recommendation':
         final bookTitle = activity.payload['book_title'] ?? 'un livre';
-        return 'recommande "$bookTitle"';
+        return l.recommendsBook(bookTitle as String);
       default:
-        return 'activité inconnue';
+        return l.unknownActivity;
     }
   }
 
-  String _formatDate(DateTime date) {
+  String _formatDate(BuildContext context, DateTime date) {
+    final l = AppLocalizations.of(context);
     final now = DateTime.now();
     final difference = now.difference(date);
 
     if (difference.inMinutes < 1) {
-      return 'À l\'instant';
+      return l.justNow;
     } else if (difference.inHours < 1) {
-      return 'Il y a ${difference.inMinutes}min';
+      return l.timeAgoMinutes(difference.inMinutes);
     } else if (difference.inHours < 24) {
-      return 'Il y a ${difference.inHours}h';
+      return l.timeAgoHours(difference.inHours);
     } else if (difference.inDays < 7) {
-      return 'Il y a ${difference.inDays}j';
+      return l.timeAgoDays(difference.inDays);
     } else {
       return DateFormat('dd MMM yyyy', 'fr_FR').format(date);
     }
@@ -577,75 +791,85 @@ class _ActivityCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    return Container(
       margin: const EdgeInsets.only(bottom: AppSpace.m),
-      color: Theme.of(context).cardColor,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppRadius.m),
+      padding: const EdgeInsets.all(AppSpace.m),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.surfaceDark : _kCard,
+        borderRadius: BorderRadius.circular(14),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpace.m),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            CircleAvatar(
-              radius: 20,
-              backgroundColor: AppColors.primary.withValues(alpha:0.1),
-              backgroundImage: activity.userAvatar != null
-                  ? NetworkImage(activity.userAvatar!)
-                  : null,
-              child: activity.userAvatar == null
-                  ? Text(
-                      activity.displayName.substring(0, 1).toUpperCase(),
-                      style: const TextStyle(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.bold,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          CircleAvatar(
+            radius: 20,
+            backgroundColor: _kSageGreen.withValues(alpha: 0.15),
+            backgroundImage: activity.userAvatar != null
+                ? NetworkImage(activity.userAvatar!)
+                : null,
+            child: activity.userAvatar == null
+                ? Text(
+                    activity.displayName.substring(0, 1).toUpperCase(),
+                    style: GoogleFonts.dmSans(
+                      color: _kSageGreen,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  )
+                : null,
+          ),
+          const SizedBox(width: AppSpace.m),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                RichText(
+                  text: TextSpan(
+                    style: GoogleFonts.dmSans(
+                      fontSize: 14,
+                      color: isDark ? Colors.white : Colors.black87,
+                    ),
+                    children: [
+                      TextSpan(
+                        text: activity.displayName,
+                        style: const TextStyle(fontWeight: FontWeight.w600),
                       ),
-                    )
-                  : null,
-            ),
-            const SizedBox(width: AppSpace.m),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  RichText(
-                    text: TextSpan(
-                      style: DefaultTextStyle.of(context).style,
-                      children: [
-                        TextSpan(
-                          text: activity.displayName,
-                          style: const TextStyle(fontWeight: FontWeight.w600),
-                        ),
-                        TextSpan(
-                          text: ' ${_getActivityDescription()}',
-                        ),
-                      ],
-                    ),
+                      TextSpan(
+                        text: ' ${_getActivityDescription(context)}',
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    _formatDate(activity.createdAt),
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-                    ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  _formatDate(context, activity.createdAt),
+                  style: GoogleFonts.dmSans(
+                    fontSize: 12,
+                    color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.45),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 }
 
+// ──────────────────────────────────────────────
+// Challenge card
+// ──────────────────────────────────────────────
+
 class _ChallengeCard extends StatelessWidget {
   final GroupChallenge challenge;
   final VoidCallback onTap;
+  final bool isDark;
 
-  const _ChallengeCard({required this.challenge, required this.onTap});
+  const _ChallengeCard({
+    required this.challenge,
+    required this.onTap,
+    required this.isDark,
+  });
 
   IconData _getTypeIcon() {
     switch (challenge.type) {
@@ -660,99 +884,100 @@ class _ChallengeCard extends StatelessWidget {
     }
   }
 
-  String _getTimeRemaining() {
+  String _getTimeRemaining(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final remaining = challenge.timeRemaining;
-    if (remaining.isNegative) return 'Expiré';
-    if (remaining.inDays > 0) return '${remaining.inDays}j';
-    if (remaining.inHours > 0) return '${remaining.inHours}h';
-    return '${remaining.inMinutes}min';
+    if (remaining.isNegative) return l.expired;
+    if (remaining.inDays > 0) return l.daysRemaining(remaining.inDays);
+    if (remaining.inHours > 0) return l.hoursRemaining(remaining.inHours);
+    return l.minutesRemaining(remaining.inMinutes);
   }
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: AppSpace.m),
-      color: Theme.of(context).cardColor,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppRadius.m),
-      ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppRadius.m),
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpace.m),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha:0.1),
-                  borderRadius: BorderRadius.circular(AppRadius.s),
-                ),
-                child: Icon(_getTypeIcon(), color: AppColors.primary, size: 20),
+    final l = AppLocalizations.of(context);
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: AppSpace.m),
+        padding: const EdgeInsets.all(AppSpace.m),
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.surfaceDark : _kCard,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: _kSageGreen.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(10),
               ),
-              const SizedBox(width: AppSpace.m),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      challenge.title,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
+              child: Icon(_getTypeIcon(), color: _kSageGreen, size: 20),
+            ),
+            const SizedBox(width: AppSpace.m),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    challenge.title,
+                    style: GoogleFonts.dmSans(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                      color: isDark ? Colors.white : Colors.black87,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Text(
+                        l.memberCount(challenge.participantCount),
+                        style: GoogleFonts.dmSans(
+                          fontSize: 12,
+                          color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.5),
+                        ),
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Text(
-                          '${challenge.participantCount} participants',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-                          ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                        decoration: BoxDecoration(
+                          color: _kGold.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(8),
                         ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                          decoration: BoxDecoration(
-                            color: Colors.orange.withValues(alpha:0.1),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            _getTimeRemaining(),
-                            style: const TextStyle(
-                              fontSize: 10,
-                              color: Colors.orange,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    if (challenge.userJoined) ...[
-                      const SizedBox(height: 6),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(2),
-                        child: LinearProgressIndicator(
-                          value: challenge.progressPercent,
-                          minHeight: 4,
-                          backgroundColor: Theme.of(context).colorScheme.outlineVariant,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            challenge.userCompleted ? Colors.green : AppColors.primary,
+                        child: Text(
+                          _getTimeRemaining(context),
+                          style: GoogleFonts.dmSans(
+                            fontSize: 10,
+                            color: _kGold,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ),
                     ],
+                  ),
+                  if (challenge.userJoined) ...[
+                    const SizedBox(height: 6),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(2),
+                      child: LinearProgressIndicator(
+                        value: challenge.progressPercent,
+                        minHeight: 4,
+                        backgroundColor: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.1),
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          challenge.userCompleted ? _kSageGreen : _kGold,
+                        ),
+                      ),
+                    ),
                   ],
-                ),
+                ],
               ),
-              Icon(Icons.chevron_right, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4), size: 20),
-            ],
-          ),
+            ),
+            Icon(Icons.chevron_right,
+                color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.3), size: 20),
+          ],
         ),
       ),
     );

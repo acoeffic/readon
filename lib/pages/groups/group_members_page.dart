@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../models/reading_group.dart';
 import '../../services/groups_service.dart';
@@ -50,6 +51,7 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
   }
 
   Future<void> _inviteFriend() async {
+    final l = AppLocalizations.of(context);
     // Get current user's friends
     final userId = supabase.auth.currentUser?.id;
     if (userId == null) return;
@@ -71,8 +73,8 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
       if (availableFriends.isEmpty) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Tous vos amis sont déjà membres du groupe'),
+            SnackBar(
+              content: Text(l.allFriendsInGroup),
             ),
           );
         }
@@ -87,7 +89,7 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppRadius.l),
           ),
-          title: const Text('Inviter un ami'),
+          title: Text(l.inviteFriend),
           content: SizedBox(
             width: double.maxFinite,
             child: ListView.builder(
@@ -116,7 +118,7 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('✅ Invitation envoyée à ${selectedFriend['name']}'),
+            content: Text(AppLocalizations.of(context).invitationSent(selectedFriend['name'] as String)),
             backgroundColor: Colors.green,
           ),
         );
@@ -141,7 +143,7 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Rôle de ${member.displayName} mis à jour'),
+            content: Text(AppLocalizations.of(context).roleUpdated(member.displayName)),
             backgroundColor: Colors.green,
           ),
         );
@@ -158,24 +160,25 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
   }
 
   Future<void> _removeMember(GroupMember member) async {
+    final l = AppLocalizations.of(context);
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadius.l),
         ),
-        title: const Text('Retirer du groupe ?'),
-        content: Text('Voulez-vous retirer ${member.displayName} du groupe ?'),
+        title: Text(l.removeFromGroupTitle),
+        content: Text(l.removeFromGroupMessage(member.displayName)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Annuler'),
+            child: Text(l.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text(
-              'Retirer',
-              style: TextStyle(color: AppColors.error),
+            child: Text(
+              l.removeButton,
+              style: const TextStyle(color: AppColors.error),
             ),
           ),
         ],
@@ -193,7 +196,7 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${member.displayName} a été retiré du groupe'),
+            content: Text(AppLocalizations.of(context).memberRemoved(member.displayName)),
             backgroundColor: Colors.orange,
           ),
         );
@@ -212,6 +215,7 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
   void _showMemberOptions(GroupMember member) {
     if (!widget.isAdmin) return;
 
+    final l = AppLocalizations.of(context);
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -223,7 +227,7 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
           children: [
             ListTile(
               leading: const Icon(Icons.admin_panel_settings),
-              title: Text(member.isAdmin ? 'Rétrograder en membre' : 'Promouvoir admin'),
+              title: Text(member.isAdmin ? l.demoteToMember : l.promoteAdmin),
               onTap: () {
                 Navigator.pop(ctx);
                 _updateMemberRole(
@@ -234,9 +238,9 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
             ),
             ListTile(
               leading: const Icon(Icons.person_remove, color: AppColors.error),
-              title: const Text(
-                'Retirer du groupe',
-                style: TextStyle(color: AppColors.error),
+              title: Text(
+                l.removeFromGroup,
+                style: const TextStyle(color: AppColors.error),
               ),
               onTap: () {
                 Navigator.pop(ctx);
@@ -245,7 +249,7 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
             ),
             ListTile(
               leading: const Icon(Icons.cancel),
-              title: const Text('Annuler'),
+              title: Text(l.cancel),
               onTap: () => Navigator.pop(ctx),
             ),
           ],
@@ -256,6 +260,7 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
@@ -272,7 +277,7 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
                   Expanded(
                     child: Center(
                       child: Text(
-                        'Membres (${_members.length})',
+                        l.membersCount(_members.length),
                         style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                               fontWeight: FontWeight.w700,
                             ),
@@ -283,7 +288,7 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
                     IconButton(
                       icon: const Icon(Icons.person_add),
                       onPressed: _inviteFriend,
-                      tooltip: 'Inviter un ami',
+                      tooltip: l.inviteFriend,
                     )
                   else
                     const SizedBox(width: 48),
@@ -304,9 +309,9 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
                                 color: Colors.grey.shade400,
                               ),
                               const SizedBox(height: AppSpace.m),
-                              const Text(
-                                'Aucun membre',
-                                style: TextStyle(
+                              Text(
+                                l.noMembers,
+                                style: const TextStyle(
                                   fontSize: 16,
                                   color: Colors.grey,
                                 ),
@@ -370,9 +375,9 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
                                             color: Colors.blue.withValues(alpha:0.2),
                                             borderRadius: BorderRadius.circular(12),
                                           ),
-                                          child: const Text(
-                                            'Vous',
-                                            style: TextStyle(
+                                          child: Text(
+                                            l.youTag,
+                                            style: const TextStyle(
                                               fontSize: 10,
                                               color: Colors.blue,
                                               fontWeight: FontWeight.w600,
@@ -382,7 +387,7 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
                                     ],
                                   ),
                                   subtitle: Text(
-                                    member.isAdmin ? 'Administrateur' : 'Membre',
+                                    member.isAdmin ? l.administrator : l.memberRole,
                                     style: TextStyle(
                                       color: member.isAdmin
                                           ? AppColors.primary

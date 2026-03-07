@@ -89,7 +89,7 @@ class AnniversaryService {
       final twelveMonthsAgo =
           DateTime.now().subtract(const Duration(days: 365)).toIso8601String();
 
-      // 3 requêtes en parallèle
+      // 4 requêtes en parallèle
       final results = await Future.wait([
         // Livres terminés (12 derniers mois)
         _supabase
@@ -111,9 +111,28 @@ class AnniversaryService {
             .select('id')
             .eq('author_id', userId)
             .gte('created_at', twelveMonthsAgo),
+        // All-time session counts per book (for filtering)
+        _supabase
+            .from('reading_sessions')
+            .select('book_id')
+            .eq('user_id', userId)
+            .not('end_time', 'is', null),
       ]);
 
-      final booksFinished = (results[0] as List).length;
+      // Count sessions per book to filter finished books with < 3 sessions
+      final allSessionBookIds = results[3] as List;
+      final sessionCounts = <String, int>{};
+      for (final s in allSessionBookIds) {
+        final bookId = s['book_id']?.toString() ?? '';
+        if (bookId.isNotEmpty) {
+          sessionCounts[bookId] = (sessionCounts[bookId] ?? 0) + 1;
+        }
+      }
+
+      final booksFinished = (results[0] as List).where((b) {
+        final bookId = b['book_id']?.toString() ?? '';
+        return (sessionCounts[bookId] ?? 0) >= 3;
+      }).length;
 
       // Calculer heures et best flow depuis les sessions
       final sessions = results[1] as List;

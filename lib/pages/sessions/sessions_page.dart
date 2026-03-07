@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../l10n/app_localizations.dart';
 import '../../models/reading_session.dart';
 import '../../models/book.dart';
 import '../../services/reading_session_service.dart';
@@ -87,7 +88,7 @@ class _SessionsPageState extends State<SessionsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Mes Sessions'),
+        title: Text(AppLocalizations.of(context).mySessions),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -101,20 +102,21 @@ class _SessionsPageState extends State<SessionsPage> {
   }
 
   Widget _buildEmptyState() {
-    return const Center(
+    final l = AppLocalizations.of(context);
+    return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.menu_book, size: 64, color: Colors.grey),
-          SizedBox(height: 16),
+          const Icon(Icons.menu_book, size: 64, color: Colors.grey),
+          const SizedBox(height: 16),
           Text(
-            'Aucune session de lecture',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+            l.noReadingSession,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
           ),
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
           Text(
-            'Lancez une session pour commencer !',
-            style: TextStyle(color: Colors.grey),
+            l.startSessionPrompt,
+            style: const TextStyle(color: Colors.grey),
           ),
         ],
       ),
@@ -164,6 +166,7 @@ class _SessionsPageState extends State<SessionsPage> {
   }
 
   Widget _buildSessionCard(Map<String, dynamic> data) {
+    final l = AppLocalizations.of(context);
     final session = ReadingSession.fromJson(data);
     final bookData = data['books'] as Map<String, dynamic>?;
     final book = bookData != null ? Book.fromJson(bookData) : null;
@@ -203,7 +206,7 @@ class _SessionsPageState extends State<SessionsPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    book?.title ?? 'Livre inconnu',
+                    book?.title ?? l.unknownBook,
                     style: const TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
@@ -223,7 +226,7 @@ class _SessionsPageState extends State<SessionsPage> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
-                        'En cours',
+                        l.inProgressTag,
                         style: TextStyle(
                           fontSize: 12,
                           color: Colors.orange.shade800,
@@ -238,7 +241,7 @@ class _SessionsPageState extends State<SessionsPage> {
                             size: 14, color: Colors.grey.shade600),
                         const SizedBox(width: 4),
                         Text(
-                          '${session.pagesRead} pages',
+                          l.nPagesRead(session.pagesRead),
                           style: TextStyle(
                             fontSize: 13,
                             color: Colors.grey.shade600,
@@ -284,6 +287,7 @@ class _SessionsPageState extends State<SessionsPage> {
   }
 
   List<_DateGroup> _groupSessionsByDate(List<Map<String, dynamic>> sessions) {
+    final l = AppLocalizations.of(context);
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final yesterday = today.subtract(const Duration(days: 1));
@@ -303,10 +307,10 @@ class _SessionsPageState extends State<SessionsPage> {
         key = 'Hier';
       } else if (sessionDate.isAfter(thisWeekStart) ||
           sessionDate == thisWeekStart) {
-        key = 'Cette semaine';
+        key = l.thisWeek;
       } else if (sessionDate.month == now.month &&
           sessionDate.year == now.year) {
-        key = 'Ce mois';
+        key = l.thisMonth;
       } else {
         key = _formatMonthYear(sessionDate);
       }

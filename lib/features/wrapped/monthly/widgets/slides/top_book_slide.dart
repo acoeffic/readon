@@ -173,6 +173,8 @@ class _BookCover extends StatelessWidget {
       child: CachedNetworkImage(
         imageUrl: url!,
         fit: BoxFit.cover,
+        memCacheWidth: (110 * 3).toInt(),
+        memCacheHeight: (160 * 3).toInt(),
         placeholder: (_, __) => Container(
           color: Colors.white.withValues(alpha: 0.06),
           child: const Center(

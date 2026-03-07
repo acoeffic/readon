@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import '../../l10n/app_localizations.dart';
 import '../../models/feature_flags.dart';
 import '../../widgets/constrained_content.dart';
 import '../../models/reading_statistics.dart';
@@ -134,6 +135,7 @@ class _StatsTabState extends State<StatsTab> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -145,11 +147,11 @@ class _StatsTabState extends State<StatsTab> {
           children: [
             Icon(Icons.error_outline, size: 48, color: Colors.grey.shade400),
             const SizedBox(height: 16),
-            const Text('Erreur de chargement'),
+            Text(l.loadingError),
             const SizedBox(height: 8),
             TextButton(
               onPressed: _loadStats,
-              child: const Text('Réessayer'),
+              child: Text(l.retry),
             ),
           ],
         ),
@@ -179,7 +181,7 @@ class _StatsTabState extends State<StatsTab> {
               feature: Feature.advancedStats,
               lockedWidget: _buildBlurredPremiumCard(
                 context,
-                title: 'Pages lues par mois',
+                title: l.pagesReadByMonth,
                 child: PagesPerMonthChart(
                   data: _stats!.pagesPerMonth,
                   showHeader: false,
@@ -192,7 +194,7 @@ class _StatsTabState extends State<StatsTab> {
               feature: Feature.advancedStats,
               lockedWidget: _buildBlurredPremiumCard(
                 context,
-                title: 'Répartition des genres',
+                title: l.genreDistribution,
                 child: GenreDistributionChart(
                   data: _stats!.genreDistribution,
                   showHeader: false,
@@ -205,8 +207,8 @@ class _StatsTabState extends State<StatsTab> {
               feature: Feature.advancedStats,
               lockedWidget: _buildBlurredPremiumCard(
                 context,
-                title: 'Quand lis-tu',
-                subtitle: 'Tes horaires favoris de la semaine',
+                title: l.whenDoYouRead,
+                subtitle: l.favoriteSchedules,
                 child: ReadingHeatmap(
                   data: _stats!.readingHeatmap,
                   showHeader: false,

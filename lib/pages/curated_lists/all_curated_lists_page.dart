@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../l10n/app_localizations.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../data/curated_lists_data.dart';
 import '../../models/curated_list.dart';
@@ -78,9 +79,10 @@ class _AllCuratedListsPageState extends State<AllCuratedListsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Listes de lecture'),
+        title: Text(l.readingLists),
         centerTitle: true,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
@@ -140,6 +142,7 @@ class _AllListCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpace.m),
       child: GestureDetector(
@@ -192,7 +195,7 @@ class _AllListCard extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: Text(
-                                '${list.bookCount} livres',
+                                l.nBooks(list.bookCount),
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 12,
@@ -244,7 +247,7 @@ class _AllListCard extends StatelessWidget {
                             color: Colors.white.withValues(alpha: 0.7)),
                         const SizedBox(width: 4),
                         Text(
-                          '$readerCount lecteur${readerCount > 1 ? 's' : ''}',
+                          l.nReaders(readerCount),
                           style: TextStyle(
                             color: Colors.white.withValues(alpha: 0.7),
                             fontSize: 12,

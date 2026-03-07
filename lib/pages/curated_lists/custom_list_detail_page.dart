@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../l10n/app_localizations.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../models/book.dart';
 import '../../models/user_custom_list.dart';
@@ -59,21 +60,21 @@ class _CustomListDetailPageState extends State<CustomListDetailPage> {
   }
 
   Future<void> _deleteList() async {
+    final l = AppLocalizations.of(context)!;
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Supprimer cette liste ?'),
-        content: Text(
-            'La liste "${_list.title}" sera définitivement supprimée.'),
+        title: Text(l.deleteListTitle),
+        content: Text(l.deleteListMessage(_list.title)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Annuler'),
+            child: Text(l.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Supprimer'),
+            child: Text(l.deleteButton),
           ),
         ],
       ),
@@ -97,6 +98,7 @@ class _CustomListDetailPageState extends State<CustomListDetailPage> {
   }
 
   void _showBookDetailSheet(Book book) {
+    final l = AppLocalizations.of(context)!;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -212,18 +214,18 @@ class _CustomListDetailPageState extends State<CustomListDetailPage> {
                                     .withValues(alpha: 0.3),
                               ),
                             ),
-                            child: const Row(
+                            child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(
+                                const Icon(
                                   LucideIcons.listPlus,
                                   size: 14,
                                   color: Color(0xFFFF6B35),
                                 ),
-                                SizedBox(width: 4),
+                                const SizedBox(width: 4),
                                 Text(
-                                  'Ajouter à une liste',
-                                  style: TextStyle(
+                                  l.addToList,
+                                  style: const TextStyle(
                                     fontSize: 12,
                                     color: Color(0xFFFF6B35),
                                   ),
@@ -240,7 +242,7 @@ class _CustomListDetailPageState extends State<CustomListDetailPage> {
               if (book.description != null) ...[
                 const SizedBox(height: 20),
                 Text(
-                  'Description',
+                  l.description,
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
@@ -330,6 +332,7 @@ class _CustomListDetailPageState extends State<CustomListDetailPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
     final gradientColors = _list.gradientColors;
 
     return Scaffold(
@@ -346,12 +349,12 @@ class _CustomListDetailPageState extends State<CustomListDetailPage> {
             actions: [
               IconButton(
                 icon: const Icon(LucideIcons.pencil, color: Colors.white),
-                tooltip: 'Modifier',
+                tooltip: l.editButton,
                 onPressed: _editList,
               ),
               IconButton(
                 icon: const Icon(LucideIcons.trash2, color: Colors.white),
-                tooltip: 'Supprimer',
+                tooltip: l.deleteButton,
                 onPressed: _deleteList,
               ),
             ],
@@ -417,7 +420,7 @@ class _CustomListDetailPageState extends State<CustomListDetailPage> {
                           .withValues(alpha: 0.5)),
                   const SizedBox(width: 4),
                   Text(
-                    '${_list.bookCount} livre${_list.bookCount > 1 ? 's' : ''}',
+                    l.nBooks(_list.bookCount),
                     style: TextStyle(
                       fontSize: 13,
                       color: Theme.of(context)
@@ -467,12 +470,13 @@ class _CustomListDetailPageState extends State<CustomListDetailPage> {
         backgroundColor: const Color(0xFFFF6B35),
         foregroundColor: Colors.white,
         icon: const Icon(LucideIcons.plus),
-        label: const Text('Ajouter un livre'),
+        label: Text(l.addBookToList),
       ),
     );
   }
 
   Widget _buildEmptyState() {
+    final l = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.all(40),
       child: Column(
@@ -487,7 +491,7 @@ class _CustomListDetailPageState extends State<CustomListDetailPage> {
           ),
           const SizedBox(height: 16),
           Text(
-            'Aucun livre dans cette liste',
+            l.noBooksInList,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   color: Theme.of(context)
                       .colorScheme
@@ -497,7 +501,7 @@ class _CustomListDetailPageState extends State<CustomListDetailPage> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Ajoute des livres depuis ta bibliothèque ou en recherchant un titre.',
+            l.addBooksFromLibrary,
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 13,
@@ -511,7 +515,7 @@ class _CustomListDetailPageState extends State<CustomListDetailPage> {
           FilledButton.icon(
             onPressed: _addBooks,
             icon: const Icon(LucideIcons.plus),
-            label: const Text('Ajouter un livre'),
+            label: Text(l.addBookToList),
             style: FilledButton.styleFrom(
               backgroundColor: const Color(0xFFFF6B35),
               foregroundColor: Colors.white,
@@ -538,6 +542,7 @@ class _CustomBookListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
     return Dismissible(
       key: Key('custom_book_${book.id}'),
       direction: DismissDirection.endToStart,
@@ -551,19 +556,18 @@ class _CustomBookListItem extends StatelessWidget {
         return await showDialog<bool>(
               context: context,
               builder: (context) => AlertDialog(
-                title: const Text('Retirer ce livre ?'),
-                content: Text(
-                    'Retirer "${book.title}" de cette liste ?'),
+                title: Text(l.removeBookTitle),
+                content: Text(l.removeBookMessage(book.title)),
                 actions: [
                   TextButton(
                     onPressed: () => Navigator.pop(context, false),
-                    child: const Text('Annuler'),
+                    child: Text(l.cancel),
                   ),
                   TextButton(
                     onPressed: () => Navigator.pop(context, true),
                     style:
                         TextButton.styleFrom(foregroundColor: Colors.red),
-                    child: const Text('Retirer'),
+                    child: Text(l.removeButton),
                   ),
                 ],
               ),
@@ -695,6 +699,7 @@ class _AddToListSheetState extends State<_AddToListSheet> {
   }
 
   Future<void> _createNewList() async {
+    final l = AppLocalizations.of(context)!;
     Navigator.pop(context);
     final result = await showCreateCustomListSheet(context);
     if (result != null) {
@@ -703,7 +708,7 @@ class _AddToListSheetState extends State<_AddToListSheet> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Ajouté à "${result.title}"'),
+              content: Text(l.addedToList(result.title)),
               backgroundColor: Colors.green,
             ),
           );
@@ -716,6 +721,7 @@ class _AddToListSheetState extends State<_AddToListSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
     return SafeArea(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -739,7 +745,7 @@ class _AddToListSheetState extends State<_AddToListSheet> {
           Padding(
             padding: const EdgeInsets.all(16),
             child: Text(
-              'Ajouter à une liste',
+              l.addToList,
               style: Theme.of(context)
                   .textTheme
                   .titleMedium
@@ -750,7 +756,7 @@ class _AddToListSheetState extends State<_AddToListSheet> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Text(
-                'Aucune liste personnelle.',
+                l.noPersonalList,
                 style: TextStyle(
                   color: Theme.of(context)
                       .colorScheme
@@ -793,9 +799,9 @@ class _AddToListSheetState extends State<_AddToListSheet> {
               child: const Icon(LucideIcons.plus,
                   size: 18, color: Color(0xFFFF6B35)),
             ),
-            title: const Text(
-              'Créer une nouvelle liste',
-              style: TextStyle(color: Color(0xFFFF6B35)),
+            title: Text(
+              l.createNewList,
+              style: const TextStyle(color: Color(0xFFFF6B35)),
             ),
             onTap: _createNewList,
           ),

@@ -55,7 +55,7 @@ class _AuthGateState extends State<AuthGate> {
         await Supabase.instance.client.from('profiles').upsert({
           'id': userId,
           'email': user.email,
-          'display_name': meta['display_name'] ?? '',
+          'display_name': meta['display_name'] ?? meta['full_name'] ?? meta['name'] ?? '',
           'created_at': DateTime.now().toIso8601String(),
         });
 

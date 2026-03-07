@@ -3,6 +3,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import '../../l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 import '../../models/book.dart';
 import '../../models/reading_session.dart';
@@ -91,6 +92,7 @@ class _ReadingSessionSummaryPageState
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFFAF6F0);
+    final l = AppLocalizations.of(context)!;
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -99,13 +101,13 @@ class _ReadingSessionSummaryPageState
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           child: Column(
             children: [
-              _buildAppBar(isDark),
+              _buildAppBar(isDark, l),
               const SizedBox(height: 20),
-              _buildHeader(isDark),
+              _buildHeader(isDark, l),
               const SizedBox(height: 24),
-              _buildBookCard(isDark),
+              _buildBookCard(isDark, l),
               const SizedBox(height: 16),
-              _buildFreeStatsCard(isDark),
+              _buildFreeStatsCard(isDark, l),
               const SizedBox(height: 20),
               _buildInsightsSection(isDark),
               const SizedBox(height: 28),
@@ -124,7 +126,7 @@ class _ReadingSessionSummaryPageState
 
   // ── App bar ─────────────────────────────────────────────────────────
 
-  Widget _buildAppBar(bool isDark) {
+  Widget _buildAppBar(bool isDark, AppLocalizations l) {
     return Row(
       children: [
         GestureDetector(
@@ -154,7 +156,7 @@ class _ReadingSessionSummaryPageState
         ),
         const Spacer(),
         Text(
-          'SESSION TERMINÉE',
+          l.sessionCompleted,
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w800,
@@ -172,13 +174,13 @@ class _ReadingSessionSummaryPageState
 
   // ── Header: emoji + title + date ──────────────────────────────────
 
-  Widget _buildHeader(bool isDark) {
+  Widget _buildHeader(bool isDark, AppLocalizations l) {
     return Column(
       children: [
         const Text('🎉', style: TextStyle(fontSize: 48)),
         const SizedBox(height: 12),
         Text(
-          'Session terminée !',
+          l.sessionCompletedTitle,
           style: TextStyle(
             fontSize: 26,
             fontWeight: FontWeight.bold,
@@ -199,8 +201,8 @@ class _ReadingSessionSummaryPageState
 
   // ── Book card (cover + title/author + progression) ─────────────────
 
-  Widget _buildBookCard(bool isDark) {
-    final bookTitle = _book?.title ?? 'Ma lecture';
+  Widget _buildBookCard(bool isDark, AppLocalizations l) {
+    final bookTitle = _book?.title ?? l.myReadingDefault;
     final bookAuthor = _book?.author;
     final session = widget.session;
     final percent = _progressionPercent();
@@ -312,7 +314,7 @@ class _ReadingSessionSummaryPageState
                           ),
                         if (pageCount != null)
                           Text(
-                            '$pageCount pages',
+                            l.nPages(pageCount),
                             style: TextStyle(
                               fontSize: 13,
                               color: isDark
@@ -334,7 +336,7 @@ class _ReadingSessionSummaryPageState
 
   // ── Free stats card (3 columns) ────────────────────────────────────
 
-  Widget _buildFreeStatsCard(bool isDark) {
+  Widget _buildFreeStatsCard(bool isDark, AppLocalizations l) {
     final session = widget.session;
 
     return Container(
@@ -435,6 +437,7 @@ class _ReadingSessionSummaryPageState
   // ── Insights section ─────────────────────────────────────────────
 
   Widget _buildInsightsSection(bool isDark) {
+    final l = AppLocalizations.of(context);
     final isPremium = context.watch<SubscriptionProvider>().isPremium;
     final session = widget.session;
     final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
@@ -467,11 +470,11 @@ class _ReadingSessionSummaryPageState
     if (userAvgMinPerPage > 0 && minPerPage > 0) {
       final diff = ((userAvgMinPerPage - minPerPage) / userAvgMinPerPage * 100).round();
       if (diff > 0) {
-        vsAverage = '+$diff% plus rapide';
+        vsAverage = l.fasterPercent(diff);
       } else if (diff < 0) {
-        vsAverage = '${diff.abs()}% plus lent';
+        vsAverage = l.slowerPercent(diff.abs());
       } else {
-        vsAverage = 'Dans ta moyenne';
+        vsAverage = l.withinAverage;
       }
     }
 
@@ -484,12 +487,12 @@ class _ReadingSessionSummaryPageState
         : '${minPerPage.toStringAsFixed(1)} min';
 
     final insights = [
-      _InsightRow(emoji: '\u{1F4C8}', label: 'Rythme de lecture', value: paceValue),
-      _InsightRow(emoji: '\u{23F3}', label: 'Temps moyen par page', value: timePerPageValue),
+      _InsightRow(emoji: '\u{1F4C8}', label: l.readingPace, value: paceValue),
+      _InsightRow(emoji: '\u{23F3}', label: l.avgTimePerPage, value: timePerPageValue),
       if (estimatedFinish != null)
-        _InsightRow(emoji: '\u{1F4C5}', label: 'Fin estimée du livre', value: estimatedFinish),
+        _InsightRow(emoji: '\u{1F4C5}', label: l.estimatedBookEnd, value: estimatedFinish),
       if (vsAverage != null)
-        _InsightRow(emoji: '\u{1F4CA}', label: 'vs. ta moyenne', value: vsAverage),
+        _InsightRow(emoji: '\u{1F4CA}', label: l.vsYourAverage, value: vsAverage),
     ];
 
     if (insights.isEmpty) return const SizedBox.shrink();
@@ -533,7 +536,7 @@ class _ReadingSessionSummaryPageState
                 ),
                 const SizedBox(width: 10),
                 Text(
-                  'Insights de la session',
+                  l.sessionInsights,
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
@@ -583,7 +586,7 @@ class _ReadingSessionSummaryPageState
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            '\u{2728} Voir le bilan complet',
+                            l.viewFullReport,
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w700,
@@ -592,7 +595,7 @@ class _ReadingSessionSummaryPageState
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            'Rythme, tendances, estimation de fin et plus',
+                            l.paceAndTrends,
                             style: TextStyle(
                               fontSize: 12,
                               color: Colors.brown.shade600,
@@ -607,8 +610,8 @@ class _ReadingSessionSummaryPageState
                         color: const Color(0xFFD4A54A),
                         borderRadius: BorderRadius.circular(20),
                       ),
-                      child: const Text(
-                        'Essayer',
+                      child: Text(
+                        l.tryPremium,
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
@@ -680,6 +683,7 @@ class _ReadingSessionSummaryPageState
   // ── Buttons ───────────────────────────────────────────────────────
 
   Widget _buildShareButton() {
+    final l = AppLocalizations.of(context);
     return SizedBox(
       width: double.infinity,
       height: 54,
@@ -688,14 +692,14 @@ class _ReadingSessionSummaryPageState
           showSessionShareSheet(
             context: context,
             session: widget.session,
-            bookTitle: _book?.title ?? 'Ma lecture',
+            bookTitle: _book?.title ?? l.noTitleDefault,
             bookAuthor: _book?.author,
           );
         },
         icon: const Icon(Icons.share_outlined, size: 20),
-        label: const Text(
-          'Partager la session',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        label: Text(
+          l.shareSession,
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
         ),
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primary,
@@ -710,6 +714,7 @@ class _ReadingSessionSummaryPageState
   }
 
   Widget _buildHideButton(bool isDark) {
+    final l = AppLocalizations.of(context);
     return SizedBox(
       width: double.infinity,
       height: 54,
@@ -723,9 +728,9 @@ class _ReadingSessionSummaryPageState
             if (!mounted) return;
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: const Text('Session masquee des classements'),
+                content: Text(l.sessionHiddenFromRankings),
                 action: SnackBarAction(
-                  label: 'Annuler',
+                  label: l.cancel,
                   onPressed: () async {
                     try {
                       await ReadingSessionService().toggleSessionHidden(
@@ -740,7 +745,7 @@ class _ReadingSessionSummaryPageState
           } catch (e) {
             if (!mounted) return;
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Erreur lors du masquage')),
+              SnackBar(content: Text(l.errorHidingSession)),
             );
           }
         },
@@ -750,7 +755,7 @@ class _ReadingSessionSummaryPageState
           color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
         ),
         label: Text(
-          'Masquer cette session',
+          l.hideSession,
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w500,
@@ -787,9 +792,9 @@ class _ReadingSessionSummaryPageState
             borderRadius: BorderRadius.circular(AppRadius.l),
           ),
         ),
-        child: const Text(
-          'Passer',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+        child: Text(
+          AppLocalizations.of(context).skip,
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
         ),
       ),
     );

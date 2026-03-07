@@ -1,6 +1,8 @@
 // lib/widgets/cached_profile_avatar.dart
 // Widget réutilisable pour afficher les avatars de profil avec cache
 
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../theme/app_theme.dart';
@@ -77,6 +79,9 @@ class CachedProfileAvatar extends StatelessWidget {
     }
 
     // Avec URL, utiliser CachedNetworkImage
+    final dpr = ui.PlatformDispatcher.instance.displays.first.devicePixelRatio;
+    final cacheSize = (radius * 2 * dpr).toInt();
+
     if (decoration != null) {
       return Container(
         width: radius * 2,
@@ -88,6 +93,8 @@ class CachedProfileAvatar extends StatelessWidget {
           child: CachedNetworkImage(
             imageUrl: imageUrl!,
             fit: BoxFit.cover,
+            memCacheWidth: cacheSize,
+            memCacheHeight: cacheSize,
             placeholder: (context, url) => Container(
               color: bgColor,
               child: fallbackWidget,
@@ -113,6 +120,8 @@ class CachedProfileAvatar extends StatelessWidget {
           child: CachedNetworkImage(
             imageUrl: imageUrl!,
             fit: BoxFit.cover,
+            memCacheWidth: cacheSize,
+            memCacheHeight: cacheSize,
             placeholder: (context, url) => fallbackWidget,
             errorWidget: (context, url, error) => fallbackWidget,
             fadeInDuration: const Duration(milliseconds: 200),

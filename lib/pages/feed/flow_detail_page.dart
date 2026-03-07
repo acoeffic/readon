@@ -4,6 +4,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../l10n/app_localizations.dart';
 import '../../models/feature_flags.dart';
 import '../../models/reading_flow.dart';
 import '../../models/flow_freeze.dart';
@@ -118,6 +119,7 @@ class _FlowDetailPageState extends State<FlowDetailPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
@@ -155,11 +157,12 @@ class _FlowDetailPageState extends State<FlowDetailPage> {
   }
 
   Widget _buildHeader() {
+    final l = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Ton flow de lecture',
+          l.yourReadingFlow,
           style: TextStyle(
             fontSize: 28,
             fontWeight: FontWeight.bold,
@@ -168,7 +171,7 @@ class _FlowDetailPageState extends State<FlowDetailPage> {
         ),
         const SizedBox(height: 8),
         Text(
-          '${_flow.currentFlow} jours consécutifs, actif',
+          l.consecutiveDaysActive(_flow.currentFlow),
           style: TextStyle(
             fontSize: 16,
             color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
@@ -179,6 +182,7 @@ class _FlowDetailPageState extends State<FlowDetailPage> {
   }
 
   Widget _buildFlowCard() {
+    final l = AppLocalizations.of(context);
     final color = _getFlowColor();
     final progress = _flow.longestFlow > 0
         ? (_flow.currentFlow / _flow.longestFlow).clamp(0.0, 1.0)
@@ -213,9 +217,9 @@ class _FlowDetailPageState extends State<FlowDetailPage> {
                           ),
                         ),
                         const SizedBox(width: 8),
-                        const Text(
-                          'jours',
-                          style: TextStyle(
+                        Text(
+                          l.daysLabel,
+                          style: const TextStyle(
                             fontSize: 16,
                             color: Colors.white70,
                           ),
@@ -232,7 +236,7 @@ class _FlowDetailPageState extends State<FlowDetailPage> {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          'Flow actuel',
+                          l.currentFlow,
                           style: TextStyle(
                             fontSize: 14,
                             color: Colors.grey.shade400,
@@ -262,9 +266,9 @@ class _FlowDetailPageState extends State<FlowDetailPage> {
                           ),
                         ),
                         const SizedBox(width: 8),
-                        const Text(
-                          'jours au total',
-                          style: TextStyle(
+                        Text(
+                          l.totalDays,
+                          style: const TextStyle(
                             fontSize: 16,
                             color: Colors.white70,
                           ),
@@ -285,9 +289,9 @@ class _FlowDetailPageState extends State<FlowDetailPage> {
                           ),
                         ),
                         const SizedBox(width: 4),
-                        const Text(
-                          'jours au record',
-                          style: TextStyle(
+                        Text(
+                          l.recordDays,
+                          style: const TextStyle(
                             fontSize: 14,
                             color: Colors.white70,
                           ),
@@ -335,6 +339,7 @@ class _FlowDetailPageState extends State<FlowDetailPage> {
   }
 
   Widget _buildFreezeCard() {
+    final l = AppLocalizations.of(context);
     final freezeStatus = _flow.freezeStatus;
     final isAtRisk = _flow.isAtRisk && _flow.currentFlow > 0;
     final isPremium = context.watch<SubscriptionProvider>().isPremium;
@@ -372,7 +377,7 @@ class _FlowDetailPageState extends State<FlowDetailPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Flow Freeze',
+                      l.flowFreeze,
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -381,7 +386,7 @@ class _FlowDetailPageState extends State<FlowDetailPage> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      freezeStatus?.statusMessage ?? 'Auto-freeze actif',
+                      freezeStatus?.statusMessage ?? l.autoFreezeActive,
                       style: TextStyle(
                         fontSize: 13,
                         color: Theme.of(context).colorScheme.onSurface.withValues(alpha:0.6),
@@ -395,7 +400,7 @@ class _FlowDetailPageState extends State<FlowDetailPage> {
                 ElevatedButton.icon(
                   onPressed: _useFreeze,
                   icon: const Icon(Icons.shield, size: 16),
-                  label: const Text('Protéger'),
+                  label: Text(l.protect),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF5C6BC0),
                     foregroundColor: Colors.white,
@@ -410,9 +415,9 @@ class _FlowDetailPageState extends State<FlowDetailPage> {
                     color: const Color(0xFF5C6BC0).withValues(alpha:0.2),
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: const Text(
-                    'Illimité',
-                    style: TextStyle(
+                  child: Text(
+                    l.unlimited,
+                    style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
                       color: Color(0xFF5C6BC0),
@@ -427,7 +432,7 @@ class _FlowDetailPageState extends State<FlowDetailPage> {
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
-                    '${freezeStatus?.autoFreezesRemaining ?? 0}/2 dispo',
+                    l.freezesAvailable(freezeStatus?.autoFreezesRemaining ?? 0),
                     style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
@@ -443,7 +448,7 @@ class _FlowDetailPageState extends State<FlowDetailPage> {
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
-                    'Épuisé',
+                    l.exhausted,
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
@@ -528,7 +533,7 @@ class _FlowDetailPageState extends State<FlowDetailPage> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Passe Premium pour des auto-freezes illimités et le freeze manuel.',
+                        l.premiumAutoFreezes,
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
@@ -558,30 +563,31 @@ class _FlowDetailPageState extends State<FlowDetailPage> {
   }
 
   Future<void> _useFreeze() async {
+    final l = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.ac_unit_rounded, color: Color(0xFF5C6BC0)),
-            SizedBox(width: 12),
-            Text('Utiliser le freeze ?'),
+            const Icon(Icons.ac_unit_rounded, color: Color(0xFF5C6BC0)),
+            const SizedBox(width: 12),
+            Text(l.useFreezeTitle),
           ],
         ),
-        content: const Text(
-          'Cela protégera ton flow pour hier en utilisant un freeze manuel.',
+        content: Text(
+          l.useFreezeMessage,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Annuler'),
+            child: Text(l.cancel),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF5C6BC0),
             ),
-            child: const Text('Confirmer'),
+            child: Text(l.confirm),
           ),
         ],
       ),
@@ -625,6 +631,7 @@ class _FlowDetailPageState extends State<FlowDetailPage> {
   Widget _buildCalendar() {
     if (_months.isEmpty) return const SizedBox();
 
+    final l = AppLocalizations.of(context);
     final isPremium = context.watch<SubscriptionProvider>().isPremium;
     final month = _months[_currentMonthIndex];
     final monthLabel = '${_frenchMonths[month.month - 1]} ${month.year}';
@@ -771,7 +778,7 @@ class _FlowDetailPageState extends State<FlowDetailPage> {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'Historique du flow',
+                        l.flowHistory,
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -780,7 +787,7 @@ class _FlowDetailPageState extends State<FlowDetailPage> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Navigue dans tout ton historique de lecture mois par mois',
+                        l.flowHistoryDescription,
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 14,
@@ -794,14 +801,14 @@ class _FlowDetailPageState extends State<FlowDetailPage> {
                           color: AppColors.primary,
                           borderRadius: BorderRadius.circular(24),
                         ),
-                        child: const Row(
+                        child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.lock_open, color: Colors.white, size: 18),
-                            SizedBox(width: 8),
+                            const Icon(Icons.lock_open, color: Colors.white, size: 18),
+                            const SizedBox(width: 8),
                             Text(
-                              'Débloquer avec Premium',
-                              style: TextStyle(
+                              l.unlockWithPremium,
+                              style: const TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.w600,
                                 fontSize: 14,
@@ -968,6 +975,7 @@ class _FlowDetailPageState extends State<FlowDetailPage> {
   Widget _buildMotivationCard() {
     if (_percentile <= 0) return const SizedBox();
 
+    final l = AppLocalizations.of(context);
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -978,7 +986,7 @@ class _FlowDetailPageState extends State<FlowDetailPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Tu as battu $_percentile % des lecteurs réguliers.',
+            l.beatPercentile(_percentile),
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w600,
@@ -989,7 +997,7 @@ class _FlowDetailPageState extends State<FlowDetailPage> {
           Row(
             children: [
               Text(
-                'Bravo! ',
+                l.bravoExcl,
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
@@ -1001,7 +1009,7 @@ class _FlowDetailPageState extends State<FlowDetailPage> {
           ),
           const SizedBox(height: 12),
           Text(
-            'Continue ta lecture demain pour maintenir ton flow!',
+            l.keepReadingTomorrow,
             style: TextStyle(
               fontSize: 14,
               color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),

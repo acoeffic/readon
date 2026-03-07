@@ -558,17 +558,11 @@ class _SearchResultCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Cover
-              ClipRRect(
+              CachedBookCover(
+                imageUrl: googleBook.coverUrl,
+                width: 48,
+                height: 70,
                 borderRadius: BorderRadius.circular(4),
-                child: googleBook.coverUrl != null
-                    ? Image.network(
-                        googleBook.coverUrl!,
-                        width: 48,
-                        height: 70,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => _placeholder(),
-                      )
-                    : _placeholder(),
               ),
               const SizedBox(width: 10),
 
@@ -634,18 +628,6 @@ class _SearchResultCard extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-
-  Widget _placeholder() {
-    return Container(
-      width: 48,
-      height: 70,
-      decoration: BoxDecoration(
-        color: Colors.grey.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: const Icon(Icons.book, size: 20, color: Colors.grey),
     );
   }
 

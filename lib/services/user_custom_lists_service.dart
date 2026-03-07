@@ -168,6 +168,45 @@ class UserCustomListsService {
     }
   }
 
+  /// Fetch all user lists with their books populated (avoids N+1 queries).
+  Future<List<UserCustomList>> getUserListsWithBooks() async {
+    try {
+      final userId = _supabase.auth.currentUser?.id;
+      if (userId == null) return [];
+
+      final response = await _supabase
+          .from('user_custom_lists')
+          .select('*, user_custom_list_books(*, books(*))')
+          .eq('user_id', userId)
+          .order('created_at', ascending: false);
+
+      return (response as List).map((json) {
+        final bookEntries =
+            json['user_custom_list_books'] as List? ?? [];
+
+        bookEntries.sort((a, b) {
+          final posA = a['position'] as int? ?? 0;
+          final posB = b['position'] as int? ?? 0;
+          if (posA != posB) return posA.compareTo(posB);
+          final dateA = a['added_at'] as String? ?? '';
+          final dateB = b['added_at'] as String? ?? '';
+          return dateA.compareTo(dateB);
+        });
+
+        final books = bookEntries
+            .where((entry) => entry['books'] != null)
+            .map((entry) =>
+                Book.fromJson(entry['books'] as Map<String, dynamic>))
+            .toList();
+
+        return UserCustomList.fromJson(json, books: books);
+      }).toList();
+    } catch (e) {
+      debugPrint('Erreur getUserListsWithBooks: $e');
+      return [];
+    }
+  }
+
   // ---- Book management ----
 
   Future<void> addBookToList(int listId, int bookId) async {

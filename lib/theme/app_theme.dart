@@ -17,6 +17,11 @@ class AppColors {
   static const textSecondary = Color(0xFF6A6A6A);
   static const border = Color(0xFFE2E2E2);
 
+  // Library screen colors
+  static const libraryBg = Color(0xFFFAF3E8);
+  static const sageGreen = Color(0xFF6B988D);
+  static const gold = Color(0xFFC6A85A);
+
   // Dark theme colors
   static const accentDark = Color(0xFF1A4D44);
   static const bgDark = Color(0xFF121212);

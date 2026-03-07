@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'dart:io';
+import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/back_header.dart';
 import '../../services/groups_service.dart';
@@ -39,6 +40,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
   }
 
   Future<void> _pickImage() async {
+    final l = AppLocalizations.of(context);
     try {
       final source = await showModalBottomSheet<ImageSource>(
         context: context,
@@ -48,17 +50,17 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
             children: [
               ListTile(
                 leading: const Icon(Icons.camera_alt),
-                title: const Text('Prendre une photo'),
+                title: Text(l.takePhoto),
                 onTap: () => Navigator.pop(context, ImageSource.camera),
               ),
               ListTile(
                 leading: const Icon(Icons.photo_library),
-                title: const Text('Choisir dans la galerie'),
+                title: Text(l.chooseFromGallery),
                 onTap: () => Navigator.pop(context, ImageSource.gallery),
               ),
               ListTile(
                 leading: const Icon(Icons.cancel),
-                title: const Text('Annuler'),
+                title: Text(l.cancel),
                 onTap: () => Navigator.pop(context),
               ),
             ],
@@ -135,8 +137,8 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Groupe créé avec succès!'),
+          SnackBar(
+            content: Text(AppLocalizations.of(context).groupCreated),
             backgroundColor: Colors.green,
           ),
         );
@@ -178,21 +180,21 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
   }
 
   void _showGroupLimitDialog() {
+    final l = AppLocalizations.of(context);
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadius.l),
         ),
-        title: const Text('Limite atteinte'),
+        title: Text(l.limitReached),
         content: Text(
-          'Tu as atteint la limite de ${FeatureFlags.maxFreeGroups} clubs de lecture. '
-          'Passe à Premium pour en rejoindre autant que tu veux !',
+          l.groupLimitMessage(FeatureFlags.maxFreeGroups),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('OK'),
+            child: Text(l.cancel),
           ),
           ElevatedButton(
             onPressed: () {
@@ -206,7 +208,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
               backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
             ),
-            child: const Text('Devenir Premium'),
+            child: Text(l.becomePremium),
           ),
         ],
       ),
@@ -215,6 +217,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
@@ -225,7 +228,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const BackHeader(title: 'Créer un groupe'),
+                BackHeader(title: l.createGroupTitle),
                 const SizedBox(height: AppSpace.l),
 
                 // Cover image
@@ -256,7 +259,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  'Ajouter une photo',
+                                  l.addPhoto,
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: AppColors.primary.withValues(alpha:0.8),
@@ -273,15 +276,15 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                 // Group name
                 TextFormField(
                   controller: _nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Nom du groupe *',
-                    hintText: 'Ex: Club des lecteurs SF',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: l.groupNameRequired,
+                    hintText: l.groupNameHint,
+                    border: const OutlineInputBorder(),
                   ),
                   maxLength: 100,
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
-                      return 'Le nom est requis';
+                      return l.nameRequired;
                     }
                     return null;
                   },
@@ -291,10 +294,10 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                 // Description
                 TextFormField(
                   controller: _descriptionController,
-                  decoration: const InputDecoration(
-                    labelText: 'Description (optionnel)',
-                    hintText: 'Décrivez votre groupe de lecture...',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: l.descriptionOptional,
+                    hintText: l.describeGroup,
+                    border: const OutlineInputBorder(),
                   ),
                   maxLines: 4,
                   maxLength: 500,
@@ -325,7 +328,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              _isPrivate ? 'Groupe privé' : 'Groupe public',
+                              _isPrivate ? l.privateGroup : l.publicGroup,
                               style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
@@ -334,8 +337,8 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                             const SizedBox(height: 2),
                             Text(
                               _isPrivate
-                                  ? 'Uniquement accessible sur invitation'
-                                  : 'Visible par tous les utilisateurs',
+                                  ? l.inviteOnly
+                                  : l.visibleToAll,
                               style: TextStyle(
                                 fontSize: 12,
                                 color: Colors.grey.shade600,
@@ -372,7 +375,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                       const SizedBox(width: AppSpace.m),
                       Expanded(
                         child: Text(
-                          'En tant que créateur, vous serez automatiquement administrateur du groupe et pourrez inviter d\'autres membres.',
+                          l.creatorAdminInfo,
                           style: TextStyle(
                             fontSize: 13,
                             color: AppColors.primary.withValues(alpha:0.9),
@@ -406,9 +409,9 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                               valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                             ),
                           )
-                        : const Text(
-                            'Créer le groupe',
-                            style: TextStyle(
+                        : Text(
+                            l.createGroup,
+                            style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
                             ),

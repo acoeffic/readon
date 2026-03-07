@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import 'find_contacts_friends_page.dart';
 import 'friend_requests_page.dart';
@@ -39,7 +40,7 @@ class _FriendsPageState extends State<FriendsPage> {
     try {
       debugPrint('🔍 Chargement des amis pour user: ${user.id}');
       final data = await supabase.rpc('get_friends', params: {'uid': user.id});
-      
+
       debugPrint('📦 Données brutes reçues: $data');
       debugPrint('📦 Type de données: ${data.runtimeType}');
 
@@ -67,6 +68,7 @@ class _FriendsPageState extends State<FriendsPage> {
   }
 
   Future<void> _removeFriend(String friendId) async {
+    final l = AppLocalizations.of(context);
     final supabase = Supabase.instance.client;
     final user = supabase.auth.currentUser;
     if (user == null) return;
@@ -79,7 +81,7 @@ class _FriendsPageState extends State<FriendsPage> {
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Ami retiré')),
+        SnackBar(content: Text(l.friendRemovedSnack)),
       );
 
       await _loadFriends();
@@ -87,22 +89,23 @@ class _FriendsPageState extends State<FriendsPage> {
       debugPrint('❌ Erreur suppression ami: $e');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Impossible de retirer cet ami: $e')),
+        SnackBar(content: Text(l.cannotRemoveFriend(e.toString()))),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        title: const Text('Mes amis'),
+        title: Text(l.myFriends),
         actions: [
           IconButton(
             icon: const Icon(Icons.contact_phone, color: AppColors.primary),
-            tooltip: 'Trouver des amis',
+            tooltip: l.findFriends,
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
@@ -144,14 +147,14 @@ class _FriendsPageState extends State<FriendsPage> {
                       const Icon(Icons.error_outline, size: 48, color: AppColors.error),
                       const SizedBox(height: AppSpace.m),
                       Text(
-                        _error!, 
+                        _error!,
                         style: Theme.of(context).textTheme.bodyMedium,
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: AppSpace.m),
                       ElevatedButton(
                         onPressed: _loadFriends,
-                        child: const Text('Réessayer'),
+                        child: Text(l.retry),
                       ),
                     ],
                   ),
@@ -167,12 +170,12 @@ class _FriendsPageState extends State<FriendsPage> {
                       const Icon(Icons.people_outline, size: 64, color: AppColors.textSecondary),
                       const SizedBox(height: AppSpace.m),
                       Text(
-                        'Aucun ami trouvé', 
+                        l.noFriendFound,
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                       const SizedBox(height: AppSpace.s),
                       Text(
-                        'Ajoutez des amis pour voir leur activité !',
+                        l.addFriendsToSeeActivityMessage,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: AppColors.textSecondary,
                         ),
@@ -222,7 +225,7 @@ class _FriendsPageState extends State<FriendsPage> {
                                 Text(name, style: Theme.of(context).textTheme.titleMedium),
                                 const SizedBox(height: AppSpace.xs),
                                 Text(
-                                  email, 
+                                  email,
                                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                     color: AppColors.textSecondary,
                                   ),

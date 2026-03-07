@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../l10n/app_localizations.dart';
 import '../../models/book.dart';
 import '../../services/books_service.dart';
 import '../../theme/app_theme.dart';
@@ -41,14 +42,13 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
   }
 
   void _shareApp() {
+    final l = AppLocalizations.of(context);
     final bookTitle = _currentReadingBook?.title;
     final text = bookTitle != null
         ? '\u{1F4D6} Je suis en train de lire $bookTitle\n\n'
             'Tu lis quoi en ce moment ? \u{1F440}\n'
             'lexday.app'
-        : '\u{1F4D6} Rejoins-moi sur LexDay !\n\n'
-            'Tu lis quoi en ce moment ? \u{1F440}\n'
-            'lexday.app';
+        : l.shareInviteText;
     final box = context.findRenderObject() as RenderBox?;
     final origin = box != null ? box.localToGlobal(Offset.zero) & box.size : null;
     Share.share(text, sharePositionOrigin: origin);
@@ -152,7 +152,7 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
       if (!mounted) return;
       setState(() => _loading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Erreur lors de la recherche')),
+        SnackBar(content: Text(AppLocalizations.of(context).errorDuringSearch)),
       );
     }
   }
@@ -193,20 +193,21 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
   }
 
   Future<void> _addFriend(UserSearchResult user) async {
+    final l = AppLocalizations.of(context);
     final currentUser = Supabase.instance.client.auth.currentUser;
     final targetId = user.id;
 
     if (currentUser == null) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Connecte-toi pour ajouter un ami')),
+        SnackBar(content: Text(l.connectToAddFriend)),
       );
       return;
     }
     if (targetId == currentUser.id) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Utilisateur invalide')),
+        SnackBar(content: Text(l.invalidUser)),
       );
       return;
     }
@@ -226,7 +227,7 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
         final status = (existing.first as Map)['status'] as String? ?? 'en attente';
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Relation déjà $status')),
+          SnackBar(content: Text(l.relationAlreadyExists(status))),
         );
         return;
       }
@@ -241,18 +242,19 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Invitation envoyée')),
+        SnackBar(content: Text(l.invitationSentShort)),
       );
     } catch (e) {
       debugPrint('Erreur _addFriend: $e');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Impossible d\'ajouter cet ami')),
+        SnackBar(content: Text(l.cannotAddFriend)),
       );
     }
   }
 
   Future<void> _cancelFriendRequest(UserSearchResult user) async {
+    final l = AppLocalizations.of(context);
     final currentUser = Supabase.instance.client.auth.currentUser;
     if (currentUser == null) return;
 
@@ -268,12 +270,12 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Demande annulée')),
+        SnackBar(content: Text(l.requestCancelled)),
       );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Impossible d\'annuler la demande')),
+        SnackBar(content: Text(l.cannotCancelRequest)),
       );
     }
   }
@@ -297,6 +299,7 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
@@ -306,7 +309,7 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               BackHeader(
-                title: 'Rechercher',
+                title: l.searchLabel,
                 titleColor: Theme.of(context).colorScheme.onSurface,
               ),
               const SizedBox(height: AppSpace.m),
@@ -334,7 +337,7 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
                           ),
                           child: Center(
                             child: Text(
-                              'Amis',
+                              l.friends,
                               style: TextStyle(
                                 color: _selectedTab == 0
                                     ? AppColors.white
@@ -359,7 +362,7 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
                           ),
                           child: Center(
                             child: Text(
-                              'Groupes',
+                              l.groups,
                               style: TextStyle(
                                 color: _selectedTab == 1
                                     ? AppColors.white
@@ -381,8 +384,8 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
                 controller: _controller,
                 decoration: InputDecoration(
                   hintText: _selectedTab == 0
-                      ? 'Rechercher par nom'
-                      : 'Nom du groupe',
+                      ? l.searchByName
+                      : l.groupName,
                   prefixIcon: const Icon(Icons.search),
                 ),
                 onChanged: _search,
@@ -424,9 +427,9 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
-                                'Invite tes amis à lire',
-                                style: TextStyle(
+                              Text(
+                                l.inviteToRead,
+                                style: const TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 15,
@@ -434,7 +437,7 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                'Partage ce que tu lis en ce moment',
+                                l.shareWhatYouRead,
                                 style: TextStyle(
                                   color: Colors.white.withValues(alpha: 0.8),
                                   fontSize: 12,
@@ -457,8 +460,8 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
 
               Expanded(
                 child: _selectedTab == 0
-                    ? _buildUserResults()
-                    : _buildGroupResults(),
+                    ? _buildUserResults(l)
+                    : _buildGroupResults(l),
               ),
             ],
           ),
@@ -467,11 +470,11 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
     );
   }
 
-  Widget _buildUserResults() {
+  Widget _buildUserResults(AppLocalizations l) {
     if (_userResults.isEmpty && !_loading) {
       return Center(
         child: Text(
-          'Tape au moins 2 caractères pour chercher',
+          l.typeMin2Chars,
           style: Theme.of(context).textTheme.bodyMedium,
         ),
       );
@@ -484,12 +487,12 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
         final user = _userResults[index];
         final isPending = _pendingRequests[user.id] ?? false;
 
-        return _buildSimpleUserItem(user, isPending);
+        return _buildSimpleUserItem(user, isPending, l);
       },
     );
   }
 
-  Widget _buildSimpleUserItem(UserSearchResult user, bool isPending) {
+  Widget _buildSimpleUserItem(UserSearchResult user, bool isPending, AppLocalizations l) {
     return GestureDetector(
       onTap: () => _showUserDetailsModal(user, isPending),
       child: Container(
@@ -540,7 +543,7 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
                         Icon(Icons.lock, size: 12, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
                         const SizedBox(width: 4),
                         Text(
-                          'Profil privé',
+                          l.privateProfileLabel,
                           style: TextStyle(
                             fontSize: 11,
                             color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
@@ -613,11 +616,11 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
     );
   }
 
-  Widget _buildGroupResults() {
+  Widget _buildGroupResults(AppLocalizations l) {
     if (_groupResults.isEmpty && !_loading) {
       return Center(
         child: Text(
-          'Tape au moins 2 caractères pour chercher',
+          l.typeMin2Chars,
           style: Theme.of(context).textTheme.bodyMedium,
         ),
       );
@@ -677,7 +680,7 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
                       ],
                       const SizedBox(height: AppSpace.xs),
                       Text(
-                        '${group.memberCount ?? 0} membre${(group.memberCount ?? 0) > 1 ? 's' : ''}',
+                        l.memberCount(group.memberCount ?? 0),
                         style: TextStyle(
                           fontSize: 12,
                           color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),

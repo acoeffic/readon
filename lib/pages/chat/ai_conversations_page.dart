@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../models/ai_conversation.dart';
 import '../../models/feature_flags.dart';
@@ -59,20 +60,21 @@ class _AiConversationsPageState extends State<AiConversationsPage> {
   }
 
   Future<void> _deleteConversation(AiConversation conv) async {
+    final l = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Supprimer la conversation'),
-        content: const Text('Es-tu sûr de vouloir supprimer cette conversation ?'),
+        title: Text(l.deleteConversation),
+        content: Text(l.deleteConversationConfirm),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Annuler'),
+            child: Text(l.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             style: TextButton.styleFrom(foregroundColor: AppColors.error),
-            child: const Text('Supprimer'),
+            child: Text(l.deleteButton),
           ),
         ],
       ),
@@ -126,12 +128,13 @@ class _AiConversationsPageState extends State<AiConversationsPage> {
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         icon: const Icon(Icons.add),
-        label: const Text('Nouvelle conversation'),
+        label: Text(AppLocalizations.of(context).newConversation),
       ),
     );
   }
 
   Widget _buildHeader(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpace.s,
@@ -147,7 +150,7 @@ class _AiConversationsPageState extends State<AiConversationsPage> {
           const Icon(Icons.auto_awesome, color: AppColors.primary),
           const SizedBox(width: AppSpace.s),
           Text(
-            'Muse',
+            l.muse,
             style: Theme.of(context).textTheme.titleMedium,
           ),
         ],
@@ -156,6 +159,7 @@ class _AiConversationsPageState extends State<AiConversationsPage> {
   }
 
   Widget _buildRemainingBanner(bool isDark) {
+    final l = AppLocalizations.of(context);
     final used = FeatureFlags.maxFreeAiMessages - _remaining;
     final limitReached = _remaining <= 0;
     return Container(
@@ -179,8 +183,8 @@ class _AiConversationsPageState extends State<AiConversationsPage> {
           Expanded(
             child: Text(
               limitReached
-                  ? 'Utilisation illimitée du chatbot, abonnez-vous'
-                  : '$used/${FeatureFlags.maxFreeAiMessages} messages utilisés ce mois-ci',
+                  ? l.unlimitedChatbot
+                  : l.messagesUsedCount(used, FeatureFlags.maxFreeAiMessages),
               style: TextStyle(
                 fontSize: 13,
                 color: AppColors.primary,
@@ -194,6 +198,7 @@ class _AiConversationsPageState extends State<AiConversationsPage> {
   }
 
   Widget _buildEmptyState(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(AppSpace.xl),
@@ -207,13 +212,13 @@ class _AiConversationsPageState extends State<AiConversationsPage> {
             ),
             const SizedBox(height: AppSpace.l),
             Text(
-              'Aucune conversation',
+              l.noConversation,
               style: Theme.of(context).textTheme.headlineMedium,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppSpace.s),
             Text(
-              'Démarre une conversation avec Muse pour obtenir des recommandations de livres personnalisées.',
+              l.startConversationMuse,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: Theme.of(context)
                         .colorScheme

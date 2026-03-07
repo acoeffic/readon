@@ -7,12 +7,10 @@ import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
 import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
 
-import 'package:app_links/app_links.dart';
-
 import '../../config/env.dart';
 import '../../services/subscription_service.dart';
 import '../../services/monthly_notification_service.dart';
-import '../../services/notion_service.dart';
+import '../../services/deep_link_service.dart';
 import '../auth/auth_gate.dart';
 
 const _bookmarkSvg = '''
@@ -141,13 +139,8 @@ class _SplashScreenState extends State<SplashScreen>
       await _updateWidget();
     }
 
-    // Initialize deep link listener for Notion OAuth callback
-    if (!kIsWeb) {
-      final appLinks = AppLinks();
-      appLinks.uriLinkStream.listen((uri) {
-        NotionService().handleDeepLink(uri);
-      });
-    }
+    // Initialize deep link handling (Notion OAuth + book links)
+    DeepLinkService().init();
 
     // Wait for minimum splash duration
     await minDelay;

@@ -17,6 +17,8 @@ import '../reading/end_reading_session_page.dart';
 import '../reading/book_finished_share_service.dart';
 import '../reading/book_completed_summary_page.dart';
 import '../curated_lists/create_custom_list_dialog.dart';
+import '../curated_lists/custom_list_detail_page.dart';
+import '../curated_lists/add_book_to_list_page.dart';
 import '../../widgets/cached_book_cover.dart';
 import '../../widgets/constrained_content.dart';
 import '../../theme/app_theme.dart';
@@ -38,771 +40,994 @@ class UserBooksPage extends StatefulWidget {
 
 class _UserBooksPageState extends State<UserBooksPage> {
   final BooksService _booksService = BooksService();
-  final ScrollController _scrollController = ScrollController();
+  final ReadingSessionService _sessionService = ReadingSessionService();
+  final UserCustomListsService _listsService = UserCustomListsService();
   final TextEditingController _searchController = TextEditingController();
 
   List<Map<String, dynamic>> _booksWithStatus = [];
+  List<UserCustomList> _userLists = [];
+  Map<String, double> _readingProgress = {};
   bool _isLoading = true;
-  bool _isLoadingMore = false;
-  bool _hasMore = true;
-  bool _isEnrichingAuthors = false;
-  String _viewMode = 'status'; // 'status' ou 'genre'
-  String? _selectedGenre; // null = tous les genres
-  String? _selectedStatus; // null = tous, 'reading' = en cours, 'finished' = terminés
+  String _activeFilter = 'all';
+  bool _luGridView = true;
+  bool _showSearch = false;
   String _searchQuery = '';
 
-  static const int _pageSize = 30;
-  int _currentOffset = 0;
+  static const int _pageSize = 100;
 
-  // Livres filtrés par recherche
+  static const _placeholderColors = [
+    Color(0xFF6B988D),
+    Color(0xFFC6A85A),
+    Color(0xFF8B7355),
+    Color(0xFF9B6B8E),
+    Color(0xFF6B7D9B),
+    Color(0xFFB07D62),
+    Color(0xFF7B9B6B),
+    Color(0xFF9B8B6B),
+  ];
+
   List<Map<String, dynamic>> get _filteredBooks {
     if (_searchQuery.isEmpty) return _booksWithStatus;
     final query = _searchQuery.toLowerCase();
     return _booksWithStatus.where((item) {
       final book = item['book'] as Book;
-      final title = book.title.toLowerCase();
-      final author = (book.author ?? '').toLowerCase();
-      return title.contains(query) || author.contains(query);
+      return book.title.toLowerCase().contains(query) ||
+          (book.author ?? '').toLowerCase().contains(query);
     }).toList();
   }
 
-  // Livres séparés par statut
   List<Map<String, dynamic>> get _readingBooksData => _filteredBooks
-      .where((item) => item['status'] == 'reading' || item['status'] == 'to_read')
+      .where((item) =>
+          item['status'] == 'reading' || item['status'] == 'to_read')
       .toList();
 
-  List<Map<String, dynamic>> get _finishedBooksData => _filteredBooks
-      .where((item) => item['status'] == 'finished')
-      .toList();
+  List<Map<String, dynamic>> get _finishedBooksData =>
+      _filteredBooks.where((item) => item['status'] == 'finished').toList();
 
-  Map<String, List<Map<String, dynamic>>> get _booksByGenre {
-    final Map<String, List<Map<String, dynamic>>> grouped = {};
-    for (final item in _filteredBooks) {
-      final book = item['book'] as Book;
-      final genre = book.genre ?? 'Autre';
-      grouped.putIfAbsent(genre, () => []);
-      grouped[genre]!.add(item);
-    }
-    final sortedKeys = grouped.keys.toList()
-      ..sort((a, b) {
-        if (a == 'Autre') return 1;
-        if (b == 'Autre') return -1;
-        return a.compareTo(b);
-      });
-    return Map.fromEntries(
-      sortedKeys.map((k) => MapEntry(k, grouped[k]!)),
-    );
-  }
+  bool get _isDark => Theme.of(context).brightness == Brightness.dark;
 
   @override
   void initState() {
     super.initState();
-    _scrollController.addListener(_onScroll);
-    _loadBooks();
+    _loadAll();
   }
 
   @override
   void dispose() {
-    _scrollController.removeListener(_onScroll);
-    _scrollController.dispose();
     _searchController.dispose();
     super.dispose();
   }
 
-  void _onScroll() {
-    if (_scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent - 200) {
-      _loadMoreBooks();
+  Future<void> _loadAll() async {
+    setState(() => _isLoading = true);
+    try {
+      await Future.wait([
+        _loadBooks(),
+        _loadLists(),
+      ]);
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   Future<void> _loadBooks() async {
-    setState(() {
-      _isLoading = true;
-      _currentOffset = 0;
-      _hasMore = true;
-    });
-
     try {
-      final booksWithStatus = await _booksService.getUserBooksWithStatusPaginated(
+      final booksWithStatus =
+          await _booksService.getUserBooksWithStatusPaginated(
         limit: _pageSize,
         offset: 0,
       );
 
-      setState(() {
-        _booksWithStatus = booksWithStatus;
-        _isLoading = false;
-        _hasMore = booksWithStatus.length >= _pageSize;
-        _currentOffset = booksWithStatus.length;
-      });
+      if (mounted) {
+        setState(() => _booksWithStatus = booksWithStatus);
+      }
 
-      // Enrichir automatiquement les données manquantes en arrière-plan
+      _loadReadingProgress();
       _autoEnrichCovers();
       _autoEnrichDescriptions();
       _autoEnrichGenres();
     } catch (e) {
       debugPrint('Erreur _loadBooks: $e');
-      setState(() => _isLoading = false);
     }
   }
 
-  /// Enrichit automatiquement les couvertures manquantes sans bloquer l'UI
+  Future<void> _loadLists() async {
+    try {
+      final lists = await _listsService.getUserListsWithBooks();
+      if (mounted) setState(() => _userLists = lists);
+    } catch (e) {
+      debugPrint('Erreur _loadLists: $e');
+    }
+  }
+
+  Future<void> _loadReadingProgress() async {
+    final reading = _readingBooksData;
+    final Map<String, double> progress = {};
+
+    for (final item in reading) {
+      final book = item['book'] as Book;
+      if (book.pageCount == null || book.pageCount == 0) continue;
+      try {
+        final stats =
+            await _sessionService.getBookStats(book.id.toString());
+        if (stats.currentPage != null) {
+          progress[book.id.toString()] =
+              (stats.currentPage! / book.pageCount!).clamp(0.0, 1.0);
+        }
+      } catch (_) {}
+    }
+
+    if (mounted) setState(() => _readingProgress = progress);
+  }
+
   Future<void> _autoEnrichCovers() async {
-    final hasMissing = _booksWithStatus.any((item) {
-      final coverUrl = (item['book'] as Book).coverUrl;
-      return coverUrl == null || coverUrl.isEmpty;
-    });
-
+    final hasMissing =
+        _booksWithStatus.any((item) => (item['book'] as Book).coverUrl == null);
     if (!hasMissing) return;
-
     try {
       final count = await _booksService.enrichMissingCovers();
-      if (count > 0 && mounted) {
-        final booksWithStatus = await _booksService.getUserBooksWithStatusPaginated(
-          limit: _pageSize,
-          offset: 0,
-        );
-        setState(() {
-          _booksWithStatus = booksWithStatus;
-          _currentOffset = booksWithStatus.length;
-        });
-      }
+      if (count > 0 && mounted) _loadBooks();
     } catch (e) {
       debugPrint('Erreur auto-enrichissement couvertures: $e');
     }
   }
 
-  /// Enrichit automatiquement les descriptions manquantes sans bloquer l'UI
   Future<void> _autoEnrichDescriptions() async {
-    // Vérifier s'il y a des livres sans description
     final hasMissing = _booksWithStatus.any((item) {
-      final description = (item['book'] as Book).description;
-      return description == null || description.isEmpty;
+      final d = (item['book'] as Book).description;
+      return d == null || d.isEmpty;
     });
-
     if (!hasMissing) return;
-
     try {
       final count = await _booksService.enrichMissingDescriptions();
-      if (count > 0 && mounted) {
-        // Recharger les livres pour afficher les nouvelles descriptions
-        final booksWithStatus = await _booksService.getUserBooksWithStatusPaginated(
-          limit: _pageSize,
-          offset: 0,
-        );
-        setState(() {
-          _booksWithStatus = booksWithStatus;
-          _currentOffset = booksWithStatus.length;
-        });
-      }
+      if (count > 0 && mounted) _loadBooks();
     } catch (e) {
       debugPrint('Erreur auto-enrichissement descriptions: $e');
     }
   }
 
-  /// Enrichit automatiquement les genres manquants sans bloquer l'UI
   Future<void> _autoEnrichGenres() async {
-    final hasMissing = _booksWithStatus.any((item) {
-      return (item['book'] as Book).genre == null;
-    });
-
+    final hasMissing =
+        _booksWithStatus.any((item) => (item['book'] as Book).genre == null);
     if (!hasMissing) return;
-
     try {
       final count = await _booksService.enrichMissingGenres();
-      if (count > 0 && mounted) {
-        final booksWithStatus = await _booksService.getUserBooksWithStatusPaginated(
-          limit: _pageSize,
-          offset: 0,
-        );
-        setState(() {
-          _booksWithStatus = booksWithStatus;
-          _currentOffset = booksWithStatus.length;
-        });
-      }
+      if (count > 0 && mounted) _loadBooks();
     } catch (e) {
       debugPrint('Erreur auto-enrichissement genres: $e');
     }
   }
 
-  Future<void> _loadMoreBooks() async {
-    if (_isLoadingMore || !_hasMore) return;
-
-    setState(() => _isLoadingMore = true);
-
-    try {
-      final moreBooks = await _booksService.getUserBooksWithStatusPaginated(
-        limit: _pageSize,
-        offset: _currentOffset,
-      );
-
-      setState(() {
-        _booksWithStatus.addAll(moreBooks);
-        _isLoadingMore = false;
-        _hasMore = moreBooks.length >= _pageSize;
-        _currentOffset += moreBooks.length;
-      });
-    } catch (e) {
-      debugPrint('Erreur _loadMoreBooks: $e');
-      setState(() => _isLoadingMore = false);
+  void _navigateToBook(Book book, {bool isFinished = false}) {
+    if (isFinished) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+            builder: (context) => BookCompletedSummaryPage(book: book)),
+      ).then((_) => _loadAll());
+    } else {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+            builder: (context) => BookDetailPage(book: book)),
+      ).then((_) => _loadAll());
     }
   }
 
-  /// Alias pour compatibilité avec le code existant
-  Future<void> _loadAllBooks() => _loadBooks();
-
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final bg = _isDark ? AppColors.bgDark : AppColors.libraryBg;
+
     return Scaffold(
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        title: Text(AppLocalizations.of(context).myLibrary),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadAllBooks,
-            tooltip: AppLocalizations.of(context).refreshTooltip,
-          ),
-        ],
+      backgroundColor: bg,
+      body: SafeArea(
+        child: ConstrainedContent(
+          child: _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : _booksWithStatus.isEmpty
+                  ? _buildEmptyState(l10n)
+                  : RefreshIndicator(
+                      onRefresh: _loadAll,
+                      color: AppColors.sageGreen,
+                      child: CustomScrollView(
+                        slivers: [
+                          _buildHeader(l10n),
+                          if (_showSearch) _buildSearchBar(l10n),
+                          _buildFilterPills(l10n),
+                          ..._buildContent(l10n),
+                          const SliverToBoxAdapter(
+                              child: SizedBox(height: 100)),
+                        ],
+                      ),
+                    ),
+        ),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _booksWithStatus.isEmpty
-              ? _buildEmptyState()
-              : RefreshIndicator(
-                  onRefresh: _loadBooks,
-                  child: ConstrainedContent(
-                    child: Column(
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                        child: TextField(
-                          controller: _searchController,
-                          decoration: InputDecoration(
-                            hintText: AppLocalizations.of(context).searchBook,
-                            prefixIcon: const Icon(Icons.search),
-                            suffixIcon: _searchQuery.isNotEmpty
-                                ? IconButton(
-                                    icon: const Icon(Icons.clear),
-                                    onPressed: () {
-                                      _searchController.clear();
-                                      setState(() => _searchQuery = '');
-                                    },
-                                  )
-                                : null,
-                            isDense: true,
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          onChanged: (value) => setState(() => _searchQuery = value),
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                        child: SegmentedButton<String>(
-                          segments: [
-                            ButtonSegment(
-                              value: 'status',
-                              label: Text(AppLocalizations.of(context).statusLabel),
-                              icon: const Icon(Icons.playlist_add_check),
-                            ),
-                            ButtonSegment(
-                              value: 'genre',
-                              label: Text(AppLocalizations.of(context).genreLabel),
-                              icon: const Icon(Icons.category),
-                            ),
-                          ],
-                          selected: {_viewMode},
-                          onSelectionChanged: (newSelection) {
-                            setState(() => _viewMode = newSelection.first);
-                          },
-                        ),
-                      ),
-                      Expanded(
-                        child: _viewMode == 'status'
-                            ? _buildBooksListWithSections()
-                            : _buildBooksListByGenre(),
-                      ),
-                    ],
-                  ),
-                  ),
-                ),
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(AppLocalizations l10n) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.book, size: 64, color: Colors.grey),
+          Icon(LucideIcons.bookOpen, size: 64,
+              color: AppColors.sageGreen.withValues(alpha: 0.5)),
           const SizedBox(height: 16),
-          Text(AppLocalizations.of(context).noBooksInLibrary),
+          Text(l10n.noBooksInLibrary,
+              style: const TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600)),
           const SizedBox(height: 8),
-          Text(
-            AppLocalizations.of(context).scanOrSyncBooks,
-            style: TextStyle(color: Colors.grey),
-            textAlign: TextAlign.center,
-          ),
+          Text(l10n.scanOrSyncBooks,
+              style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 14,
+                  color: _isDark
+                      ? AppColors.textSecondaryDark
+                      : AppColors.textSecondary),
+              textAlign: TextAlign.center),
         ],
       ),
     );
   }
 
-  Future<void> _enrichAuthors() async {
-    setState(() => _isEnrichingAuthors = true);
-    try {
-      final count = await _booksService.enrichMissingAuthors();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(count > 0
-                ? AppLocalizations.of(context).authorFoundForBooks(count)
-                : AppLocalizations.of(context).noAuthorFound),
+  SliverToBoxAdapter _buildHeader(AppLocalizations l10n) {
+    return SliverToBoxAdapter(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 16, 16, 0),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(l10n.libraryTitle,
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: _isDark ? AppColors.textPrimaryDark : Colors.black,
+                      )),
+                  Text(l10n.librarySubtitle.toUpperCase(),
+                      style: const TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        letterSpacing: 1.2,
+                        color: AppColors.sageGreen,
+                      )),
+                ],
+              ),
+            ),
+            IconButton(
+              icon: Icon(
+                _showSearch ? LucideIcons.x : LucideIcons.search,
+                color: AppColors.sageGreen,
+              ),
+              onPressed: () {
+                setState(() {
+                  _showSearch = !_showSearch;
+                  if (!_showSearch) {
+                    _searchController.clear();
+                    _searchQuery = '';
+                  }
+                });
+              },
+            ),
+            IconButton(
+              icon: Icon(
+                _luGridView ? LucideIcons.layoutGrid : LucideIcons.list,
+                color: AppColors.sageGreen,
+              ),
+              onPressed: () => setState(() => _luGridView = !_luGridView),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  SliverToBoxAdapter _buildSearchBar(AppLocalizations l10n) {
+    return SliverToBoxAdapter(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+        child: TextField(
+          controller: _searchController,
+          decoration: InputDecoration(
+            hintText: l10n.searchBook,
+            prefixIcon: const Icon(Icons.search, size: 20),
+            suffixIcon: _searchQuery.isNotEmpty
+                ? IconButton(
+                    icon: const Icon(Icons.clear, size: 20),
+                    onPressed: () {
+                      _searchController.clear();
+                      setState(() => _searchQuery = '');
+                    })
+                : null,
+            isDense: true,
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppRadius.pill)),
+            enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppRadius.pill),
+                borderSide: BorderSide(
+                    color: _isDark ? AppColors.borderDark : AppColors.border)),
+            focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppRadius.pill),
+                borderSide:
+                    const BorderSide(color: AppColors.sageGreen, width: 2)),
+            filled: true,
+            fillColor: _isDark ? AppColors.surfaceDark : Colors.white,
           ),
-        );
-        if (count > 0) _loadAllBooks();
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context).errorSearchingAuthors)),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isEnrichingAuthors = false);
+          onChanged: (v) => setState(() => _searchQuery = v),
+        ),
+      ),
+    );
+  }
+
+  SliverToBoxAdapter _buildFilterPills(AppLocalizations l10n) {
+    final filters = [
+      ('all', l10n.filterAll),
+      ('reading', l10n.filterReading),
+      ('finished', l10n.filterRead),
+      ('lists', l10n.filterMyLists),
+    ];
+
+    return SliverToBoxAdapter(
+      child: SizedBox(
+        height: 52,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
+          separatorBuilder: (_, __) => const SizedBox(width: 8),
+          itemCount: filters.length,
+          itemBuilder: (context, i) {
+            final (key, label) = filters[i];
+            final isActive = _activeFilter == key;
+            return GestureDetector(
+              onTap: () => setState(() => _activeFilter = key),
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: isActive
+                      ? AppColors.sageGreen
+                      : (_isDark ? AppColors.surfaceDark : Colors.white),
+                  borderRadius: BorderRadius.circular(AppRadius.pill),
+                  border: Border.all(
+                    color: isActive
+                        ? AppColors.sageGreen
+                        : (_isDark
+                            ? AppColors.borderDark
+                            : AppColors.sageGreen.withValues(alpha: 0.3)),
+                  ),
+                ),
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: isActive
+                        ? Colors.white
+                        : AppColors.sageGreen,
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _buildContent(AppLocalizations l10n) {
+    switch (_activeFilter) {
+      case 'reading':
+        return _buildReadingSectionFull(l10n);
+      case 'finished':
+        return _buildFinishedSectionFull(l10n);
+      case 'lists':
+        return _buildListsSectionFull(l10n);
+      default:
+        return [
+          if (_readingBooksData.isNotEmpty) ..._buildReadingSection(l10n),
+          if (_finishedBooksData.isNotEmpty) ..._buildFinishedSection(l10n),
+          if (_userLists.isNotEmpty) ..._buildListsSection(l10n),
+        ];
     }
   }
 
-  bool get _hasBooksWithoutAuthor => _booksWithStatus.any(
-    (item) {
-      final author = (item['book'] as Book).author;
-      return author == null || author.isEmpty || author == 'Auteur inconnu';
-    },
-  );
-
-  Widget _buildEnrichAuthorsButton() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-      child: OutlinedButton.icon(
-        onPressed: _isEnrichingAuthors ? null : _enrichAuthors,
-        icon: _isEnrichingAuthors
-            ? const SizedBox(
-                width: 16,
-                height: 16,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            : const Icon(Icons.person_search),
-        label: Text(_isEnrichingAuthors
-            ? AppLocalizations.of(context).searchingInProgress
-            : AppLocalizations.of(context).searchMissingAuthors),
-      ),
-    );
-  }
-
-  Widget _buildGenreChips() {
-    final grouped = _booksByGenre;
-    return SizedBox(
-      height: 44,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: FilterChip(
-              selected: _selectedGenre == null,
-              label: Text('Tous (${_filteredBooks.length})'),
-              avatar: _selectedGenre == null ? null : const Icon(Icons.library_books, size: 16),
-              onSelected: (_) => setState(() => _selectedGenre = null),
+  Widget _sectionHeader({
+    required String title,
+    required int count,
+    VoidCallback? onSeeAll,
+    Widget? trailing,
+  }) {
+    return SliverToBoxAdapter(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 20, 16, 8),
+        child: Row(
+          children: [
+            Text(title,
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: _isDark ? AppColors.textPrimaryDark : Colors.black,
+                )),
+            const SizedBox(width: 8),
+            Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: AppColors.sageGreen.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text('$count',
+                  style: const TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.sageGreen,
+                  )),
             ),
-          ),
-          ...grouped.entries.map((entry) => Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-                child: FilterChip(
-                  selected: _selectedGenre == entry.key,
-                  label: Text('${entry.key} (${entry.value.length})'),
-                  avatar: _selectedGenre == entry.key
-                      ? null
-                      : Icon(_genreIcon(entry.key), size: 16),
-                  onSelected: (_) => setState(() {
-                    _selectedGenre = _selectedGenre == entry.key ? null : entry.key;
-                  }),
+            const Spacer(),
+            if (trailing != null) trailing,
+            if (onSeeAll != null)
+              GestureDetector(
+                onTap: onSeeAll,
+                child: Row(
+                  children: [
+                    Text(AppLocalizations.of(context).seeAll,
+                        style: const TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.sageGreen,
+                        )),
+                    const SizedBox(width: 2),
+                    const Icon(LucideIcons.arrowRight,
+                        size: 14, color: AppColors.sageGreen),
+                  ],
                 ),
-              )),
-        ],
+              ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildBooksListByGenre() {
-    final grouped = _booksByGenre;
-
-    // Filtrer si un genre est sélectionné
-    final filteredEntries = _selectedGenre != null
-        ? grouped.entries.where((e) => e.key == _selectedGenre)
-        : grouped.entries;
-
-    return Column(
-      children: [
-        _buildGenreChips(),
-        const SizedBox(height: 4),
-        Expanded(
-          child: ListView(
-            controller: _scrollController,
-            children: [
-              if (_hasBooksWithoutAuthor) _buildEnrichAuthorsButton(),
-              for (final entry in filteredEntries) ...[
-                if (_selectedGenre == null)
-                  _buildSectionHeader(
-                    entry.key,
-                    _genreIcon(entry.key),
-                    entry.value.length,
-                  ),
-                ...entry.value.map((item) {
-                  final book = item['book'] as Book;
-                  final status = item['status'] as String?;
-                  return _buildBookCard(
-                    book,
-                    isFinished: status == 'finished',
-                    isHidden: item['is_hidden'] as bool? ?? false,
-                  );
-                }),
-              ],
-              // Loading indicator
-              if (_isLoadingMore || _hasMore)
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Center(
-                    child: _isLoadingMore
-                        ? const CircularProgressIndicator()
-                        : const SizedBox.shrink(),
-                  ),
-                ),
-            ],
+  // "En cours" section
+  List<Widget> _buildReadingSection(AppLocalizations l10n) {
+    return [
+      _sectionHeader(
+        title: l10n.currentlyReading,
+        count: _readingBooksData.length,
+        onSeeAll: () => _pushSeeAll(
+            l10n.allReadingBooks, _readingBooksData, false),
+      ),
+      SliverToBoxAdapter(
+        child: SizedBox(
+          height: 280,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            itemCount: _readingBooksData.length,
+            itemBuilder: (context, i) {
+              final book = _readingBooksData[i]['book'] as Book;
+              final progress =
+                  _readingProgress[book.id.toString()] ?? 0.0;
+              return _buildReadingCard(book, progress);
+            },
           ),
         ),
-      ],
-    );
-  }
-
-  Widget _buildStatusChips() {
-    return SizedBox(
-      height: 44,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: FilterChip(
-              selected: _selectedStatus == null,
-              label: Text('Tous (${_filteredBooks.length})'),
-              avatar: _selectedStatus == null ? null : const Icon(Icons.library_books, size: 16),
-              onSelected: (_) => setState(() => _selectedStatus = null),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: FilterChip(
-              selected: _selectedStatus == 'reading',
-              label: Text('En cours (${_readingBooksData.length})'),
-              avatar: _selectedStatus == 'reading' ? null : const Icon(Icons.auto_stories, size: 16),
-              onSelected: (_) => setState(() {
-                _selectedStatus = _selectedStatus == 'reading' ? null : 'reading';
-              }),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: FilterChip(
-              selected: _selectedStatus == 'finished',
-              label: Text('Terminés (${_finishedBooksData.length})'),
-              avatar: _selectedStatus == 'finished' ? null : const Icon(Icons.check_circle, size: 16),
-              onSelected: (_) => setState(() {
-                _selectedStatus = _selectedStatus == 'finished' ? null : 'finished';
-              }),
-            ),
-          ),
-        ],
       ),
-    );
+    ];
   }
 
-  Widget _buildBooksListWithSections() {
-    final showReading = _selectedStatus == null || _selectedStatus == 'reading';
-    final showFinished = _selectedStatus == null || _selectedStatus == 'finished';
-
-    return Column(
-      children: [
-        _buildStatusChips(),
-        const SizedBox(height: 4),
-        Expanded(
-          child: ListView(
-            controller: _scrollController,
-            children: [
-              if (_hasBooksWithoutAuthor) _buildEnrichAuthorsButton(),
-              // Section: En cours / À lire
-              if (showReading && _readingBooksData.isNotEmpty) ...[
-                if (_selectedStatus == null)
-                  _buildSectionHeader(
-                    'En cours',
-                    Icons.auto_stories,
-                    _readingBooksData.length,
-                  ),
-                ..._readingBooksData.map((item) => _buildBookCard(
-                      item['book'] as Book,
-                      isHidden: item['is_hidden'] as bool? ?? false,
-                    )),
-              ],
-
-              // Section: Terminés
-              if (showFinished && _finishedBooksData.isNotEmpty) ...[
-                if (_selectedStatus == null)
-                  _buildSectionHeader(
-                    'Terminés',
-                    Icons.check_circle,
-                    _finishedBooksData.length,
-                  ),
-                ..._finishedBooksData.map((item) => _buildBookCard(
-                      item['book'] as Book,
-                      isFinished: true,
-                      isHidden: item['is_hidden'] as bool? ?? false,
-                    )),
-              ],
-
-              // Loading indicator
-              if (_isLoadingMore || _hasMore)
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Center(
-                    child: _isLoadingMore
-                        ? const CircularProgressIndicator()
-                        : const SizedBox.shrink(),
-                  ),
-                ),
-            ],
+  List<Widget> _buildReadingSectionFull(AppLocalizations l10n) {
+    if (_readingBooksData.isEmpty) {
+      return [
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.all(40),
+            child: Center(
+              child: Text(l10n.noCurrentlyReading,
+                  style: TextStyle(
+                      fontFamily: 'Inter',
+                      color: _isDark
+                          ? AppColors.textSecondaryDark
+                          : AppColors.textSecondary)),
+            ),
           ),
         ),
-      ],
-    );
-  }
-
-  IconData _genreIcon(String genre) {
-    const icons = {
-      'Science-Fiction': Icons.rocket_launch,
-      'Fantasy': Icons.auto_awesome,
-      'Thriller': Icons.psychology,
-      'Policier': Icons.search,
-      'Horreur': Icons.nights_stay,
-      'Romance': Icons.favorite,
-      'Biographie': Icons.person,
-      'Histoire': Icons.history_edu,
-      'Historique': Icons.history_edu,
-      'Philosophie': Icons.school,
-      'Développement personnel': Icons.trending_up,
-      'Psychologie': Icons.psychology_alt,
-      'Sciences': Icons.science,
-      'Informatique': Icons.computer,
-      'Technologie': Icons.devices,
-      'Business / Économie': Icons.show_chart,
-      'Roman': Icons.auto_stories,
-      'Roman littéraire': Icons.auto_stories,
-      'BD / Comics': Icons.burst_mode,
-      'Manga': Icons.burst_mode,
-      'Poésie': Icons.edit_note,
-      'Cuisine': Icons.restaurant,
-      'Voyage': Icons.flight,
-      'Humour': Icons.sentiment_very_satisfied,
-      'Jeunesse': Icons.child_care,
-      'Young Adult': Icons.child_care,
-      'Non-fiction': Icons.menu_book,
-      'Sport': Icons.sports,
-      'Santé': Icons.health_and_safety,
-      'Art': Icons.palette,
-      'Musique': Icons.music_note,
-      'Religion': Icons.church,
-      'Politique': Icons.account_balance,
-      'Société': Icons.groups,
-      'Autre': Icons.bookmark,
-    };
-    return icons[genre] ?? Icons.bookmark;
-  }
-
-  Widget _buildSectionHeader(String title, IconData icon, int count) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-      child: Row(
-        children: [
-          Icon(icon, size: 20, color: Theme.of(context).primaryColor),
-          const SizedBox(width: 8),
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
+      ];
+    }
+    return [
+      _sectionHeader(
+          title: l10n.currentlyReading,
+          count: _readingBooksData.length),
+      SliverToBoxAdapter(
+        child: SizedBox(
+          height: 280,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            itemCount: _readingBooksData.length,
+            itemBuilder: (context, i) {
+              final book = _readingBooksData[i]['book'] as Book;
+              final progress =
+                  _readingProgress[book.id.toString()] ?? 0.0;
+              return _buildReadingCard(book, progress);
+            },
           ),
-          const SizedBox(width: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-            decoration: BoxDecoration(
-              color: Theme.of(context).primaryColor.withValues(alpha:0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              '$count',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).primaryColor,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBookCard(Book book, {bool isFinished = false, bool isHidden = false}) {
-    return Dismissible(
-      key: Key('book_${book.id}'),
-      direction: DismissDirection.endToStart,
-      background: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 20),
-        decoration: BoxDecoration(
-          color: Colors.red,
-          borderRadius: BorderRadius.circular(12),
         ),
-        child: const Icon(Icons.delete, color: Colors.white),
       ),
-      confirmDismiss: (direction) async {
-        return await showDialog<bool>(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('Supprimer ce livre ?'),
-            content: Text('Retirer "${book.title}" de votre bibliothèque ?'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('Annuler'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(context, true),
-                style: TextButton.styleFrom(foregroundColor: Colors.red),
-                child: const Text('Supprimer'),
-              ),
-            ],
-          ),
-        ) ?? false;
-      },
-      onDismissed: (direction) async {
-        await _booksService.removeBookFromLibrary(book.id);
-        _loadAllBooks();
-      },
-      child: Card(
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        child: ListTile(
-          leading: Stack(
-            children: [
-              CachedBookCover(
-                imageUrl: book.coverUrl,
-                width: 50,
-                height: 70,
-                borderRadius: BorderRadius.circular(4),
-              ),
-              if (isFinished)
-                Positioned(
-                  bottom: 0,
-                  right: 0,
-                  child: Container(
-                    padding: const EdgeInsets.all(2),
-                    decoration: const BoxDecoration(
-                      color: Colors.green,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.check,
-                      size: 12,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              if (isHidden)
-                Positioned(
-                  top: 0,
-                  right: 0,
-                  child: Container(
-                    padding: const EdgeInsets.all(2),
-                    decoration: const BoxDecoration(
-                      color: Colors.orange,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.visibility_off,
-                      size: 12,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-          title: Text(book.title, maxLines: 2, overflow: TextOverflow.ellipsis),
-          subtitle: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (book.author != null && book.author!.isNotEmpty && book.author != 'Auteur inconnu')
-                Text(book.author!, maxLines: 1, overflow: TextOverflow.ellipsis),
-              if (book.description != null && book.description!.isNotEmpty) ...[
-                const SizedBox(height: 4),
-                Text(
-                  book.description!,
-                  maxLines: 2,
+    ];
+  }
+
+  Widget _buildReadingCard(Book book, double progress) {
+    return GestureDetector(
+      onTap: () => _navigateToBook(book),
+      child: Container(
+        width: 140,
+        margin: const EdgeInsets.only(right: 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildBookCover(book, 140, 200),
+            const SizedBox(height: 6),
+            Text(book.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: _isDark ? AppColors.textPrimaryDark : Colors.black87,
+                )),
+            if (book.author != null && book.author!.isNotEmpty)
+              Text(book.author!,
+                  maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize: 12,
-                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
-                  ),
-                ),
-              ],
-              const SizedBox(height: 4),
-              Row(
-                children: [
-                  Icon(
-                    book.isKindle ? Icons.cloud : Icons.camera_alt,
-                    size: 12,
-                    color: Colors.grey,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    book.isKindle ? 'Kindle' : 'Scanné',
-                    style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
-                  ),
-                ],
+                    fontFamily: 'Inter',
+                    fontSize: 11,
+                    color: _isDark
+                        ? AppColors.textSecondaryDark
+                        : AppColors.textSecondary,
+                  )),
+            const SizedBox(height: 4),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(2),
+              child: LinearProgressIndicator(
+                value: progress,
+                minHeight: 4,
+                backgroundColor: _isDark
+                    ? AppColors.borderDark
+                    : Colors.grey.shade200,
+                valueColor: const AlwaysStoppedAnimation<Color>(
+                    AppColors.sageGreen),
               ),
-            ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // "Lu" section
+  List<Widget> _buildFinishedSection(AppLocalizations l10n) {
+    final books = _finishedBooksData.take(9).toList();
+    return [
+      _sectionHeader(
+        title: l10n.readBooks,
+        count: _finishedBooksData.length,
+        onSeeAll: () => _pushSeeAll(
+            l10n.allFinishedBooks, _finishedBooksData, true),
+        trailing: IconButton(
+          icon: Icon(
+            _luGridView ? LucideIcons.layoutGrid : LucideIcons.list,
+            size: 18,
+            color: AppColors.sageGreen,
           ),
-          trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-          onTap: () {
-            if (isFinished) {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => BookCompletedSummaryPage(book: book),
+          onPressed: () => setState(() => _luGridView = !_luGridView),
+          visualDensity: VisualDensity.compact,
+        ),
+      ),
+      if (_luGridView)
+        _buildFinishedGrid(books)
+      else
+        _buildFinishedList(books),
+    ];
+  }
+
+  List<Widget> _buildFinishedSectionFull(AppLocalizations l10n) {
+    if (_finishedBooksData.isEmpty) {
+      return [
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.all(40),
+            child: Center(
+              child: Text(l10n.noReadBooks,
+                  style: TextStyle(
+                      fontFamily: 'Inter',
+                      color: _isDark
+                          ? AppColors.textSecondaryDark
+                          : AppColors.textSecondary)),
+            ),
+          ),
+        ),
+      ];
+    }
+    return [
+      _sectionHeader(
+        title: l10n.readBooks,
+        count: _finishedBooksData.length,
+        trailing: IconButton(
+          icon: Icon(
+            _luGridView ? LucideIcons.layoutGrid : LucideIcons.list,
+            size: 18,
+            color: AppColors.sageGreen,
+          ),
+          onPressed: () => setState(() => _luGridView = !_luGridView),
+          visualDensity: VisualDensity.compact,
+        ),
+      ),
+      if (_luGridView)
+        _buildFinishedGrid(_finishedBooksData)
+      else
+        _buildFinishedList(_finishedBooksData),
+    ];
+  }
+
+  Widget _buildFinishedGrid(List<Map<String, dynamic>> books) {
+    return SliverPadding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      sliver: SliverGrid(
+        delegate: SliverChildBuilderDelegate(
+          (context, i) {
+            final book = books[i]['book'] as Book;
+            return GestureDetector(
+              onTap: () => _navigateToBook(book, isFinished: true),
+              child: _buildBookCover(book, double.infinity, double.infinity),
+            );
+          },
+          childCount: books.length,
+        ),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 3,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+          childAspectRatio: 0.65,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFinishedList(List<Map<String, dynamic>> books) {
+    return SliverList(
+      delegate: SliverChildBuilderDelegate(
+        (context, i) {
+          final book = books[i]['book'] as Book;
+          return ListTile(
+            leading: CachedBookCover(
+              imageUrl: book.coverUrl,
+              width: 45,
+              height: 65,
+              borderRadius: BorderRadius.circular(6),
+            ),
+            title: Text(book.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                    fontFamily: 'Inter', fontSize: 14, fontWeight: FontWeight.w500)),
+            subtitle: book.author != null
+                ? Text(book.author!,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 12,
+                      color: _isDark
+                          ? AppColors.textSecondaryDark
+                          : AppColors.textSecondary,
+                    ))
+                : null,
+            trailing: const Icon(LucideIcons.chevronRight,
+                size: 16, color: AppColors.sageGreen),
+            onTap: () => _navigateToBook(book, isFinished: true),
+          );
+        },
+        childCount: books.length,
+      ),
+    );
+  }
+
+  // "Mes listes" section
+  List<Widget> _buildListsSection(AppLocalizations l10n) {
+    final widgets = <Widget>[];
+    for (final list in _userLists) {
+      widgets.addAll(_buildSingleListRow(list));
+    }
+    return widgets;
+  }
+
+  List<Widget> _buildListsSectionFull(AppLocalizations l10n) {
+    if (_userLists.isEmpty) {
+      return [
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.all(40),
+            child: Center(
+              child: Text(l10n.noList,
+                  style: TextStyle(
+                      fontFamily: 'Inter',
+                      color: _isDark
+                          ? AppColors.textSecondaryDark
+                          : AppColors.textSecondary)),
+            ),
+          ),
+        ),
+      ];
+    }
+    final widgets = <Widget>[];
+    for (final list in _userLists) {
+      widgets.addAll(_buildSingleListRow(list));
+    }
+    return widgets;
+  }
+
+  List<Widget> _buildSingleListRow(UserCustomList list) {
+    return [
+      _sectionHeader(
+        title: list.title,
+        count: list.bookCount,
+        onSeeAll: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) =>
+                    CustomListDetailPage(list: list)),
+          ).then((_) => _loadAll());
+        },
+      ),
+      SliverToBoxAdapter(
+        child: SizedBox(
+          height: 140,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            itemCount: list.books.length + 1,
+            itemBuilder: (context, i) {
+              if (i == list.books.length) {
+                return _buildAddBookCard(list);
+              }
+              final book = list.books[i];
+              return GestureDetector(
+                onTap: () => _navigateToBook(book),
+                child: Container(
+                  margin: const EdgeInsets.only(right: 10),
+                  child: _buildBookCover(book, 80, 120),
                 ),
-              ).then((_) => _loadAllBooks());
-            } else {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => BookDetailPage(book: book),
+              );
+            },
+          ),
+        ),
+      ),
+    ];
+  }
+
+  Widget _buildAddBookCard(UserCustomList list) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => AddBookToListPage(
+              listId: list.id,
+              existingBookIds: list.books.map((b) => b.id).toSet(),
+            ),
+          ),
+        ).then((_) => _loadAll());
+      },
+      child: Container(
+        width: 80,
+        height: 120,
+        decoration: BoxDecoration(
+          color: _isDark
+              ? AppColors.surfaceDark
+              : AppColors.sageGreen.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: AppColors.sageGreen.withValues(alpha: 0.3),
+          ),
+        ),
+        child: const Center(
+          child: Icon(LucideIcons.plus,
+              size: 24, color: AppColors.sageGreen),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBookCover(Book book, double width, double height) {
+    if (book.coverUrl != null && book.coverUrl!.isNotEmpty) {
+      return Container(
+        width: width.isFinite ? width : null,
+        height: height.isFinite ? height : null,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.1),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: CachedBookCover(
+            imageUrl: book.coverUrl,
+            width: width.isFinite ? width : 140,
+            height: height.isFinite ? height : 200,
+            fit: BoxFit.cover,
+          ),
+        ),
+      );
+    }
+
+    final color = _placeholderColors[
+        book.title.hashCode.abs() % _placeholderColors.length];
+    return Container(
+      width: width.isFinite ? width : null,
+      height: height.isFinite ? height : null,
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.3),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(10),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(book.title,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              )),
+          if (book.author != null && book.author!.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(book.author!,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 10,
+                  color: Colors.white.withValues(alpha: 0.7),
+                )),
+          ],
+        ],
+      ),
+    );
+  }
+
+  void _pushSeeAll(
+      String title, List<Map<String, dynamic>> books, bool isFinished) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => _SeeAllBooksPage(
+          title: title,
+          books: books,
+          isFinished: isFinished,
+          onReturn: _loadAll,
+        ),
+      ),
+    );
+  }
+}
+
+// ─── SEE ALL BOOKS PAGE ─────────────────────────────────
+
+class _SeeAllBooksPage extends StatelessWidget {
+  final String title;
+  final List<Map<String, dynamic>> books;
+  final bool isFinished;
+  final VoidCallback onReturn;
+
+  const _SeeAllBooksPage({
+    required this.title,
+    required this.books,
+    required this.isFinished,
+    required this.onReturn,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Scaffold(
+      backgroundColor: isDark ? AppColors.bgDark : AppColors.libraryBg,
+      appBar: AppBar(
+        title: Text(title,
+            style: const TextStyle(fontFamily: 'Poppins', fontSize: 18)),
+        backgroundColor: isDark ? AppColors.bgDark : AppColors.libraryBg,
+        elevation: 0,
+      ),
+      body: ConstrainedContent(
+        child: ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: books.length,
+          itemBuilder: (context, i) {
+            final book = books[i]['book'] as Book;
+            return Card(
+              margin: const EdgeInsets.only(bottom: 8),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+              child: ListTile(
+                leading: CachedBookCover(
+                  imageUrl: book.coverUrl,
+                  width: 45,
+                  height: 65,
+                  borderRadius: BorderRadius.circular(6),
                 ),
-              ).then((_) => _loadAllBooks());
-            }
+                title: Text(book.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500)),
+                subtitle: book.author != null
+                    ? Text(book.author!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 12,
+                          color: isDark
+                              ? AppColors.textSecondaryDark
+                              : AppColors.textSecondary,
+                        ))
+                    : null,
+                trailing: const Icon(LucideIcons.chevronRight,
+                    size: 16, color: AppColors.sageGreen),
+                onTap: () {
+                  if (isFinished) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) =>
+                              BookCompletedSummaryPage(book: book)),
+                    ).then((_) => onReturn());
+                  } else {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) =>
+                              BookDetailPage(book: book)),
+                    ).then((_) => onReturn());
+                  }
+                },
+              ),
+            );
           },
         ),
       ),
@@ -814,11 +1039,13 @@ class _UserBooksPageState extends State<UserBooksPage> {
 class BookDetailPage extends StatefulWidget {
   final Book book;
   final String? initialStatus; // Optionnel, sera chargé si non fourni
+  final String? sharedByUserId;
 
   const BookDetailPage({
     super.key,
     required this.book,
     this.initialStatus,
+    this.sharedByUserId,
   });
 
   @override
@@ -845,6 +1072,9 @@ class _BookDetailPageState extends State<BookDetailPage> {
   bool _isSyncingNotion = false;
   String? _playingAnnotationId;
   AudioPlayer? _annotationAudioPlayer;
+
+  // Shared-by banner
+  String? _sharerName;
 
   static const List<String> _availableGenres = [
     'Roman',
@@ -890,6 +1120,24 @@ class _BookDetailPageState extends State<BookDetailPage> {
   void initState() {
     super.initState();
     _loadSessionData();
+    _loadSharerProfile();
+  }
+
+  Future<void> _loadSharerProfile() async {
+    final uid = widget.sharedByUserId;
+    if (uid == null) return;
+    try {
+      final row = await Supabase.instance.client
+          .from('profiles')
+          .select('display_name')
+          .eq('id', uid)
+          .maybeSingle();
+      if (row != null && mounted) {
+        setState(() => _sharerName = row['display_name'] as String?);
+      }
+    } catch (e) {
+      debugPrint('Error loading sharer profile: $e');
+    }
   }
 
   @override
@@ -1236,6 +1484,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
       body: SingleChildScrollView(
         child: Column(
           children: [
+            if (_sharerName != null) _buildSharedByBanner(),
             _buildBookHeader(),
             if (!_isLoading) _buildReadingSessionSection(),
             if (_stats != null && _stats!.sessionsCount > 0) _buildStatsSection(),
@@ -1244,6 +1493,31 @@ class _BookDetailPageState extends State<BookDetailPage> {
             if (widget.book.description != null) _buildDescriptionSection(),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildSharedByBanner() {
+    final l10n = AppLocalizations.of(context);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      color: AppColors.sageGreen.withValues(alpha: 0.15),
+      child: Row(
+        children: [
+          const Icon(LucideIcons.share2, size: 16, color: AppColors.sageGreen),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              l10n.sharedByUser(_sharerName!),
+              style: const TextStyle(
+                color: AppColors.sageGreen,
+                fontWeight: FontWeight.w500,
+                fontSize: 14,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

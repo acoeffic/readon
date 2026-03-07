@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/back_header.dart';
 import '../../models/reading_goal.dart';
@@ -118,8 +119,8 @@ class _ReadingGoalsPageState extends State<ReadingGoalsPage> {
       await _goalsService.saveAllGoals(goals);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Objectifs enregistres !'),
+          SnackBar(
+            content: Text(AppLocalizations.of(context).goalsSaved),
             backgroundColor: Colors.green,
           ),
         );
@@ -140,6 +141,7 @@ class _ReadingGoalsPageState extends State<ReadingGoalsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
@@ -153,8 +155,8 @@ class _ReadingGoalsPageState extends State<ReadingGoalsPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const BackHeader(
-                            title: 'Mes objectifs',
+                          BackHeader(
+                            title: l.myGoals,
                             titleColor: AppColors.primary,
                           ),
                           const SizedBox(height: AppSpace.s),
@@ -163,7 +165,7 @@ class _ReadingGoalsPageState extends State<ReadingGoalsPage> {
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: AppSpace.s),
                             child: Text(
-                              'Personnalise tes objectifs pour rester motive et suivre ta progression.',
+                              l.goalsDescription,
                               style: TextStyle(
                                 fontSize: 13,
                                 color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
@@ -391,9 +393,9 @@ class _ReadingGoalsPageState extends State<ReadingGoalsPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Objectif libre',
-                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                  Text(
+                    AppLocalizations.of(context).freeGoal,
+                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
                   ),
                   const SizedBox(height: AppSpace.s),
                   SizedBox(
@@ -508,9 +510,9 @@ class _ReadingGoalsPageState extends State<ReadingGoalsPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  '💡 Objectifs selectionnes',
-                  style: TextStyle(
+                Text(
+                  AppLocalizations.of(context).selectedGoals,
+                  style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
                     color: AppColors.primary,
@@ -676,7 +678,7 @@ class _ReadingGoalsPageState extends State<ReadingGoalsPage> {
                 children: [
                   const SizedBox(width: 36), // Aligner avec le texte
                   Text(
-                    'Objectif :',
+                    AppLocalizations.of(context).goalPrefix,
                     style: TextStyle(
                       fontSize: 13,
                       color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
@@ -795,9 +797,9 @@ class _ReadingGoalsPageState extends State<ReadingGoalsPage> {
                         color: Colors.white,
                       ),
                     )
-                  : const Text(
-                      'Enregistrer mes objectifs',
-                      style: TextStyle(
+                  : Text(
+                      AppLocalizations.of(context).saveMyGoals,
+                      style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                       ),
@@ -806,7 +808,7 @@ class _ReadingGoalsPageState extends State<ReadingGoalsPage> {
           ),
           const SizedBox(height: AppSpace.s),
           Text(
-            'Tu pourras modifier tes objectifs a tout moment',
+            AppLocalizations.of(context).goalsModifiable,
             style: TextStyle(
               fontSize: 12,
               color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),

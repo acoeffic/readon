@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
+import '../../l10n/app_localizations.dart';
 import '../../models/reading_session.dart';
 import '../../models/book.dart';
 import '../../providers/subscription_provider.dart';
@@ -47,6 +48,7 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
   }
 
   Future<void> _toggleHidden() async {
+    final l = AppLocalizations.of(context);
     final newValue = !_isHidden;
     setState(() => _isHidden = newValue);
 
@@ -59,10 +61,10 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(newValue
-              ? 'Session masquee des classements'
-              : 'Session visible dans les classements'),
+              ? l.sessionHiddenInfo
+              : l.sessionVisible),
           action: SnackBarAction(
-            label: 'Annuler',
+            label: l.cancel,
             onPressed: () async {
               setState(() => _isHidden = !newValue);
               try {
@@ -79,27 +81,27 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
       setState(() => _isHidden = !newValue);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Erreur lors de la modification')),
+        SnackBar(content: Text(AppLocalizations.of(context).errorModifying)),
       );
     }
   }
 
   Future<void> _deleteSession() async {
+    final l = AppLocalizations.of(context);
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Supprimer la session'),
-        content: const Text(
-            'Voulez-vous vraiment supprimer cette session de lecture ? Cette action est irreversible.'),
+        title: Text(l.deleteSessionTitle),
+        content: Text(l.deleteSessionMessage),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Annuler'),
+            child: Text(l.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Supprimer'),
+            child: Text(l.deleteButton),
           ),
         ],
       ),
@@ -114,7 +116,7 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Erreur lors de la suppression')),
+            SnackBar(content: Text(AppLocalizations.of(context).errorDeleting)),
           );
         }
       }
@@ -138,6 +140,7 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardColor = isDark ? const Color(0xFF2A2A2A) : Colors.white;
     final terracotta = const Color(0xFFCC8B65);
@@ -162,7 +165,7 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
-          'SESSION',
+          l.sessionTag,
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w700,
@@ -186,7 +189,7 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
                   size: 18,
                 ),
               ),
-              tooltip: _isHidden ? 'Rendre visible' : 'Masquer la session',
+              tooltip: _isHidden ? l.makeVisible : l.hideSessionBtn,
               onPressed: _toggleHidden,
             ),
             IconButton(
@@ -230,7 +233,7 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        'Session masquee des classements et du feed',
+                        l.sessionHiddenInfo,
                         style: TextStyle(
                           fontSize: 13,
                           color: Colors.orange.shade800,
@@ -278,6 +281,7 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
   }
 
   Widget _buildBookHeader(bool isDark, Color terracotta, Color subtitleColor) {
+    final l = AppLocalizations.of(context);
     final progressPercent = _getBookProgress();
 
     return Row(
@@ -309,7 +313,7 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
             children: [
               const SizedBox(height: 4),
               Text(
-                widget.book?.title ?? 'Livre inconnu',
+                widget.book?.title ?? l.unknownBook,
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w800,
@@ -337,7 +341,7 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
               Row(
                 children: [
                   Text(
-                    'Progression du livre',
+                    l.bookProgression,
                     style: TextStyle(
                       fontSize: 12,
                       color: subtitleColor,
@@ -378,7 +382,7 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
                   ),
                   const Spacer(),
                   Text(
-                    widget.book?.pageCount != null ? '${widget.book!.pageCount} pages' : '',
+                    widget.book?.pageCount != null ? l.nPages(widget.book!.pageCount!) : '',
                     style: TextStyle(
                       fontSize: 11,
                       color: subtitleColor,
@@ -395,6 +399,7 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
 
   Widget _buildStatsCard(
       bool isDark, Color cardColor, Color terracotta, Color subtitleColor) {
+    final l = AppLocalizations.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
       decoration: BoxDecoration(
@@ -415,21 +420,21 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
           _buildStatItem(
             '\u{23F1}',
             _formatDuration(widget.session.durationMinutes),
-            'duree',
+            l.durationLabel,
             terracotta,
             subtitleColor,
           ),
           _buildStatItem(
             '\u{1F4C4}',
             '${widget.session.pagesRead}',
-            'pages lues',
+            l.pagesReadLabel,
             terracotta,
             subtitleColor,
           ),
           _buildStatItem(
             '\u{1F4C8}',
             _formatPace(),
-            'rythme',
+            l.paceLabel,
             terracotta,
             subtitleColor,
           ),
@@ -467,6 +472,7 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
 
   Widget _buildProgressionCard(
       bool isDark, Color cardColor, Color terracotta, Color subtitleColor) {
+    final l = AppLocalizations.of(context);
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -486,7 +492,7 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
           Row(
             children: [
               Text(
-                'Progression de la session',
+                l.sessionProgression,
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
@@ -504,7 +510,7 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  '+${widget.session.pagesRead} pages',
+                  l.plusPages(widget.session.pagesRead),
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
@@ -519,7 +525,7 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
             children: [
               // Start page
               _buildPageBubble(
-                'Debut',
+                l.startLabel,
                 '${widget.session.startPage}',
                 isDark,
                 false,
@@ -557,7 +563,7 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
               ),
               // End page
               _buildPageBubble(
-                'Fin',
+                l.endLabel,
                 '${widget.session.endPage ?? widget.session.startPage}',
                 isDark,
                 true,
@@ -611,6 +617,7 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
 
   Widget _buildTimelineCard(
       bool isDark, Color cardColor, Color terracotta, Color subtitleColor) {
+    final l = AppLocalizations.of(context);
     final startTime = widget.session.startTime;
     final endTime = widget.session.endTime;
 
@@ -632,7 +639,7 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Chronologie',
+            l.timeline,
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w700,
@@ -679,7 +686,7 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
                       ),
                       const SizedBox(width: 10),
                       Text(
-                        'debut de session',
+                        l.sessionStart,
                         style: TextStyle(
                           fontSize: 13,
                           color: subtitleColor,
@@ -723,7 +730,7 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
                   Text('\u{23F1}', style: const TextStyle(fontSize: 13)),
                   const SizedBox(width: 6),
                   Text(
-                    '${_formatDuration(widget.session.durationMinutes)} de lecture',
+                    l.ofReadingDuration(_formatDuration(widget.session.durationMinutes)),
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
@@ -762,7 +769,7 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
               ),
               const SizedBox(width: 10),
               Text(
-                'fin de session',
+                l.sessionEnd,
                 style: TextStyle(
                   fontSize: 13,
                   color: subtitleColor,
@@ -803,6 +810,7 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
 
   Widget _buildActiveSessionCard(
       bool isDark, Color cardColor, Color terracotta) {
+    final l = AppLocalizations.of(context);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -822,7 +830,7 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Session en cours',
+                  l.inProgressTag,
                   style: TextStyle(
                     fontWeight: FontWeight.w700,
                     fontSize: 16,
@@ -848,6 +856,7 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
   // ── Insights card ──────────────────────────────────────────────────
 
   Widget _buildInsightsCard(bool isDark, Color cardColor) {
+    final l = AppLocalizations.of(context);
     final isPremium = context.watch<SubscriptionProvider>().isPremium;
     final session = widget.session;
 
@@ -1032,7 +1041,7 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            '\u{2728} Débloquer tes insights',
+                            l.unlockInsights,
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w700,
@@ -1041,7 +1050,7 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            'Rythme, tendances, estimation de fin et plus',
+                            l.paceAndTrends,
                             style: TextStyle(
                               fontSize: 12,
                               color: Colors.brown.shade600,
@@ -1056,9 +1065,9 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
                         color: const Color(0xFFD4A54A),
                         borderRadius: BorderRadius.circular(20),
                       ),
-                      child: const Text(
-                        'Essayer',
-                        style: TextStyle(
+                      child: Text(
+                        l.tryPremium,
+                        style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
                           color: Colors.white,

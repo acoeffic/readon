@@ -17,6 +17,10 @@ abstract final class Env {
   static const revenueCatApiKeyIOS = String.fromEnvironment('REVENUECAT_API_KEY_IOS');
   static const revenueCatApiKeyAndroid = String.fromEnvironment('REVENUECAT_API_KEY_ANDROID');
 
+  // ── Google Sign-In ────────────────────────────────────────
+  static const googleWebClientId = String.fromEnvironment('GOOGLE_WEB_CLIENT_ID');
+  static const googleIosClientId = String.fromEnvironment('GOOGLE_IOS_CLIENT_ID');
+
   // ── Notion ────────────────────────────────────────────────
   static const notionClientId = String.fromEnvironment('NOTION_CLIENT_ID');
 

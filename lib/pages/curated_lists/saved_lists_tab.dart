@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../l10n/app_localizations.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import '../../data/curated_lists_data.dart';
@@ -102,18 +103,18 @@ class SavedListsTabState extends State<SavedListsTab> {
   }
 
   void _showListLimitDialog() {
+    final l = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Limite atteinte'),
+        title: Text(l.limitReached),
         content: Text(
-          'Tu as atteint la limite de ${FeatureFlags.maxFreeCustomLists} listes de lecture. '
-          'Passe à Premium pour en créer autant que tu veux !',
+          l.listLimitMessage(FeatureFlags.maxFreeCustomLists),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
+            child: Text(l.ok),
           ),
           FilledButton(
             onPressed: () {
@@ -126,7 +127,7 @@ class SavedListsTabState extends State<SavedListsTab> {
             style: FilledButton.styleFrom(
               backgroundColor: const Color(0xFFFF6B35),
             ),
-            child: const Text('Passer Premium'),
+            child: Text(l.goPremium),
           ),
         ],
       ),
@@ -180,6 +181,7 @@ class SavedListsTabState extends State<SavedListsTab> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -202,7 +204,7 @@ class SavedListsTabState extends State<SavedListsTab> {
             if (_customLists.isNotEmpty) ...[
               _buildSectionHeader(
                 context,
-                'Mes listes',
+                l.myListsSection,
                 LucideIcons.user,
               ),
               const SizedBox(height: AppSpace.s),
@@ -229,7 +231,7 @@ class SavedListsTabState extends State<SavedListsTab> {
             if (savedLists.isNotEmpty) ...[
               _buildSectionHeader(
                 context,
-                'Listes sauvegardées',
+                l.savedLists,
                 LucideIcons.bookmark,
               ),
               const SizedBox(height: AppSpace.s),
@@ -303,6 +305,7 @@ class SavedListsTabState extends State<SavedListsTab> {
   }
 
   Widget _buildEmptyState(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: ListView(
@@ -323,7 +326,7 @@ class SavedListsTabState extends State<SavedListsTab> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'Aucune liste',
+                  l.noList,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         color: Theme.of(context)
                             .colorScheme
@@ -333,7 +336,7 @@ class SavedListsTabState extends State<SavedListsTab> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Crée ta propre liste de lecture ou découvre nos sélections curatées.',
+                  l.createListCta,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 13,
@@ -347,7 +350,7 @@ class SavedListsTabState extends State<SavedListsTab> {
                 FilledButton.icon(
                   onPressed: _createList,
                   icon: const Icon(LucideIcons.plus),
-                  label: const Text('Créer une liste'),
+                  label: Text(l.createList),
                   style: FilledButton.styleFrom(
                     backgroundColor: const Color(0xFFFF6B35),
                     foregroundColor: Colors.white,
@@ -392,6 +395,7 @@ class _CustomListCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
     final gradientColors = list.gradientColors;
 
     return Card(
@@ -454,7 +458,7 @@ class _CustomListCard extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      '$bookCount livre${bookCount > 1 ? 's' : ''}',
+                      l.nBooks(bookCount),
                       style: TextStyle(
                         fontSize: 12,
                         color: Theme.of(context)
@@ -499,6 +503,7 @@ class _SavedListCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
     final progress =
         list.bookCount > 0 ? readCount / list.bookCount : 0.0;
 
@@ -565,7 +570,7 @@ class _SavedListCard extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          '$readCount/${list.bookCount} lus',
+                          l.nRead(readCount, list.bookCount),
                           style: TextStyle(
                             fontSize: 12,
                             color: Theme.of(context)

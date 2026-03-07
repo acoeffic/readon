@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:screenshot/screenshot.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../models/book.dart';
 import '../../models/reading_session.dart';
 import '../../features/wrapped/share/share_format.dart';
@@ -49,17 +50,27 @@ class BookFinishedShareService {
     return null;
   }
 
+  /// Build a deep link URL for sharing a book.
+  static String buildShareLink(int bookId, String userId) {
+    return 'lexday://book/$bookId?from=$userId';
+  }
+
   /// Build the share text for book completion.
   String buildShareText(Book book, BookReadingStats stats) {
     final author = book.author;
     final titlePart =
         author != null ? '${book.title} de $author' : book.title;
 
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    final link = userId != null
+        ? buildShareLink(book.id, userId)
+        : 'lexday.app';
+
     return '\u{1F4D6} Je viens de terminer $titlePart '
         '\u2014 ${stats.totalPagesRead} pages en '
         '${stats.sessionsCount} sessions de lecture !\n\n'
         'Tu lis quoi en ce moment ? \u{1F440}\n'
-        'lexday.app';
+        '$link';
   }
 
   /// Execute the share action for a specific [destination].

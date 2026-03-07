@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations.dart';
 import '../models/reading_session.dart';
 import '../models/book.dart';
 import '../theme/app_theme.dart';
@@ -19,6 +20,7 @@ class ActiveSessionBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final minutes = elapsed.inMinutes;
     final label = minutes < 1 ? 'À l\'instant' : '$minutes min';
 
@@ -41,7 +43,7 @@ class ActiveSessionBanner extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'En train de lire · $label',
+                  l.readingNow(label),
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 14,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../l10n/app_localizations.dart';
 import '../../services/contacts_service.dart';
 import '../../theme/app_theme.dart';
 
@@ -69,20 +70,18 @@ class _FindContactsFriendsPageState extends State<FindContactsFriendsPage> {
     if (success) {
       setState(() => _requestsSent.add(user.id));
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Invitation envoyée à ${user.displayName}')),
+        SnackBar(content: Text(AppLocalizations.of(context).invitationSent(user.displayName))),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Demande déjà envoyée')),
+        SnackBar(content: Text(AppLocalizations.of(context).requestSent)),
       );
     }
   }
 
   Future<void> _sendSmsInvite(UnmatchedContact contact) async {
-    final message = Uri.encodeComponent(
-      'Rejoins-moi sur LexDay pour suivre nos lectures ensemble ! '
-      'Télécharge l\'app : https://readon.app',
-    );
+    final l = AppLocalizations.of(context);
+    final message = Uri.encodeComponent(l.shareInviteToLexDay);
     final uri = Uri.parse('sms:${contact.phone}?body=$message');
 
     try {
@@ -96,13 +95,14 @@ class _FindContactsFriendsPageState extends State<FindContactsFriendsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        title: const Text('Trouver des amis'),
+        title: Text(l.findContactsFriends),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).pop(),
@@ -122,6 +122,7 @@ class _FindContactsFriendsPageState extends State<FindContactsFriendsPage> {
   }
 
   Widget _buildLoading(bool isDark) {
+    final l = AppLocalizations.of(context);
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -129,7 +130,7 @@ class _FindContactsFriendsPageState extends State<FindContactsFriendsPage> {
           const CircularProgressIndicator(color: AppColors.primary),
           const SizedBox(height: AppSpace.l),
           Text(
-            'Recherche dans tes contacts...',
+            l.searchingYourContacts,
             style: TextStyle(
               fontSize: 16,
               color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
@@ -141,6 +142,7 @@ class _FindContactsFriendsPageState extends State<FindContactsFriendsPage> {
   }
 
   Widget _buildResults(bool isDark) {
+    final l = AppLocalizations.of(context);
     final hasMatched = _matchedUsers.isNotEmpty;
     final hasUnmatched = _unmatchedContacts.isNotEmpty;
 
@@ -158,7 +160,7 @@ class _FindContactsFriendsPageState extends State<FindContactsFriendsPage> {
               ),
               const SizedBox(height: AppSpace.l),
               Text(
-                'Aucun contact trouvé',
+                l.noContactFound,
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -167,7 +169,7 @@ class _FindContactsFriendsPageState extends State<FindContactsFriendsPage> {
               ),
               const SizedBox(height: AppSpace.s),
               Text(
-                'Tes contacts ne semblent pas encore utiliser LexDay.',
+                l.contactsNotOnLexDay,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 14,
@@ -186,7 +188,7 @@ class _FindContactsFriendsPageState extends State<FindContactsFriendsPage> {
         if (hasMatched) ...[
           const SizedBox(height: AppSpace.m),
           _buildSectionHeader(
-            'Déjà sur LexDay',
+            l.alreadyOnLexDay,
             _matchedUsers.length,
             isDark,
           ),
@@ -199,7 +201,7 @@ class _FindContactsFriendsPageState extends State<FindContactsFriendsPage> {
         if (hasUnmatched) ...[
           const SizedBox(height: AppSpace.l),
           _buildSectionHeader(
-            'Inviter sur LexDay',
+            l.inviteToLexDay,
             _unmatchedContacts.length,
             isDark,
           ),
@@ -246,6 +248,7 @@ class _FindContactsFriendsPageState extends State<FindContactsFriendsPage> {
   }
 
   Widget _buildMatchedUserItem(ContactMatch user, bool isDark) {
+    final l = AppLocalizations.of(context);
     final alreadySent = _requestsSent.contains(user.id);
 
     return Padding(
@@ -316,7 +319,7 @@ class _FindContactsFriendsPageState extends State<FindContactsFriendsPage> {
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    'Envoyé',
+                    l.sent,
                     style: TextStyle(
                       fontSize: 13,
                       color: isDark
@@ -341,9 +344,9 @@ class _FindContactsFriendsPageState extends State<FindContactsFriendsPage> {
                 minimumSize: Size.zero,
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
-              child: const Text(
-                'Ajouter',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+              child: Text(
+                l.addFriend,
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
               ),
             ),
         ],
@@ -352,6 +355,7 @@ class _FindContactsFriendsPageState extends State<FindContactsFriendsPage> {
   }
 
   Widget _buildUnmatchedContactItem(UnmatchedContact contact, bool isDark) {
+    final l = AppLocalizations.of(context);
     final alreadyInvited = _invitesSent.contains(contact.phone);
 
     return Padding(
@@ -419,7 +423,7 @@ class _FindContactsFriendsPageState extends State<FindContactsFriendsPage> {
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    'Invité',
+                    l.invited,
                     style: TextStyle(
                       fontSize: 13,
                       color: isDark
@@ -444,9 +448,9 @@ class _FindContactsFriendsPageState extends State<FindContactsFriendsPage> {
                 minimumSize: Size.zero,
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
-              child: const Text(
-                'Inviter',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+              child: Text(
+                l.invite,
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
               ),
             ),
         ],
@@ -455,6 +459,7 @@ class _FindContactsFriendsPageState extends State<FindContactsFriendsPage> {
   }
 
   Widget _buildPermissionDenied(bool isDark) {
+    final l = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.all(AppSpace.l),
       child: Column(
@@ -467,7 +472,7 @@ class _FindContactsFriendsPageState extends State<FindContactsFriendsPage> {
           ),
           const SizedBox(height: AppSpace.l),
           Text(
-            'Accès aux contacts refusé',
+            l.contactsAccessDenied,
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 20,
@@ -477,7 +482,7 @@ class _FindContactsFriendsPageState extends State<FindContactsFriendsPage> {
           ),
           const SizedBox(height: AppSpace.s),
           Text(
-            'Pour trouver tes amis, autorise l\'accès à tes contacts.',
+            l.authorizeContacts,
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 14,
@@ -497,9 +502,9 @@ class _FindContactsFriendsPageState extends State<FindContactsFriendsPage> {
                   borderRadius: BorderRadius.circular(AppRadius.pill),
                 ),
               ),
-              child: const Text(
-                'Réessayer',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              child: Text(
+                l.retry,
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
             ),
           ),
@@ -510,6 +515,7 @@ class _FindContactsFriendsPageState extends State<FindContactsFriendsPage> {
   }
 
   Widget _buildPermissionPermanentlyDenied(bool isDark) {
+    final l = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.all(AppSpace.l),
       child: Column(
@@ -522,7 +528,7 @@ class _FindContactsFriendsPageState extends State<FindContactsFriendsPage> {
           ),
           const SizedBox(height: AppSpace.l),
           Text(
-            'Accès aux contacts refusé',
+            l.contactsAccessDenied,
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 20,
@@ -532,7 +538,7 @@ class _FindContactsFriendsPageState extends State<FindContactsFriendsPage> {
           ),
           const SizedBox(height: AppSpace.s),
           Text(
-            'Pour trouver tes amis, autorise l\'accès aux contacts dans les réglages.',
+            l.authorizeContactsSettings,
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 14,
@@ -552,9 +558,9 @@ class _FindContactsFriendsPageState extends State<FindContactsFriendsPage> {
                   borderRadius: BorderRadius.circular(AppRadius.pill),
                 ),
               ),
-              child: const Text(
-                'Ouvrir les réglages',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              child: Text(
+                l.openSettings,
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
             ),
           ),
@@ -565,6 +571,7 @@ class _FindContactsFriendsPageState extends State<FindContactsFriendsPage> {
   }
 
   Widget _buildError(bool isDark) {
+    final l = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.all(AppSpace.l),
       child: Column(
@@ -577,7 +584,7 @@ class _FindContactsFriendsPageState extends State<FindContactsFriendsPage> {
           ),
           const SizedBox(height: AppSpace.l),
           Text(
-            'Une erreur est survenue',
+            l.errorOccurred,
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 20,
@@ -587,7 +594,7 @@ class _FindContactsFriendsPageState extends State<FindContactsFriendsPage> {
           ),
           const SizedBox(height: AppSpace.s),
           Text(
-            'Impossible d\'accéder à tes contacts. Réessaie plus tard.',
+            l.cannotAccessContactsRetry,
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 14,
@@ -607,9 +614,9 @@ class _FindContactsFriendsPageState extends State<FindContactsFriendsPage> {
                   borderRadius: BorderRadius.circular(AppRadius.pill),
                 ),
               ),
-              child: const Text(
-                'Réessayer',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              child: Text(
+                l.retry,
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
             ),
           ),

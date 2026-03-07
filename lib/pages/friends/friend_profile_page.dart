@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../l10n/app_localizations.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../theme/app_theme.dart';
 import '../../services/badges_service.dart';
@@ -216,20 +217,21 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
     return '${minutes}min';
   }
 
-  String _formatDate(String? dateStr) {
+  String _formatDate(String? dateStr, AppLocalizations l) {
     if (dateStr == null) return '';
     final date = DateTime.parse(dateStr);
     final now = DateTime.now();
     final diff = now.difference(date);
 
-    if (diff.inDays == 0) return "Aujourd'hui";
-    if (diff.inDays == 1) return 'Hier';
-    if (diff.inDays < 7) return 'Il y a ${diff.inDays} jours';
+    if (diff.inDays == 0) return l.today;
+    if (diff.inDays == 1) return l.yesterday;
+    if (diff.inDays < 7) return l.daysAgo(diff.inDays);
     const months = ['jan', 'fev', 'mar', 'avr', 'mai', 'juin', 'juil', 'aout', 'sep', 'oct', 'nov', 'dec'];
     return '${date.day} ${months[date.month - 1]}';
   }
 
   Future<void> _addFriend() async {
+    final l = AppLocalizations.of(context);
     try {
       final currentUserId = supabase.auth.currentUser?.id;
       if (currentUserId == null) return;
@@ -243,7 +245,7 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
       setState(() => _friendshipStatus = 'pending');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Demande envoyee')),
+          SnackBar(content: Text(l.requestSent)),
         );
       }
     } catch (e) {
@@ -252,6 +254,7 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
   }
 
   Future<void> _cancelFriendRequest() async {
+    final l = AppLocalizations.of(context);
     try {
       final currentUserId = supabase.auth.currentUser?.id;
       if (currentUserId == null) return;
@@ -266,7 +269,7 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
       setState(() => _friendshipStatus = null);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Demande annulée')),
+          SnackBar(content: Text(l.requestCancelled)),
         );
       }
     } catch (e) {
@@ -275,16 +278,17 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
   }
 
   Future<void> _removeFriend() async {
+    final l = AppLocalizations.of(context);
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Retirer cet ami ?'),
-        content: Text('Voulez-vous retirer $_userName de vos amis ?'),
+        title: Text(l.removeFriendTitle),
+        content: Text(l.removeFriendMessage(_userName)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l.cancel)),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Retirer', style: TextStyle(color: AppColors.error)),
+            child: Text(l.confirm, style: const TextStyle(color: AppColors.error)),
           ),
         ],
       ),
@@ -302,7 +306,7 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
       setState(() => _friendshipStatus = null);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Ami retire')),
+          SnackBar(content: Text(l.friendRemoved)),
         );
       }
     } catch (e) {
@@ -312,6 +316,7 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
@@ -359,12 +364,12 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
                             ),
                             const SizedBox(height: AppSpace.m),
                             Text(
-                              'Profil privé',
+                              l.privateProfileLabel,
                               style: Theme.of(context).textTheme.titleLarge,
                             ),
                             const SizedBox(height: AppSpace.s),
                             Text(
-                              'Ce profil est privé. Ajoutez $_userName en ami pour voir ses statistiques.',
+                              l.privateProfileMessage(_userName),
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
@@ -379,22 +384,22 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
                     // Afficher les détails uniquement si autorisé
                     if (_canViewDetails) ...[
                       // --- STATS ---
-                      _buildStats(),
+                      _buildStats(l),
                       const SizedBox(height: AppSpace.l),
 
                       // --- RECENT ACTIVITY ---
-                      _buildRecentActivity(),
+                      _buildRecentActivity(l),
                       const SizedBox(height: AppSpace.l),
 
                       // --- BADGES ---
                       if (_badges.isNotEmpty) ...[
-                        _buildBadges(),
+                        _buildBadges(l),
                         const SizedBox(height: AppSpace.l),
                       ],
                     ],
 
                     // --- FRIEND ACTION ---
-                    _buildFriendAction(),
+                    _buildFriendAction(l),
                     const SizedBox(height: AppSpace.l),
                   ],
                 ),
@@ -436,7 +441,7 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
     );
   }
 
-  Widget _buildStats() {
+  Widget _buildStats(AppLocalizations l) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: AppSpace.l, horizontal: AppSpace.m),
       decoration: BoxDecoration(
@@ -446,11 +451,11 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _buildStatItem(Icons.book, '$_booksFinished', 'Livres'),
-          _buildStatItem(Icons.menu_book, '$_totalPages', 'Pages'),
+          _buildStatItem(Icons.book, '$_booksFinished', l.books),
+          _buildStatItem(Icons.menu_book, '$_totalPages', l.pagesLabel),
           if (!_readingHoursHidden)
-            _buildStatItem(Icons.schedule, '${_totalHours}h', 'Lecture'),
-          _buildStatItem(Icons.local_fire_department, '$_currentFlow', 'Flow'),
+            _buildStatItem(Icons.schedule, '${_totalHours}h', l.readingLabel),
+          _buildStatItem(Icons.local_fire_department, '$_currentFlow', l.flowLabel),
         ],
       ),
     );
@@ -480,7 +485,7 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
     );
   }
 
-  Widget _buildRecentActivity() {
+  Widget _buildRecentActivity(AppLocalizations l) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(AppSpace.l),
@@ -492,13 +497,13 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Activite recente',
+            l.recentActivity,
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: AppSpace.m),
           if (_recentSessions.isEmpty)
             Text(
-              'Aucune activite recente',
+              l.noRecentActivity,
               style: TextStyle(
                 color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
                 fontStyle: FontStyle.italic,
@@ -507,12 +512,12 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
           else
             ...List.generate(_recentSessions.length, (index) {
               final session = _recentSessions[index];
-              final pagesRead = ((session['end_page'] as num?) ?? 0) - ((session['start_page'] as num?) ?? 0);
+              final pagesRead = (((session['end_page'] as num?) ?? 0) - ((session['start_page'] as num?) ?? 0)).toInt();
               final duration = _formatDuration(
                 session['start_time'] as String?,
                 session['end_time'] as String?,
               );
-              final date = _formatDate(session['end_time'] as String?);
+              final date = _formatDate(session['end_time'] as String?, l);
               final bookTitle = session['book_title'] as String? ?? 'Livre inconnu';
 
               return Padding(
@@ -540,7 +545,7 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
                             overflow: TextOverflow.ellipsis,
                           ),
                           Text(
-                            '${pagesRead > 0 ? '$pagesRead pages' : ''}${pagesRead > 0 && duration.isNotEmpty ? ' · ' : ''}$duration',
+                            '${pagesRead > 0 ? l.nPages(pagesRead) : ''}${pagesRead > 0 && duration.isNotEmpty ? ' · ' : ''}$duration',
                             style: TextStyle(
                               fontSize: 12,
                               color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
@@ -565,7 +570,7 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
     );
   }
 
-  Widget _buildBadges() {
+  Widget _buildBadges(AppLocalizations l) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(AppSpace.l),
@@ -575,19 +580,19 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
       ),
       child: BadgesGrid(
         badges: _badges,
-        title: 'Ses badges',
+        title: l.theirBadges,
       ),
     );
   }
 
-  Widget _buildFriendAction() {
+  Widget _buildFriendAction(AppLocalizations l) {
     if (_friendshipStatus == 'accepted') {
       return SizedBox(
         width: double.infinity,
         child: OutlinedButton.icon(
           onPressed: _removeFriend,
           icon: const Icon(Icons.person_remove),
-          label: const Text('Retirer des amis'),
+          label: Text(l.removeFriend),
           style: OutlinedButton.styleFrom(
             foregroundColor: AppColors.error,
             side: const BorderSide(color: AppColors.error),
@@ -604,7 +609,7 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
         child: OutlinedButton.icon(
           onPressed: _cancelFriendRequest,
           icon: const Icon(Icons.close),
-          label: const Text('Annuler la demande'),
+          label: Text(l.cancelRequest),
           style: OutlinedButton.styleFrom(
             foregroundColor: AppColors.error,
             side: const BorderSide(color: AppColors.error),
@@ -621,7 +626,7 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
         child: ElevatedButton.icon(
           onPressed: _addFriend,
           icon: const Icon(Icons.person_add),
-          label: const Text('Ajouter en ami'),
+          label: Text(l.addFriend),
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.primary,
             foregroundColor: Colors.white,

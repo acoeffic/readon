@@ -2,6 +2,7 @@
 // Page paywall pour s'abonner à LexDay Premium
 
 import 'package:flutter/material.dart';
+import '../../l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -71,7 +72,7 @@ class _UpgradePageState extends State<UpgradePage> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _error = 'Impossible de charger les offres';
+          _error = 'cannotLoadOffers';
           _loading = false;
         });
       }
@@ -103,8 +104,8 @@ class _UpgradePageState extends State<UpgradePage> {
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Bienvenue dans LexDay Premium !'),
+            SnackBar(
+              content: Text(AppLocalizations.of(context).welcomePremium),
               backgroundColor: Colors.green,
             ),
           );
@@ -136,16 +137,16 @@ class _UpgradePageState extends State<UpgradePage> {
         if (success) {
           await context.read<SubscriptionProvider>().onPurchaseCompleted();
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Abonnement restauré !'),
+            SnackBar(
+              content: Text(AppLocalizations.of(context).subscriptionRestored),
               backgroundColor: Colors.green,
             ),
           );
           Navigator.of(context).pop();
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Aucun abonnement trouvé'),
+            SnackBar(
+              content: Text(AppLocalizations.of(context).noSubscriptionFound),
             ),
           );
         }
@@ -166,6 +167,7 @@ class _UpgradePageState extends State<UpgradePage> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final onSurface = Theme.of(context).colorScheme.onSurface;
 
@@ -236,7 +238,7 @@ class _UpgradePageState extends State<UpgradePage> {
 
                 // Title
                 Text(
-                  'Passez à',
+                  l.upgradeToLabel,
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
@@ -245,7 +247,7 @@ class _UpgradePageState extends State<UpgradePage> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'LexDay Premium',
+                  l.lexdayPremium,
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                         fontSize: 26,
                         fontWeight: FontWeight.bold,
@@ -258,7 +260,7 @@ class _UpgradePageState extends State<UpgradePage> {
                 const SizedBox(height: 8),
 
                 Text(
-                  'Débloquez tout le potentiel de votre lecture',
+                  l.unlockPotential,
                   style: TextStyle(
                     fontSize: 13,
                     color: onSurface.withValues(alpha: 0.5),
@@ -269,7 +271,7 @@ class _UpgradePageState extends State<UpgradePage> {
                 const SizedBox(height: 22),
 
                 // Section divider
-                _SectionDivider(label: 'Ce que Premium débloque', isDark: isDark),
+                _SectionDivider(label: l.whatPremiumUnlocks, isDark: isDark),
 
                 const SizedBox(height: 14),
 
@@ -289,8 +291,8 @@ class _UpgradePageState extends State<UpgradePage> {
                         children: [
                           Text(
                             _showAllFeatures
-                                ? 'Voir moins'
-                                : '+${_displayFeatures.length - 5} fonctionnalités',
+                                ? l.seeLess
+                                : l.moreFeatures(_displayFeatures.length - 5),
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
@@ -320,7 +322,7 @@ class _UpgradePageState extends State<UpgradePage> {
                 const SizedBox(height: 22),
 
                 // Plan section
-                _SectionDivider(label: 'Choisir un plan', isDark: isDark),
+                _SectionDivider(label: l.choosePlan, isDark: isDark),
 
                 const SizedBox(height: 14),
 
@@ -333,7 +335,7 @@ class _UpgradePageState extends State<UpgradePage> {
                 else if (_error != null)
                   Center(
                     child: Text(
-                      _error!,
+                      l.cannotLoadOffers,
                       style: const TextStyle(color: AppColors.error),
                     ),
                   )
@@ -383,8 +385,8 @@ class _UpgradePageState extends State<UpgradePage> {
                               )
                             : Text(
                                 _annualSelected
-                                    ? 'Commencer l\'essai gratuit'
-                                    : 'S\'abonner',
+                                    ? l.startFreeTrial
+                                    : l.subscribe,
                                 style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w700,
@@ -399,8 +401,8 @@ class _UpgradePageState extends State<UpgradePage> {
                   // Subtitle
                   Text(
                     _annualSelected
-                        ? 'Essai gratuit de 7 jours. Aucun paiement immédiat.\nAnnulable à tout moment.'
-                        : 'Facturé chaque mois. Annulable à tout moment.',
+                        ? l.freeTrialInfo
+                        : l.monthlyBillingInfo,
                     style: TextStyle(
                       fontSize: 11,
                       color: onSurface.withValues(alpha: 0.35),
@@ -421,7 +423,7 @@ class _UpgradePageState extends State<UpgradePage> {
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         : Text(
-                            'Restaurer mes achats',
+                            l.restorePurchases,
                             style: TextStyle(
                               fontSize: 12,
                               color: onSurface.withValues(alpha: 0.35),
@@ -443,7 +445,7 @@ class _UpgradePageState extends State<UpgradePage> {
                           mode: LaunchMode.externalApplication,
                         ),
                         child: Text(
-                          'Conditions d\'utilisation',
+                          l.termsOfUse,
                           style: TextStyle(
                             fontSize: 10.5,
                             color: onSurface.withValues(alpha: 0.3),
@@ -487,6 +489,7 @@ class _UpgradePageState extends State<UpgradePage> {
   }
 
   Widget _buildComparisonTable(bool isDark, Color onSurface) {
+    final l = AppLocalizations.of(context);
     final features =
         _showAllFeatures ? _displayFeatures : _displayFeatures.take(5).toList();
     final cardColor = isDark ? AppColors.surfaceDark : Colors.white;
@@ -519,7 +522,7 @@ class _UpgradePageState extends State<UpgradePage> {
               children: [
                 Expanded(
                   child: Text(
-                    'FONCTIONNALITÉ',
+                    l.featureHeader,
                     style: TextStyle(
                       fontSize: 9,
                       fontWeight: FontWeight.w700,
@@ -531,7 +534,7 @@ class _UpgradePageState extends State<UpgradePage> {
                 SizedBox(
                   width: 68,
                   child: Text(
-                    'GRATUIT',
+                    l.freeHeader,
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 9,
@@ -544,7 +547,7 @@ class _UpgradePageState extends State<UpgradePage> {
                 SizedBox(
                   width: 88,
                   child: Text(
-                    'PREMIUM',
+                    l.premiumHeader,
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 9,
@@ -638,6 +641,7 @@ class _UpgradePageState extends State<UpgradePage> {
   }
 
   Widget _buildFreeTierReminder(bool isDark, Color onSurface) {
+    final l = AppLocalizations.of(context);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(14),
@@ -653,7 +657,7 @@ class _UpgradePageState extends State<UpgradePage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'DÉJÀ INCLUS GRATUITEMENT',
+            l.alreadyFree,
             style: TextStyle(
               fontSize: 10,
               fontWeight: FontWeight.w700,
@@ -695,6 +699,7 @@ class _UpgradePageState extends State<UpgradePage> {
   }
 
   Widget _buildPlanCards(bool isDark, Color onSurface) {
+    final l = AppLocalizations.of(context);
     final offering = _offerings?.current;
     final annual = offering?.annual;
     final monthly = offering?.monthly;
@@ -717,7 +722,7 @@ class _UpgradePageState extends State<UpgradePage> {
         // Annual
         if (annual != null)
           _PlanCard(
-            title: 'Annuel',
+            title: l.annual,
             isSelected: _annualSelected,
             onTap: () => setState(() => _annualSelected = true),
             isDark: isDark,
@@ -735,7 +740,7 @@ class _UpgradePageState extends State<UpgradePage> {
         // Monthly
         if (monthly != null)
           _PlanCard(
-            title: 'Mensuel',
+            title: l.monthly,
             isSelected: !_annualSelected,
             onTap: () => setState(() => _annualSelected = false),
             isDark: isDark,

@@ -151,20 +151,43 @@ class MonthlyWrappedService {
   }
 
   /// Count books finished (status = 'finished') that had sessions this month.
+  /// Only counts books with at least 3 completed reading sessions.
   Future<int> _getBooksFinishedCount(
     String userId, String startIso, String endIso,
   ) async {
     try {
-      // Get finished book IDs for this user
-      final finished = await _supabase
-          .from('user_books')
-          .select('book_id, updated_at')
-          .eq('user_id', userId)
-          .eq('status', 'finished')
-          .gte('updated_at', startIso)
-          .lt('updated_at', endIso);
+      final results = await Future.wait([
+        _supabase
+            .from('user_books')
+            .select('book_id, updated_at')
+            .eq('user_id', userId)
+            .eq('status', 'finished')
+            .gte('updated_at', startIso)
+            .lt('updated_at', endIso),
+        _supabase
+            .from('reading_sessions')
+            .select('book_id')
+            .eq('user_id', userId)
+            .not('end_time', 'is', null),
+      ]);
 
-      return (finished as List).length;
+      final finished = results[0] as List;
+      final allSessions = results[1] as List;
+
+      // Count sessions per book
+      final sessionCounts = <String, int>{};
+      for (final s in allSessions) {
+        final bookId = s['book_id']?.toString() ?? '';
+        if (bookId.isNotEmpty) {
+          sessionCounts[bookId] = (sessionCounts[bookId] ?? 0) + 1;
+        }
+      }
+
+      // Only count finished books with at least 3 completed sessions
+      return finished.where((b) {
+        final bookId = b['book_id']?.toString() ?? '';
+        return (sessionCounts[bookId] ?? 0) >= 3;
+      }).length;
     } catch (e) {
       debugPrint('Erreur _getBooksFinishedCount: $e');
       return 0;

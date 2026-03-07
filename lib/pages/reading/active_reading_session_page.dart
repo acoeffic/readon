@@ -21,6 +21,7 @@ import '../../services/ocr_service.dart';
 import 'end_reading_session_page.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/cached_book_cover.dart';
+import '../../l10n/app_localizations.dart';
 
 class ActiveReadingSessionPage extends StatefulWidget {
   final ReadingSession activeSession;
@@ -37,7 +38,8 @@ class ActiveReadingSessionPage extends StatefulWidget {
       _ActiveReadingSessionPageState();
 }
 
-class _ActiveReadingSessionPageState extends State<ActiveReadingSessionPage> {
+class _ActiveReadingSessionPageState extends State<ActiveReadingSessionPage>
+    with WidgetsBindingObserver {
   Timer? _timer;
   Duration _elapsed = Duration.zero;
   bool _isPaused = false;
@@ -48,6 +50,7 @@ class _ActiveReadingSessionPageState extends State<ActiveReadingSessionPage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _elapsed = DateTime.now().difference(widget.activeSession.startTime);
     _startTimer();
     _loadStreak();
@@ -55,8 +58,19 @@ class _ActiveReadingSessionPageState extends State<ActiveReadingSessionPage> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _timer?.cancel();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && !_isPaused) {
+      setState(() {
+        _elapsed = DateTime.now().difference(widget.activeSession.startTime) -
+            _totalPauseDuration;
+      });
+    }
   }
 
   void _loadStreak() async {
@@ -109,20 +123,20 @@ class _ActiveReadingSessionPageState extends State<ActiveReadingSessionPage> {
   }
 
   Future<void> _cancelSession() async {
+    final l = AppLocalizations.of(context);
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Abandonner la session'),
-        content: const Text(
-            'Voulez-vous vraiment abandonner cette session de lecture ?'),
+        title: Text(l.abandonSessionTitle),
+        content: Text(l.abandonSessionMessage),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Non'),
+            child: Text(l.no),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Oui', style: TextStyle(color: Colors.red)),
+            child: Text(l.yes, style: const TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -137,20 +151,20 @@ class _ActiveReadingSessionPageState extends State<ActiveReadingSessionPage> {
   }
 
   Future<void> _confirmLeave() async {
+    final l = AppLocalizations.of(context);
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Quitter la session'),
-        content: const Text(
-            'La session reste active. Vous pourrez la terminer plus tard.'),
+        title: Text(l.leaveSessionTitle),
+        content: Text(l.leaveSessionMessage),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Rester'),
+            child: Text(l.stay),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Quitter'),
+            child: Text(l.leave),
           ),
         ],
       ),
@@ -186,6 +200,7 @@ class _ActiveReadingSessionPageState extends State<ActiveReadingSessionPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final seconds = _elapsed.inSeconds % 60;
     final progressValue = seconds / 60.0;
 
@@ -237,7 +252,7 @@ class _ActiveReadingSessionPageState extends State<ActiveReadingSessionPage> {
                 Row(
                   children: [
                     Text(
-                      'SESSION EN COURS',
+                      l.sessionInProgress,
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
@@ -260,7 +275,7 @@ class _ActiveReadingSessionPageState extends State<ActiveReadingSessionPage> {
                               Icon(Icons.close,
                                   color: Colors.red.shade400, size: 20),
                               const SizedBox(width: 8),
-                              Text('Abandonner',
+                              Text(l.abandonButton,
                                   style:
                                       TextStyle(color: Colors.red.shade400)),
                             ],
@@ -380,7 +395,7 @@ class _ActiveReadingSessionPageState extends State<ActiveReadingSessionPage> {
                                       CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      'DURÉE DE SESSION',
+                                      l.sessionDuration,
                                       style: TextStyle(
                                         fontSize: 11,
                                         fontWeight: FontWeight.w600,
@@ -443,7 +458,7 @@ class _ActiveReadingSessionPageState extends State<ActiveReadingSessionPage> {
                           children: [
                             Expanded(
                               child: _InfoCard(
-                                label: 'Page de départ',
+                                label: l.startPage,
                                 value: '${widget.activeSession.startPage}',
                                 icon: Icons.menu_book_rounded,
                               ),
@@ -451,8 +466,8 @@ class _ActiveReadingSessionPageState extends State<ActiveReadingSessionPage> {
                             const SizedBox(width: 12),
                             Expanded(
                               child: _InfoCard(
-                                label: 'Série',
-                                value: '$_streakDays jours',
+                                label: l.streakLabel,
+                                value: l.streakDays(_streakDays),
                                 icon: Icons.local_fire_department_rounded,
                               ),
                             ),
@@ -623,6 +638,7 @@ class _SlideToEndButtonState extends State<_SlideToEndButton>
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final progress = _maxDrag > 0 ? (_dragPosition / _maxDrag) : 0.0;
 
     return Container(
@@ -638,20 +654,20 @@ class _SlideToEndButtonState extends State<_SlideToEndButton>
           Center(
             child: Opacity(
               opacity: (1 - progress * 1.5).clamp(0.0, 1.0),
-              child: const Row(
+              child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  SizedBox(width: 40),
+                  const SizedBox(width: 40),
                   Text(
-                    'Terminer la session',
-                    style: TextStyle(
+                    l.endSessionSlide,
+                    style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                       color: Colors.white70,
                     ),
                   ),
-                  SizedBox(width: 8),
-                  Icon(Icons.chevron_right, color: Colors.white38, size: 20),
+                  const SizedBox(width: 8),
+                  const Icon(Icons.chevron_right, color: Colors.white38, size: 20),
                 ],
               ),
             ),
@@ -731,6 +747,7 @@ class _AnnotationBottomSheetState extends State<_AnnotationBottomSheet> {
   String? _recordingPath;
   Duration _recordingDuration = Duration.zero;
   Timer? _recordingTimer;
+  DateTime? _recordingStartTime;
   bool _isTranscribing = false;
   AudioPlayer? _audioPlayer;
   bool _isPlayingPreview = false;
@@ -763,8 +780,9 @@ class _AnnotationBottomSheetState extends State<_AnnotationBottomSheet> {
     final status = await Permission.microphone.request();
     if (!status.isGranted) {
       if (mounted) {
+        final l = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Permission microphone requise')),
+          SnackBar(content: Text(l.micPermissionRequired)),
         );
       }
       return;
@@ -783,6 +801,7 @@ class _AnnotationBottomSheetState extends State<_AnnotationBottomSheet> {
       path: _recordingPath!,
     );
 
+    _recordingStartTime = DateTime.now();
     setState(() {
       _isRecording = true;
       _recordingDuration = Duration.zero;
@@ -790,7 +809,7 @@ class _AnnotationBottomSheetState extends State<_AnnotationBottomSheet> {
 
     _recordingTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) { timer.cancel(); return; }
-      final newDuration = _recordingDuration + const Duration(seconds: 1);
+      final newDuration = DateTime.now().difference(_recordingStartTime!);
       if (newDuration >= _maxRecordingDuration) {
         _stopRecording();
         return;
@@ -883,6 +902,7 @@ class _AnnotationBottomSheetState extends State<_AnnotationBottomSheet> {
   }
 
   Future<void> _save() async {
+    final l = AppLocalizations.of(context);
     // Validation selon le mode
     if (_mode == _AnnotationMode.voice) {
       if (!_hasRecording || _recordingPath == null) return;
@@ -934,7 +954,7 @@ class _AnnotationBottomSheetState extends State<_AnnotationBottomSheet> {
         if (mounted) {
           Navigator.pop(context);
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Annotation vocale sauvegardée !')),
+            SnackBar(content: Text(l.voiceAnnotationSaved)),
           );
         }
       } else if (_mode == _AnnotationMode.photo && _capturedImage != null) {
@@ -959,7 +979,7 @@ class _AnnotationBottomSheetState extends State<_AnnotationBottomSheet> {
         if (mounted) {
           Navigator.pop(context);
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Annotation sauvegardée !')),
+            SnackBar(content: Text(l.annotationSaved)),
           );
         }
       } else {
@@ -974,7 +994,7 @@ class _AnnotationBottomSheetState extends State<_AnnotationBottomSheet> {
         if (mounted) {
           Navigator.pop(context);
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Annotation sauvegardée !')),
+            SnackBar(content: Text(l.annotationSaved)),
           );
         }
       }
@@ -986,7 +1006,7 @@ class _AnnotationBottomSheetState extends State<_AnnotationBottomSheet> {
         });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erreur: $e'),
+            content: Text(l.errorCapture(e.toString())),
             backgroundColor: Colors.red,
           ),
         );
@@ -996,6 +1016,7 @@ class _AnnotationBottomSheetState extends State<_AnnotationBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return Padding(
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
@@ -1026,9 +1047,9 @@ class _AnnotationBottomSheetState extends State<_AnnotationBottomSheet> {
                 const SizedBox(height: 16),
 
                 // Title
-                const Text(
-                  'Nouvelle annotation',
-                  style: TextStyle(
+                Text(
+                  l.newAnnotation,
+                  style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
                     color: Color(0xFF2D2D2D),
@@ -1038,21 +1059,21 @@ class _AnnotationBottomSheetState extends State<_AnnotationBottomSheet> {
 
                 // Mode selector
                 SegmentedButton<_AnnotationMode>(
-                  segments: const [
+                  segments: [
                     ButtonSegment(
                       value: _AnnotationMode.text,
-                      label: Text('Texte'),
-                      icon: Icon(Icons.edit, size: 18),
+                      label: Text(l.annotationText),
+                      icon: const Icon(Icons.edit, size: 18),
                     ),
                     ButtonSegment(
                       value: _AnnotationMode.photo,
-                      label: Text('Photo'),
-                      icon: Icon(Icons.camera_alt, size: 18),
+                      label: Text(l.annotationPhoto),
+                      icon: const Icon(Icons.camera_alt, size: 18),
                     ),
                     ButtonSegment(
                       value: _AnnotationMode.voice,
-                      label: Text('Vocal'),
-                      icon: Icon(Icons.mic, size: 18),
+                      label: Text(l.annotationVoice),
+                      icon: const Icon(Icons.mic, size: 18),
                     ),
                   ],
                   selected: {_mode},
@@ -1108,7 +1129,7 @@ class _AnnotationBottomSheetState extends State<_AnnotationBottomSheet> {
                     TextButton.icon(
                       onPressed: _takePhoto,
                       icon: const Icon(Icons.refresh, size: 18),
-                      label: const Text('Reprendre la photo'),
+                      label: Text(l.retakePhoto),
                       style: TextButton.styleFrom(
                         foregroundColor: AppColors.primary,
                       ),
@@ -1116,16 +1137,16 @@ class _AnnotationBottomSheetState extends State<_AnnotationBottomSheet> {
                   ],
                   if (_isProcessingOcr) ...[
                     const SizedBox(height: 12),
-                    const Row(
+                    Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        SizedBox(
+                        const SizedBox(
                           width: 16,
                           height: 16,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         ),
-                        SizedBox(width: 8),
-                        Text('Extraction du texte...'),
+                        const SizedBox(width: 8),
+                        Text(l.extractingText),
                       ],
                     ),
                   ],
@@ -1160,7 +1181,7 @@ class _AnnotationBottomSheetState extends State<_AnnotationBottomSheet> {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Appuyez pour enregistrer',
+                            l.tapToRecord,
                             style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
                           ),
                         ],
@@ -1191,7 +1212,7 @@ class _AnnotationBottomSheetState extends State<_AnnotationBottomSheet> {
                                 ),
                               ),
                               const SizedBox(width: 6),
-                              const Text('Enregistrement en cours...', style: TextStyle(fontSize: 13)),
+                              Text(l.recordingInProgress, style: const TextStyle(fontSize: 13)),
                             ],
                           ),
                           const SizedBox(height: 16),
@@ -1232,19 +1253,19 @@ class _AnnotationBottomSheetState extends State<_AnnotationBottomSheet> {
                         TextButton.icon(
                           onPressed: _retakeRecording,
                           icon: const Icon(Icons.refresh, size: 18),
-                          label: const Text('Refaire'),
+                          label: Text(l.retakeRecording),
                           style: TextButton.styleFrom(foregroundColor: AppColors.primary),
                         ),
                       ],
                     ),
                     if (_isTranscribing) ...[
                       const SizedBox(height: 12),
-                      const Row(
+                      Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
-                          SizedBox(width: 8),
-                          Text('Transcription en cours...'),
+                          const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
+                          const SizedBox(width: 8),
+                          Text(l.transcriptionInProgress),
                         ],
                       ),
                     ],
@@ -1259,10 +1280,10 @@ class _AnnotationBottomSheetState extends State<_AnnotationBottomSheet> {
                     maxLines: 4,
                     decoration: InputDecoration(
                       hintText: _mode == _AnnotationMode.photo
-                          ? 'Texte extrait (modifiable)...'
+                          ? l.hintExtractedText
                           : _mode == _AnnotationMode.voice
-                              ? 'Transcription (modifiable)...'
-                              : 'Notez votre pensée, une citation...',
+                              ? l.hintTranscription
+                              : l.hintAnnotation,
                     filled: true,
                     fillColor: Colors.white,
                     border: OutlineInputBorder(
@@ -1288,7 +1309,7 @@ class _AnnotationBottomSheetState extends State<_AnnotationBottomSheet> {
                   controller: _pageController,
                   keyboardType: TextInputType.number,
                   decoration: InputDecoration(
-                    hintText: 'Page',
+                    hintText: l.pageHint,
                     prefixIcon:
                         const Icon(Icons.bookmark_outline, size: 20),
                     filled: true,
@@ -1336,13 +1357,13 @@ class _AnnotationBottomSheetState extends State<_AnnotationBottomSheet> {
                             ),
                             if (_isTranscribing) ...[
                               const SizedBox(width: 8),
-                              const Text('Transcription...', style: TextStyle(color: Colors.white)),
+                              Text(l.transcribing, style: const TextStyle(color: Colors.white)),
                             ],
                           ],
                         )
-                      : const Text(
-                          'Sauvegarder',
-                          style: TextStyle(
+                      : Text(
+                          l.save,
+                          style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
                           ),

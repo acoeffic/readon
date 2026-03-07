@@ -1,6 +1,7 @@
 // lib/pages/reading/end_reading_session_page.dart
 
 import 'package:flutter/material.dart';
+import '../../l10n/app_localizations.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -84,7 +85,7 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
       await _processImage(photo);
     } catch (e) {
       setState(() {
-        _errorMessage = 'Erreur lors de la capture: $e';
+        _errorMessage = AppLocalizations.of(context)!.errorCapture(e.toString());
       });
     }
   }
@@ -105,7 +106,7 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
       await _processImage(photo);
     } catch (e) {
       setState(() {
-        _errorMessage = 'Erreur lors de la sélection: $e';
+        _errorMessage = AppLocalizations.of(context)!.errorSelection(e.toString());
       });
     }
   }
@@ -127,18 +128,18 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
 
       if (pageNumber == null) {
         setState(() {
-          _errorMessage = 'Numéro de page non détecté. Saisissez-le manuellement.';
+          _errorMessage = AppLocalizations.of(context)!.pageNotDetected;
         });
       } else if (pageNumber < widget.activeSession.startPage) {
         setState(() {
-          _errorMessage = 'La page de fin ($pageNumber) ne peut pas être avant la page de début (${widget.activeSession.startPage}).';
+          _errorMessage = AppLocalizations.of(context)!.endPageBeforeStartDetailed(pageNumber, widget.activeSession.startPage);
           _detectedPageNumber = null;
         });
       }
     } catch (e) {
       setState(() {
         _isProcessing = false;
-        _errorMessage = 'Erreur OCR: $e';
+        _errorMessage = AppLocalizations.of(context)!.ocrError(e.toString());
       });
     }
   }
@@ -155,7 +156,7 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
     if (newValue != null && newValue > 0) {
       if (newValue < widget.activeSession.startPage) {
         setState(() {
-          _errorMessage = 'La page de fin ($newValue) ne peut pas être avant la page de début (${widget.activeSession.startPage}).';
+          _errorMessage = AppLocalizations.of(context)!.endPageBeforeStartDetailed(newValue, widget.activeSession.startPage);
         });
         return;
       }
@@ -167,7 +168,7 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
       });
     } else {
       setState(() {
-        _errorMessage = 'Veuillez saisir un numéro de page valide.';
+        _errorMessage = AppLocalizations.of(context)!.invalidPageNumber;
       });
     }
   }
@@ -184,14 +185,14 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
 
     if (pageNumber == null) {
       setState(() {
-        _errorMessage = 'Veuillez capturer une photo ou saisir un numéro de page.';
+        _errorMessage = AppLocalizations.of(context)!.captureOrEnterPage;
       });
       return;
     }
 
     if (pageNumber < widget.activeSession.startPage) {
       setState(() {
-        _errorMessage = 'La page de fin ne peut pas être avant la page de début.';
+        _errorMessage = AppLocalizations.of(context)!.endPageBeforeStart;
       });
       return;
     }
@@ -353,21 +354,22 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
   }
 
   Future<void> _finishBook() async {
+    final l = AppLocalizations.of(context)!;
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.auto_awesome, color: Colors.amber),
-            SizedBox(width: 8),
-            Text('Terminer le livre'),
+            const Icon(Icons.auto_awesome, color: Colors.amber),
+            const SizedBox(width: 8),
+            Text(l.finishBookTitle),
           ],
         ),
-        content: const Text('Félicitations! Avez-vous terminé ce livre ?'),
+        content: Text(l.finishBookConfirm),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Annuler'),
+            child: Text(l.cancel),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
@@ -375,7 +377,7 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
               backgroundColor: Colors.amber,
               foregroundColor: Colors.white,
             ),
-            child: const Text('Oui, terminé!'),
+            child: Text(l.yesFinished),
           ),
         ],
       ),
@@ -526,6 +528,7 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
         // Proposer Muse pour la prochaine lecture
         if (mounted) {
           final bookTitle = book?.title ?? 'ce livre';
+          final l2 = AppLocalizations.of(context)!;
           final openMuse = await showDialog<bool>(
             context: context,
             builder: (ctx) => AlertDialog(
@@ -537,12 +540,12 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
                 ],
               ),
               content: Text(
-                'Bravo pour $bookTitle ! Envie que Muse te conseille ta prochaine lecture ?',
+                l2.museBookFinished(bookTitle),
               ),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(ctx, false),
-                  child: const Text('Plus tard'),
+                  child: Text(l2.later),
                 ),
                 ElevatedButton(
                   onPressed: () => Navigator.pop(ctx, true),
@@ -550,7 +553,7 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
                     backgroundColor: const Color(0xFFE49B0F),
                     foregroundColor: Colors.white,
                   ),
-                  child: const Text('Discuter avec Muse'),
+                  child: Text(l2.chatWithMuse),
                 ),
               ],
             ),
@@ -654,19 +657,20 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
   }
 
   Future<void> _cancelSession() async {
+    final l = AppLocalizations.of(context)!;
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Annuler la session'),
+        title: Text(l.cancel),
         content: const Text('Êtes-vous sûr de vouloir annuler cette session de lecture ?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Non'),
+            child: Text(l.no),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Oui', style: TextStyle(color: Colors.red)),
+            child: Text(l.yes, style: const TextStyle(color: Colors.red)),
           ),
         ],
       ),

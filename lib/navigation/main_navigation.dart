@@ -35,6 +35,8 @@ class _MainNavigationState extends State<MainNavigation>
     with WidgetsBindingObserver {
   int _selectedIndex = 0;
   bool _showKindleAutoSync = false;
+  DateTime? _lastKindleSyncAttempt;
+  static const _kindleSyncCooldown = Duration(minutes: 5);
 
   // Active session banner state
   ReadingSession? _activeSession;
@@ -189,6 +191,12 @@ class _MainNavigationState extends State<MainNavigation>
   Future<void> _checkKindleAutoSync() async {
     if (!mounted || _showKindleAutoSync) return;
 
+    // Cooldown: pas de nouvelle tentative si < 5 min depuis la dernière
+    if (_lastKindleSyncAttempt != null &&
+        DateTime.now().difference(_lastKindleSyncAttempt!) < _kindleSyncCooldown) {
+      return;
+    }
+
     try {
       final subscriptionProvider =
           Provider.of<SubscriptionProvider>(context, listen: false);
@@ -199,6 +207,7 @@ class _MainNavigationState extends State<MainNavigation>
       );
 
       if (shouldSync && mounted) {
+        _lastKindleSyncAttempt = DateTime.now();
         setState(() => _showKindleAutoSync = true);
       }
     } catch (e) {

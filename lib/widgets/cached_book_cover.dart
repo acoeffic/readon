@@ -1,11 +1,14 @@
 // lib/widgets/cached_book_cover.dart
 // Widget réutilisable pour afficher les couvertures de livres avec cache
 
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 /// Widget optimisé pour afficher les couvertures de livres avec cache disque.
-/// Évite de re-télécharger les images à chaque affichage.
+/// Décode les images à la taille d'affichage (× devicePixelRatio) pour
+/// économiser la mémoire.
 class CachedBookCover extends StatelessWidget {
   final String? imageUrl;
   final double width;
@@ -60,10 +63,14 @@ class CachedBookCover extends StatelessWidget {
           : defaultPlaceholder;
     }
 
+    final dpr = ui.PlatformDispatcher.instance.displays.first.devicePixelRatio;
+
     final image = CachedNetworkImage(
       imageUrl: imageUrl!,
       width: width,
       height: height,
+      memCacheWidth: (width * dpr).toInt(),
+      memCacheHeight: (height * dpr).toInt(),
       fit: fit,
       placeholder: (context, url) => placeholder ?? defaultPlaceholder,
       errorWidget: (context, url, error) => errorWidget ?? defaultErrorWidget,

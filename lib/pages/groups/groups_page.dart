@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../../l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/constrained_content.dart';
@@ -7,8 +9,13 @@ import '../../models/feature_flags.dart';
 import '../../services/groups_service.dart';
 import '../../providers/subscription_provider.dart';
 import '../../pages/profile/upgrade_page.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'create_group_page.dart';
 import 'group_detail_page.dart';
+
+const _kBg = Color(0xFFFAF3E8);
+const _kCard = Color(0xFFF0E8D8);
+const _kSageGreen = Color(0xFF6B988D);
 
 class GroupsPage extends StatefulWidget {
   const GroupsPage({super.key});
@@ -17,27 +24,19 @@ class GroupsPage extends StatefulWidget {
   State<GroupsPage> createState() => _GroupsPageState();
 }
 
-class _GroupsPageState extends State<GroupsPage>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+class _GroupsPageState extends State<GroupsPage> {
   final GroupsService _groupsService = GroupsService();
 
   List<ReadingGroup> _myGroups = [];
   List<ReadingGroup> _publicGroups = [];
   bool _isLoadingMyGroups = true;
   bool _isLoadingPublic = true;
+  int _selectedTab = 0; // 0 = Mes clubs, 1 = Découvrir
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
     _loadData();
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
   }
 
   Future<void> _loadData() async {
@@ -83,7 +82,6 @@ class _GroupsPageState extends State<GroupsPage>
     }
   }
 
-
   void _navigateToCreateGroup() async {
     final isPremium = context.read<SubscriptionProvider>().isPremium;
     if (!isPremium && _myGroups.length >= FeatureFlags.maxFreeGroups) {
@@ -102,21 +100,21 @@ class _GroupsPageState extends State<GroupsPage>
   }
 
   void _showGroupLimitDialog() {
+    final l = AppLocalizations.of(context);
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadius.l),
         ),
-        title: const Text('Limite atteinte'),
+        title: Text(l.limitReached),
         content: Text(
-          'Tu as atteint la limite de ${FeatureFlags.maxFreeGroups} clubs de lecture. '
-          'Passe à Premium pour en rejoindre autant que tu veux !',
+          l.groupLimitMessage(FeatureFlags.maxFreeGroups),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('OK'),
+            child: Text(l.cancel),
           ),
           ElevatedButton(
             onPressed: () {
@@ -130,7 +128,7 @@ class _GroupsPageState extends State<GroupsPage>
               backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
             ),
-            child: const Text('Devenir Premium'),
+            child: Text(l.becomePremium),
           ),
         ],
       ),
@@ -146,61 +144,145 @@ class _GroupsPageState extends State<GroupsPage>
     );
   }
 
+  bool get _isDark => Theme.of(context).brightness == Brightness.dark;
+
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final bg = _isDark ? AppColors.bgDark : _kBg;
+
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        title: const Text(
-          'Club de lecture',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        elevation: 0,
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: AppColors.primary,
-          labelColor: AppColors.primary,
-          unselectedLabelColor: Theme.of(context).textTheme.bodyMedium?.color,
-          tabs: [
-            Tab(
-              text: 'Mes groupes',
-              icon: _myGroups.isEmpty
-                  ? null
-                  : Badge(
-                      label: Text('${_myGroups.length}'),
-                      child: const Icon(Icons.group),
+      backgroundColor: bg,
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Header
+            Padding(
+              padding: const EdgeInsets.fromLTRB(AppSpace.l, AppSpace.l, AppSpace.l, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l.clubSubtitle.toUpperCase(),
+                    style: GoogleFonts.dmSans(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 1.5,
+                      color: _kSageGreen,
                     ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    l.readingClubs,
+                    style: GoogleFonts.cormorantGaramond(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w700,
+                      color: _isDark ? Colors.white : Colors.black,
+                    ),
+                  ),
+                ],
+              ),
             ),
-            Tab(
-              text: 'Découvrir',
-              icon: const Icon(Icons.public),
+            const SizedBox(height: AppSpace.l),
+
+            // Pill toggle
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpace.l),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: _isDark ? AppColors.surfaceDark : _kCard,
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                padding: const EdgeInsets.all(4),
+                child: Row(
+                  children: [
+                    _buildPillTab(l.myClubs, 0),
+                    _buildPillTab(l.discover, 1),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: AppSpace.m),
+
+            // Content
+            Expanded(
+              child: _selectedTab == 0
+                  ? _buildMyGroupsTab()
+                  : _buildPublicGroupsTab(),
+            ),
+
+            // Bottom create button
+            Padding(
+              padding: const EdgeInsets.fromLTRB(AppSpace.l, AppSpace.s, AppSpace.l, AppSpace.m),
+              child: SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [_kSageGreen, Color(0xFF5A8A7E)],
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: ElevatedButton.icon(
+                    onPressed: _navigateToCreateGroup,
+                    icon: const Icon(Icons.add, color: Colors.white),
+                    label: Text(
+                      l.createClub,
+                      style: GoogleFonts.dmSans(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             ),
           ],
         ),
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _buildMyGroupsTab(),
-          _buildPublicGroupsTab(),
-        ],
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _navigateToCreateGroup,
-        backgroundColor: AppColors.primary,
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text(
-          'Créer un Club',
-          style: TextStyle(color: Colors.white),
+    );
+  }
+
+  Widget _buildPillTab(String label, int index) {
+    final isActive = _selectedTab == index;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _selectedTab = index),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: isActive ? _kSageGreen : Colors.transparent,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Center(
+            child: Text(
+              label,
+              style: GoogleFonts.dmSans(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: isActive
+                    ? Colors.white
+                    : (_isDark ? Colors.white70 : Colors.black54),
+              ),
+            ),
+          ),
         ),
       ),
     );
   }
 
   Widget _buildMyGroupsTab() {
+    final l = AppLocalizations.of(context);
     if (_isLoadingMyGroups) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -213,13 +295,13 @@ class _GroupsPageState extends State<GroupsPage>
             Icon(Icons.group_off, size: 64, color: Colors.grey.shade400),
             const SizedBox(height: AppSpace.m),
             Text(
-              'Aucun groupe',
+              l.noGroups,
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: AppSpace.s),
-            const Text(
-              'Créez ou rejoignez un groupe de lecture',
-              style: TextStyle(color: Colors.grey),
+            Text(
+              l.createOrJoinGroup,
+              style: const TextStyle(color: Colors.grey),
             ),
           ],
         ),
@@ -230,13 +312,14 @@ class _GroupsPageState extends State<GroupsPage>
       onRefresh: _loadMyGroups,
       child: ConstrainedContent(
         child: ListView.builder(
-          padding: const EdgeInsets.all(AppSpace.m),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpace.l),
           itemCount: _myGroups.length,
           itemBuilder: (context, index) {
             final group = _myGroups[index];
             return _GroupCard(
               group: group,
               onTap: () => _navigateToGroupDetail(group),
+              isDark: _isDark,
             );
           },
         ),
@@ -245,6 +328,7 @@ class _GroupsPageState extends State<GroupsPage>
   }
 
   Widget _buildPublicGroupsTab() {
+    final l = AppLocalizations.of(context);
     if (_isLoadingPublic) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -257,13 +341,13 @@ class _GroupsPageState extends State<GroupsPage>
             Icon(Icons.public_off, size: 64, color: Colors.grey.shade400),
             const SizedBox(height: AppSpace.m),
             Text(
-              'Aucun groupe public',
+              l.noPublicGroups,
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: AppSpace.s),
-            const Text(
-              'Soyez le premier à créer un groupe public !',
-              style: TextStyle(color: Colors.grey),
+            Text(
+              l.beFirstToCreate,
+              style: const TextStyle(color: Colors.grey),
             ),
           ],
         ),
@@ -274,7 +358,7 @@ class _GroupsPageState extends State<GroupsPage>
       onRefresh: _loadPublicGroups,
       child: ConstrainedContent(
         child: ListView.builder(
-          padding: const EdgeInsets.all(AppSpace.m),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpace.l),
           itemCount: _publicGroups.length,
           itemBuilder: (context, index) {
             final group = _publicGroups[index];
@@ -282,153 +366,165 @@ class _GroupsPageState extends State<GroupsPage>
               group: group,
               onTap: () => _navigateToGroupDetail(group),
               showCreator: true,
+              isDark: _isDark,
             );
           },
         ),
       ),
     );
   }
-
 }
 
 class _GroupCard extends StatelessWidget {
   final ReadingGroup group;
   final VoidCallback onTap;
   final bool showCreator;
+  final bool isDark;
 
   const _GroupCard({
     required this.group,
     required this.onTap,
     this.showCreator = false,
+    required this.isDark,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: AppSpace.m),
-      color: Theme.of(context).cardColor,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppRadius.m),
-      ),
-      child: InkWell(
+    final l = AppLocalizations.of(context);
+    final cardColor = isDark ? AppColors.surfaceDark : Colors.white;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpace.m),
+      child: GestureDetector(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(AppRadius.m),
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpace.m),
-          child: Row(
+        child: Container(
+          decoration: BoxDecoration(
+            color: cardColor,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Group avatar
-              CircleAvatar(
-                radius: 30,
-                backgroundColor: AppColors.primary.withValues(alpha:0.1),
-                backgroundImage: group.coverUrl != null
-                    ? NetworkImage(group.coverUrl!)
-                    : null,
-                child: group.coverUrl == null
-                    ? const Icon(Icons.group, color: AppColors.primary, size: 30)
-                    : null,
-              ),
-              const SizedBox(width: AppSpace.m),
-              // Group info
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              // Cover image band
+              SizedBox(
+                height: 80,
+                child: Stack(
+                  fit: StackFit.expand,
                   children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            group.name,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        if (group.isPrivate)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.orange.withValues(alpha:0.2),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.lock, size: 12, color: Colors.orange),
-                                SizedBox(width: 4),
-                                Text(
-                                  'Privé',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    color: Colors.orange,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
+                    // Background image or gradient
+                    if (group.coverUrl != null)
+                      CachedNetworkImage(
+                        imageUrl: group.coverUrl!,
+                        fit: BoxFit.cover,
+                        memCacheWidth: 600,
+                        memCacheHeight: 240,
+                        errorWidget: (_, __, ___) => Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                _kSageGreen,
+                                _kSageGreen.withValues(alpha: 0.7),
                               ],
                             ),
                           ),
-                        if (group.isAdmin)
-                          Container(
-                            margin: const EdgeInsets.only(left: 4),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.primary.withValues(alpha:0.2),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Text(
-                              'Admin',
-                              style: TextStyle(
-                                fontSize: 10,
-                                color: AppColors.primary,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                    if (group.description != null) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        group.description!,
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha:0.7),
                         ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
+                      )
+                    else
+                      Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              _kSageGreen,
+                              _kSageGreen.withValues(alpha: 0.7),
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                        ),
+                        child: const Center(
+                          child: Icon(Icons.menu_book, color: Colors.white38, size: 32),
+                        ),
                       ),
-                    ],
-                    const SizedBox(height: 8),
+
+                    // Dark gradient overlay
+                    Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.black.withValues(alpha: 0.1),
+                            Colors.black.withValues(alpha: 0.5),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    // Badges bottom-left
+                    Positioned(
+                      bottom: 8,
+                      left: 10,
+                      child: Row(
+                        children: [
+                          if (group.isPrivate)
+                            _Badge(
+                              label: l.privateTag,
+                              icon: Icons.lock,
+                              color: const Color(0xFFC6A85A),
+                            ),
+                          if (group.isPrivate && group.isAdmin)
+                            const SizedBox(width: 6),
+                          if (group.isAdmin)
+                            _Badge(
+                              label: l.adminTag,
+                              color: _kSageGreen,
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // White section with club info
+              Padding(
+                padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      group.name,
+                      style: GoogleFonts.dmSans(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? Colors.white : Colors.black87,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
                     Row(
                       children: [
-                        Icon(Icons.people, size: 14, color: Colors.grey.shade600),
+                        Icon(Icons.people_outline, size: 14, color: Colors.grey.shade500),
                         const SizedBox(width: 4),
                         Text(
-                          '${group.memberCount ?? 0} membre${(group.memberCount ?? 0) > 1 ? 's' : ''}',
-                          style: TextStyle(
+                          l.memberCount(group.memberCount ?? 0),
+                          style: GoogleFonts.dmSans(
                             fontSize: 12,
-                            color: Colors.grey.shade600,
+                            color: Colors.grey.shade500,
                           ),
                         ),
                         if (showCreator && group.creatorName != null) ...[
-                          const SizedBox(width: 12),
-                          Icon(Icons.person, size: 14, color: Colors.grey.shade600),
+                          const SizedBox(width: 10),
+                          Icon(Icons.person_outline, size: 14, color: Colors.grey.shade500),
                           const SizedBox(width: 4),
                           Expanded(
                             child: Text(
-                              'par ${group.creatorName}',
-                              style: TextStyle(
+                              l.byCreator(group.creatorName!),
+                              style: GoogleFonts.dmSans(
                                 fontSize: 12,
-                                color: Colors.grey.shade600,
+                                color: Colors.grey.shade500,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -440,10 +536,45 @@ class _GroupCard extends StatelessWidget {
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right, color: Colors.grey),
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _Badge extends StatelessWidget {
+  final String label;
+  final IconData? icon;
+  final Color color;
+
+  const _Badge({required this.label, this.icon, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.85),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: 10, color: Colors.white),
+            const SizedBox(width: 3),
+          ],
+          Text(
+            label,
+            style: GoogleFonts.dmSans(
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
+          ),
+        ],
       ),
     );
   }

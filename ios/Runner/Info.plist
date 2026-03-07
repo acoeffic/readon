@@ -41,6 +41,15 @@
 				<string>lexday</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<!-- Remplacer par ton reversed client ID iOS Google (ex: com.googleusercontent.apps.XXXX) -->
+				<string>com.googleusercontent.apps.870762668846-f550jt8npljlch1vtu0q6tj3qt94amtd</string>
+			</array>
+		</dict>
 	</array>
 	<key>NSAppTransportSecurity</key>
 	<dict>

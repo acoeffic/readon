@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/back_header.dart';
 
@@ -84,13 +85,14 @@ class _FriendRequestsPageState extends State<FriendRequestsPage> {
       debugPrint('Erreur _loadRequests: $e');
       if (!mounted) return;
       setState(() {
-        _error = "Impossible de récupérer les demandes";
+        _error = AppLocalizations.of(context).cannotGetRequests;
         _loading = false;
       });
     }
   }
 
   Future<void> _respond(String requestId, bool accept) async {
+    final l = AppLocalizations.of(context);
     final supabase = Supabase.instance.client;
 
     setState(() => _processing.add(requestId));
@@ -110,14 +112,14 @@ class _FriendRequestsPageState extends State<FriendRequestsPage> {
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(accept ? 'Ami ajouté' : 'Demande refusée')),
+        SnackBar(content: Text(accept ? l.friendAdded : l.requestDeclined)),
       );
 
       await _loadRequests();
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Action impossible')),
+        SnackBar(content: Text(l.actionImpossible)),
       );
     } finally {
       if (mounted) setState(() => _processing.remove(requestId));
@@ -126,6 +128,7 @@ class _FriendRequestsPageState extends State<FriendRequestsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
@@ -134,7 +137,7 @@ class _FriendRequestsPageState extends State<FriendRequestsPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const BackHeader(title: 'Demandes d’amis'),
+              BackHeader(title: l.friendRequests),
               const SizedBox(height: AppSpace.m),
 
               if (_loading) const LinearProgressIndicator(),
@@ -149,7 +152,7 @@ class _FriendRequestsPageState extends State<FriendRequestsPage> {
               if (!_loading && _requests.isEmpty && _error == null)
                 Expanded(
                   child: Center(
-                    child: Text('Aucune demande', style: Theme.of(context).textTheme.bodyMedium),
+                    child: Text(l.noRequest, style: Theme.of(context).textTheme.bodyMedium),
                   ),
                 ),
 

@@ -67,10 +67,10 @@ class _FeedPageState extends State<FeedPage> {
   List<BookSuggestion> suggestions = [];
   bool loading = true;
 
-  // Pagination des activités
+  // Pagination des activités (cursor-based)
   bool _isLoadingMoreActivities = false;
   bool _hasMoreActivities = true;
-  int _activitiesOffset = 0;
+  String? _lastActivityCursor; // created_at du dernier élément
   static const int _activitiesPageSize = 20;
 
   // Contenu communautaire
@@ -124,7 +124,7 @@ class _FeedPageState extends State<FeedPage> {
       final activitiesRes = await supabase.rpc('get_feed', params: {
         'p_user_id': user.id,
         'p_limit': _activitiesPageSize,
-        'p_offset': _activitiesOffset,
+        'p_cursor': _lastActivityCursor,
       });
       final newActivities = List<Map<String, dynamic>>.from(activitiesRes ?? []);
 
@@ -132,7 +132,9 @@ class _FeedPageState extends State<FeedPage> {
         friendActivities.addAll(newActivities);
         _isLoadingMoreActivities = false;
         _hasMoreActivities = newActivities.length >= _activitiesPageSize;
-        _activitiesOffset += newActivities.length;
+        if (newActivities.isNotEmpty) {
+          _lastActivityCursor = newActivities.last['created_at'] as String?;
+        }
       });
     } catch (e) {
       debugPrint('Erreur _loadMoreActivities: $e');
@@ -143,7 +145,7 @@ class _FeedPageState extends State<FeedPage> {
   Future<void> loadFeed() async {
     setState(() {
       loading = true;
-      _activitiesOffset = 0;
+      _lastActivityCursor = null;
       _hasMoreActivities = true;
     });
 
@@ -184,7 +186,7 @@ class _FeedPageState extends State<FeedPage> {
         final activitiesRes = await supabase.rpc('get_feed', params: {
           'p_user_id': user.id,
           'p_limit': _activitiesPageSize,
-          'p_offset': 0,
+          'p_cursor': null,
         });
         activities = List<Map<String, dynamic>>.from(activitiesRes ?? []);
       }
@@ -225,7 +227,9 @@ class _FeedPageState extends State<FeedPage> {
         _feedSectionOrder = newOrder;
         loading = false;
         _hasMoreActivities = activities.length >= _activitiesPageSize;
-        _activitiesOffset = activities.length;
+        if (activities.isNotEmpty) {
+          _lastActivityCursor = activities.last['created_at'] as String?;
+        }
       });
     } catch (e) {
       debugPrint('Erreur loadFeed: $e');

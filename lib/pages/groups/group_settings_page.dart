@@ -1,12 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'dart:io';
+import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
-import '../../widgets/back_header.dart';
 import '../../models/reading_group.dart';
 import '../../services/groups_service.dart';
 import 'group_members_page.dart';
+
+const _kBg = Color(0xFFFAF3E8);
+const _kCard = Color(0xFFF0E8D8);
+const _kSageGreen = Color(0xFF6B988D);
+const _kGold = Color(0xFFC6A85A);
 
 class GroupSettingsPage extends StatefulWidget {
   final ReadingGroup group;
@@ -61,7 +68,10 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
     });
   }
 
+  bool get _isDark => Theme.of(context).brightness == Brightness.dark;
+
   Future<void> _pickAndUploadCover() async {
+    final l = AppLocalizations.of(context);
     try {
       final source = await showModalBottomSheet<ImageSource>(
         context: context,
@@ -71,17 +81,17 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
             children: [
               ListTile(
                 leading: const Icon(Icons.camera_alt),
-                title: const Text('Prendre une photo'),
+                title: Text(l.takePhoto),
                 onTap: () => Navigator.pop(context, ImageSource.camera),
               ),
               ListTile(
                 leading: const Icon(Icons.photo_library),
-                title: const Text('Choisir dans la galerie'),
+                title: Text(l.chooseFromGallery),
                 onTap: () => Navigator.pop(context, ImageSource.gallery),
               ),
               ListTile(
                 leading: const Icon(Icons.cancel),
-                title: const Text('Annuler'),
+                title: Text(l.cancel),
                 onTap: () => Navigator.pop(context),
               ),
             ],
@@ -122,8 +132,8 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Photo mise à jour'),
+          SnackBar(
+            content: Text(AppLocalizations.of(context).photoUpdated),
             backgroundColor: Colors.green,
           ),
         );
@@ -162,8 +172,8 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Modifications enregistrées'),
+          SnackBar(
+            content: Text(AppLocalizations.of(context).changesSaved),
             backgroundColor: Colors.green,
           ),
         );
@@ -179,26 +189,25 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
   }
 
   Future<void> _deleteGroup() async {
+    final l = AppLocalizations.of(context);
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadius.l),
         ),
-        title: const Text('Supprimer le groupe ?'),
-        content: const Text(
-          'Cette action est irréversible. Tous les membres seront retirés et les données du groupe seront perdues.',
-        ),
+        title: Text(l.deleteGroupTitle),
+        content: Text(l.deleteGroupMessage),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Annuler'),
+            child: Text(l.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text(
-              'Supprimer',
-              style: TextStyle(color: AppColors.error),
+            child: Text(
+              l.deleteButton,
+              style: const TextStyle(color: AppColors.error),
             ),
           ),
         ],
@@ -215,20 +224,20 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadius.l),
         ),
-        title: const Text('Confirmer la suppression'),
+        title: Text(l.confirmDeleteGroupTitle),
         content: Text(
-          'Voulez-vous vraiment supprimer "${widget.group.name}" définitivement ?',
+          l.confirmDeleteGroupMessage(widget.group.name),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Annuler'),
+            child: Text(l.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text(
-              'Supprimer définitivement',
-              style: TextStyle(color: AppColors.error),
+            child: Text(
+              l.deleteButton,
+              style: const TextStyle(color: AppColors.error),
             ),
           ),
         ],
@@ -244,12 +253,11 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Groupe supprimé'),
+          SnackBar(
+            content: Text(AppLocalizations.of(context).groupDeleted),
             backgroundColor: Colors.orange,
           ),
         );
-        // Pop back to group list (pop settings + pop detail)
         Navigator.of(context).pop('deleted');
       }
     } catch (e) {
@@ -276,15 +284,41 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final bg = _isDark ? AppColors.bgDark : _kBg;
+
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: bg,
       body: SafeArea(
         child: Column(
           children: [
+            // Header
             Padding(
-              padding: const EdgeInsets.all(AppSpace.l),
-              child: const BackHeader(title: 'Réglages du groupe'),
+              padding: const EdgeInsets.fromLTRB(4, AppSpace.m, AppSpace.l, 0),
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                  Expanded(
+                    child: Center(
+                      child: Text(
+                        l.groupSettings,
+                        style: GoogleFonts.cormorantGaramond(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w700,
+                          color: _isDark ? Colors.white : Colors.black,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 48),
+                ],
+              ),
             ),
+            const SizedBox(height: AppSpace.m),
+
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: AppSpace.l),
@@ -293,61 +327,70 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Cover photo section
-                      _buildSectionTitle('Photo du groupe'),
+                      // Cover image picker
+                      _buildSectionTitle(l.groupPhoto),
                       const SizedBox(height: AppSpace.m),
-                      Center(
-                        child: GestureDetector(
-                          onTap: _isUploadingCover ? null : _pickAndUploadCover,
+                      GestureDetector(
+                        onTap: _isUploadingCover ? null : _pickAndUploadCover,
+                        child: Container(
+                          height: 112,
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            color: _isDark ? AppColors.surfaceDark : _kCard,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          clipBehavior: Clip.antiAlias,
                           child: Stack(
+                            fit: StackFit.expand,
                             children: [
-                              Container(
-                                width: 120,
-                                height: 120,
-                                decoration: BoxDecoration(
-                                  color: AppColors.primary.withValues(alpha:0.1),
-                                  borderRadius: BorderRadius.circular(AppRadius.l),
-                                  image: _currentCoverUrl != null
-                                      ? DecorationImage(
-                                          image: NetworkImage(_currentCoverUrl!),
-                                          fit: BoxFit.cover,
-                                        )
-                                      : null,
-                                ),
-                                child: _currentCoverUrl == null
-                                    ? const Icon(
-                                        Icons.group,
-                                        color: AppColors.primary,
-                                        size: 48,
-                                      )
-                                    : null,
-                              ),
-                              Positioned(
-                                bottom: 0,
-                                right: 0,
-                                child: Container(
-                                  padding: const EdgeInsets.all(6),
+                              // Current image or placeholder
+                              if (_currentCoverUrl != null)
+                                CachedNetworkImage(
+                                  imageUrl: _currentCoverUrl!,
+                                  fit: BoxFit.cover,
+                                  memCacheWidth: 600,
+                                  memCacheHeight: 336,
+                                  errorWidget: (_, __, ___) => Container(
+                                    color: _kSageGreen.withValues(alpha: 0.2),
+                                    child: const Icon(Icons.image, color: _kSageGreen, size: 40),
+                                  ),
+                                )
+                              else
+                                Container(
                                   decoration: BoxDecoration(
-                                    color: AppColors.primary,
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: Theme.of(context).scaffoldBackgroundColor,
-                                      width: 2,
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        _kSageGreen.withValues(alpha: 0.3),
+                                        _kSageGreen.withValues(alpha: 0.1),
+                                      ],
                                     ),
                                   ),
+                                  child: const Icon(Icons.image_outlined, color: _kSageGreen, size: 40),
+                                ),
+
+                              // Overlay
+                              Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withValues(alpha: 0.3),
+                                ),
+                                child: Center(
                                   child: _isUploadingCover
-                                      ? const SizedBox(
-                                          width: 14,
-                                          height: 14,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                          ),
-                                        )
-                                      : const Icon(
-                                          Icons.camera_alt,
-                                          color: Colors.white,
-                                          size: 14,
+                                      ? const CircularProgressIndicator(color: Colors.white)
+                                      : Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            const Icon(Icons.camera_alt_outlined,
+                                                color: Colors.white, size: 20),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              l.changeImage,
+                                              style: GoogleFonts.dmSans(
+                                                color: Colors.white,
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                 ),
                               ),
@@ -357,54 +400,73 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                       ),
                       const SizedBox(height: AppSpace.xl),
 
-                      // Group info section
-                      _buildSectionTitle('Informations'),
+                      // Name & description
+                      _buildSectionTitle(l.information),
                       const SizedBox(height: AppSpace.m),
-                      TextFormField(
-                        controller: _nameController,
-                        decoration: const InputDecoration(
-                          labelText: 'Nom du groupe *',
-                          border: OutlineInputBorder(),
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: _isDark ? AppColors.surfaceDark : _kCard,
+                          borderRadius: BorderRadius.circular(16),
                         ),
-                        maxLength: 100,
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Le nom est requis';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: AppSpace.m),
-                      TextFormField(
-                        controller: _descriptionController,
-                        decoration: const InputDecoration(
-                          labelText: 'Description',
-                          border: OutlineInputBorder(),
+                        child: Column(
+                          children: [
+                            TextFormField(
+                              controller: _nameController,
+                              decoration: InputDecoration(
+                                labelText: l.groupNameRequired,
+                                filled: true,
+                                fillColor: _isDark ? AppColors.bgDark : Colors.white,
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide.none,
+                                ),
+                              ),
+                              style: GoogleFonts.dmSans(fontSize: 15),
+                              maxLength: 100,
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return l.nameRequired;
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: AppSpace.m),
+                            TextFormField(
+                              controller: _descriptionController,
+                              decoration: InputDecoration(
+                                labelText: l.description,
+                                filled: true,
+                                fillColor: _isDark ? AppColors.bgDark : Colors.white,
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide.none,
+                                ),
+                              ),
+                              style: GoogleFonts.dmSans(fontSize: 15),
+                              maxLines: 3,
+                              maxLength: 500,
+                            ),
+                          ],
                         ),
-                        maxLines: 3,
-                        maxLength: 500,
                       ),
                       const SizedBox(height: AppSpace.xl),
 
-                      // Visibility section
-                      _buildSectionTitle('Visibilité'),
+                      // Privacy toggle
+                      _buildSectionTitle(l.visibility),
                       const SizedBox(height: AppSpace.m),
                       Container(
-                        padding: const EdgeInsets.all(AppSpace.m),
+                        padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: Theme.of(context).cardColor,
-                          borderRadius: BorderRadius.circular(AppRadius.m),
-                          border: Border.all(
-                            color: _isPrivate
-                                ? Colors.orange.withValues(alpha:0.5)
-                                : Colors.transparent,
-                          ),
+                          color: _isDark ? AppColors.surfaceDark : _kCard,
+                          borderRadius: BorderRadius.circular(16),
                         ),
                         child: Row(
                           children: [
                             Icon(
-                              _isPrivate ? Icons.lock : Icons.public,
-                              color: _isPrivate ? Colors.orange : AppColors.primary,
+                              _isPrivate ? Icons.lock_outline : Icons.public,
+                              color: _isPrivate ? _kGold : _kSageGreen,
+                              size: 22,
                             ),
                             const SizedBox(width: AppSpace.m),
                             Expanded(
@@ -412,20 +474,19 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    _isPrivate ? 'Groupe privé' : 'Groupe public',
-                                    style: const TextStyle(
-                                      fontSize: 16,
+                                    _isPrivate ? l.privateGroup : l.publicGroup,
+                                    style: GoogleFonts.dmSans(
+                                      fontSize: 15,
                                       fontWeight: FontWeight.w600,
+                                      color: _isDark ? Colors.white : Colors.black87,
                                     ),
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    _isPrivate
-                                        ? 'Uniquement accessible sur invitation'
-                                        : 'Visible par tous les utilisateurs',
-                                    style: TextStyle(
+                                    _isPrivate ? l.inviteOnly : l.visibleToAll,
+                                    style: GoogleFonts.dmSans(
                                       fontSize: 12,
-                                      color: Colors.grey.shade600,
+                                      color: (_isDark ? Colors.white : Colors.black).withValues(alpha: 0.5),
                                     ),
                                   ),
                                 ],
@@ -437,7 +498,8 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                                 setState(() => _isPrivate = value);
                                 _onFieldChanged();
                               },
-                              activeThumbColor: Colors.orange,
+                              activeThumbColor: _kGold,
+                              activeTrackColor: _kGold.withValues(alpha: 0.3),
                             ),
                           ],
                         ),
@@ -445,60 +507,77 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                       const SizedBox(height: AppSpace.xl),
 
                       // Save button
-                      if (_hasChanges)
+                      if (_hasChanges) ...[
                         SizedBox(
                           width: double.infinity,
-                          height: 48,
-                          child: ElevatedButton(
-                            onPressed: _isSaving ? null : _saveChanges,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.primary,
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(AppRadius.m),
+                          height: 52,
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [_kSageGreen, Color(0xFF5A8A7E)],
                               ),
+                              borderRadius: BorderRadius.circular(16),
                             ),
-                            child: _isSaving
-                                ? const SizedBox(
-                                    height: 20,
-                                    width: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            child: ElevatedButton(
+                              onPressed: _isSaving ? null : _saveChanges,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.transparent,
+                                shadowColor: Colors.transparent,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                              ),
+                              child: _isSaving
+                                  ? const SizedBox(
+                                      height: 20,
+                                      width: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                      ),
+                                    )
+                                  : Text(
+                                      l.saveChanges,
+                                      style: GoogleFonts.dmSans(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.white,
+                                      ),
                                     ),
-                                  )
-                                : const Text(
-                                    'Enregistrer les modifications',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
+                            ),
                           ),
                         ),
-                      if (_hasChanges) const SizedBox(height: AppSpace.xl),
+                        const SizedBox(height: AppSpace.xl),
+                      ],
 
                       // Members section
-                      _buildSectionTitle('Membres'),
+                      _buildSectionTitle(l.members),
                       const SizedBox(height: AppSpace.m),
                       _buildSettingsTile(
-                        icon: Icons.people,
-                        title: 'Gérer les membres',
-                        subtitle: 'Voir, inviter et gérer les rôles',
+                        icon: Icons.people_outline,
+                        title: l.manageMembers,
+                        subtitle: l.manageMembersSubtitle,
                         onTap: _navigateToMembers,
                       ),
                       const SizedBox(height: AppSpace.xl),
 
                       // Danger zone
-                      _buildSectionTitle('Zone de danger', color: AppColors.error),
+                      _buildSectionTitle(l.dangerZone, color: AppColors.error),
                       const SizedBox(height: AppSpace.m),
-                      _buildSettingsTile(
-                        icon: Icons.delete_forever,
-                        title: 'Supprimer le groupe',
-                        subtitle: 'Action irréversible',
-                        iconColor: AppColors.error,
-                        titleColor: AppColors.error,
-                        onTap: _isDeleting ? null : _deleteGroup,
+                      Container(
+                        decoration: BoxDecoration(
+                          color: AppColors.error.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: _buildSettingsTile(
+                          icon: Icons.delete_forever_outlined,
+                          title: l.deleteButton,
+                          subtitle: l.deleteChallengeMessage,
+                          iconColor: AppColors.error,
+                          titleColor: AppColors.error,
+                          onTap: _isDeleting ? null : _deleteGroup,
+                          useBg: false,
+                        ),
                       ),
                       const SizedBox(height: AppSpace.xl),
                     ],
@@ -514,12 +593,12 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
 
   Widget _buildSectionTitle(String title, {Color? color}) {
     return Text(
-      title,
-      style: TextStyle(
-        fontSize: 14,
+      title.toUpperCase(),
+      style: GoogleFonts.dmSans(
+        fontSize: 11,
         fontWeight: FontWeight.w600,
-        color: color ?? Colors.grey.shade500,
-        letterSpacing: 0.5,
+        letterSpacing: 1.2,
+        color: color ?? _kSageGreen,
       ),
     );
   }
@@ -531,19 +610,22 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
     Color? iconColor,
     Color? titleColor,
     VoidCallback? onTap,
+    bool useBg = true,
   }) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(AppRadius.m),
+      borderRadius: BorderRadius.circular(16),
       child: Container(
-        padding: const EdgeInsets.all(AppSpace.m),
-        decoration: BoxDecoration(
-          color: Theme.of(context).cardColor,
-          borderRadius: BorderRadius.circular(AppRadius.m),
-        ),
+        padding: const EdgeInsets.all(16),
+        decoration: useBg
+            ? BoxDecoration(
+                color: _isDark ? AppColors.surfaceDark : _kCard,
+                borderRadius: BorderRadius.circular(16),
+              )
+            : null,
         child: Row(
           children: [
-            Icon(icon, color: iconColor ?? AppColors.primary),
+            Icon(icon, color: iconColor ?? _kSageGreen, size: 22),
             const SizedBox(width: AppSpace.m),
             Expanded(
               child: Column(
@@ -551,19 +633,19 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                 children: [
                   Text(
                     title,
-                    style: TextStyle(
-                      fontSize: 16,
+                    style: GoogleFonts.dmSans(
+                      fontSize: 15,
                       fontWeight: FontWeight.w600,
-                      color: titleColor,
+                      color: titleColor ?? (_isDark ? Colors.white : Colors.black87),
                     ),
                   ),
                   if (subtitle != null) ...[
                     const SizedBox(height: 2),
                     Text(
                       subtitle,
-                      style: TextStyle(
+                      style: GoogleFonts.dmSans(
                         fontSize: 12,
-                        color: Colors.grey.shade600,
+                        color: (_isDark ? Colors.white : Colors.black).withValues(alpha: 0.5),
                       ),
                     ),
                   ],
@@ -572,7 +654,8 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
             ),
             Icon(
               Icons.chevron_right,
-              color: Colors.grey.shade400,
+              color: (_isDark ? Colors.white : Colors.black).withValues(alpha: 0.3),
+              size: 20,
             ),
           ],
         ),

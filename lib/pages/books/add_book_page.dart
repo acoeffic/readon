@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../../l10n/app_localizations.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/back_header.dart';
@@ -86,8 +87,9 @@ class _AddBookPageState extends State<AddBookPage> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _searching = false);
+      final l = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Erreur recherche Google Books')),
+        SnackBar(content: Text(l.errorGoogleBooks)),
       );
     }
   }
@@ -95,8 +97,9 @@ class _AddBookPageState extends State<AddBookPage> {
   Future<void> _addBookFromSearch(Map<String, dynamic> book) async {
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) {
+      final l = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Non connecté')),
+        SnackBar(content: Text(l.notConnected)),
       );
       return;
     }
@@ -137,15 +140,18 @@ class _AddBookPageState extends State<AddBookPage> {
       });
 
       if (!mounted) return;
+      final l = AppLocalizations.of(context)!;
+      final bookTitle = (book["title"] as String?) ?? l.noTitleDefault;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${book['title'] ?? 'Livre'} ajouté')),
+        SnackBar(content: Text(l.bookAddedToLibrary(bookTitle))),
       );
 
       Navigator.of(context).pop();
     } catch (e) {
       if (!mounted) return;
+      final lErr = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Impossible d’ajouter ce livre')),
+        SnackBar(content: Text(lErr.cannotAddBook)),
       );
     }
   }

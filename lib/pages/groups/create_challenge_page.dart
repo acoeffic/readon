@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/back_header.dart';
 import '../../widgets/cached_book_cover.dart';
@@ -49,7 +50,7 @@ class _CreateChallengePageState extends State<CreateChallengePage> {
       setState(() {
         _selectedBook = book;
         if (_titleController.text.isEmpty) {
-          _titleController.text = 'Lire "${book.title}"';
+          _titleController.text = AppLocalizations.of(context).readBookTitle(book.title);
         }
       });
     }
@@ -69,11 +70,12 @@ class _CreateChallengePageState extends State<CreateChallengePage> {
   }
 
   Future<void> _createChallenge() async {
+    final l = AppLocalizations.of(context);
     if (!_formKey.currentState!.validate()) return;
 
     if (_type == 'read_book' && _selectedBook == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Veuillez sélectionner un livre')),
+        SnackBar(content: Text(l.selectBookPrompt)),
       );
       return;
     }
@@ -114,8 +116,8 @@ class _CreateChallengePageState extends State<CreateChallengePage> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Défi créé !'),
+          SnackBar(
+            content: Text(AppLocalizations.of(context).challengeCreated),
             backgroundColor: Colors.green,
           ),
         );
@@ -135,16 +137,18 @@ class _CreateChallengePageState extends State<CreateChallengePage> {
     return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
   }
 
-  String _getDurationLabel() {
+  String _getDurationLabel(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final days = _endsAt.difference(DateTime.now()).inDays;
-    if (days == 7) return '1 semaine';
-    if (days == 14) return '2 semaines';
-    if (days == 30) return '1 mois';
-    return '$days jours';
+    if (days == 7) return l.oneWeek;
+    if (days == 14) return l.twoWeeks;
+    if (days == 30) return l.oneMonth;
+    return '$days ${l.daysUnit}';
   }
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
@@ -155,11 +159,11 @@ class _CreateChallengePageState extends State<CreateChallengePage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const BackHeader(title: 'Nouveau défi'),
+                BackHeader(title: l.newChallenge),
                 const SizedBox(height: AppSpace.xl),
 
                 // Challenge type selector
-                _buildSectionTitle('Type de défi'),
+                _buildSectionTitle(l.challengeType),
                 const SizedBox(height: AppSpace.m),
                 _buildTypeSelector(),
                 const SizedBox(height: AppSpace.xl),
@@ -167,15 +171,15 @@ class _CreateChallengePageState extends State<CreateChallengePage> {
                 // Title
                 TextFormField(
                   controller: _titleController,
-                  decoration: const InputDecoration(
-                    labelText: 'Titre du défi *',
-                    hintText: 'Ex: Marathon de lecture',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: l.challengeTitleRequired,
+                    hintText: l.challengeTitleHint,
+                    border: const OutlineInputBorder(),
                   ),
                   maxLength: 150,
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
-                      return 'Le titre est requis';
+                      return l.titleRequired;
                     }
                     return null;
                   },
@@ -185,9 +189,9 @@ class _CreateChallengePageState extends State<CreateChallengePage> {
                 // Description
                 TextFormField(
                   controller: _descriptionController,
-                  decoration: const InputDecoration(
-                    labelText: 'Description (optionnel)',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: l.descriptionOptional,
+                    border: const OutlineInputBorder(),
                   ),
                   maxLines: 2,
                   maxLength: 300,
@@ -199,7 +203,7 @@ class _CreateChallengePageState extends State<CreateChallengePage> {
                 const SizedBox(height: AppSpace.xl),
 
                 // Expiration date
-                _buildSectionTitle('Date limite'),
+                _buildSectionTitle(l.deadline),
                 const SizedBox(height: AppSpace.m),
                 _buildDateSelector(),
                 const SizedBox(height: AppSpace.xl),
@@ -226,9 +230,9 @@ class _CreateChallengePageState extends State<CreateChallengePage> {
                               valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                             ),
                           )
-                        : const Text(
-                            'Créer le défi',
-                            style: TextStyle(
+                        : Text(
+                            l.createChallengeBtn,
+                            style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
                             ),
@@ -256,13 +260,14 @@ class _CreateChallengePageState extends State<CreateChallengePage> {
   }
 
   Widget _buildTypeSelector() {
+    final l = AppLocalizations.of(context);
     return Row(
       children: [
-        _buildTypeChip('read_pages', 'Pages', Icons.menu_book),
+        _buildTypeChip('read_pages', l.pagesType, Icons.menu_book),
         const SizedBox(width: AppSpace.s),
-        _buildTypeChip('read_book', 'Livre', Icons.book),
+        _buildTypeChip('read_book', l.bookType, Icons.book),
         const SizedBox(width: AppSpace.s),
-        _buildTypeChip('read_daily', 'Quotidien', Icons.calendar_today),
+        _buildTypeChip('read_daily', l.dailyType, Icons.calendar_today),
       ],
     );
   }
@@ -321,10 +326,11 @@ class _CreateChallengePageState extends State<CreateChallengePage> {
   }
 
   Widget _buildBookSelector() {
+    final l = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionTitle('Livre à lire'),
+        _buildSectionTitle(l.bookToRead),
         const SizedBox(height: AppSpace.m),
         GestureDetector(
           onTap: _selectBook,
@@ -380,7 +386,7 @@ class _CreateChallengePageState extends State<CreateChallengePage> {
                       Icon(Icons.search, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
                       const SizedBox(width: AppSpace.m),
                       Text(
-                        'Rechercher un livre...',
+                        l.searchBookHint,
                         style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
                       ),
                     ],
@@ -392,25 +398,26 @@ class _CreateChallengePageState extends State<CreateChallengePage> {
   }
 
   Widget _buildPagesField() {
+    final l = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionTitle('Objectif'),
+        _buildSectionTitle(l.goalLabel),
         const SizedBox(height: AppSpace.m),
         TextFormField(
           controller: _targetValueController,
-          decoration: const InputDecoration(
-            labelText: 'Nombre de pages *',
-            hintText: 'Ex: 200',
-            border: OutlineInputBorder(),
-            suffixText: 'pages',
+          decoration: InputDecoration(
+            labelText: l.pagesCountRequired,
+            hintText: l.pagesCountHint,
+            border: const OutlineInputBorder(),
+            suffixText: l.pagesUnit,
           ),
           keyboardType: TextInputType.number,
           validator: (value) {
             if (_type != 'read_pages') return null;
-            if (value == null || value.isEmpty) return 'Requis';
+            if (value == null || value.isEmpty) return l.required;
             final n = int.tryParse(value);
-            if (n == null || n <= 0) return 'Nombre invalide';
+            if (n == null || n <= 0) return l.invalidNumber;
             return null;
           },
         ),
@@ -419,43 +426,44 @@ class _CreateChallengePageState extends State<CreateChallengePage> {
   }
 
   Widget _buildDailyFields() {
+    final l = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionTitle('Objectif quotidien'),
+        _buildSectionTitle(l.dailyGoal),
         const SizedBox(height: AppSpace.m),
         TextFormField(
           controller: _targetValueController,
-          decoration: const InputDecoration(
-            labelText: 'Minutes de lecture par jour *',
-            hintText: 'Ex: 30',
-            border: OutlineInputBorder(),
-            suffixText: 'min/jour',
+          decoration: InputDecoration(
+            labelText: l.dailyMinutesRequired,
+            hintText: l.dailyMinutesHint,
+            border: const OutlineInputBorder(),
+            suffixText: l.minPerDay,
           ),
           keyboardType: TextInputType.number,
           validator: (value) {
             if (_type != 'read_daily') return null;
-            if (value == null || value.isEmpty) return 'Requis';
+            if (value == null || value.isEmpty) return l.required;
             final n = int.tryParse(value);
-            if (n == null || n <= 0) return 'Nombre invalide';
+            if (n == null || n <= 0) return l.invalidNumber;
             return null;
           },
         ),
         const SizedBox(height: AppSpace.m),
         TextFormField(
           controller: _targetDaysController,
-          decoration: const InputDecoration(
-            labelText: 'Nombre de jours *',
-            hintText: 'Ex: 7',
-            border: OutlineInputBorder(),
-            suffixText: 'jours',
+          decoration: InputDecoration(
+            labelText: l.daysCountRequired,
+            hintText: l.daysCountHint,
+            border: const OutlineInputBorder(),
+            suffixText: l.daysUnit,
           ),
           keyboardType: TextInputType.number,
           validator: (value) {
             if (_type != 'read_daily') return null;
-            if (value == null || value.isEmpty) return 'Requis';
+            if (value == null || value.isEmpty) return l.required;
             final n = int.tryParse(value);
-            if (n == null || n <= 0) return 'Nombre invalide';
+            if (n == null || n <= 0) return l.invalidNumber;
             return null;
           },
         ),
@@ -464,16 +472,17 @@ class _CreateChallengePageState extends State<CreateChallengePage> {
   }
 
   Widget _buildDateSelector() {
+    final l = AppLocalizations.of(context);
     return Column(
       children: [
         // Preset buttons
         Row(
           children: [
-            _buildPresetChip(7, '1 sem.'),
+            _buildPresetChip(7, l.oneWeek),
             const SizedBox(width: AppSpace.s),
-            _buildPresetChip(14, '2 sem.'),
+            _buildPresetChip(14, l.twoWeeks),
             const SizedBox(width: AppSpace.s),
-            _buildPresetChip(30, '1 mois'),
+            _buildPresetChip(30, l.oneMonth),
           ],
         ),
         const SizedBox(height: AppSpace.m),
@@ -494,11 +503,11 @@ class _CreateChallengePageState extends State<CreateChallengePage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Expire le',
+                      l.expiresOn,
                       style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
                     ),
                     Text(
-                      '${_formatDate(_endsAt)} (${_getDurationLabel()})',
+                      '${_formatDate(_endsAt)} (${_getDurationLabel(context)})',
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -624,6 +633,7 @@ class _BookSearchDialogState extends State<_BookSearchDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return Dialog(
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppRadius.l),
@@ -634,9 +644,9 @@ class _BookSearchDialogState extends State<_BookSearchDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Choisir un livre',
-              style: TextStyle(
+            Text(
+              l.chooseBook,
+              style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
               ),
@@ -645,7 +655,7 @@ class _BookSearchDialogState extends State<_BookSearchDialog> {
             TextField(
               controller: _searchController,
               decoration: InputDecoration(
-                hintText: 'Rechercher un livre...',
+                hintText: l.searchBookHint,
                 prefixIcon: const Icon(Icons.search),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(AppRadius.m),
@@ -671,8 +681,8 @@ class _BookSearchDialogState extends State<_BookSearchDialog> {
 
   Widget _buildUserBooks() {
     if (_userBooks.isEmpty) {
-      return const Center(
-        child: Text('Aucun livre dans votre bibliothèque'),
+      return Center(
+        child: Text(AppLocalizations.of(context).libraryEmpty),
       );
     }
 
@@ -691,12 +701,13 @@ class _BookSearchDialogState extends State<_BookSearchDialog> {
   }
 
   Widget _buildSearchResults() {
+    final l = AppLocalizations.of(context);
     if (_isSearching) {
       return const Center(child: CircularProgressIndicator());
     }
 
     if (_searchResults.isEmpty) {
-      return const Center(child: Text('Aucun résultat'));
+      return Center(child: Text(l.noResult));
     }
 
     return ListView.builder(

@@ -1,8 +1,10 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import '../../l10n/app_localizations.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/cached_book_cover.dart';
 import '../../models/ai_message.dart';
 import '../../models/feature_flags.dart';
 import '../../services/books_service.dart';
@@ -212,6 +214,7 @@ class _AiChatPageState extends State<AiChatPage> {
   }
 
   Widget _buildHeader(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpace.s,
@@ -228,7 +231,7 @@ class _AiChatPageState extends State<AiChatPage> {
           const SizedBox(width: AppSpace.s),
           Expanded(
             child: Text(
-              widget.initialTitle ?? 'Muse',
+              widget.initialTitle ?? l.muse,
               style: Theme.of(context).textTheme.titleMedium,
               overflow: TextOverflow.ellipsis,
             ),
@@ -240,6 +243,7 @@ class _AiChatPageState extends State<AiChatPage> {
 
   Widget _buildEmptyState(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final l = AppLocalizations.of(context);
     return Center(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(AppSpace.xl),
@@ -270,7 +274,7 @@ class _AiChatPageState extends State<AiChatPage> {
                 ],
               ),
               child: Text(
-                'Salut, je suis Muse, ta conseillère lecture. Qu\'as-tu envie de lire ?',
+                l.museGreeting,
                 style: TextStyle(
                   color: isDark ? AppColors.textPrimaryDark : Colors.black87,
                   fontSize: 14,
@@ -285,9 +289,9 @@ class _AiChatPageState extends State<AiChatPage> {
               runSpacing: AppSpace.s,
               alignment: WrapAlignment.center,
               children: [
-                _buildSuggestionChip('Recommande-moi un roman'),
-                _buildSuggestionChip('Un livre similaire à mon dernier'),
-                _buildSuggestionChip('Un classique à découvrir'),
+                _buildSuggestionChip(l.museRecommendNovel),
+                _buildSuggestionChip(l.museSimilarBook),
+                _buildSuggestionChip(l.museClassic),
               ],
             ),
           ],
@@ -298,6 +302,7 @@ class _AiChatPageState extends State<AiChatPage> {
 
   Widget _buildLimitReachedState(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final l = AppLocalizations.of(context);
     return Center(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(AppSpace.xl),
@@ -329,7 +334,7 @@ class _AiChatPageState extends State<AiChatPage> {
               child: Column(
                 children: [
                   Text(
-                    'Tu as utilisé tes ${FeatureFlags.maxFreeAiMessages} messages gratuits ce mois-ci',
+                    l.freeMessagesUsed(FeatureFlags.maxFreeAiMessages),
                     style: TextStyle(
                       color: isDark ? AppColors.textPrimaryDark : Colors.black87,
                       fontSize: 15,
@@ -340,7 +345,7 @@ class _AiChatPageState extends State<AiChatPage> {
                   ),
                   const SizedBox(height: AppSpace.s),
                   Text(
-                    'Abonne-toi pour discuter sans limite avec Muse !',
+                    l.subscribeForUnlimited,
                     style: TextStyle(
                       color: isDark ? AppColors.textSecondaryDark : Colors.black54,
                       fontSize: 14,
@@ -368,9 +373,9 @@ class _AiChatPageState extends State<AiChatPage> {
                     borderRadius: BorderRadius.circular(AppRadius.pill),
                   ),
                 ),
-                child: const Text(
-                  'Découvrir l\'abonnement',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                child: Text(
+                  l.discoverSubscription,
+                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
                 ),
               ),
             ),
@@ -527,13 +532,14 @@ class _AiChatPageState extends State<AiChatPage> {
       if (mounted) {
         Navigator.pop(context); // Fermer le loading
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Impossible de charger le livre : $e')),
+          SnackBar(content: Text(AppLocalizations.of(context).cannotLoadBook(e.toString()))),
         );
       }
     }
   }
 
   void _showBookDetailSheet(GoogleBook googleBook) {
+    final l = AppLocalizations.of(context);
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -566,19 +572,12 @@ class _AiChatPageState extends State<AiChatPage> {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (googleBook.coverUrl != null)
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: Image.network(
-                        googleBook.coverUrl!,
-                        width: 100,
-                        height: 150,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => _buildPlaceholderCover(),
-                      ),
-                    )
-                  else
-                    _buildPlaceholderCover(),
+                  CachedBookCover(
+                    imageUrl: googleBook.coverUrl,
+                    width: 100,
+                    height: 150,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                   const SizedBox(width: 16),
                   Expanded(
                     child: Column(
@@ -650,15 +649,15 @@ class _AiChatPageState extends State<AiChatPage> {
                                 color: AppColors.primary.withValues(alpha: 0.3),
                               ),
                             ),
-                            child: const Row(
+                            child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(Icons.playlist_add,
+                                const Icon(Icons.playlist_add,
                                     size: 14, color: AppColors.primary),
-                                SizedBox(width: 4),
+                                const SizedBox(width: 4),
                                 Text(
-                                  'Ajouter à une liste',
-                                  style: TextStyle(
+                                  l.addToList,
+                                  style: const TextStyle(
                                     fontSize: 12,
                                     color: AppColors.primary,
                                   ),
@@ -709,7 +708,7 @@ class _AiChatPageState extends State<AiChatPage> {
                     _buildBuyOption(
                       context: ctx,
                       emoji: '📖',
-                      label: 'En librairie',
+                      label: l.inBookstore,
                       onTap: () {
                         final query = Uri.encodeComponent(
                           '${googleBook.title} ${googleBook.authorsString}'.trim(),
@@ -724,14 +723,14 @@ class _AiChatPageState extends State<AiChatPage> {
                     _buildBuyOption(
                       context: ctx,
                       emoji: '🏪',
-                      label: 'Trouver près de moi',
+                      label: l.findNearMe,
                       onTap: () => _openNearbyBookstores(ctx),
                     ),
                     Divider(height: 1, color: Theme.of(ctx).colorScheme.onSurface.withValues(alpha: 0.08)),
                     _buildBuyOption(
                       context: ctx,
                       emoji: '📦',
-                      label: 'Amazon',
+                      label: l.amazon,
                       onTap: () {
                         final query = Uri.encodeComponent(
                           '${googleBook.title} ${googleBook.authorsString}'.trim(),
@@ -789,12 +788,13 @@ class _AiChatPageState extends State<AiChatPage> {
   }
 
   Future<void> _openNearbyBookstores(BuildContext parentContext) async {
+    final l = AppLocalizations.of(context);
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
         if (!mounted) return;
         ScaffoldMessenger.of(parentContext).showSnackBar(
-          const SnackBar(content: Text('Activez la localisation dans les réglages')),
+          SnackBar(content: Text(l.enableLocationSettings)),
         );
         return;
       }
@@ -807,7 +807,7 @@ class _AiChatPageState extends State<AiChatPage> {
           permission == LocationPermission.deniedForever) {
         if (!mounted) return;
         ScaffoldMessenger.of(parentContext).showSnackBar(
-          const SnackBar(content: Text('Accès à la localisation requis')),
+          SnackBar(content: Text(l.locationAccessRequired)),
         );
         return;
       }
@@ -848,19 +848,6 @@ class _AiChatPageState extends State<AiChatPage> {
       ),
       onTap: onTap,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    );
-  }
-
-  Widget _buildPlaceholderCover() {
-    return Container(
-      width: 100,
-      height: 150,
-      decoration: BoxDecoration(
-        color: AppColors.primary.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Icon(Icons.book, size: 32,
-          color: AppColors.primary.withValues(alpha: 0.4)),
     );
   }
 
@@ -931,6 +918,7 @@ class _AiChatPageState extends State<AiChatPage> {
   }
 
   Widget _buildMessageCounter() {
+    final l = AppLocalizations.of(context);
     final used = FeatureFlags.maxFreeAiMessages - _remainingMessages;
     return Padding(
       padding: const EdgeInsets.symmetric(
@@ -943,7 +931,7 @@ class _AiChatPageState extends State<AiChatPage> {
           Icon(Icons.info_outline, size: 14, color: AppColors.primary),
           const SizedBox(width: AppSpace.xs),
           Text(
-            '$used/${FeatureFlags.maxFreeAiMessages} messages utilisés ce mois-ci',
+            l.messagesUsedCount(used, FeatureFlags.maxFreeAiMessages),
             style: TextStyle(
               fontSize: 12,
               color: AppColors.primary,
@@ -956,6 +944,7 @@ class _AiChatPageState extends State<AiChatPage> {
   }
 
   Widget _buildInputBar(bool isDark) {
+    final l = AppLocalizations.of(context);
     return Container(
       padding: const EdgeInsets.all(AppSpace.s),
       decoration: BoxDecoration(
@@ -973,7 +962,7 @@ class _AiChatPageState extends State<AiChatPage> {
               controller: _controller,
               focusNode: _focusNode,
               decoration: InputDecoration(
-                hintText: 'Demande une recommandation...',
+                hintText: l.askRecommendation,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(AppRadius.pill),
                   borderSide: BorderSide.none,
@@ -1082,7 +1071,7 @@ class _ChatAddToListSheetState extends State<_ChatAddToListSheet> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Ajouté à "${result.title}"'),
+              content: Text(AppLocalizations.of(context).addedToList(result.title)),
               backgroundColor: Colors.green,
             ),
           );
@@ -1095,6 +1084,7 @@ class _ChatAddToListSheetState extends State<_ChatAddToListSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return SafeArea(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -1118,7 +1108,7 @@ class _ChatAddToListSheetState extends State<_ChatAddToListSheet> {
           Padding(
             padding: const EdgeInsets.all(16),
             child: Text(
-              'Ajouter à une liste',
+              l.addToList,
               style: Theme.of(context)
                   .textTheme
                   .titleMedium
@@ -1129,7 +1119,7 @@ class _ChatAddToListSheetState extends State<_ChatAddToListSheet> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Text(
-                'Aucune liste personnelle.',
+                l.noPersonalList,
                 style: TextStyle(
                   color: Theme.of(context)
                       .colorScheme
@@ -1171,9 +1161,9 @@ class _ChatAddToListSheetState extends State<_ChatAddToListSheet> {
               ),
               child: const Icon(Icons.add, size: 18, color: AppColors.primary),
             ),
-            title: const Text(
-              'Créer une nouvelle liste',
-              style: TextStyle(color: AppColors.primary),
+            title: Text(
+              l.createNewList,
+              style: const TextStyle(color: AppColors.primary),
             ),
             onTap: _createNewList,
           ),

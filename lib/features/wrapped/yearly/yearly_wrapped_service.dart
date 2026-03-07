@@ -35,13 +35,21 @@ class YearlyWrappedService {
       _getBadges(userId, startIso, endIso), // 2
       _getPreviousYearStats(userId, year - 1), // 3
       _getPercentileRank(userId, year), // 4
+      _getAllTimeSessionCountsPerBook(userId), // 5
     ]);
 
     final sessions = results[0] as List<Map<String, dynamic>>;
-    final finishedBooks = results[1] as List<Map<String, dynamic>>;
+    final allFinishedBooks = results[1] as List<Map<String, dynamic>>;
     final badges = results[2] as List<Map<String, dynamic>>;
     final prevStats = results[3] as Map<String, int>;
     final percentileData = results[4] as Map<String, int>;
+    final sessionCountPerBook = results[5] as Map<String, int>;
+
+    // Only count finished books with at least 3 completed sessions
+    final finishedBooks = allFinishedBooks.where((b) {
+      final bookId = b['book_id']?.toString() ?? '';
+      return (sessionCountPerBook[bookId] ?? 0) >= 3;
+    }).toList();
 
     // --- Compute aggregated stats from sessions ---
     int totalMinutes = 0;
@@ -259,6 +267,29 @@ class YearlyWrappedService {
     }
   }
 
+  /// Returns a map of book_id -> session count (all-time) for the user.
+  Future<Map<String, int>> _getAllTimeSessionCountsPerBook(String userId) async {
+    try {
+      final response = await _supabase
+          .from('reading_sessions')
+          .select('book_id')
+          .eq('user_id', userId)
+          .not('end_time', 'is', null);
+
+      final counts = <String, int>{};
+      for (final s in response as List) {
+        final bookId = s['book_id']?.toString() ?? '';
+        if (bookId.isNotEmpty) {
+          counts[bookId] = (counts[bookId] ?? 0) + 1;
+        }
+      }
+      return counts;
+    } catch (e) {
+      debugPrint('Erreur _getAllTimeSessionCountsPerBook: $e');
+      return {};
+    }
+  }
+
   Future<List<Map<String, dynamic>>> _getBooksFinished(
     String userId,
     String startIso,
@@ -308,17 +339,31 @@ class YearlyWrappedService {
       final startIso = DateTime.utc(prevYear).toIso8601String();
       final endIso = DateTime.utc(prevYear + 1).toIso8601String();
 
-      final sessionsRes = await _supabase
-          .from('reading_sessions')
-          .select('start_time, end_time')
-          .eq('user_id', userId)
-          .not('end_time', 'is', null)
-          .gte('start_time', startIso)
-          .lt('start_time', endIso);
+      final parallelResults = await Future.wait<dynamic>([
+        _supabase
+            .from('reading_sessions')
+            .select('start_time, end_time')
+            .eq('user_id', userId)
+            .not('end_time', 'is', null)
+            .gte('start_time', startIso)
+            .lt('start_time', endIso),
+        _supabase
+            .from('user_books')
+            .select('book_id')
+            .eq('user_id', userId)
+            .eq('status', 'finished')
+            .gte('updated_at', startIso)
+            .lt('updated_at', endIso),
+        _getAllTimeSessionCountsPerBook(userId),
+      ]);
+
+      final sessionsRes = parallelResults[0] as List;
+      final booksRes = parallelResults[1] as List;
+      final sessionCounts = parallelResults[2] as Map<String, int>;
 
       int totalMin = 0;
       final readDays = <String>{};
-      for (final s in sessionsRes as List) {
+      for (final s in sessionsRes) {
         final st = DateTime.parse(s['start_time'] as String).toLocal();
         final et = DateTime.parse(s['end_time'] as String).toLocal();
         totalMin += et.difference(st).inMinutes;
@@ -327,18 +372,16 @@ class YearlyWrappedService {
 
       final prevFlow = _computeBestFlowFromDates(readDays, prevYear);
 
-      final booksRes = await _supabase
-          .from('user_books')
-          .select('book_id')
-          .eq('user_id', userId)
-          .eq('status', 'finished')
-          .gte('updated_at', startIso)
-          .lt('updated_at', endIso);
+      // Only count finished books with at least 3 completed sessions
+      final validBooks = booksRes.where((b) {
+        final bookId = b['book_id']?.toString() ?? '';
+        return (sessionCounts[bookId] ?? 0) >= 3;
+      }).toList();
 
       return {
         'minutes': totalMin,
-        'books': (booksRes as List).length,
-        'sessions': (sessionsRes as List).length,
+        'books': validBooks.length,
+        'sessions': sessionsRes.length,
         'flow': prevFlow,
       };
     } catch (e) {

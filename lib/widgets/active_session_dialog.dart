@@ -2,6 +2,7 @@
 // Dialog pour reprendre ou abandonner une session en cours
 
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations.dart';
 import '../models/reading_session.dart';
 
 class ActiveSessionDialog extends StatelessWidget {
@@ -29,6 +30,7 @@ class ActiveSessionDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return AlertDialog(
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
@@ -37,16 +39,16 @@ class ActiveSessionDialog extends StatelessWidget {
         children: [
           Icon(Icons.info_outline, color: Colors.orange.shade700),
           const SizedBox(width: 12),
-          const Text('Session en cours'),
+          Text(l.activeSessionDialogTitle),
         ],
       ),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Une session de lecture est déjà en cours pour ce livre.',
-            style: TextStyle(fontSize: 14),
+          Text(
+            l.activeSessionDialogMessage,
+            style: const TextStyle(fontSize: 14),
           ),
           const SizedBox(height: 16),
           Container(
@@ -63,7 +65,7 @@ class ActiveSessionDialog extends StatelessWidget {
                     Icon(Icons.bookmark, size: 16, color: Colors.blue.shade700),
                     const SizedBox(width: 8),
                     Text(
-                      'Page ${activeSession.startPage}',
+                      l.pageAtNumber(activeSession.startPage),
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         color: Colors.blue.shade700,
@@ -86,9 +88,9 @@ class ActiveSessionDialog extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          const Text(
-            'Que voulez-vous faire ?',
-            style: TextStyle(fontWeight: FontWeight.bold),
+          Text(
+            l.whatDoYouWant,
+            style: const TextStyle(fontWeight: FontWeight.bold),
           ),
         ],
       ),
@@ -99,7 +101,7 @@ class ActiveSessionDialog extends StatelessWidget {
             onCancel();
           },
           child: Text(
-            'Abandonner',
+            l.abandonButton,
             style: TextStyle(color: Colors.red.shade700),
           ),
         ),
@@ -112,7 +114,7 @@ class ActiveSessionDialog extends StatelessWidget {
             backgroundColor: Colors.green,
             foregroundColor: Colors.white,
           ),
-          child: const Text('Reprendre'),
+          child: Text(l.resume),
         ),
       ],
     );

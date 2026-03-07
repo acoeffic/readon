@@ -3,6 +3,7 @@
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations.dart';
 import '../pages/auth/terms_of_service_page.dart';
 import '../theme/app_theme.dart';
 
@@ -18,6 +19,7 @@ class TermsAcceptanceCheckbox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -37,9 +39,9 @@ class TermsAcceptanceCheckbox extends StatelessWidget {
                   height: 1.4,
                 ),
                 children: [
-                  const TextSpan(text: 'J\'accepte les '),
+                  TextSpan(text: l.iAcceptThe),
                   TextSpan(
-                    text: 'Conditions Générales d\'Utilisation',
+                    text: l.termsOfUseLink,
                     style: const TextStyle(
                       color: AppColors.primary,
                       decoration: TextDecoration.underline,
@@ -57,7 +59,7 @@ class TermsAcceptanceCheckbox extends StatelessWidget {
                         );
                       },
                   ),
-                  const TextSpan(text: ' de LexDay'),
+                  TextSpan(text: l.ofLexDay),
                 ],
               ),
             ),
