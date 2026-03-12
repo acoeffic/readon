@@ -124,6 +124,7 @@ class _FeedHeaderState extends State<FeedHeader> with TickerProviderStateMixin {
             ),
             // Content
             Center(
+              heightFactor: 1.0,
               child: ConstrainedBox(
                 constraints: BoxConstraints(
                   maxWidth: Responsive.isTablet(context)

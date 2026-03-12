@@ -49,10 +49,8 @@ BEGIN
   -- Livres utilisateur
   DELETE FROM user_books WHERE user_id = uid;
 
-  -- 3. Supprimer les avatars dans le storage
-  DELETE FROM storage.objects
-  WHERE bucket_id = 'profiles'
-    AND name LIKE 'avatars/' || uid::TEXT || '/%';
+  -- 3. Storage files (avatars, annotations) are deleted client-side
+  --    via the Supabase Storage API before calling this function.
 
   -- 4. Supprimer le profil
   DELETE FROM profiles WHERE id = uid;

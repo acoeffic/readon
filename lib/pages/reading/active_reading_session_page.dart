@@ -46,6 +46,7 @@ class _ActiveReadingSessionPageState extends State<ActiveReadingSessionPage>
   DateTime? _pauseStartTime;
   Duration _totalPauseDuration = Duration.zero;
   int _streakDays = 0;
+  List<Annotation> _sessionAnnotations = [];
 
   @override
   void initState() {
@@ -54,6 +55,7 @@ class _ActiveReadingSessionPageState extends State<ActiveReadingSessionPage>
     _elapsed = DateTime.now().difference(widget.activeSession.startTime);
     _startTimer();
     _loadStreak();
+    _loadAnnotations();
   }
 
   @override
@@ -70,6 +72,14 @@ class _ActiveReadingSessionPageState extends State<ActiveReadingSessionPage>
         _elapsed = DateTime.now().difference(widget.activeSession.startTime) -
             _totalPauseDuration;
       });
+    }
+  }
+
+  Future<void> _loadAnnotations() async {
+    final annotations = await AnnotationService()
+        .getAnnotationsForSession(widget.activeSession.id);
+    if (mounted) {
+      setState(() => _sessionAnnotations = annotations);
     }
   }
 
@@ -174,8 +184,8 @@ class _ActiveReadingSessionPageState extends State<ActiveReadingSessionPage>
     }
   }
 
-  void _showAnnotationSheet() {
-    showModalBottomSheet(
+  void _showAnnotationSheet() async {
+    await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
@@ -187,6 +197,14 @@ class _ActiveReadingSessionPageState extends State<ActiveReadingSessionPage>
         initialPage: widget.activeSession.startPage,
       ),
     );
+    _loadAnnotations();
+  }
+
+  String _getTimeAgo(DateTime dateTime, AppLocalizations l) {
+    final diff = DateTime.now().difference(dateTime);
+    if (diff.inDays > 0) return l.timeAgoDays(diff.inDays);
+    if (diff.inHours > 0) return l.timeAgoHours(diff.inHours);
+    return l.timeAgoMinutes(diff.inMinutes);
   }
 
   String _formatDuration(Duration d) {
@@ -196,6 +214,127 @@ class _ActiveReadingSessionPageState extends State<ActiveReadingSessionPage>
     final mins = totalMinutes % 60;
     if (mins == 0) return '${hours}h';
     return '${hours}h${mins.toString().padLeft(2, '0')}';
+  }
+
+  Widget _buildAnnotationTile(Annotation annotation, AppLocalizations l) {
+    final timeAgo = _getTimeAgo(annotation.createdAt, l);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF3E0),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Center(
+              child: Icon(
+                annotation.type == AnnotationType.photo
+                    ? Icons.camera_alt
+                    : annotation.type == AnnotationType.voice
+                        ? Icons.mic
+                        : Icons.edit_note,
+                color: const Color(0xFFE6A817),
+                size: 18,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  annotation.content,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF2D2D2D),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Row(
+                  children: [
+                    if (annotation.pageNumber != null) ...[
+                      Text(
+                        'p.${annotation.pageNumber}',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                    ],
+                    Text(
+                      timeAgo,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey.shade400,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAllAnnotations() {
+    final l = AppLocalizations.of(context);
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Container(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+        decoration: const BoxDecoration(
+          color: AppColors.bgLight,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              l.sessionAnnotations,
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF2D2D2D),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Flexible(
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: _sessionAnnotations.length,
+                itemBuilder: (context, index) =>
+                    _buildAnnotationTile(_sessionAnnotations[index], l),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -212,35 +351,6 @@ class _ActiveReadingSessionPageState extends State<ActiveReadingSessionPage>
       },
       child: Scaffold(
         backgroundColor: AppColors.bgLight,
-        floatingActionButton: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color(0xFF8FB8A8), Color(0xFF6B9B8A)],
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primary.withValues(alpha: 0.4),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: _showAnnotationSheet,
-              borderRadius: BorderRadius.circular(16),
-              child: const SizedBox(
-                width: 52,
-                height: 52,
-                child: Icon(Icons.draw_outlined, color: Colors.white, size: 24),
-              ),
-            ),
-          ),
-        ),
         body: SafeArea(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -474,16 +584,155 @@ class _ActiveReadingSessionPageState extends State<ActiveReadingSessionPage>
                           ],
                         ),
 
+                        // Session annotations card
+                        if (_sessionAnnotations.isNotEmpty) ...[
+                          const SizedBox(height: 16),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(20),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.04),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Text(
+                                      l.sessionAnnotations,
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w700,
+                                        color: Color(0xFF2D2D2D),
+                                      ),
+                                    ),
+                                    const Spacer(),
+                                    if (_sessionAnnotations.length > 2)
+                                      GestureDetector(
+                                        onTap: () => _showAllAnnotations(),
+                                        child: Text(
+                                          l.seeAll,
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600,
+                                            color: AppColors.primary,
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                                const SizedBox(height: 12),
+                                ..._sessionAnnotations.take(3).map(
+                                  (annotation) => _buildAnnotationTile(annotation, l),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+
                         const SizedBox(height: 32),
                       ],
                     ),
                   ),
                 ),
 
-                // Slide to end button
+                // Bottom bar: Annoter + Pause + Stop
                 Padding(
                   padding: const EdgeInsets.only(bottom: 16),
-                  child: _SlideToEndButton(onSlideComplete: _endSession),
+                  child: Row(
+                    children: [
+                      // Annoter button
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: _showAnnotationSheet,
+                          child: Container(
+                            height: 56,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF5F0E8),
+                              borderRadius: BorderRadius.circular(28),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.draw_outlined, color: const Color(0xFF2D2D2D), size: 22),
+                                const SizedBox(width: 8),
+                                Text(
+                                  l.annotateButton,
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFF2D2D2D),
+                                  ),
+                                ),
+                                if (_sessionAnnotations.isNotEmpty) ...[
+                                  const SizedBox(width: 6),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primary,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Text(
+                                      '${_sessionAnnotations.length}',
+                                      style: const TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w700,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      // Pause button
+                      GestureDetector(
+                        onTap: _togglePause,
+                        child: Container(
+                          width: 56,
+                          height: 56,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFF3D6B5E),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            _isPaused ? Icons.play_arrow_rounded : Icons.pause_rounded,
+                            color: Colors.white,
+                            size: 28,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      // Stop button
+                      GestureDetector(
+                        onTap: _endSession,
+                        child: Container(
+                          width: 56,
+                          height: 56,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFCE4E4),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.stop_rounded,
+                            color: Colors.red.shade400,
+                            size: 28,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -554,153 +803,6 @@ class _InfoCard extends StatelessWidget {
                   ),
                 ),
               ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Slide to end button ─────────────────────────────────────────────
-
-class _SlideToEndButton extends StatefulWidget {
-  final VoidCallback onSlideComplete;
-
-  const _SlideToEndButton({required this.onSlideComplete});
-
-  @override
-  State<_SlideToEndButton> createState() => _SlideToEndButtonState();
-}
-
-class _SlideToEndButtonState extends State<_SlideToEndButton>
-    with SingleTickerProviderStateMixin {
-  static const _thumbSize = 56.0;
-  static const _trackHeight = 64.0;
-  static const _trackPadding = 4.0;
-  static const _threshold = 0.80;
-
-  double _dragPosition = 0;
-  bool _completed = false;
-  late AnimationController _resetController;
-  late Animation<double> _resetAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _resetController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 300),
-    );
-    _resetAnimation = CurvedAnimation(
-      parent: _resetController,
-      curve: Curves.easeOutCubic,
-    );
-    _resetController.addListener(() {
-      setState(() {
-        _dragPosition = _dragPosition * (1 - _resetAnimation.value);
-      });
-    });
-  }
-
-  @override
-  void dispose() {
-    _resetController.dispose();
-    super.dispose();
-  }
-
-  void _onDragUpdate(DragUpdateDetails details) {
-    if (_completed) return;
-    setState(() {
-      _dragPosition = (_dragPosition + details.delta.dx).clamp(0.0,
-          _maxDrag);
-    });
-  }
-
-  void _onDragEnd(DragEndDetails details) {
-    if (_completed) return;
-    if (_dragPosition / _maxDrag >= _threshold) {
-      setState(() {
-        _completed = true;
-        _dragPosition = _maxDrag;
-      });
-      widget.onSlideComplete();
-    } else {
-      _resetController.forward(from: 0);
-    }
-  }
-
-  double get _maxDrag {
-    final renderBox = context.findRenderObject() as RenderBox?;
-    if (renderBox == null) return 200;
-    return renderBox.size.width - _thumbSize - _trackPadding * 2;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
-    final progress = _maxDrag > 0 ? (_dragPosition / _maxDrag) : 0.0;
-
-    return Container(
-      height: _trackHeight,
-      decoration: BoxDecoration(
-        color: const Color(0xFF3D6B5E),
-        borderRadius: BorderRadius.circular(_trackHeight / 2),
-      ),
-      child: Stack(
-        alignment: Alignment.centerLeft,
-        children: [
-          // Label
-          Center(
-            child: Opacity(
-              opacity: (1 - progress * 1.5).clamp(0.0, 1.0),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const SizedBox(width: 40),
-                  Text(
-                    l.endSessionSlide,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white70,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  const Icon(Icons.chevron_right, color: Colors.white38, size: 20),
-                ],
-              ),
-            ),
-          ),
-
-          // Thumb
-          Positioned(
-            left: _trackPadding + _dragPosition,
-            child: GestureDetector(
-              onHorizontalDragUpdate: _onDragUpdate,
-              onHorizontalDragEnd: _onDragEnd,
-              child: Container(
-                width: _thumbSize,
-                height: _thumbSize,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.15),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: const Center(
-                  child: Icon(
-                    Icons.stop_rounded,
-                    color: Color(0xFF3D6B5E),
-                    size: 28,
-                  ),
-                ),
-              ),
             ),
           ),
         ],

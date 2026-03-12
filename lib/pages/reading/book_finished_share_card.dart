@@ -216,7 +216,7 @@ class _Header extends StatelessWidget {
         ),
         const SizedBox(width: 10),
         Text(
-          'LEXSTA',
+          'LEXDAY',
           style: GoogleFonts.jetBrainsMono(
             fontSize: 14,
             fontWeight: FontWeight.w700,

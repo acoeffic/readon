@@ -428,6 +428,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String get englishActive => '🇬🇧 English (active)';
 
   @override
+  String get spanish => '🇪🇸 Español';
+
+  @override
+  String get spanishActive => '🇪🇸 Español (activo)';
+
+  @override
   String get accountSection => 'Compte';
 
   @override
@@ -1606,6 +1612,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String get books => 'Livres';
 
   @override
+  String get viewFullProfile => 'Voir le profil complet';
+
+  @override
+  String get followLabel => 'Suivre';
+
+  @override
   String get pagesLabel => 'Pages';
 
   @override
@@ -2497,4 +2509,34 @@ class AppLocalizationsFr extends AppLocalizations {
   String sharedByUser(String name) {
     return 'Partagé par $name';
   }
+
+  @override
+  String get sessionAnnotations => 'Annotations de la session';
+
+  @override
+  String get annotateButton => 'Annoter';
+
+  @override
+  String get comments => 'Commentaires';
+
+  @override
+  String get writeComment => 'Écrire un commentaire...';
+
+  @override
+  String get commentBeingValidated => 'Commentaire en cours de validation...';
+
+  @override
+  String get commentPending => 'En attente';
+
+  @override
+  String get noCommentsYet => 'Aucun commentaire pour le moment';
+
+  @override
+  String get beFirstToComment => 'Sois le premier à commenter !';
+
+  @override
+  String get send => 'Envoyer';
+
+  @override
+  String get reactionPremiumOnly => 'Réaction réservée aux membres Premium';
 }

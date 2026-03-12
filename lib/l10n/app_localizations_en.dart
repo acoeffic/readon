@@ -422,6 +422,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get englishActive => '🇬🇧 English (active)';
 
   @override
+  String get spanish => '🇪🇸 Español';
+
+  @override
+  String get spanishActive => '🇪🇸 Español (active)';
+
+  @override
   String get accountSection => 'Account';
 
   @override
@@ -1587,6 +1593,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get books => 'Books';
 
   @override
+  String get viewFullProfile => 'View full profile';
+
+  @override
+  String get followLabel => 'Follow';
+
+  @override
   String get pagesLabel => 'Pages';
 
   @override
@@ -2465,4 +2477,34 @@ class AppLocalizationsEn extends AppLocalizations {
   String sharedByUser(String name) {
     return 'Shared by $name';
   }
+
+  @override
+  String get sessionAnnotations => 'Session annotations';
+
+  @override
+  String get annotateButton => 'Annotate';
+
+  @override
+  String get comments => 'Comments';
+
+  @override
+  String get writeComment => 'Write a comment...';
+
+  @override
+  String get commentBeingValidated => 'Comment being validated...';
+
+  @override
+  String get commentPending => 'Pending';
+
+  @override
+  String get noCommentsYet => 'No comments yet';
+
+  @override
+  String get beFirstToComment => 'Be the first to comment!';
+
+  @override
+  String get send => 'Send';
+
+  @override
+  String get reactionPremiumOnly => 'Reaction reserved for Premium members';
 }

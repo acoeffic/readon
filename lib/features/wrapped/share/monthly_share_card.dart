@@ -155,7 +155,7 @@ class _StoryCard extends StatelessWidget {
                   children: [
                     // Header
                     Text(
-                      'READON WRAPPED',
+                      'LEXDAY WRAPPED',
                       style: TextStyle(
                         fontFamily: 'Inter',
                         fontSize: 9,
@@ -217,7 +217,7 @@ class _StoryCard extends StatelessWidget {
                     _AccentLine(width: 30, color: accent),
                     const SizedBox(height: 12),
                     Text(
-                      'READON',
+                      'LEXDAY',
                       style: TextStyle(
                         fontFamily: 'Inter',
                         fontSize: 9,
@@ -394,7 +394,7 @@ class _SquareCard extends StatelessWidget {
                       ),
                       child: Center(
                         child: Text(
-                          'READON \u2014 STRAVA FOR BOOKS',
+                          'LEXDAY \u2014 STRAVA FOR BOOKS',
                           style: TextStyle(
                             fontFamily: 'Inter',
                             fontSize: 8,

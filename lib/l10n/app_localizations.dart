@@ -6,6 +6,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/intl.dart' as intl;
 
 import 'app_localizations_en.dart';
+import 'app_localizations_es.dart';
 import 'app_localizations_fr.dart';
 
 // ignore_for_file: type=lint
@@ -96,6 +97,7 @@ abstract class AppLocalizations {
   static const List<Locale> supportedLocales = <Locale>[
     Locale('fr'),
     Locale('en'),
+    Locale('es'),
   ];
 
   /// No description provided for @navFeed.
@@ -853,6 +855,18 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'🇬🇧 English (active)'**
   String get englishActive;
+
+  /// No description provided for @spanish.
+  ///
+  /// In fr, this message translates to:
+  /// **'🇪🇸 Español'**
+  String get spanish;
+
+  /// No description provided for @spanishActive.
+  ///
+  /// In fr, this message translates to:
+  /// **'🇪🇸 Español (activo)'**
+  String get spanishActive;
 
   /// No description provided for @accountSection.
   ///
@@ -2954,6 +2968,18 @@ abstract class AppLocalizations {
   /// **'Livres'**
   String get books;
 
+  /// No description provided for @viewFullProfile.
+  ///
+  /// In fr, this message translates to:
+  /// **'Voir le profil complet'**
+  String get viewFullProfile;
+
+  /// No description provided for @followLabel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Suivre'**
+  String get followLabel;
+
   /// No description provided for @pagesLabel.
   ///
   /// In fr, this message translates to:
@@ -4537,6 +4563,66 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Partagé par {name}'**
   String sharedByUser(String name);
+
+  /// No description provided for @sessionAnnotations.
+  ///
+  /// In fr, this message translates to:
+  /// **'Annotations de la session'**
+  String get sessionAnnotations;
+
+  /// No description provided for @annotateButton.
+  ///
+  /// In fr, this message translates to:
+  /// **'Annoter'**
+  String get annotateButton;
+
+  /// No description provided for @comments.
+  ///
+  /// In fr, this message translates to:
+  /// **'Commentaires'**
+  String get comments;
+
+  /// No description provided for @writeComment.
+  ///
+  /// In fr, this message translates to:
+  /// **'Écrire un commentaire...'**
+  String get writeComment;
+
+  /// No description provided for @commentBeingValidated.
+  ///
+  /// In fr, this message translates to:
+  /// **'Commentaire en cours de validation...'**
+  String get commentBeingValidated;
+
+  /// No description provided for @commentPending.
+  ///
+  /// In fr, this message translates to:
+  /// **'En attente'**
+  String get commentPending;
+
+  /// No description provided for @noCommentsYet.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun commentaire pour le moment'**
+  String get noCommentsYet;
+
+  /// No description provided for @beFirstToComment.
+  ///
+  /// In fr, this message translates to:
+  /// **'Sois le premier à commenter !'**
+  String get beFirstToComment;
+
+  /// No description provided for @send.
+  ///
+  /// In fr, this message translates to:
+  /// **'Envoyer'**
+  String get send;
+
+  /// No description provided for @reactionPremiumOnly.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réaction réservée aux membres Premium'**
+  String get reactionPremiumOnly;
 }
 
 class _AppLocalizationsDelegate
@@ -4550,7 +4636,7 @@ class _AppLocalizationsDelegate
 
   @override
   bool isSupported(Locale locale) =>
-      <String>['en', 'fr'].contains(locale.languageCode);
+      <String>['en', 'es', 'fr'].contains(locale.languageCode);
 
   @override
   bool shouldReload(_AppLocalizationsDelegate old) => false;
@@ -4561,6 +4647,8 @@ AppLocalizations lookupAppLocalizations(Locale locale) {
   switch (locale.languageCode) {
     case 'en':
       return AppLocalizationsEn();
+    case 'es':
+      return AppLocalizationsEs();
     case 'fr':
       return AppLocalizationsFr();
   }

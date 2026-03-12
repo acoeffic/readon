@@ -8,6 +8,7 @@ class Comment {
   final int activityId;
   final String authorId;
   final String content;
+  final String status;
   final DateTime createdAt;
   final DateTime updatedAt;
   final String? authorEmail;
@@ -19,6 +20,7 @@ class Comment {
     required this.activityId,
     required this.authorId,
     required this.content,
+    this.status = 'pending',
     required this.createdAt,
     required this.updatedAt,
     this.authorEmail,
@@ -32,6 +34,7 @@ class Comment {
       activityId: json['activity_id'] as int,
       authorId: json['author_id'] as String,
       content: json['content'] as String,
+      status: json['status'] as String? ?? 'pending',
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
       authorEmail: json['author_email'] as String?,
@@ -40,13 +43,15 @@ class Comment {
     );
   }
 
+  bool get isPending => status == 'pending';
+  bool get isApproved => status == 'approved';
   String get displayName => authorName ?? authorEmail ?? 'Utilisateur';
 }
 
 class CommentsService {
   final SupabaseClient _supabase = Supabase.instance.client;
 
-  /// Récupérer les commentaires d'une activité
+  /// Récupérer les commentaires d'une activité (approved + own pending)
   Future<List<Comment>> getComments(int activityId) async {
     try {
       final response = await _supabase
@@ -63,7 +68,19 @@ class CommentsService {
     }
   }
 
-  /// Ajouter un commentaire
+  /// Nombre de commentaires approuvés pour une activité
+  Future<int> getCommentCount(int activityId) async {
+    try {
+      final response = await _supabase
+          .rpc('get_comment_count', params: {'p_activity_id': activityId});
+      return (response as int?) ?? 0;
+    } catch (e) {
+      debugPrint('Erreur getCommentCount: $e');
+      return 0;
+    }
+  }
+
+  /// Ajouter un commentaire (status sera 'pending', la Edge Function modère)
   Future<Comment?> addComment({
     required int activityId,
     required String content,

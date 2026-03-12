@@ -77,12 +77,23 @@ BEGIN
   WHERE ub.user_id = p_user_id
   LIMIT 3;
 
-  -- Livre actuellement en cours de lecture
+  -- Livre actuellement en cours de lecture (avec progression)
   SELECT jsonb_build_object(
     'id', ub.id,
     'title', b.title,
     'author', b.author,
-    'cover_url', b.cover_url
+    'cover_url', b.cover_url,
+    'total_pages', b.page_count,
+    'current_page', (
+      SELECT rs.end_page
+      FROM reading_sessions rs
+      WHERE rs.user_id = p_user_id
+        AND rs.book_id = b.id
+        AND rs.end_page IS NOT NULL
+        AND rs.end_time IS NOT NULL
+      ORDER BY rs.end_time DESC
+      LIMIT 1
+    )
   )
   INTO v_current_book
   FROM user_books ub

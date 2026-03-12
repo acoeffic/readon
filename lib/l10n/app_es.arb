@@ -1,0 +1,1223 @@
+{
+  "@@locale": "es",
+
+  "navFeed": "Feed",
+  "navLibrary": "Biblio",
+  "navClub": "Club",
+  "navProfile": "Mi espacio",
+
+  "kindleSyncedAutomatically": "Kindle sincronizado automáticamente",
+
+  "enterEmailToReset": "Introduce tu email para restablecer",
+  "emailSentCheckInbox": "Email enviado, revisa tu bandeja de entrada.",
+  "errorSendingEmail": "Error al enviar el email",
+  "tooManyAttemptsRetryIn": "Demasiados intentos. Reintenta en {seconds}s",
+  "@tooManyAttemptsRetryIn": {
+    "placeholders": {
+      "seconds": {"type": "int"}
+    }
+  },
+  "emailAndPasswordRequired": "Email y contraseña requeridos",
+  "loginFailed": "Inicio de sesión fallido",
+  "unknownError": "Error desconocido",
+  "errorSignInApple": "Error al iniciar sesión con Apple",
+  "errorSignInGoogle": "Error al iniciar sesión con Google",
+  "welcomeBack": "Bienvenido de nuevo,",
+  "reader": "lector.",
+  "email": "EMAIL",
+  "emailLower": "Email",
+  "password": "CONTRASEÑA",
+  "forgotPassword": "¿Olvidaste tu contraseña?",
+  "continueReading": "Continuar leyendo",
+  "or": "o",
+  "newToLexDay": "¿Nuevo en LexDay? ",
+  "createAnAccount": "Crear una cuenta",
+
+  "emailAlreadyUsed": "Email ya en uso",
+  "emailAlreadyUsedMessage": "Este email ya está asociado a una cuenta existente. ¿Deseas restablecer tu contraseña?",
+  "back": "Volver",
+  "reset": "Restablecer",
+  "resetEmailSent": "Email de restablecimiento enviado. Revisa tu bandeja.",
+  "passwordMin8Chars": "La contraseña debe tener al menos 8 caracteres",
+  "passwordRequirements": "La contraseña debe contener mayúscula, minúscula y número",
+  "mustAcceptTerms": "Debes aceptar las condiciones de uso",
+  "accountCreatedCheckEmail": "Cuenta creada, revisa tus emails.",
+  "createAccountTitle": "Crear una cuenta",
+  "joinLexDay": "Únete a LexDay",
+  "enterInfoToStart": "Introduce tus datos para empezar a leer",
+  "name": "Nombre",
+  "yourName": "Tu nombre",
+  "yourEmail": "tu.email@mail.com",
+  "passwordLabel": "Contraseña",
+  "createAccount": "Crear una cuenta",
+  "alreadyHaveAccount": "¿Ya tienes cuenta? Inicia sesión",
+  "legalNotices": "Avisos legales",
+
+  "emailSent": "Email enviado",
+  "checkYourEmail": "Revisa tu email",
+  "confirmEmailSent": "Te hemos enviado un enlace para confirmar tu dirección de email.",
+  "iConfirmedMyEmail": "He confirmado mi email",
+
+  "suggestionsForYou": "Sugerencias para ti",
+  "bookAddedToLibrary": "{title} añadido a tu biblioteca",
+  "@bookAddedToLibrary": {
+    "placeholders": {
+      "title": {"type": "String"}
+    }
+  },
+  "errorAddingBook": "Error al añadir el libro",
+  "recentSessions": "Sesiones recientes",
+  "recentBadges": "Insignias recientes",
+  "friendsActivity": "Actividad de tus amigos",
+  "refresh": "Actualizar",
+  "friendsNotReadToday": "Tus amigos aún no han leído hoy",
+  "noActivityYet": "Sin actividad aún",
+  "addFriendsToSeeActivity": "¡Añade amigos para ver sus lecturas!",
+  "shareInviteText": "📖 ¡Únete a mí en LexDay!\n\n¿Qué estás leyendo? 👀\nlexday.app",
+  "errorGeneric": "Error: {message}",
+  "@errorGeneric": {
+    "placeholders": {
+      "message": {"type": "String"}
+    }
+  },
+
+  "myLibrary": "Mi Biblioteca",
+  "refreshTooltip": "Actualizar",
+  "searchBook": "Buscar un libro...",
+  "statusLabel": "Estado",
+  "genreLabel": "Género",
+  "noBooksInLibrary": "No hay libros en tu biblioteca",
+  "scanOrSyncBooks": "Escanea una portada o sincroniza tus libros Kindle",
+  "authorFoundForBooks": "Autor encontrado para {count} libro{count, plural, =1{} other{s}}",
+  "@authorFoundForBooks": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "noAuthorFound": "Ningún autor encontrado",
+  "errorSearchingAuthors": "Error al buscar autores",
+  "searchingInProgress": "Buscando...",
+  "searchMissingAuthors": "Buscar autores faltantes",
+
+  "settings": "Ajustes",
+  "profileSection": "Perfil",
+  "editName": "✏️ Editar nombre",
+  "uploadingPhoto": "📸 Subiendo...",
+  "changeProfilePicture": "📸 Cambiar foto de perfil",
+  "subscriptionSection": "Suscripción",
+  "upgradeToPremium": "Pasar a Premium",
+  "freeTrial": "Prueba gratuita",
+  "freeTrialUntil": "Prueba gratuita (hasta el {date})",
+  "@freeTrialUntil": {
+    "placeholders": {
+      "date": {"type": "String"}
+    }
+  },
+  "premiumActive": "Premium activo",
+  "premiumActiveUntil": "Premium activo (hasta el {date})",
+  "@premiumActiveUntil": {
+    "placeholders": {
+      "date": {"type": "String"}
+    }
+  },
+  "privacySection": "Privacidad",
+  "privateProfile": "🔒 Perfil privado",
+  "statsHidden": "Tus estadísticas están ocultas",
+  "statsPublic": "Tus estadísticas son públicas",
+  "privateProfileInfoOn": "Los demás usuarios solo verán tu nombre y foto de perfil.",
+  "privateProfileInfoOff": "Los demás usuarios podrán ver tus insignias, libros, flow y estadísticas.",
+  "hideReadingHours": "⏱️ Ocultar horas de lectura",
+  "readingHoursHidden": "Tus horas de lectura están ocultas",
+  "readingHoursVisible": "Tus horas de lectura son visibles",
+  "readingHoursInfo": "Los demás usuarios no verán tu tiempo total de lectura.",
+  "profilePrivateEnabled": "Perfil privado activado. Solo tus amigos verán tus estadísticas.",
+  "profilePublicEnabled": "Perfil público activado. Todos pueden ver tus estadísticas.",
+  "readingHoursHiddenSnack": "Horas de lectura ocultas.",
+  "readingHoursVisibleSnack": "Horas de lectura visibles.",
+  "readingSection": "Lectura",
+  "editReadingGoal": "🎯 Editar objetivo de lectura",
+  "flowNotifications": "🔔 Notificaciones de flow",
+  "kindleSection": "Kindle",
+  "resyncKindle": "📚 Resincronizar Kindle",
+  "connectKindle": "📚 Conectar Kindle",
+  "lastSync": "✅ Última sync: {date}",
+  "@lastSync": {
+    "placeholders": {
+      "date": {"type": "String"}
+    }
+  },
+  "autoSync": "Sync automática",
+  "kindleAutoSyncDescription": "Sincroniza tus libros Kindle al abrir la app",
+  "kindleSyncedSuccess": "¡Kindle sincronizado con éxito!",
+  "notionSection": "Notion",
+  "connectedTo": "Conectado a {name}",
+  "@connectedTo": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "notionSheetsDescription": "Tus fichas de lectura se pueden enviar a Notion",
+  "reconnect": "Reconectar",
+  "disconnect": "Desconectar",
+  "connectNotion": "📝 Conectar Notion",
+  "notionSyncDescription": "Sincroniza tus fichas de lectura IA con una base de Notion",
+  "disconnectNotionTitle": "¿Desconectar Notion?",
+  "disconnectNotionMessage": "Tus fichas ya sincronizadas se mantendrán en Notion.",
+  "notionDisconnected": "Notion desconectado",
+  "appearanceSection": "Apariencia",
+  "lightTheme": "🌞 Tema claro",
+  "lightThemeActive": "🌞 Tema claro (activo)",
+  "darkTheme": "🌙 Tema oscuro",
+  "darkThemeActive": "🌙 Tema oscuro (activo)",
+  "languageSection": "Idioma",
+  "frenchActive": "🇫🇷 Français (actif)",
+  "french": "🇫🇷 Français",
+  "english": "🇬🇧 English",
+  "englishActive": "🇬🇧 English (active)",
+  "spanish": "🇪🇸 Español",
+  "spanishActive": "🇪🇸 Español (activo)",
+  "accountSection": "Cuenta",
+  "manageConnections": "🖥️ Gestionar conexiones y dispositivos",
+  "legalSection": "Legal",
+  "termsOfService": "📜 Condiciones de uso",
+  "privacyPolicy": "🔐 Política de privacidad",
+  "legalNoticesItem": "⚖️ Avisos legales",
+  "logoutTitle": "¿Cerrar sesión?",
+  "logoutMessage": "Se cerrará tu sesión. ¿Continuar?",
+  "cancel": "Cancelar",
+  "confirm": "Confirmar",
+  "logout": "❌ Cerrar sesión",
+  "dangerZone": "Zona de peligro",
+  "deleteAccountWarning": "La eliminación de la cuenta es irreversible.",
+  "deleteMyAccount": "Eliminar mi cuenta",
+  "deleteAccountTitle": "¿Eliminar tu cuenta?",
+  "deleteAccountMessage": "Esta acción es irreversible. Todos tus datos (libros, sesiones de lectura, insignias, amigos, grupos) serán eliminados permanentemente.",
+  "continueButton": "Continuar",
+  "confirmDeletion": "Confirmar eliminación",
+  "typeDeleteToConfirm": "Para confirmar, escribe ELIMINAR a continuación:",
+  "deleteKeyword": "ELIMINAR",
+  "deleteForever": "Eliminar definitivamente",
+  "errorDeletingAccount": "Error al eliminar la cuenta: {error}",
+  "@errorDeletingAccount": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "editNameTitle": "Editar nombre",
+  "displayName": "Nombre visible",
+  "save": "Guardar",
+  "nameMinLength": "El nombre debe tener al menos 2 caracteres",
+  "nameMaxLength": "El nombre no debe superar los 50 caracteres",
+  "nameUpdated": "¡Nombre actualizado!",
+  "takePhoto": "Tomar una foto",
+  "chooseFromGallery": "Elegir de la galería",
+  "imageTooLarge": "Imagen demasiado grande. Tamaño máximo: 5MB",
+  "unsupportedFormat": "Formato no soportado. Usa JPG, PNG o WebP",
+  "notConnected": "No conectado",
+  "profilePictureUpdated": "✅ ¡Foto de perfil actualizada!",
+
+  "timeAgoMinutes": "hace {minutes} min",
+  "@timeAgoMinutes": {
+    "placeholders": {
+      "minutes": {"type": "int"}
+    }
+  },
+  "timeAgoHours": "hace {hours}h",
+  "@timeAgoHours": {
+    "placeholders": {
+      "hours": {"type": "int"}
+    }
+  },
+  "timeAgoDays": "hace {days}d",
+  "@timeAgoDays": {
+    "placeholders": {
+      "days": {"type": "int"}
+    }
+  },
+
+  "libraryEmpty": "Tu biblioteca está vacía",
+  "sessionAbandoned": "Sesión abandonada",
+  "muse": "💡 Muse",
+  "newBook": "Nuevo libro",
+  "myLibraryFab": "Mi biblioteca",
+  "searchEllipsis": "Buscar...",
+  "noBookFound": "Ningún libro encontrado",
+
+  "abandonSessionTitle": "Abandonar la sesión",
+  "abandonSessionMessage": "¿Realmente quieres abandonar esta sesión de lectura?",
+  "no": "No",
+  "yes": "Sí",
+  "leaveSessionTitle": "Salir de la sesión",
+  "leaveSessionMessage": "La sesión sigue activa. Podrás terminarla más tarde.",
+  "stay": "Quedarse",
+  "leave": "Salir",
+  "sessionInProgress": "SESIÓN EN CURSO",
+
+  "cancelSessionTitle": "Cancelar la sesión",
+  "cancelSessionMessage": "¿Estás seguro de que quieres cancelar esta sesión de lectura?",
+
+  "errorCapture": "Error durante la captura: {error}",
+  "@errorCapture": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "errorGoogleBooks": "Error en la búsqueda de Google Books",
+
+  "termsOfServiceTitle": "Condiciones de uso",
+  "privacyPolicyTitle": "Política de privacidad",
+  "legalNoticesTitle": "Avisos legales",
+  "iAcceptTerms": "Acepto las condiciones",
+
+  "sessionDuration": "DURACIÓN DE SESIÓN",
+  "startPage": "Página de inicio",
+  "streakLabel": "Racha",
+  "streakDays": "{days} días",
+  "@streakDays": {
+    "placeholders": {
+      "days": {"type": "int"}
+    }
+  },
+  "endSessionSlide": "Terminar la sesión",
+  "abandonButton": "Abandonar",
+  "newAnnotation": "Nueva anotación",
+  "annotationText": "Texto",
+  "annotationPhoto": "Foto",
+  "annotationVoice": "Voz",
+  "retakePhoto": "Repetir la foto",
+  "extractingText": "Extrayendo texto...",
+  "micPermissionRequired": "Permiso de micrófono requerido",
+  "tapToRecord": "Toca para grabar",
+  "recordingInProgress": "Grabación en curso...",
+  "retakeRecording": "Repetir",
+  "transcriptionInProgress": "Transcripción en curso...",
+  "hintExtractedText": "Texto extraído (editable)...",
+  "hintTranscription": "Transcripción (editable)...",
+  "hintAnnotation": "Anota tu pensamiento, una cita...",
+  "voiceAnnotationSaved": "¡Anotación de voz guardada!",
+  "annotationSaved": "¡Anotación guardada!",
+  "transcribing": "Transcribiendo...",
+  "pageHint": "Página",
+
+  "errorSelection": "Error durante la selección: {error}",
+  "@errorSelection": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "pageNotDetected": "Número de página no detectado. Introdúcelo manualmente.",
+  "pageNotDetectedManual": "Número de página no detectado. Puedes introducirlo manualmente a continuación.",
+  "endPageBeforeStartDetailed": "La página final ({endPage}) no puede ser anterior a la página de inicio ({startPage}).",
+  "@endPageBeforeStartDetailed": {
+    "placeholders": {
+      "endPage": {"type": "int"},
+      "startPage": {"type": "int"}
+    }
+  },
+  "ocrError": "Error OCR: {error}",
+  "@ocrError": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "invalidPageNumber": "Por favor, introduce un número de página válido.",
+  "captureOrEnterPage": "Por favor, toma una foto o introduce un número de página.",
+  "endPageBeforeStart": "La página final no puede ser anterior a la página de inicio.",
+  "finishBookTitle": "Terminar el libro",
+  "finishBookConfirm": "¡Felicidades! ¿Has terminado este libro?",
+  "yesFinished": "¡Sí, terminado!",
+  "endReading": "Terminar la lectura",
+  "currentSession": "Sesión en curso",
+  "startedAtPage": "Comenzada en la página {page}",
+  "@startedAtPage": {
+    "placeholders": {
+      "page": {"type": "int"}
+    }
+  },
+  "durationValue": "Duración: {duration}",
+  "@durationValue": {
+    "placeholders": {
+      "duration": {"type": "String"}
+    }
+  },
+  "instructions": "Instrucciones",
+  "instructionEndPhoto": "1. Fotografía tu última página leída",
+  "instructionEndVisible": "2. Asegúrate de que el número sea visible",
+  "instructionEndValidate": "3. Confirma para guardar tu progreso",
+  "instructionStartPhoto": "1. Fotografía la página donde empiezas",
+  "instructionStartVisible": "2. Asegúrate de que el número de página sea visible",
+  "instructionStartOcr": "3. El OCR detectará automáticamente el número",
+  "takePhotoBtn": "Tomar Foto",
+  "galleryBtn": "Galería",
+  "analyzing": "Analizando...",
+  "photoCaptured": "Foto capturada:",
+  "pageCorrected": "Página corregida:",
+  "pageDetected": "Página detectada:",
+  "pagesReadCount": "Páginas leídas: {count}",
+  "@pagesReadCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "correctNumber": "Corregir el número",
+  "pageNumberLabel": "Número de página",
+  "startPagePrefix": "Página de inicio: {page}",
+  "@startPagePrefix": {
+    "placeholders": {
+      "page": {"type": "int"}
+    }
+  },
+  "validate": "Validar",
+  "orEnterManually": "O introduce el número directamente:",
+  "startReadingTitle": "Iniciar una lectura",
+  "sessionAlreadyActive": "Ya hay una sesión en curso",
+  "resumeSession": "Reanudar la sesión",
+  "startReadingSession": "Iniciar la sesión de lectura",
+  "congratulations": "¡Felicidades!",
+  "bookFinishedExcl": "¡Libro terminado!",
+  "continueExcl": "¡Continuar!",
+  "flowBadgeTitle": "¡Insignia Flow!",
+  "consecutiveDays": "¡{days} día{days, plural, =1{} other{s}} consecutivo{days, plural, =1{} other{s}}!",
+  "@consecutiveDays": {
+    "placeholders": {
+      "days": {"type": "int"}
+    }
+  },
+  "museBookFinished": "¡Bravo por {title}! ¿Quieres que Muse te sugiera tu próxima lectura?",
+  "@museBookFinished": {
+    "placeholders": {
+      "title": {"type": "String"}
+    }
+  },
+  "later": "Más tarde",
+  "chatWithMuse": "Hablar con Muse",
+
+  "defaultUser": "Usuario",
+  "mySessions": "Mis Sesiones",
+  "myStatistics": "Mis Estadísticas",
+  "myLists": "Mis Listas",
+
+  "statistics": "Estadísticas",
+  "readingStatistics": "Estadísticas de lectura",
+  "featureComingSoon": "Funcionalidad próximamente",
+
+  "cannotAddBook": "No se puede añadir este libro",
+  "titleAuthorPagesRequired": "Título, autor y páginas requeridos",
+  "bookAdded": "Libro añadido",
+  "errorAdding": "Error al añadir",
+  "addBookTitle": "Añadir un libro",
+  "googleBooksSearchTitle": "Búsqueda en Google Books",
+  "titleAuthorIsbn": "Título, autor o ISBN",
+  "noTitleDefault": "Sin título",
+  "addButton": "Añadir",
+  "manualAdd": "Añadir manualmente",
+  "titleHint": "Título",
+  "authorHint": "Autor",
+  "totalPages": "Páginas totales",
+
+  "activeSessionDialogTitle": "Sesión en curso",
+  "activeSessionDialogMessage": "Ya hay una sesión de lectura en curso para este libro.",
+  "pageAtNumber": "Página {page}",
+  "@pageAtNumber": {
+    "placeholders": {
+      "page": {"type": "int"}
+    }
+  },
+  "whatDoYouWant": "¿Qué deseas hacer?",
+  "resume": "Reanudar",
+
+  "sessionCompleted": "SESIÓN COMPLETADA",
+  "sessionCompletedTitle": "¡Sesión completada!",
+  "myReadingDefault": "Mi lectura",
+  "durationStatLabel": "duración",
+  "pagesReadStatLabel": "páginas leídas",
+  "streakStatLabel": "racha",
+  "streakDaysShort": "{days} d.",
+  "@streakDaysShort": {
+    "placeholders": {
+      "days": {"type": "int"}
+    }
+  },
+  "readingPace": "Ritmo de lectura",
+  "avgTimePerPage": "Tiempo medio por página",
+  "estimatedBookEnd": "Fin estimado del libro",
+  "vsYourAverage": "vs. tu media",
+  "fasterPercent": "+{percent}% más rápido",
+  "@fasterPercent": {
+    "placeholders": {
+      "percent": {"type": "int"}
+    }
+  },
+  "slowerPercent": "{percent}% más lento",
+  "@slowerPercent": {
+    "placeholders": {
+      "percent": {"type": "int"}
+    }
+  },
+  "withinAverage": "Dentro de tu media",
+  "sessionInsights": "Insights de la sesión",
+  "viewFullReport": "✨ Ver informe completo",
+  "paceAndTrends": "Ritmo, tendencias, fin estimado y más",
+  "tryPremium": "Probar",
+  "shareSession": "Compartir la sesión",
+  "hideSession": "Ocultar esta sesión",
+  "sessionHiddenFromRankings": "Sesión oculta de los rankings",
+  "errorHidingSession": "Error al ocultar",
+  "skip": "Saltar",
+  "nPages": "{count} páginas",
+  "@nPages": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+
+  "bookCompletedHeader": "LIBRO COMPLETADO",
+  "bookCompletedTitle": "¡Libro completado!",
+  "congratsFinished": "Felicidades, has terminado",
+  "completed": "Completado",
+  "ofReading": "de lectura",
+  "sessions": "sesiones",
+  "readingDaysCount": "{count} días de lectura",
+  "@readingDaysCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "bookReport": "Informe del libro",
+  "avgPace": "Ritmo medio",
+  "preferredSlot": "Horario preferido",
+  "bestSession": "Mejor sesión",
+  "readingRegularity": "Regularidad de lectura",
+  "morningSlot": "Mañana (6h–12h)",
+  "afternoonSlot": "Tarde (12h–18h)",
+  "eveningSlot": "Noche (18h–22h)",
+  "nightSlot": "Noche (22h–6h)",
+  "unknownSlot": "Desconocido",
+  "pagesInDuration": "{pages} páginas en {duration}",
+  "@pagesInDuration": {
+    "placeholders": {
+      "pages": {"type": "int"},
+      "duration": {"type": "String"}
+    }
+  },
+  "daysPerWeek": "{count} d/sem",
+  "@daysPerWeek": {
+    "placeholders": {
+      "count": {"type": "String"}
+    }
+  },
+  "unlockedBadges": "Insignias desbloqueadas",
+  "share": "Compartir",
+  "backToHome": "Volver al inicio",
+  "paceAndSlots": "Ritmo, horarios, regularidad y más",
+
+  "clubSubtitle": "comunidad",
+  "readingClubs": "Clubs de lectura",
+  "readingClub": "Club de lectura",
+  "myClubs": "Mis clubs",
+  "myGroups": "Mis grupos",
+  "discover": "Descubrir",
+  "createClub": "Crear un Club",
+  "noGroups": "Ningún grupo",
+  "createOrJoinGroup": "Crea o únete a un grupo de lectura",
+  "noPublicGroups": "Ningún grupo público",
+  "beFirstToCreate": "¡Sé el primero en crear un grupo público!",
+  "privateTag": "Privado",
+  "adminTag": "Admin",
+  "memberCount": "{count} miembro{count, plural, =1{} other{s}}",
+  "@memberCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "byCreator": "por {name}",
+  "@byCreator": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "limitReached": "Límite alcanzado",
+  "groupLimitMessage": "Has alcanzado el límite de {max} clubs de lectura. ¡Pasa a Premium para unirte a los que quieras!",
+  "@groupLimitMessage": {
+    "placeholders": {
+      "max": {"type": "int"}
+    }
+  },
+  "becomePremium": "Ser Premium",
+
+  "leaveGroupTitle": "¿Salir del grupo?",
+  "leaveGroupMessage": "¿Realmente quieres salir de este grupo?",
+  "leftGroup": "Has salido del grupo",
+  "groupNotFound": "Grupo no encontrado",
+  "members": "Miembros",
+  "activities": "Actividades",
+  "activeChallenges": "Retos activos",
+  "createChallenge": "Crear un reto",
+  "noChallengeActive": "Ningún reto activo",
+  "groupActivities": "Actividades del grupo",
+  "noActivity": "Sin actividad",
+  "activitiesWillAppear": "Las actividades de los miembros aparecerán aquí",
+  "readPagesOf": "ha leído {pages} páginas de \"{title}\"",
+  "@readPagesOf": {
+    "placeholders": {
+      "pages": {"type": "int"},
+      "title": {"type": "String"}
+    }
+  },
+  "finishedBook": "ha terminado \"{title}\" 🎉",
+  "@finishedBook": {
+    "placeholders": {
+      "title": {"type": "String"}
+    }
+  },
+  "joinedGroup": "se ha unido al grupo",
+  "recommendsBook": "recomienda \"{title}\"",
+  "@recommendsBook": {
+    "placeholders": {
+      "title": {"type": "String"}
+    }
+  },
+  "unknownActivity": "actividad desconocida",
+  "justNow": "Ahora mismo",
+
+  "createGroupTitle": "Crear un grupo",
+  "addPhoto": "Añadir una foto",
+  "groupNameRequired": "Nombre del grupo *",
+  "groupNameHint": "Ej: Club de lectores de ciencia ficción",
+  "nameRequired": "El nombre es obligatorio",
+  "descriptionOptional": "Descripción (opcional)",
+  "describeGroup": "Describe tu grupo de lectura...",
+  "privateGroup": "Grupo privado",
+  "inviteOnly": "Accesible solo por invitación",
+  "visibleToAll": "Visible para todos los usuarios",
+  "creatorAdminInfo": "Como creador, serás automáticamente administrador del grupo y podrás invitar a otros miembros.",
+  "createGroup": "Crear el grupo",
+  "groupCreated": "¡Grupo creado con éxito!",
+
+  "allFriendsInGroup": "Todos tus amigos ya son miembros del grupo",
+  "inviteFriend": "Invitar a un amigo",
+  "invitationSent": "✅ Invitación enviada a {name}",
+  "@invitationSent": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "roleUpdated": "Rol de {name} actualizado",
+  "@roleUpdated": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "removeFromGroupTitle": "¿Eliminar del grupo?",
+  "removeFromGroupMessage": "¿Quieres eliminar a {name} del grupo?",
+  "@removeFromGroupMessage": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "removeButton": "Eliminar",
+  "memberRemoved": "{name} ha sido eliminado del grupo",
+  "@memberRemoved": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "demoteToMember": "Degradar a miembro",
+  "promoteAdmin": "Promover a admin",
+  "removeFromGroup": "Eliminar del grupo",
+  "membersCount": "Miembros ({count})",
+  "@membersCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "noMembers": "Ningún miembro",
+  "youTag": "Tú",
+  "administrator": "Administrador",
+  "memberRole": "Miembro",
+
+  "photoUpdated": "Foto actualizada",
+  "changesSaved": "Cambios guardados",
+  "deleteGroupTitle": "¿Eliminar el grupo?",
+  "deleteGroupMessage": "Esta acción es irreversible. Todos los miembros serán eliminados y los datos del grupo se perderán.",
+  "deleteButton": "Eliminar",
+  "confirmDeleteGroupTitle": "Confirmar eliminación",
+  "confirmDeleteGroupMessage": "¿Realmente quieres eliminar \"{name}\" definitivamente?",
+  "@confirmDeleteGroupMessage": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "groupDeleted": "Grupo eliminado",
+  "currentReading": "Lectura actual",
+  "noCurrentReading": "Ningún libro en curso",
+  "setCurrentReading": "Definir la lectura del grupo",
+  "inviteMembers": "Invitar miembros",
+  "changeImage": "Cambiar imagen",
+  "groupSettings": "Ajustes del grupo",
+  "groupPhoto": "Foto del grupo",
+  "information": "Información",
+  "description": "Descripción",
+  "visibility": "Visibilidad",
+  "publicGroup": "Grupo público",
+  "saveChanges": "Guardar cambios",
+  "manageMembers": "Gestionar miembros",
+  "manageMembersSubtitle": "Ver, invitar y gestionar roles",
+
+  "deleteChallengeTitle": "¿Eliminar el reto?",
+  "deleteChallengeMessage": "Esta acción es irreversible.",
+  "challengeDeleted": "Reto eliminado",
+  "expired": "Expirado",
+  "daysRemaining": "{days}d restantes",
+  "@daysRemaining": {
+    "placeholders": {
+      "days": {"type": "int"}
+    }
+  },
+  "hoursRemaining": "{hours}h restantes",
+  "@hoursRemaining": {
+    "placeholders": {
+      "hours": {"type": "int"}
+    }
+  },
+  "minutesRemaining": "{minutes}min restantes",
+  "@minutesRemaining": {
+    "placeholders": {
+      "minutes": {"type": "int"}
+    }
+  },
+  "readABook": "Leer un libro",
+  "pagesToRead": "{count} páginas por leer",
+  "@pagesToRead": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "dailyChallenge": "{minutes} min/día durante {days} días",
+  "@dailyChallenge": {
+    "placeholders": {
+      "minutes": {"type": "int"},
+      "days": {"type": "int"}
+    }
+  },
+  "challengeDetail": "Detalle del reto",
+  "leaveChallenge": "Dejar el reto",
+  "joinChallenge": "Unirse al reto",
+  "leftChallenge": "Has dejado el reto",
+  "joinedChallenge": "¡Participas en el reto!",
+  "participantsCount": "Participantes ({count})",
+  "@participantsCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "noParticipants": "Sin participantes",
+  "challengeCompleted": "¡Completado!",
+  "challengeInProgress": "En curso...",
+  "progressPages": "{progress} / {target} páginas",
+  "@progressPages": {
+    "placeholders": {
+      "progress": {"type": "int"},
+      "target": {"type": "int"}
+    }
+  },
+  "progressDays": "{progress} / {target} días",
+  "@progressDays": {
+    "placeholders": {
+      "progress": {"type": "int"},
+      "target": {"type": "int"}
+    }
+  },
+  "myProgress": "Mi progreso",
+  "completedTag": "Completado",
+
+  "newChallenge": "Nuevo reto",
+  "challengeType": "Tipo de reto",
+  "challengeTitleRequired": "Título del reto *",
+  "challengeTitleHint": "Ej: Maratón de lectura",
+  "titleRequired": "El título es obligatorio",
+  "deadline": "Fecha límite",
+  "createChallengeBtn": "Crear el reto",
+  "challengeCreated": "¡Reto creado!",
+  "pagesType": "Páginas",
+  "bookType": "Libro",
+  "dailyType": "Diario",
+  "bookToRead": "Libro a leer",
+  "goalLabel": "Objetivo",
+  "pagesCountRequired": "Número de páginas *",
+  "pagesCountHint": "Ej: 200",
+  "pagesUnit": "páginas",
+  "required": "Obligatorio",
+  "invalidNumber": "Número inválido",
+  "dailyGoal": "Objetivo diario",
+  "dailyMinutesRequired": "Minutos de lectura por día *",
+  "dailyMinutesHint": "Ej: 30",
+  "minPerDay": "min/día",
+  "daysCountRequired": "Número de días *",
+  "daysCountHint": "Ej: 7",
+  "daysUnit": "días",
+  "oneWeek": "1 sem.",
+  "twoWeeks": "2 sem.",
+  "oneMonth": "1 mes",
+  "expiresOn": "Expira el",
+  "chooseBook": "Elegir un libro",
+  "searchBookHint": "Buscar un libro...",
+  "noResult": "Sin resultados",
+  "selectBookPrompt": "Por favor, selecciona un libro",
+  "readBookTitle": "Leer \"{title}\"",
+  "@readBookTitle": {
+    "placeholders": {
+      "title": {"type": "String"}
+    }
+  },
+
+  "privateProfileLabel": "Perfil privado",
+  "privateProfileMessage": "Este perfil es privado. Añade a {name} como amigo para ver sus estadísticas.",
+  "@privateProfileMessage": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "books": "Libros",
+  "viewFullProfile": "Ver perfil completo",
+  "followLabel": "Seguir",
+  "pagesLabel": "Páginas",
+  "readingLabel": "Lectura",
+  "flowLabel": "Flow",
+  "recentActivity": "Actividad reciente",
+  "noRecentActivity": "Sin actividad reciente",
+  "theirBadges": "Sus insignias",
+  "removeFriend": "Eliminar de amigos",
+  "cancelRequest": "Cancelar solicitud",
+  "addFriend": "Añadir como amigo",
+  "removeFriendTitle": "¿Eliminar este amigo?",
+  "removeFriendMessage": "¿Quieres eliminar a {name} de tus amigos?",
+  "@removeFriendMessage": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "requestSent": "Solicitud enviada",
+  "requestCancelled": "Solicitud cancelada",
+  "friendRemoved": "Amigo eliminado",
+  "today": "Hoy",
+  "yesterday": "Ayer",
+  "daysAgo": "Hace {days} días",
+  "@daysAgo": {
+    "placeholders": {
+      "days": {"type": "int"}
+    }
+  },
+
+  "myFriends": "Mis amigos",
+  "findFriends": "Buscar amigos",
+  "retry": "Reintentar",
+  "noFriendFound": "Ningún amigo encontrado",
+  "addFriendsToSeeActivityMessage": "¡Añade amigos para ver su actividad!",
+  "friendRemovedSnack": "Amigo eliminado",
+  "cannotRemoveFriend": "No se puede eliminar este amigo: {error}",
+  "@cannotRemoveFriend": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+
+  "searchLabel": "Buscar",
+  "friends": "Amigos",
+  "groups": "Grupos",
+  "searchByName": "Buscar por nombre",
+  "groupName": "Nombre del grupo",
+  "inviteToRead": "Invita a tus amigos a leer",
+  "shareWhatYouRead": "Comparte lo que estás leyendo ahora",
+  "typeMin2Chars": "Escribe al menos 2 caracteres para buscar",
+  "invitationSentShort": "Invitación enviada",
+  "cannotAddFriend": "No se puede añadir este amigo",
+  "cannotCancelRequest": "No se puede cancelar la solicitud",
+  "relationAlreadyExists": "Relación ya {status}",
+  "@relationAlreadyExists": {
+    "placeholders": {
+      "status": {"type": "String"}
+    }
+  },
+  "invalidUser": "Usuario inválido",
+  "connectToAddFriend": "Inicia sesión para añadir un amigo",
+  "errorDuringSearch": "Error durante la búsqueda",
+
+  "firstSessionBravo": "¡Bravo por tu primera\nsesión de lectura!",
+  "friendsReadToo": "Tus amigos también leen.\n¡Añádelos para ver su actividad!",
+  "findMyFriends": "Buscar mis amigos",
+  "searchingContacts": "Buscando a tus amigos...",
+  "noContactOnLexDay": "Ninguno de tus contactos usa LexDay aún",
+  "friendsFoundOnLexDay": "{count} amigo{count, plural, =1{} other{s}} encontrado{count, plural, =1{} other{s}} en LexDay",
+  "@friendsFoundOnLexDay": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "inviteFriendsToJoin": "¡Invita a tus amigos a unirse a LexDay!",
+  "sent": "Enviado",
+  "contactsAccessDenied": "Acceso a contactos denegado",
+  "cannotAccessContacts": "No se puede acceder a los contactos",
+  "authorizeContactsSettings": "Para encontrar a tus amigos, permite el acceso a contactos en Ajustes.",
+  "errorOccurredRetryLater": "Ha ocurrido un error. Inténtalo más tarde.",
+  "openSettings": "Abrir ajustes",
+
+  "findContactsFriends": "Buscar amigos",
+  "searchingYourContacts": "Buscando en tus contactos...",
+  "noContactFound": "Ningún contacto encontrado",
+  "contactsNotOnLexDay": "Tus contactos no parecen usar LexDay aún.",
+  "alreadyOnLexDay": "Ya en LexDay",
+  "inviteToLexDay": "Invitar a LexDay",
+  "invited": "Invitado",
+  "invite": "Invitar",
+  "authorizeContacts": "Para encontrar a tus amigos, permite el acceso a tus contactos.",
+  "cannotAccessContactsRetry": "No se puede acceder a tus contactos. Inténtalo más tarde.",
+  "errorOccurred": "Ha ocurrido un error",
+  "shareInviteToLexDay": "¡Únete a mí en LexDay para seguir nuestras lecturas juntos! Descarga la app: https://readon.app",
+
+  "friendRequests": "Solicitudes de amistad",
+  "cannotGetRequests": "No se pueden obtener las solicitudes",
+  "friendAdded": "Amigo añadido",
+  "requestDeclined": "Solicitud rechazada",
+  "actionImpossible": "Acción imposible",
+  "noRequest": "Sin solicitudes",
+
+  "museGreeting": "Hola, soy Muse, tu consejera de lectura. ¿Qué te gustaría leer?",
+  "museRecommendNovel": "Recomiéndame una novela",
+  "museSimilarBook": "Un libro similar al último",
+  "museClassic": "Un clásico por descubrir",
+  "freeMessagesUsed": "Has usado tus {max} mensajes gratuitos este mes",
+  "@freeMessagesUsed": {
+    "placeholders": {
+      "max": {"type": "int"}
+    }
+  },
+  "subscribeForUnlimited": "¡Suscríbete para chatear con Muse sin límites!",
+  "discoverSubscription": "Descubrir la suscripción",
+  "askRecommendation": "Pide una recomendación...",
+  "cannotLoadBook": "No se puede cargar el libro: {error}",
+  "@cannotLoadBook": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "inBookstore": "En librería",
+  "findNearMe": "Buscar cerca de mí",
+  "enableLocationSettings": "Activa la ubicación en Ajustes",
+  "locationAccessRequired": "Acceso a la ubicación requerido",
+  "addToList": "Añadir a una lista",
+  "noPersonalList": "Ninguna lista personal.",
+  "createNewList": "Crear una nueva lista",
+  "addedToList": "Añadido a \"{title}\"",
+  "@addedToList": {
+    "placeholders": {
+      "title": {"type": "String"}
+    }
+  },
+
+  "deleteConversation": "Eliminar la conversación",
+  "deleteConversationConfirm": "¿Estás seguro de que quieres eliminar esta conversación?",
+  "unlimitedChatbot": "Uso ilimitado del chatbot, suscríbete",
+  "messagesUsedCount": "{used}/{max} mensajes usados este mes",
+  "@messagesUsedCount": {
+    "placeholders": {
+      "used": {"type": "int"},
+      "max": {"type": "int"}
+    }
+  },
+  "noConversation": "Sin conversaciones",
+  "startConversationMuse": "Inicia una conversación con Muse para obtener recomendaciones de libros personalizadas.",
+  "newConversation": "Nueva conversación",
+
+  "readingLists": "Listas de lectura",
+  "nBooks": "{count} libros",
+  "@nBooks": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "nReaders": "{count} lector{count, plural, =1{} other{es}}",
+  "@nReaders": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "nRead": "{read}/{total} leídos",
+  "@nRead": {
+    "placeholders": {
+      "read": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+
+  "deleteListTitle": "¿Eliminar esta lista?",
+  "deleteListMessage": "La lista \"{title}\" será eliminada permanentemente.",
+  "@deleteListMessage": {
+    "placeholders": {
+      "title": {"type": "String"}
+    }
+  },
+  "editButton": "Editar",
+  "addBookToList": "Añadir un libro",
+  "noBooksInList": "No hay libros en esta lista",
+  "addBooksFromLibrary": "Añade libros desde tu biblioteca o buscando un título.",
+  "removeBookTitle": "¿Eliminar este libro?",
+  "removeBookMessage": "¿Eliminar \"{title}\" de esta lista?",
+  "@removeBookMessage": {
+    "placeholders": {
+      "title": {"type": "String"}
+    }
+  },
+
+  "myListsSection": "Mis listas",
+  "savedLists": "Listas guardadas",
+  "noList": "Sin listas",
+  "createListCta": "Crea tu propia lista de lectura o descubre nuestras selecciones.",
+  "createList": "Crear una lista",
+  "listLimitMessage": "Has alcanzado el límite de {max} listas de lectura. ¡Pasa a Premium para crear las que quieras!",
+  "@listLimitMessage": {
+    "placeholders": {
+      "max": {"type": "int"}
+    }
+  },
+  "ok": "OK",
+  "goPremium": "Pasar a Premium",
+
+  "editList": "Editar la lista",
+  "newList": "Nueva lista",
+  "listName": "Nombre de la lista",
+  "listNameHint": "Ej: Libros para leer este verano",
+  "iconLabel": "Icono",
+  "colorLabel": "Color",
+  "createListBtn": "Crear la lista",
+  "defaultListName": "Mi lista",
+  "publicList": "Lista pública",
+  "privateList": "Lista privada",
+  "publicListDescription": "Visible para tus amigos en tu perfil",
+  "privateListDescription": "Visible solo para ti",
+
+  "addBooksTitle": "Añadir libros",
+  "myLibraryTab": "Mi biblioteca",
+  "searchTab": "Buscar",
+  "emptyLibrary": "Biblioteca vacía",
+  "useSearchTab": "Usa la pestaña Buscar para encontrar y añadir libros.",
+  "filterLibrary": "Filtrar mi biblioteca...",
+  "searchTitleAuthor": "Buscar un título o autor...",
+  "tryMoreSpecific": "Intenta con un título más específico",
+  "searchByTitleAuthor": "Busca un libro por título o autor",
+
+  "noReadingSession": "Sin sesión de lectura",
+  "startSessionPrompt": "¡Inicia una sesión para empezar!",
+  "unknownBook": "Libro desconocido",
+  "inProgressTag": "En curso",
+  "nPagesRead": "{count} páginas",
+  "@nPagesRead": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "thisWeek": "Esta semana",
+  "thisMonth": "Este mes",
+
+  "sessionTag": "SESIÓN",
+  "makeVisible": "Hacer visible",
+  "hideSessionBtn": "Ocultar la sesión",
+  "sessionHiddenInfo": "Sesión oculta de los rankings y del feed",
+  "bookProgression": "Progreso del libro",
+  "durationLabel": "duración",
+  "pagesReadLabel": "páginas leídas",
+  "paceLabel": "ritmo",
+  "sessionProgression": "Progreso de la sesión",
+  "plusPages": "+{count} páginas",
+  "@plusPages": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "startLabel": "Inicio",
+  "endLabel": "Fin",
+  "timeline": "Cronología",
+  "sessionStart": "inicio de sesión",
+  "ofReadingDuration": "{duration} de lectura",
+  "@ofReadingDuration": {
+    "placeholders": {
+      "duration": {"type": "String"}
+    }
+  },
+  "sessionEnd": "fin de sesión",
+  "unlockInsights": "✨ Desbloquear tus insights",
+  "deleteSessionTitle": "Eliminar la sesión",
+  "deleteSessionMessage": "¿Realmente quieres eliminar esta sesión de lectura? Esta acción es irreversible.",
+  "sessionVisible": "Sesión visible en los rankings",
+  "errorModifying": "Error al modificar",
+  "errorDeleting": "Error al eliminar",
+
+  "loadingError": "Error de carga",
+  "pagesReadByMonth": "Páginas leídas por mes",
+  "genreDistribution": "Distribución de géneros",
+  "whenDoYouRead": "Cuándo lees",
+  "favoriteSchedules": "Tus horarios favoritos de la semana",
+  "yourGoals": "Tus objetivos",
+  "noGoalDefined": "Ningún objetivo definido",
+  "defineGoals": "Definir tus objetivos",
+
+  "notifications": "Notificaciones",
+  "readingReminders": "Recordatorios de lectura",
+  "remindersDescription": "Mantente motivado con recordatorios diarios para mantener tu flow de lectura.",
+  "enableNotifications": "Activar notificaciones",
+  "receiveDailyReminders": "Recibe recordatorios diarios",
+  "reminderDays": "Días de recordatorio",
+  "whichDays": "¿Qué días quieres recibir notificaciones?",
+  "reminderTime": "Hora del recordatorio",
+  "whenReminder": "¿Cuándo quieres recibir el recordatorio?",
+  "aboutNotifications": "Sobre las notificaciones",
+  "notificationInfo": "Recibirás una notificación los días seleccionados para recordarte leer y mantener tu flow.",
+
+  "myGoals": "Mis objetivos",
+  "goalsDescription": "Personaliza tus objetivos para mantenerte motivado y seguir tu progreso.",
+  "goalsSaved": "¡Objetivos guardados!",
+  "freeGoal": "Objetivo libre",
+  "selectedGoals": "💡 Objetivos seleccionados",
+  "goalPrefix": "Objetivo:",
+  "saveMyGoals": "Guardar mis objetivos",
+  "goalsModifiable": "Podrás modificar tus objetivos en cualquier momento",
+
+  "upgradeToLabel": "Pasa a",
+  "lexdayPremium": "LexDay Premium",
+  "unlockPotential": "Desbloquea todo el potencial de tu lectura",
+  "whatPremiumUnlocks": "Lo que Premium desbloquea",
+  "seeLess": "Ver menos",
+  "moreFeatures": "+{count} funcionalidades",
+  "@moreFeatures": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "choosePlan": "Elegir un plan",
+  "cannotLoadOffers": "No se pueden cargar las ofertas",
+  "startFreeTrial": "Comenzar prueba gratuita",
+  "subscribe": "Suscribirse",
+  "freeTrialInfo": "Prueba gratuita de 7 días. Sin pago inmediato.\nCancelable en cualquier momento.",
+  "monthlyBillingInfo": "Facturado mensualmente. Cancelable en cualquier momento.",
+  "restorePurchases": "Restaurar mis compras",
+  "termsOfUse": "Condiciones de uso",
+  "welcomePremium": "¡Bienvenido a LexDay Premium!",
+  "subscriptionRestored": "¡Suscripción restaurada!",
+  "noSubscriptionFound": "Ninguna suscripción encontrada",
+  "featureHeader": "FUNCIONALIDAD",
+  "freeHeader": "GRATIS",
+  "premiumHeader": "PREMIUM",
+  "alreadyFree": "YA INCLUIDO GRATIS",
+  "annual": "Anual",
+  "monthly": "Mensual",
+
+  "yourReadingFlow": "Tu flow de lectura",
+  "consecutiveDaysActive": "{days} días consecutivos, activo",
+  "@consecutiveDaysActive": {
+    "placeholders": {
+      "days": {"type": "int"}
+    }
+  },
+  "daysLabel": "días",
+  "currentFlow": "Flow actual",
+  "totalDays": "días en total",
+  "recordDays": "días récord",
+  "flowFreeze": "Flow Freeze",
+  "autoFreezeActive": "Auto-freeze activo",
+  "protect": "Proteger",
+  "unlimited": "Ilimitado",
+  "freezesAvailable": "{count}/2 disponibles",
+  "@freezesAvailable": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "exhausted": "Agotado",
+  "premiumAutoFreezes": "Pasa a Premium para auto-freezes ilimitados y freeze manual.",
+  "useFreezeTitle": "¿Usar el freeze?",
+  "useFreezeMessage": "Esto protegerá tu flow de ayer usando un freeze manual.",
+  "flowHistory": "Historial del flow",
+  "flowHistoryDescription": "Navega por todo tu historial de lectura mes a mes",
+  "unlockWithPremium": "Desbloquear con Premium",
+  "beatPercentile": "Has superado al {percentile}% de los lectores regulares.",
+  "@beatPercentile": {
+    "placeholders": {
+      "percentile": {"type": "int"}
+    }
+  },
+  "bravoExcl": "¡Bravo! ",
+  "keepReadingTomorrow": "¡Sigue leyendo mañana para mantener tu flow!",
+
+  "iAcceptThe": "Acepto las ",
+  "termsOfUseLink": "Condiciones Generales de Uso",
+  "ofLexDay": " de LexDay",
+
+  "readingNow": "Leyendo · {label}",
+  "@readingNow": {
+    "placeholders": {
+      "label": {"type": "String"}
+    }
+  },
+
+  "amazon": "Amazon",
+
+  "libraryTitle": "Biblioteca",
+  "librarySubtitle": "tu colección",
+  "filterAll": "Todos",
+  "filterReading": "En curso",
+  "filterRead": "Leído",
+  "filterMyLists": "Mis listas",
+  "seeAll": "Ver todo",
+  "currentlyReading": "En curso",
+  "readBooks": "Leído",
+  "noCurrentlyReading": "Ningún libro en curso",
+  "noReadBooks": "Ningún libro leído",
+  "allReadingBooks": "Libros en curso",
+  "allFinishedBooks": "Libros leídos",
+
+  "newSessionSubtitle": "NUEVA SESIÓN",
+  "startSessionTitle": "Iniciar",
+  "whatPageAreYouAt": "¿EN QUÉ PÁGINA ESTÁS?",
+  "scanPageBtn": "Escanear página",
+  "galleryPageBtn": "Galería",
+  "launchSessionBtn": "Iniciar sesión",
+  "continueFromPage": "Continuar desde la página {page}",
+  "@continueFromPage": {
+    "placeholders": {
+      "page": {"type": "int"}
+    }
+  },
+  "lastSessionPage": "Última sesión — página {page}",
+  "@lastSessionPage": {
+    "placeholders": {
+      "page": {"type": "int"}
+    }
+  },
+  "pagesProgress": "{current} / {total} páginas",
+  "@pagesProgress": {
+    "placeholders": {
+      "current": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+  "noPreviousSession": "Primera sesión",
+  "sharedByUser": "Compartido por {name}",
+  "@sharedByUser": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+
+  "sessionAnnotations": "Anotaciones de la sesión",
+  "annotateButton": "Anotar",
+
+  "comments": "Comentarios",
+  "writeComment": "Escribe un comentario...",
+  "commentBeingValidated": "Comentario en validación...",
+  "commentPending": "Pendiente",
+  "noCommentsYet": "Aún no hay comentarios",
+  "beFirstToComment": "¡Sé el primero en comentar!",
+  "send": "Enviar",
+
+  "reactionPremiumOnly": "Reacción reservada para miembros Premium"
+}

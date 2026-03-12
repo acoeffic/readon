@@ -5,4 +5,5 @@ output-class: AppLocalizations
 preferred-supported-locales:
   - fr
   - en
+  - es
 nullable-getter: false

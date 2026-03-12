@@ -184,7 +184,7 @@ class _StoryCard extends StatelessWidget {
                   children: [
                     // ── Header ──
                     Text(
-                      'READON WRAPPED',
+                      'LEXDAY WRAPPED',
                       style: GoogleFonts.jetBrainsMono(
                         fontSize: 9,
                         letterSpacing: 5,
@@ -237,7 +237,7 @@ class _StoryCard extends StatelessWidget {
                     const _GoldLine(width: 30),
                     const SizedBox(height: 14),
                     Text(
-                      'READON',
+                      'LEXDAY',
                       style: GoogleFonts.jetBrainsMono(
                         fontSize: 9,
                         letterSpacing: 3,
@@ -427,7 +427,7 @@ class _SquareCard extends StatelessWidget {
                       ),
                       child: Center(
                         child: Text(
-                          'READON \u2014 STRAVA FOR BOOKS',
+                          'LEXDAY \u2014 STRAVA FOR BOOKS',
                           style: GoogleFonts.jetBrainsMono(
                             fontSize: 8,
                             letterSpacing: 4,

@@ -174,6 +174,8 @@
   "french": "🇫🇷 Français",
   "english": "🇬🇧 English",
   "englishActive": "🇬🇧 English (active)",
+  "spanish": "🇪🇸 Español",
+  "spanishActive": "🇪🇸 Español (activo)",
   "accountSection": "Compte",
   "manageConnections": "🖥️ Gérer connexions & appareils",
   "legalSection": "Légal",
@@ -777,6 +779,8 @@
     }
   },
   "books": "Livres",
+  "viewFullProfile": "Voir le profil complet",
+  "followLabel": "Suivre",
   "pagesLabel": "Pages",
   "readingLabel": "Lecture",
   "flowLabel": "Flow",
@@ -1202,5 +1206,18 @@
     "placeholders": {
       "name": {"type": "String"}
     }
-  }
+  },
+
+  "sessionAnnotations": "Annotations de la session",
+  "annotateButton": "Annoter",
+
+  "comments": "Commentaires",
+  "writeComment": "Écrire un commentaire...",
+  "commentBeingValidated": "Commentaire en cours de validation...",
+  "commentPending": "En attente",
+  "noCommentsYet": "Aucun commentaire pour le moment",
+  "beFirstToComment": "Sois le premier à commenter !",
+  "send": "Envoyer",
+
+  "reactionPremiumOnly": "Réaction réservée aux membres Premium"
 }

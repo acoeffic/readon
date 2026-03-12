@@ -1,14 +1,16 @@
 // lib/widgets/user_search_card.dart
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations.dart';
 import '../theme/app_theme.dart';
 import '../models/user_search_result.dart';
 import '../features/badges/widgets/first_book_badge_painter.dart';
+import 'cached_profile_avatar.dart';
 
 class UserSearchCard extends StatelessWidget {
   final UserSearchResult user;
   final VoidCallback? onAddFriend;
   final VoidCallback? onCancelRequest;
-  final VoidCallback? onTap;
+  final VoidCallback? onViewProfile;
   final bool isRequestPending;
 
   const UserSearchCard({
@@ -16,7 +18,7 @@ class UserSearchCard extends StatelessWidget {
     required this.user,
     this.onAddFriend,
     this.onCancelRequest,
-    this.onTap,
+    this.onViewProfile,
     this.isRequestPending = false,
   });
 
@@ -31,10 +33,10 @@ class UserSearchCard extends StatelessWidget {
       return '${weeks}sem';
     } else if (difference.inDays < 365) {
       final months = (difference.inDays / 30).floor();
-      return '${months}m';
+      return '$months mois';
     } else {
       final years = (difference.inDays / 365).floor();
-      return '${years}an${years > 1 ? 's' : ''}';
+      return '$years an${years > 1 ? 's' : ''}';
     }
   }
 
@@ -48,18 +50,14 @@ class UserSearchCard extends StatelessWidget {
   }
 
   Widget _buildPrivateCard(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(AppSpace.m),
-        decoration: BoxDecoration(
-          color: Theme.of(context).cardColor,
-          borderRadius: BorderRadius.circular(AppRadius.l),
-          border: Border.all(color: Theme.of(context).dividerColor),
-        ),
-        child: Row(
+    final l10n = AppLocalizations.of(context);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Header: avatar + name + button
+        Row(
           children: [
-            _buildAvatar(context, 60),
+            _buildAvatar(context, 40),
             const SizedBox(width: AppSpace.m),
             Expanded(
               child: Column(
@@ -68,20 +66,20 @@ class UserSearchCard extends StatelessWidget {
                   Text(
                     user.displayName,
                     style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
-                  const SizedBox(height: AppSpace.xs),
+                  const SizedBox(height: 2),
                   Row(
                     children: [
-                      Icon(Icons.lock, size: 14, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
+                      Icon(Icons.lock, size: 14, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
                       const SizedBox(width: 4),
                       Text(
-                        'Profil privé',
+                        l10n.privateProfileLabel,
                         style: TextStyle(
-                          fontSize: 12,
-                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                          fontSize: 13,
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
                           fontStyle: FontStyle.italic,
                         ),
                       ),
@@ -93,379 +91,425 @@ class UserSearchCard extends StatelessWidget {
             _buildActionButton(context),
           ],
         ),
-      ),
+      ],
     );
   }
 
   Widget _buildPublicCard(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(AppSpace.l),
-        decoration: BoxDecoration(
-          color: Theme.of(context).cardColor,
-          borderRadius: BorderRadius.circular(AppRadius.l),
-          border: Border.all(color: Theme.of(context).dividerColor),
-        ),
-        child: Column(
+    final l10n = AppLocalizations.of(context);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Header: avatar + name + button
+        Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // En-tête avec avatar, nom et bouton
-            Row(
-              children: [
-                _buildAvatar(context, 64),
-                const SizedBox(width: AppSpace.m),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        user.displayName,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                        ),
+            _buildAvatarWithStreak(context),
+            const SizedBox(width: AppSpace.l),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 4),
+                  Text(
+                    user.displayName,
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.3,
+                    ),
+                  ),
+                  if (user.memberSince != null) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      _formatMemberSince(user.memberSince!),
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                        fontStyle: FontStyle.italic,
                       ),
-                      if (user.memberSince != null) ...[
-                        const SizedBox(height: 2),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            _buildActionButton(context),
+          ],
+        ),
+
+        const SizedBox(height: AppSpace.l),
+        Divider(color: Theme.of(context).dividerColor, height: 1),
+        const SizedBox(height: AppSpace.l),
+
+        // Stats card
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+          decoration: BoxDecoration(
+            color: Theme.of(context).cardColor,
+            borderRadius: BorderRadius.circular(AppRadius.l),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: _buildStatItem(
+                  context,
+                  '\u{1F4D6}',
+                  '${user.booksFinished ?? 0}',
+                  l10n.books,
+                ),
+              ),
+              Container(width: 1, height: 40, color: Theme.of(context).dividerColor),
+              Expanded(
+                child: _buildStatItem(
+                  context,
+                  '\u{1F525}',
+                  '${user.currentFlow ?? 0}',
+                  l10n.streakLabel,
+                ),
+              ),
+              Container(width: 1, height: 40, color: Theme.of(context).dividerColor),
+              Expanded(
+                child: _buildStatItem(
+                  context,
+                  '\u{1F465}',
+                  '${user.friendsCount ?? 0}',
+                  l10n.friends,
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // Badges section
+        if (user.recentBadges != null && user.recentBadges!.isNotEmpty) ...[
+          const SizedBox(height: AppSpace.l),
+          Text(
+            l10n.recentBadges.toUpperCase(),
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+              letterSpacing: 1.2,
+            ),
+          ),
+          const SizedBox(height: AppSpace.s),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: user.recentBadges!.take(3).map((badge) {
+                return Padding(
+                  padding: const EdgeInsets.only(right: AppSpace.s),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpace.m,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _hexToColor(badge.color).withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(AppRadius.l),
+                      border: Border.all(
+                        color: _hexToColor(badge.color).withValues(alpha: 0.25),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _buildBadgeIcon(badge),
+                        const SizedBox(width: 6),
                         Text(
-                          'Membre depuis ${_formatMemberSince(user.memberSince!)}',
+                          badge.name,
                           style: TextStyle(
-                            fontSize: 12,
-                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-                            fontStyle: FontStyle.italic,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: _hexToColor(badge.color),
                           ),
                         ),
                       ],
-                    ],
+                    ),
                   ),
-                ),
-                _buildActionButton(context),
-              ],
+                );
+              }).toList(),
             ),
+          ),
+        ],
 
-            const SizedBox(height: AppSpace.l),
+        // Current book card
+        if (user.currentBook != null) ...[
+          const SizedBox(height: AppSpace.l),
+          _buildCurrentBookCard(context),
+        ],
 
-            // Badges récents
-            if (user.recentBadges != null && user.recentBadges!.isNotEmpty) ...[
-              Text(
-                'Badges récents',
-                style: TextStyle(
-                  fontSize: 12,
+        // View full profile button
+        if (onViewProfile != null) ...[
+          const SizedBox(height: AppSpace.l),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              onPressed: onViewProfile,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.primary,
+                side: const BorderSide(color: AppColors.primary, width: 1.5),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppRadius.l),
+                ),
+              ),
+              child: Text(
+                '${l10n.viewFullProfile} \u{2192}',
+                style: const TextStyle(
+                  fontSize: 15,
                   fontWeight: FontWeight.w600,
-                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.87),
                 ),
               ),
-              const SizedBox(height: AppSpace.s),
-              Row(
-                children: user.recentBadges!.take(3).map((badge) {
-                  return Padding(
-                    padding: const EdgeInsets.only(right: AppSpace.s),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpace.m,
-                        vertical: AppSpace.s,
-                      ),
-                      decoration: BoxDecoration(
-                        color: _hexToColor(badge.color).withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(AppRadius.m),
-                        border: Border.all(
-                          color: _hexToColor(badge.color).withValues(alpha: 0.3),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (isFirstBookBadge(id: badge.id))
-                            const FirstBookBadge(size: 26)
-                          else if (isApprenticeReaderBadge(id: badge.id))
-                            const ApprenticeReaderBadge(size: 26)
-                          else if (isConfirmedReaderBadge(id: badge.id))
-                            const ConfirmedReaderBadge(size: 26)
-                          else if (isBibliophileBadge(id: badge.id))
-                            const BibliophileBadge(size: 26)
-                          else if (isDevoreurBadge(id: badge.id))
-                            const DevoreurBadge(size: 26)
-                          else if (isCentenaireLivresBadge(id: badge.id))
-                            const CentenaireLivresBadge(size: 26)
-                          else if (isLegendeLitteraireBadge(id: badge.id))
-                            const LegendeLitteraireBadge(size: 26)
-                          else if (isBibliothequeVivanteBadge(id: badge.id))
-                            const BibliothequeVivanteBadge(size: 26)
-                          else if (isOneHourMagicBadge(id: badge.id))
-                            const OneHourMagicBadge(size: 26)
-                          else if (isSundayReaderBadge(id: badge.id))
-                            const SundayReaderBadge(size: 26)
-                          else if (isPassionateBadge(id: badge.id))
-                            const PassionateBadge(size: 26)
-                          else if (isCenturionBadge(id: badge.id))
-                            const CenturionBadge(size: 26)
-                          else if (isMarathonBadge(id: badge.id))
-                            const MarathonBadge(size: 26)
-                          else if (isHalfMillenniumBadge(id: badge.id))
-                            const HalfMillenniumBadge(size: 26)
-                          else if (isMillenniumBadge(id: badge.id))
-                            const MillenniumBadge(size: 26)
-                          else if (isClubFounderBadge(id: badge.id))
-                            const ClubFounderBadge(size: 26)
-                          else if (isClubLeaderBadge(id: badge.id))
-                            const ClubLeaderBadge(size: 26)
-                          else if (isResidentBadge(id: badge.id))
-                            const ResidentBadge(size: 26)
-                          else if (isHabitueBadge(id: badge.id))
-                            const HabitueBadge(size: 26)
-                          else if (isPilierBadge(id: badge.id))
-                            const PilierBadge(size: 26)
-                          else if (isMonumentBadge(id: badge.id))
-                            const MonumentBadge(size: 26)
-                          else if (isAnnualOnePerMonthBadge(id: badge.id))
-                            const AnnualOnePerMonthBadge(size: 26)
-                          else if (isAnnualTwoPerMonthBadge(id: badge.id))
-                            const AnnualTwoPerMonthBadge(size: 26)
-                          else if (isAnnualOnePerWeekBadge(id: badge.id))
-                            const AnnualOnePerWeekBadge(size: 26)
-                          else if (isAnnualCentenaireBadge(id: badge.id))
-                            const AnnualCentenaireBadge(size: 26)
-                          else if (isOccasionBastilleDayBadge(id: badge.id))
-                            const OccasionBastilleDayBadge(size: 26)
-                          else if (isOccasionChristmasBadge(id: badge.id))
-                            const OccasionChristmasBadge(size: 26)
-                          else if (isOccasionFeteMusiqueBadge(id: badge.id))
-                            const OccasionFeteMusiqueBadge(size: 26)
-                          else if (isOccasionHalloweenBadge(id: badge.id))
-                            const OccasionHalloweenBadge(size: 26)
-                          else if (isOccasionSummerReadBadge(id: badge.id))
-                            const OccasionSummerReadBadge(size: 26)
-                          else if (isOccasionValentineBadge(id: badge.id))
-                            const OccasionValentineBadge(size: 26)
-                          else if (isOccasionNyeBadge(id: badge.id))
-                            const OccasionNyeBadge(size: 26)
-                          else if (isOccasionLabourDayBadge(id: badge.id))
-                            const OccasionLabourDayBadge(size: 26)
-                          else if (isOccasionWorldBookDayBadge(id: badge.id))
-                            const OccasionWorldBookDayBadge(size: 26)
-                          else if (isOccasionNewYearBadge(id: badge.id))
-                            const OccasionNewYearBadge(size: 26)
-                          else if (isOccasionEasterBadge(id: badge.id))
-                            const OccasionEasterBadge(size: 26)
-                          else if (isOccasionAprilFoolsBadge(id: badge.id))
-                            const OccasionAprilFoolsBadge(size: 26)
-                          else if (isGenreSfApprentiBadge(id: badge.id))
-                            const GenreSfApprentiBadge(size: 26)
-                          else if (isGenrePolarApprentiBadge(id: badge.id))
-                            const GenrePolarApprentiBadge(size: 26)
-                          else if (isGenrePolarAdepteBadge(id: badge.id))
-                            const GenrePolarAdepteBadge(size: 26)
-                          else if (isGenrePolarMaitreBadge(id: badge.id))
-                            const GenrePolarMaitreBadge(size: 26)
-                          else if (isGenrePolarLegendeBadge(id: badge.id))
-                            const GenrePolarLegendeBadge(size: 26)
-                          else if (isGenreSfApprentiBadge(id: badge.id))
-                            const GenreSfApprentiBadge(size: 26)
-                          else if (isGenreSfAdepteBadge(id: badge.id))
-                            const GenreSfAdepteBadge(size: 26)
-                          else if (isGenreSfMaitreBadge(id: badge.id))
-                            const GenreSfMaitreBadge(size: 26)
-                          else if (isGenreSfLegendeBadge(id: badge.id))
-                            const GenreSfLegendeBadge(size: 26)
-                          else if (isGenreRomanceApprentiBadge(id: badge.id))
-                            const GenreRomanceApprentiBadge(size: 26)
-                          else if (isGenreRomanceAdepteBadge(id: badge.id))
-                            const GenreRomanceAdepteBadge(size: 26)
-                          else if (isGenreRomanceMaitreBadge(id: badge.id))
-                            const GenreRomanceMaitreBadge(size: 26)
-                          else if (isGenreRomanceLegendeBadge(id: badge.id))
-                            const GenreRomanceLegendeBadge(size: 26)
-                          else if (isGenreHorreurApprentiBadge(id: badge.id))
-                            const GenreHorreurApprentiBadge(size: 26)
-                          else if (isGenreHorreurAdepteBadge(id: badge.id))
-                            const GenreHorreurAdepteBadge(size: 26)
-                          else if (isGenreHorreurMaitreBadge(id: badge.id))
-                            const GenreHorreurMaitreBadge(size: 26)
-                          else if (isGenreHorreurLegendeBadge(id: badge.id))
-                            const GenreHorreurLegendeBadge(size: 26)
-                          else if (isGenreBioApprentiBadge(id: badge.id))
-                            const GenreBioApprentiBadge(size: 26)
-                          else if (isGenreBioAdepteBadge(id: badge.id))
-                            const GenreBioAdepteBadge(size: 26)
-                          else if (isGenreBioMaitreBadge(id: badge.id))
-                            const GenreBioMaitreBadge(size: 26)
-                          else if (isGenreBioLegendeBadge(id: badge.id))
-                            const GenreBioLegendeBadge(size: 26)
-                          else if (isGenreHistoireApprentiBadge(id: badge.id))
-                            const GenreHistoireApprentiBadge(size: 26)
-                          else if (isGenreHistoireAdepteBadge(id: badge.id))
-                            const GenreHistoireAdepteBadge(size: 26)
-                          else if (isGenreHistoireMaitreBadge(id: badge.id))
-                            const GenreHistoireMaitreBadge(size: 26)
-                          else if (isGenreHistoireLegendeBadge(id: badge.id))
-                            const GenreHistoireLegendeBadge(size: 26)
-                          else if (isGenreDevpersoApprentiBadge(id: badge.id))
-                            const GenreDevpersoApprentiBadge(size: 26)
-                          else if (isGenreDevpersoAdepteBadge(id: badge.id))
-                            const GenreDevpersoAdepteBadge(size: 26)
-                          else if (isGenreDevpersoMaitreBadge(id: badge.id))
-                            const GenreDevpersoMaitreBadge(size: 26)
-                          else if (isGenreDevpersoLegendeBadge(id: badge.id))
-                            const GenreDevpersoLegendeBadge(size: 26)
-                          else if (badge.id.startsWith('comeback_'))
-                            ComebackBadge(badgeId: badge.id, size: 26)
-                          else
-                            Text(
-                              badge.icon,
-                              style: const TextStyle(fontSize: 20),
-                            ),
-                          const SizedBox(width: 4),
-                          Text(
-                            badge.name,
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: _hexToColor(badge.color),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
-              const SizedBox(height: AppSpace.l),
-            ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
 
-            // Statistiques en grille
-            Container(
-              padding: const EdgeInsets.all(AppSpace.m),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(AppRadius.m),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _buildStatItem(context,
-                    Icons.book_outlined,
-                    '${user.booksFinished ?? 0}',
-                    'Livres',
-                  ),
-                  Container(width: 1, height: 30, color: Theme.of(context).dividerColor),
-                  _buildStatItem(context,
-                    Icons.local_fire_department,
-                    '${user.currentFlow ?? 0}',
-                    'Flow',
-                  ),
-                  Container(width: 1, height: 30, color: Theme.of(context).dividerColor),
-                  _buildStatItem(context,
-                    Icons.people_outline,
-                    '${user.friendsCount ?? 0}',
-                    'Amis',
-                  ),
-                ],
+  Widget _buildAvatarWithStreak(BuildContext context) {
+    final streak = user.currentFlow ?? 0;
+    return SizedBox(
+      width: 88,
+      height: 88,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          // Green ring border
+          Container(
+            width: 88,
+            height: 88,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: AppColors.primary.withValues(alpha: 0.4),
+                width: 2.5,
               ),
             ),
-
-            // Livre en cours
-            if (user.currentBook != null) ...[
-              const SizedBox(height: AppSpace.l),
-              Row(
-                children: [
-                  Icon(Icons.auto_stories, size: 16, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
-                  const SizedBox(width: AppSpace.xs),
-                  Text(
-                    'En cours:',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
-                    ),
+            padding: const EdgeInsets.all(3),
+            child: CachedProfileAvatar(
+              imageUrl: user.avatarUrl,
+              userName: user.displayName,
+              radius: 38,
+              backgroundColor: Theme.of(context).brightness == Brightness.dark
+                  ? AppColors.accentDark
+                  : AppColors.accentLight,
+              textColor: AppColors.primary,
+              fontSize: 30,
+            ),
+          ),
+          // Streak badge
+          if (streak > 0)
+            Positioned(
+              bottom: -2,
+              left: -2,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF3E0),
+                  borderRadius: BorderRadius.circular(AppRadius.pill),
+                  border: Border.all(
+                    color: Theme.of(context).scaffoldBackgroundColor,
+                    width: 2,
                   ),
-                  const SizedBox(width: 4),
-                  Expanded(
-                    child: Text(
-                      user.currentBook!.title,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text('\u{1F525}', style: TextStyle(fontSize: 11)),
+                    const SizedBox(width: 2),
+                    Text(
+                      '${streak}j',
                       style: const TextStyle(
-                        fontSize: 12,
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w500,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFFE65100),
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ],
-          ],
-        ),
+            ),
+        ],
       ),
     );
   }
 
   Widget _buildAvatar(BuildContext context, double size) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: Theme.of(context).brightness == Brightness.dark
-            ? AppColors.accentDark
-            : AppColors.accentLight,
-        image: user.avatarUrl != null && user.avatarUrl!.isNotEmpty
-            ? DecorationImage(
-                image: NetworkImage(user.avatarUrl!),
-                fit: BoxFit.cover,
-              )
-            : null,
-      ),
-      child: user.avatarUrl == null || user.avatarUrl!.isEmpty
-          ? Center(
-              child: Text(
-                user.displayName.isNotEmpty
-                    ? user.displayName[0].toUpperCase()
-                    : '?',
-                style: TextStyle(
-                  fontSize: size * 0.4,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primary,
-                ),
-              ),
-            )
-          : null,
+    return CachedProfileAvatar(
+      imageUrl: user.avatarUrl,
+      userName: user.displayName,
+      radius: size / 2,
+      backgroundColor: Theme.of(context).brightness == Brightness.dark
+          ? AppColors.accentDark
+          : AppColors.accentLight,
+      textColor: AppColors.primary,
+      fontSize: size * 0.4,
     );
   }
 
-  Widget _buildStatItem(BuildContext context, IconData icon, String value, String label) {
+  Widget _buildStatItem(BuildContext context, String emoji, String value, String label) {
     return Column(
       children: [
-        Icon(icon, color: AppColors.primary, size: 26),
-        const SizedBox(height: 4),
+        Text(emoji, style: const TextStyle(fontSize: 22)),
+        const SizedBox(height: 6),
         Text(
           value,
           style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.87),
+            fontSize: 20,
+            fontWeight: FontWeight.w800,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
+        const SizedBox(height: 2),
         Text(
-          label,
+          label.toUpperCase(),
           style: TextStyle(
             fontSize: 10,
-            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+            fontWeight: FontWeight.w600,
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+            letterSpacing: 1,
           ),
         ),
       ],
     );
   }
 
+  Widget _buildCurrentBookCard(BuildContext context) {
+    final book = user.currentBook!;
+    final l10n = AppLocalizations.of(context);
+    final progress = book.progress;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF3E2E1E),
+            Color(0xFF2A1F14),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(AppRadius.l),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            l10n.currentlyReading.toUpperCase(),
+            style: const TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFFD4A96A),
+              letterSpacing: 1.5,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              // Book cover
+              Container(
+                width: 50,
+                height: 68,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(6),
+                  color: Colors.white.withValues(alpha: 0.15),
+                  image: book.coverUrl != null
+                      ? DecorationImage(
+                          image: NetworkImage(book.coverUrl!),
+                          fit: BoxFit.cover,
+                        )
+                      : null,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.3),
+                      blurRadius: 6,
+                      offset: const Offset(2, 2),
+                    ),
+                  ],
+                ),
+                child: book.coverUrl == null
+                    ? const Icon(Icons.book, color: Colors.white54, size: 24)
+                    : null,
+              ),
+              const SizedBox(width: 14),
+              // Book info
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      book.title,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (book.author != null) ...[
+                      const SizedBox(height: 3),
+                      Text(
+                        book.author!,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.white.withValues(alpha: 0.65),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (progress != null && book.totalPages != null) ...[
+            const SizedBox(height: 12),
+            // Progress bar
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: progress,
+                minHeight: 5,
+                backgroundColor: Colors.white.withValues(alpha: 0.15),
+                valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              '${(progress * 100).round()} % \u{00B7} ${book.currentPage} / ${book.totalPages} pages',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.white.withValues(alpha: 0.6),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   Widget _buildActionButton(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     if (isRequestPending) {
       return GestureDetector(
         onTap: onCancelRequest,
         child: Container(
           padding: const EdgeInsets.symmetric(
-            horizontal: AppSpace.m,
-            vertical: AppSpace.s,
+            horizontal: 16,
+            vertical: 10,
           ),
           decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.surfaceContainerHighest,
@@ -474,12 +518,12 @@ class UserSearchCard extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.close, size: 16, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
+              Icon(Icons.close, size: 15, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
               const SizedBox(width: 4),
               Text(
-                'Annuler',
+                l10n.cancel,
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: 13,
                   fontWeight: FontWeight.w600,
                   color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                 ),
@@ -490,23 +534,97 @@ class UserSearchCard extends StatelessWidget {
       );
     }
 
-    return ElevatedButton.icon(
-      onPressed: onAddFriend,
-      icon: const Icon(Icons.person_add, size: 16),
-      label: const Text('Ajouter'),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
+    return GestureDetector(
+      onTap: onAddFriend,
+      child: Container(
         padding: const EdgeInsets.symmetric(
-          horizontal: AppSpace.m,
-          vertical: AppSpace.s,
+          horizontal: 18,
+          vertical: 10,
         ),
-        shape: RoundedRectangleBorder(
+        decoration: BoxDecoration(
+          color: AppColors.primary,
           borderRadius: BorderRadius.circular(AppRadius.pill),
         ),
-        elevation: 0,
+        child: Text(
+          '+ ${l10n.followLabel}',
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+            color: Colors.white,
+          ),
+        ),
       ),
     );
+  }
+
+  Widget _buildBadgeIcon(UserBadgeSimple badge) {
+    if (isFirstBookBadge(id: badge.id)) return const FirstBookBadge(size: 26);
+    if (isApprenticeReaderBadge(id: badge.id)) return const ApprenticeReaderBadge(size: 26);
+    if (isConfirmedReaderBadge(id: badge.id)) return const ConfirmedReaderBadge(size: 26);
+    if (isBibliophileBadge(id: badge.id)) return const BibliophileBadge(size: 26);
+    if (isDevoreurBadge(id: badge.id)) return const DevoreurBadge(size: 26);
+    if (isCentenaireLivresBadge(id: badge.id)) return const CentenaireLivresBadge(size: 26);
+    if (isLegendeLitteraireBadge(id: badge.id)) return const LegendeLitteraireBadge(size: 26);
+    if (isBibliothequeVivanteBadge(id: badge.id)) return const BibliothequeVivanteBadge(size: 26);
+    if (isOneHourMagicBadge(id: badge.id)) return const OneHourMagicBadge(size: 26);
+    if (isSundayReaderBadge(id: badge.id)) return const SundayReaderBadge(size: 26);
+    if (isPassionateBadge(id: badge.id)) return const PassionateBadge(size: 26);
+    if (isCenturionBadge(id: badge.id)) return const CenturionBadge(size: 26);
+    if (isMarathonBadge(id: badge.id)) return const MarathonBadge(size: 26);
+    if (isHalfMillenniumBadge(id: badge.id)) return const HalfMillenniumBadge(size: 26);
+    if (isMillenniumBadge(id: badge.id)) return const MillenniumBadge(size: 26);
+    if (isClubFounderBadge(id: badge.id)) return const ClubFounderBadge(size: 26);
+    if (isClubLeaderBadge(id: badge.id)) return const ClubLeaderBadge(size: 26);
+    if (isResidentBadge(id: badge.id)) return const ResidentBadge(size: 26);
+    if (isHabitueBadge(id: badge.id)) return const HabitueBadge(size: 26);
+    if (isPilierBadge(id: badge.id)) return const PilierBadge(size: 26);
+    if (isMonumentBadge(id: badge.id)) return const MonumentBadge(size: 26);
+    if (isAnnualOnePerMonthBadge(id: badge.id)) return const AnnualOnePerMonthBadge(size: 26);
+    if (isAnnualTwoPerMonthBadge(id: badge.id)) return const AnnualTwoPerMonthBadge(size: 26);
+    if (isAnnualOnePerWeekBadge(id: badge.id)) return const AnnualOnePerWeekBadge(size: 26);
+    if (isAnnualCentenaireBadge(id: badge.id)) return const AnnualCentenaireBadge(size: 26);
+    if (isOccasionBastilleDayBadge(id: badge.id)) return const OccasionBastilleDayBadge(size: 26);
+    if (isOccasionChristmasBadge(id: badge.id)) return const OccasionChristmasBadge(size: 26);
+    if (isOccasionFeteMusiqueBadge(id: badge.id)) return const OccasionFeteMusiqueBadge(size: 26);
+    if (isOccasionHalloweenBadge(id: badge.id)) return const OccasionHalloweenBadge(size: 26);
+    if (isOccasionSummerReadBadge(id: badge.id)) return const OccasionSummerReadBadge(size: 26);
+    if (isOccasionValentineBadge(id: badge.id)) return const OccasionValentineBadge(size: 26);
+    if (isOccasionNyeBadge(id: badge.id)) return const OccasionNyeBadge(size: 26);
+    if (isOccasionLabourDayBadge(id: badge.id)) return const OccasionLabourDayBadge(size: 26);
+    if (isOccasionWorldBookDayBadge(id: badge.id)) return const OccasionWorldBookDayBadge(size: 26);
+    if (isOccasionNewYearBadge(id: badge.id)) return const OccasionNewYearBadge(size: 26);
+    if (isOccasionEasterBadge(id: badge.id)) return const OccasionEasterBadge(size: 26);
+    if (isOccasionAprilFoolsBadge(id: badge.id)) return const OccasionAprilFoolsBadge(size: 26);
+    if (isGenreSfApprentiBadge(id: badge.id)) return const GenreSfApprentiBadge(size: 26);
+    if (isGenrePolarApprentiBadge(id: badge.id)) return const GenrePolarApprentiBadge(size: 26);
+    if (isGenrePolarAdepteBadge(id: badge.id)) return const GenrePolarAdepteBadge(size: 26);
+    if (isGenrePolarMaitreBadge(id: badge.id)) return const GenrePolarMaitreBadge(size: 26);
+    if (isGenrePolarLegendeBadge(id: badge.id)) return const GenrePolarLegendeBadge(size: 26);
+    if (isGenreSfAdepteBadge(id: badge.id)) return const GenreSfAdepteBadge(size: 26);
+    if (isGenreSfMaitreBadge(id: badge.id)) return const GenreSfMaitreBadge(size: 26);
+    if (isGenreSfLegendeBadge(id: badge.id)) return const GenreSfLegendeBadge(size: 26);
+    if (isGenreRomanceApprentiBadge(id: badge.id)) return const GenreRomanceApprentiBadge(size: 26);
+    if (isGenreRomanceAdepteBadge(id: badge.id)) return const GenreRomanceAdepteBadge(size: 26);
+    if (isGenreRomanceMaitreBadge(id: badge.id)) return const GenreRomanceMaitreBadge(size: 26);
+    if (isGenreRomanceLegendeBadge(id: badge.id)) return const GenreRomanceLegendeBadge(size: 26);
+    if (isGenreHorreurApprentiBadge(id: badge.id)) return const GenreHorreurApprentiBadge(size: 26);
+    if (isGenreHorreurAdepteBadge(id: badge.id)) return const GenreHorreurAdepteBadge(size: 26);
+    if (isGenreHorreurMaitreBadge(id: badge.id)) return const GenreHorreurMaitreBadge(size: 26);
+    if (isGenreHorreurLegendeBadge(id: badge.id)) return const GenreHorreurLegendeBadge(size: 26);
+    if (isGenreBioApprentiBadge(id: badge.id)) return const GenreBioApprentiBadge(size: 26);
+    if (isGenreBioAdepteBadge(id: badge.id)) return const GenreBioAdepteBadge(size: 26);
+    if (isGenreBioMaitreBadge(id: badge.id)) return const GenreBioMaitreBadge(size: 26);
+    if (isGenreBioLegendeBadge(id: badge.id)) return const GenreBioLegendeBadge(size: 26);
+    if (isGenreHistoireApprentiBadge(id: badge.id)) return const GenreHistoireApprentiBadge(size: 26);
+    if (isGenreHistoireAdepteBadge(id: badge.id)) return const GenreHistoireAdepteBadge(size: 26);
+    if (isGenreHistoireMaitreBadge(id: badge.id)) return const GenreHistoireMaitreBadge(size: 26);
+    if (isGenreHistoireLegendeBadge(id: badge.id)) return const GenreHistoireLegendeBadge(size: 26);
+    if (isGenreDevpersoApprentiBadge(id: badge.id)) return const GenreDevpersoApprentiBadge(size: 26);
+    if (isGenreDevpersoAdepteBadge(id: badge.id)) return const GenreDevpersoAdepteBadge(size: 26);
+    if (isGenreDevpersoMaitreBadge(id: badge.id)) return const GenreDevpersoMaitreBadge(size: 26);
+    if (isGenreDevpersoLegendeBadge(id: badge.id)) return const GenreDevpersoLegendeBadge(size: 26);
+    if (badge.id.startsWith('comeback_')) return ComebackBadge(badgeId: badge.id, size: 26);
+    return Text(badge.icon, style: const TextStyle(fontSize: 20));
   }
 
   Color _hexToColor(String hexString) {

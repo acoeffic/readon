@@ -83,6 +83,14 @@ class SubscriptionProvider with ChangeNotifier {
     await refreshStatus();
   }
 
+  /// Retirer le listener RevenueCat avant déconnexion/suppression de compte
+  /// pour éviter un notifyListeners() pendant la transition de navigation.
+  void detachRevenueCatListener() {
+    if (!_service.isDevPremium) {
+      Purchases.removeCustomerInfoUpdateListener(_onCustomerInfoUpdated);
+    }
+  }
+
   @override
   void dispose() {
     if (!_service.isDevPremium) {

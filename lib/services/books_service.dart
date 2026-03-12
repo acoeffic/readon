@@ -487,19 +487,14 @@ class BooksService {
             .maybeSingle();
 
         int bookId;
+        bool needsCoverUpdate = false;
+        bool needsEnrichment = false;
+
         if (existing != null) {
           bookId = existing['id'] as int;
-          // Toujours mettre à jour avec la couverture Kindle si disponible (priorité sur Google Books)
-          if (kindleBook.coverUrl != null) {
-            await _supabase.rpc('update_book_metadata', params: {'p_book_id': bookId, 'p_cover_url': kindleBook.coverUrl});
-          } else if (existing['cover_url'] == null) {
-            // Pas de couverture Kindle ni existante -> enrichir via Google Books
-            await _enrichBookWithGoogleBooks(bookId, _cleanBookTitle(kindleBook.title), kindleAuthor: kindleBook.author);
-          }
-          // Ré-enrichir les livres existants sans auteur
-          if (existing['author'] == null) {
-            await _enrichBookWithGoogleBooks(bookId, _cleanBookTitle(kindleBook.title), kindleAuthor: kindleBook.author);
-          }
+          // Marquer les mises à jour à faire APRÈS l'ajout à user_books
+          needsCoverUpdate = kindleBook.coverUrl != null;
+          needsEnrichment = existing['cover_url'] == null && !needsCoverUpdate || existing['author'] == null;
         } else {
           // Chercher les métadonnées sur Google Books (titre nettoyé + auteur Kindle si disponible)
           final cleanTitle = _cleanBookTitle(kindleBook.title);
@@ -518,11 +513,8 @@ class BooksService {
                 .maybeSingle();
 
             if (existingByGoogleId != null) {
-              // Un livre avec ce google_id existe déjà, mettre à jour la couverture Kindle si disponible
               bookId = existingByGoogleId['id'] as int;
-              if (kindleBook.coverUrl != null) {
-                await _supabase.rpc('update_book_metadata', params: {'p_book_id': bookId, 'p_cover_url': kindleBook.coverUrl});
-              }
+              needsCoverUpdate = kindleBook.coverUrl != null;
             } else {
               // Créer le livre avec métadonnées et google_id via RPC
               bookId = await _insertBookRpc(
@@ -573,7 +565,8 @@ class BooksService {
           }
         }
 
-        // Ajouter ou mettre à jour user_books
+        // Ajouter ou mettre à jour user_books EN PREMIER
+        // (nécessaire avant update_book_metadata qui vérifie l'appartenance)
         final existingUserBook = await _supabase
             .from('user_books')
             .select('status')
@@ -603,6 +596,19 @@ class BooksService {
                 .eq('user_id', userId)
                 .eq('book_id', bookId);
           }
+        }
+
+        // Mettre à jour les métadonnées APRÈS l'ajout à user_books
+        // (update_book_metadata vérifie que le livre est dans user_books)
+        try {
+          if (needsCoverUpdate) {
+            await _supabase.rpc('update_book_metadata', params: {'p_book_id': bookId, 'p_cover_url': kindleBook.coverUrl});
+          }
+          if (needsEnrichment) {
+            await _enrichBookWithGoogleBooks(bookId, _cleanBookTitle(kindleBook.title), kindleAuthor: kindleBook.author);
+          }
+        } catch (e) {
+          debugPrint('Erreur enrichissement livre Kindle "${kindleBook.title}": $e');
         }
       } catch (e) {
         debugPrint('Erreur import livre Kindle "${kindleBook.title}": $e');

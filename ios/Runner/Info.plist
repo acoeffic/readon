@@ -51,6 +51,10 @@
 			</array>
 		</dict>
 	</array>
+	<key>GIDClientID</key>
+	<string>870762668846-f550jt8npljlch1vtu0q6tj3qt94amtd.apps.googleusercontent.com</string>
+	<key>GIDServerClientID</key>
+	<string>870762668846-dq8n3pvgrpo3vcrtuciogf4dc9gik0am.apps.googleusercontent.com</string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsLocalNetworking</key>

@@ -606,7 +606,15 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
                     _cancelFriendRequest(user);
                     Navigator.pop(context);
                   },
-                  onTap: null,
+                  onViewProfile: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      this.context,
+                      MaterialPageRoute(
+                        builder: (_) => FriendProfilePage(userId: user.id),
+                      ),
+                    );
+                  },
                 ),
               ),
             ),

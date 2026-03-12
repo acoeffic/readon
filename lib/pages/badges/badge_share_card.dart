@@ -489,7 +489,7 @@ class _SquareCard extends StatelessWidget {
                         _UnlockedLabel(),
                         const Spacer(),
                         Text(
-                          'LEXSTA',
+                          'LEXDAY',
                           style: GoogleFonts.jetBrainsMono(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
@@ -582,7 +582,7 @@ class _Header extends StatelessWidget {
         ),
         const SizedBox(width: 10),
         Text(
-          'LEXSTA',
+          'LEXDAY',
           style: GoogleFonts.jetBrainsMono(
             fontSize: 14,
             fontWeight: FontWeight.w700,

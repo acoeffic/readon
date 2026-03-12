@@ -94,7 +94,6 @@ class CachedProfileAvatar extends StatelessWidget {
             imageUrl: imageUrl!,
             fit: BoxFit.cover,
             memCacheWidth: cacheSize,
-            memCacheHeight: cacheSize,
             placeholder: (context, url) => Container(
               color: bgColor,
               child: fallbackWidget,
@@ -121,7 +120,6 @@ class CachedProfileAvatar extends StatelessWidget {
             imageUrl: imageUrl!,
             fit: BoxFit.cover,
             memCacheWidth: cacheSize,
-            memCacheHeight: cacheSize,
             placeholder: (context, url) => fallbackWidget,
             errorWidget: (context, url, error) => fallbackWidget,
             fadeInDuration: const Duration(milliseconds: 200),

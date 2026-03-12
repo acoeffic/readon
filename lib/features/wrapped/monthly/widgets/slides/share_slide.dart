@@ -328,7 +328,7 @@ class _ShareSlideState extends State<ShareSlide> {
         FadeUp(
           delay: const Duration(milliseconds: 700),
           child: Text(
-            'READON',
+            'LEXDAY',
             style: TextStyle(
               fontFamily: 'Inter',
               fontSize: 10,

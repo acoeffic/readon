@@ -92,6 +92,16 @@ class _KindleLoginPageState extends State<KindleLoginPage> {
       if (_extractingData) {
         await Future.delayed(const Duration(seconds: 3));
         await _extractFlows();
+      } else {
+        // Post-login : redirigé vers Insights avant d'extraire les livres
+        // → rediriger vers la bibliothèque Kindle d'abord
+        if (!_loginDetected) {
+          setState(() {
+            _loginDetected = true;
+            _statusMessage = 'Connexion réussie ! Redirection...';
+          });
+        }
+        await _controller.loadRequest(Uri.parse(_kindleLibraryUrl));
       }
       return;
     }

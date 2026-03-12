@@ -153,16 +153,26 @@ class _LoginPageState extends State<LoginPage> {
         accessToken: googleAuth.accessToken,
       );
 
+      // Stocker le vrai nom Google dans les metadata Supabase
+      final displayName = googleUser.displayName;
+      if (displayName != null && displayName.isNotEmpty) {
+        await Supabase.instance.client.auth.updateUser(
+          UserAttributes(data: {'display_name': displayName}),
+        );
+      }
+
       if (!mounted) return;
 
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const AuthGate()),
         (route) => false,
       );
-    } catch (e) {
+    } catch (e, st) {
+      debugPrint('❌ Google Sign-In error: $e');
+      debugPrint('❌ Stack trace: $st');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context).errorSignInGoogle)),
+        SnackBar(content: Text('Google Sign-In: $e')),
       );
     }
   }

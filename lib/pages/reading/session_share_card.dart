@@ -237,7 +237,7 @@ class _StoryCard extends StatelessWidget {
                     const _AccentLine(width: 30),
                     const SizedBox(height: 10),
                     Text(
-                      'READON',
+                      'LEXDAY',
                       style: GoogleFonts.jetBrainsMono(
                         fontSize: 9,
                         letterSpacing: 3,
@@ -354,7 +354,7 @@ class _SquareCard extends StatelessWidget {
                     // ── Footer ──
                     Center(
                       child: Text(
-                        'READON',
+                        'LEXDAY',
                         style: GoogleFonts.jetBrainsMono(
                           fontSize: 8,
                           letterSpacing: 3,

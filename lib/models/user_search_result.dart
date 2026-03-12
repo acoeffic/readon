@@ -34,13 +34,22 @@ class CurrentBook {
   final String title;
   final String? author;
   final String? coverUrl;
+  final int? totalPages;
+  final int? currentPage;
 
   CurrentBook({
     required this.id,
     required this.title,
     this.author,
     this.coverUrl,
+    this.totalPages,
+    this.currentPage,
   });
+
+  double? get progress {
+    if (currentPage == null || totalPages == null || totalPages == 0) return null;
+    return (currentPage! / totalPages!).clamp(0.0, 1.0);
+  }
 
   factory CurrentBook.fromJson(Map<String, dynamic> json) {
     return CurrentBook(
@@ -48,6 +57,8 @@ class CurrentBook {
       title: json['title'] as String,
       author: json['author'] as String?,
       coverUrl: json['cover_url'] as String?,
+      totalPages: (json['total_pages'] as num?)?.toInt(),
+      currentPage: (json['current_page'] as num?)?.toInt(),
     );
   }
 }

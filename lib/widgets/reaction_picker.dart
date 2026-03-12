@@ -1,112 +1,145 @@
 // lib/widgets/reaction_picker.dart
-// Popup flottant de sélection de réactions avancées (premium)
+// Bottom sheet de sélection de réaction emoji
 
 import 'package:flutter/material.dart';
-import '../services/reactions_service.dart';
+import '../services/reaction_service.dart';
+import '../pages/profile/upgrade_page.dart';
 import '../theme/app_theme.dart';
 
-class ReactionPicker extends StatelessWidget {
-  final List<String> selectedReactions;
-  final void Function(String reactionType) onReactionSelected;
+class ReactionPicker {
+  static const _sheetBg = Color(0xFFFAF3E8);
+  static const _sheetBgDark = Color(0xFF1E1A15);
 
-  const ReactionPicker({
-    super.key,
-    required this.selectedReactions,
-    required this.onReactionSelected,
-  });
-
-  /// Affiche le picker en overlay au-dessus du widget source
-  static void show({
+  /// Affiche le picker en bottom sheet et retourne l'emoji sélectionné (ou null)
+  static Future<String?> show({
     required BuildContext context,
-    required RenderBox anchorBox,
-    required List<String> selectedReactions,
-    required void Function(String reactionType) onReactionSelected,
-  }) {
-    final overlay = Overlay.of(context);
-    final anchorPos = anchorBox.localToGlobal(Offset.zero);
-
-    late OverlayEntry entry;
-
-    entry = OverlayEntry(
-      builder: (ctx) {
-        // Positionner au-dessus du bouton like
-        final top = anchorPos.dy - 60;
-        final left = anchorPos.dx - 20;
-
-        return Stack(
-          children: [
-            // Fond transparent pour dismiss
-            Positioned.fill(
-              child: GestureDetector(
-                onTap: () => entry.remove(),
-                behavior: HitTestBehavior.opaque,
-                child: const SizedBox.expand(),
-              ),
-            ),
-            // Picker
-            Positioned(
-              top: top,
-              left: left,
-              child: _AnimatedPicker(
-                selectedReactions: selectedReactions,
-                onReactionSelected: (type) {
-                  onReactionSelected(type);
-                  entry.remove();
-                },
-              ),
-            ),
-          ],
-        );
-      },
+    required String? currentEmoji,
+    required bool isPremium,
+  }) async {
+    return showModalBottomSheet<String>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      backgroundColor: Theme.of(context).brightness == Brightness.dark
+          ? _sheetBgDark
+          : _sheetBg,
+      builder: (ctx) => _PickerSheet(
+        currentEmoji: currentEmoji,
+        isPremium: isPremium,
+      ),
     );
-
-    overlay.insert(entry);
   }
+}
+
+class _PickerSheet extends StatelessWidget {
+  final String? currentEmoji;
+  final bool isPremium;
+
+  const _PickerSheet({
+    required this.currentEmoji,
+    required this.isPremium,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return _PickerBar(
-      selectedReactions: selectedReactions,
-      onReactionSelected: onReactionSelected,
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(
+          AppSpace.l,
+          AppSpace.m,
+          AppSpace.l,
+          AppSpace.l,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Drag handle
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            // Emojis row
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: ReactionService.allEmojis.map((emoji) {
+                final isSelected = currentEmoji == emoji;
+                final isPremiumEmoji = ReactionService.isPremiumEmoji(emoji);
+                final isLocked = isPremiumEmoji && !isPremium;
+
+                return _EmojiButton(
+                  emoji: emoji,
+                  isSelected: isSelected,
+                  showCrown: isLocked,
+                  onTap: () {
+                    if (isLocked) {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const UpgradePage(),
+                        ),
+                      );
+                    } else {
+                      Navigator.pop(context, emoji);
+                    }
+                  },
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
     );
   }
 }
 
-class _AnimatedPicker extends StatefulWidget {
-  final List<String> selectedReactions;
-  final void Function(String reactionType) onReactionSelected;
+class _EmojiButton extends StatefulWidget {
+  final String emoji;
+  final bool isSelected;
+  final bool showCrown;
+  final VoidCallback onTap;
 
-  const _AnimatedPicker({
-    required this.selectedReactions,
-    required this.onReactionSelected,
+  const _EmojiButton({
+    required this.emoji,
+    required this.isSelected,
+    required this.showCrown,
+    required this.onTap,
   });
 
   @override
-  State<_AnimatedPicker> createState() => _AnimatedPickerState();
+  State<_EmojiButton> createState() => _EmojiButtonState();
 }
 
-class _AnimatedPickerState extends State<_AnimatedPicker>
+class _EmojiButtonState extends State<_EmojiButton>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
-  late Animation<double> _fadeAnimation;
 
   @override
   void initState() {
     super.initState();
     _controller = AnimationController(
-      duration: const Duration(milliseconds: 200),
+      duration: const Duration(milliseconds: 150),
       vsync: this,
     );
-    _scaleAnimation = CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeOutBack,
+    _scaleAnimation = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.3), weight: 50),
+      TweenSequenceItem(tween: Tween(begin: 1.3, end: 1.0), weight: 50),
+    ]).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOutBack),
     );
-    _fadeAnimation = CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeOut,
-    );
-    _controller.forward();
   }
 
   @override
@@ -115,67 +148,49 @@ class _AnimatedPickerState extends State<_AnimatedPicker>
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return FadeTransition(
-      opacity: _fadeAnimation,
-      child: ScaleTransition(
-        scale: _scaleAnimation,
-        alignment: Alignment.bottomLeft,
-        child: _PickerBar(
-          selectedReactions: widget.selectedReactions,
-          onReactionSelected: widget.onReactionSelected,
-        ),
-      ),
-    );
+  void _handleTap() {
+    _controller.forward(from: 0);
+    widget.onTap();
   }
-}
-
-class _PickerBar extends StatelessWidget {
-  final List<String> selectedReactions;
-  final void Function(String reactionType) onReactionSelected;
-
-  const _PickerBar({
-    required this.selectedReactions,
-    required this.onReactionSelected,
-  });
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Material(
-      elevation: 8,
-      borderRadius: BorderRadius.circular(AppRadius.pill),
-      color: isDark ? AppColors.surfaceDark : Colors.white,
-      shadowColor: Colors.black26,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: ReactionType.all.map((type) {
-            final isSelected = selectedReactions.contains(type);
-            return GestureDetector(
-              onTap: () => onReactionSelected(type),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 150),
-                margin: const EdgeInsets.symmetric(horizontal: 2),
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: isSelected
-                      ? AppColors.primary.withValues(alpha: 0.2)
-                      : Colors.transparent,
-                  shape: BoxShape.circle,
-                ),
+    return GestureDetector(
+      onTap: _handleTap,
+      child: ScaleTransition(
+        scale: _scaleAnimation,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: widget.isSelected
+                    ? AppColors.primary.withValues(alpha: isDark ? 0.3 : 0.15)
+                    : Colors.transparent,
+                shape: BoxShape.circle,
+              ),
+              child: Center(
                 child: Text(
-                  ReactionType.emoji(type),
+                  widget.emoji,
                   style: TextStyle(
-                    fontSize: isSelected ? 26 : 22,
+                    fontSize: widget.isSelected ? 30 : 26,
                   ),
                 ),
               ),
-            );
-          }).toList(),
+            ),
+            // Crown badge for locked premium emojis
+            if (widget.showCrown)
+              const Positioned(
+                top: -2,
+                right: -2,
+                child: Text('👑', style: TextStyle(fontSize: 12)),
+              ),
+          ],
         ),
       ),
     );

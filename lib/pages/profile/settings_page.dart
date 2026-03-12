@@ -643,13 +643,38 @@ if (!allowedExtensions.contains(fileExtension)) {
       },
     );
 
-    confirmController.dispose();
     if (confirmed != true || !mounted) return;
+
+    // Capturer la référence au provider avant les appels async
+    final subscriptionProvider = context.read<SubscriptionProvider>();
 
     // Appel RPC
     setState(() => _isDeleting = true);
 
     try {
+      // Supprimer les fichiers storage via l'API avant le RPC
+      final userId = supabase.auth.currentUser!.id;
+      try {
+        final avatars = await supabase.storage
+            .from('profiles')
+            .list(path: 'avatars/$userId');
+        if (avatars.isNotEmpty) {
+          await supabase.storage.from('profiles').remove(
+                avatars.map((f) => 'avatars/$userId/${f.name}').toList(),
+              );
+        }
+      } catch (_) {}
+      try {
+        final annotations = await supabase.storage
+            .from('annotations')
+            .list(path: userId);
+        if (annotations.isNotEmpty) {
+          await supabase.storage.from('annotations').remove(
+                annotations.map((f) => '$userId/${f.name}').toList(),
+              );
+        }
+      } catch (_) {}
+
       final result = await supabase.rpc('delete_user_account');
       final response = Map<String, dynamic>.from(result as Map);
 
@@ -657,24 +682,29 @@ if (!allowedExtensions.contains(fileExtension)) {
         throw Exception(response['message'] ?? 'Erreur inconnue');
       }
 
-      // Vider les caches en mémoire avant déconnexion
+      // Nettoyage caches et listeners
       TrendingService.clearCache();
       GoogleBooksService.clearCache();
+      subscriptionProvider.detachRevenueCatListener();
 
-      // Déconnexion RevenueCat puis Supabase
-      await SubscriptionService().logoutUser();
+      // Déconnexion Supabase AVANT la navigation pour que
+      // AuthGate voit session == null et affiche LoginPage
       try {
         await Supabase.instance.client.auth.signOut();
-      } catch (_) {
-        // L'utilisateur n'existe plus, signOut peut échouer
-      }
+      } catch (_) {}
 
+      // Naviguer vers AuthGate
       if (mounted) {
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (_) => const AuthGate()),
           (route) => false,
         );
       }
+
+      // Cleanup fire-and-forget APRÈS la navigation
+      // (les anciens widgets sont déjà démontés)
+      Supabase.instance.client.removeAllChannels();
+      SubscriptionService().logoutUser();
     } catch (e) {
       if (mounted) {
         setState(() => _isDeleting = false);
@@ -694,7 +724,7 @@ if (!allowedExtensions.contains(fileExtension)) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final isDark = themeProvider.isDarkMode;
     final localeProvider = Provider.of<LocaleProvider>(context);
-    final isFrench = localeProvider.locale.languageCode == 'fr';
+    final currentLang = localeProvider.locale.languageCode;
     final l10n = AppLocalizations.of(context);
 
     return Scaffold(
@@ -1208,15 +1238,21 @@ if (!allowedExtensions.contains(fileExtension)) {
                 title: l10n.languageSection,
                 items: [
                   _SettingsItem(
-                    label: isFrench ? l10n.frenchActive : l10n.french,
-                    onTap: !isFrench
+                    label: currentLang == 'fr' ? l10n.frenchActive : l10n.french,
+                    onTap: currentLang != 'fr'
                         ? () => localeProvider.setLocale(const Locale('fr'))
                         : null,
                   ),
                   _SettingsItem(
-                    label: isFrench ? l10n.english : l10n.englishActive,
-                    onTap: isFrench
+                    label: currentLang == 'en' ? l10n.englishActive : l10n.english,
+                    onTap: currentLang != 'en'
                         ? () => localeProvider.setLocale(const Locale('en'))
+                        : null,
+                  ),
+                  _SettingsItem(
+                    label: currentLang == 'es' ? l10n.spanishActive : l10n.spanish,
+                    onTap: currentLang != 'es'
+                        ? () => localeProvider.setLocale(const Locale('es'))
                         : null,
                   ),
                 ],

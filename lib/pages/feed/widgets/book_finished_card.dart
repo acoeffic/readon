@@ -5,12 +5,11 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../../services/likes_service.dart';
-import '../../../services/reactions_service.dart';
+import '../../../services/reaction_service.dart';
 import '../../../services/books_service.dart';
 import '../../../services/reading_session_service.dart';
 import '../../../services/flow_service.dart';
-import '../../../models/feature_flags.dart';
+import '../../../providers/subscription_provider.dart';
 import '../../../models/book.dart';
 import '../../../models/reading_session.dart';
 import '../../../models/reading_flow.dart';
@@ -18,11 +17,14 @@ import '../../../theme/app_theme.dart';
 import '../../../widgets/cached_book_cover.dart';
 import '../../../widgets/cached_profile_avatar.dart';
 import '../../../widgets/reaction_picker.dart';
-import '../../../widgets/reaction_summary.dart';
+import '../../../widgets/reactions_bar.dart';
+import 'package:provider/provider.dart';
 import '../../friends/friend_profile_page.dart';
+import '../../../services/comments_service.dart';
 import '../../reading/book_finished_share_service.dart';
 import '../../books/user_books_page.dart';
 import '../../reading/book_completed_summary_page.dart';
+import 'comments_sheet.dart';
 
 // ---------------------------------------------------------------------------
 // Color constants for the book-finished card (light / dark)
@@ -71,11 +73,7 @@ class _BFColors {
   static const checkBorderLight = bgLight;
   static const checkBorderDark = bgDark;
 
-  // Like
-  static const likeActiveLight = Color(0xFF2A4038);
-  static const likeActiveDark = Color(0xFF3D5C55);
-  static const likeActiveBgLight = Color(0x1F3D5C55);
-  static const likeActiveBgDark = Color(0x1F3D5C55);
+  // Button backgrounds
   static const likeInactiveBgLight = Color(0x99FFFFFF);
   static const likeInactiveBgDark = Color(0xFF0D1A16);
 
@@ -113,16 +111,13 @@ class BookFinishedCard extends StatefulWidget {
 class _BookFinishedCardState extends State<BookFinishedCard>
     with TickerProviderStateMixin {
   final supabase = Supabase.instance.client;
-  final likesService = LikesService();
-  final reactionsService = ReactionsService();
+  final reactionService = ReactionService();
+  final commentsService = CommentsService();
 
-  // Like / reaction state
-  bool _isLiked = false;
-  int _likeCount = 0;
-  bool _isLoading = false;
+  // Reaction state
+  int _commentCount = 0;
   Map<String, int> _reactionCounts = {};
-  List<String> _userReactions = [];
-  final GlobalKey _likeButtonKey = GlobalKey();
+  String? _userEmoji;
 
   // Book info
   String? _bookTitle;
@@ -175,10 +170,29 @@ class _BookFinishedCardState extends State<BookFinishedCard>
       if (mounted) _statsController.forward();
     });
 
-    _loadLikeStatus();
     _loadReactions();
     _loadBookInfo();
     _loadBookStats();
+    _loadCommentCount();
+  }
+
+  Future<void> _loadCommentCount() async {
+    final activityId = widget.activity['id'] as int;
+    final count = await commentsService.getCommentCount(activityId);
+    if (!mounted) return;
+    setState(() => _commentCount = count);
+  }
+
+  void _showCommentsSheet() {
+    final activityId = widget.activity['id'] as int;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => CommentsSheet(activityId: activityId),
+    ).then((_) => _loadCommentCount());
   }
 
   @override
@@ -200,7 +214,7 @@ class _BookFinishedCardState extends State<BookFinishedCard>
     final bookId = payload['book_id'];
     if (bookId == null) {
       final existingTitle = payload['book_title'] as String?;
-      if (existingTitle != null) {
+      if (existingTitle != null && mounted) {
         setState(() {
           _bookTitle = existingTitle;
           _bookAuthor = payload['book_author'] as String?;
@@ -254,28 +268,14 @@ class _BookFinishedCardState extends State<BookFinishedCard>
     }
   }
 
-  Future<void> _loadLikeStatus() async {
-    try {
-      final activityId = widget.activity['id'] as int;
-      final likeInfo = await likesService.getActivityLikeInfo(activityId);
-      if (!mounted) return;
-      setState(() {
-        _likeCount = likeInfo['count'] as int;
-        _isLiked = likeInfo['hasLiked'] as bool;
-      });
-    } catch (e) {
-      debugPrint('Erreur _loadLikeStatus: $e');
-    }
-  }
-
   Future<void> _loadReactions() async {
     try {
       final activityId = widget.activity['id'] as int;
-      final data = await reactionsService.getActivityReactions(activityId);
+      final data = await reactionService.getReactions(activityId);
       if (!mounted) return;
       setState(() {
         _reactionCounts = (data['counts'] as Map<String, int>?) ?? {};
-        _userReactions = (data['userReactions'] as List<String>?) ?? [];
+        _userEmoji = data['userEmoji'] as String?;
       });
     } catch (e) {
       debugPrint('Erreur _loadReactions: $e');
@@ -286,102 +286,60 @@ class _BookFinishedCardState extends State<BookFinishedCard>
   // Interactions
   // ---------------------------------------------------------------------------
 
-  Future<void> _toggleLike() async {
-    if (_isLoading) return;
-
-    final activityId = widget.activity['id'] as int;
-    final wasLiked = _isLiked;
-    final previousCount = _likeCount;
-
-    setState(() {
-      _isLoading = true;
-      _isLiked = !_isLiked;
-      _likeCount += _isLiked ? 1 : -1;
-    });
-
-    try {
-      if (wasLiked) {
-        await likesService.unlikeActivity(activityId);
-      } else {
-        await likesService.likeActivity(activityId);
-      }
-    } catch (e) {
-      debugPrint('Erreur toggle like: $e');
-      setState(() {
-        _isLiked = wasLiked;
-        _likeCount = previousCount;
-      });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erreur: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
-      setState(() => _isLoading = false);
-    }
-  }
-
-  void _onLikeLongPress() {
-    if (!FeatureFlags.isUnlocked(context, Feature.advancedReactions)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-              'Les réactions avancées sont réservées aux membres Premium'),
-          duration: Duration(seconds: 2),
-        ),
-      );
-      return;
-    }
-
-    final renderBox =
-        _likeButtonKey.currentContext?.findRenderObject() as RenderBox?;
-    if (renderBox == null) return;
-
-    ReactionPicker.show(
+  Future<void> _openReactionPicker() async {
+    final sub = context.read<SubscriptionProvider>();
+    final selectedEmoji = await ReactionPicker.show(
       context: context,
-      anchorBox: renderBox,
-      selectedReactions: _userReactions,
-      onReactionSelected: _toggleReaction,
+      currentEmoji: _userEmoji,
+      isPremium: sub.isPremium,
     );
+    if (selectedEmoji != null) {
+      _toggleReaction(selectedEmoji);
+    }
   }
 
-  Future<void> _toggleReaction(String reactionType) async {
+  Future<void> _toggleReaction(String emoji) async {
     final activityId = widget.activity['id'] as int;
-    final wasReacted = _userReactions.contains(reactionType);
     final previousCounts = Map<String, int>.from(_reactionCounts);
-    final previousUserReactions = List<String>.from(_userReactions);
+    final previousUserEmoji = _userEmoji;
 
+    // Vérifier premium pour les emojis premium
+    if (ReactionService.isPremiumEmoji(emoji)) {
+      final sub = context.read<SubscriptionProvider>();
+      if (!sub.isPremium) return;
+    }
+
+    // Optimistic update
     setState(() {
-      if (wasReacted) {
-        _userReactions.remove(reactionType);
-        _reactionCounts[reactionType] =
-            (_reactionCounts[reactionType] ?? 1) - 1;
-        if ((_reactionCounts[reactionType] ?? 0) <= 0) {
-          _reactionCounts.remove(reactionType);
+      if (_userEmoji == emoji) {
+        _reactionCounts[emoji] = (_reactionCounts[emoji] ?? 1) - 1;
+        if ((_reactionCounts[emoji] ?? 0) <= 0) {
+          _reactionCounts.remove(emoji);
         }
+        _userEmoji = null;
       } else {
-        _userReactions.add(reactionType);
-        _reactionCounts[reactionType] =
-            (_reactionCounts[reactionType] ?? 0) + 1;
+        if (_userEmoji != null) {
+          _reactionCounts[_userEmoji!] =
+              (_reactionCounts[_userEmoji!] ?? 1) - 1;
+          if ((_reactionCounts[_userEmoji!] ?? 0) <= 0) {
+            _reactionCounts.remove(_userEmoji!);
+          }
+        }
+        _reactionCounts[emoji] = (_reactionCounts[emoji] ?? 0) + 1;
+        _userEmoji = emoji;
       }
     });
 
     try {
-      if (wasReacted) {
-        await reactionsService.removeReaction(activityId, reactionType);
-      } else {
-        await reactionsService.addReaction(activityId, reactionType);
-      }
+      await reactionService.toggleReaction(activityId, emoji,
+          currentUserEmoji: previousUserEmoji);
     } catch (e) {
       debugPrint('Erreur toggleReaction: $e');
-      setState(() {
-        _reactionCounts = previousCounts;
-        _userReactions = previousUserReactions;
-      });
       if (mounted) {
+        setState(() {
+          _reactionCounts = previousCounts;
+          _userEmoji = previousUserEmoji;
+        });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Erreur: ${e.toString()}'),
@@ -984,80 +942,78 @@ class _BookFinishedCardState extends State<BookFinishedCard>
 
   Widget _buildFooter(BuildContext context,
       {required bool isDark, required bool isOwn}) {
-    final likeColor =
-        isDark ? _BFColors.likeActiveDark : _BFColors.likeActiveLight;
     final secondary =
         isDark ? _BFColors.secondaryDark : _BFColors.secondaryLight;
-    final btnBg = _isLiked
-        ? (isDark ? _BFColors.likeActiveBgDark : _BFColors.likeActiveBgLight)
-        : (isDark
-            ? _BFColors.likeInactiveBgDark
-            : _BFColors.likeInactiveBgLight);
 
-    return Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Like button
-        GestureDetector(
-          key: _likeButtonKey,
-          onTap: _toggleLike,
-          onLongPress: _onLikeLongPress,
-          child: Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: btnBg,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  _isLiked ? Icons.favorite : Icons.favorite_border,
-                  size: 18,
-                  color: _isLiked ? likeColor : secondary,
-                ),
-                if (_likeCount > 0) ...[
-                  const SizedBox(width: 4),
-                  Text(
-                    '$_likeCount',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: _isLiked ? likeColor : secondary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
+        // Reactions bar
+        ReactionsBar(
+          reactionCounts: _reactionCounts,
+          userEmoji: _userEmoji,
+          onOpenPicker: _openReactionPicker,
+          onToggleReaction: _toggleReaction,
         ),
 
-        // Share button (own activity only)
-        if (isOwn) ...[
-          const SizedBox(width: 8),
-          GestureDetector(
-            onTap: _showShareSheet,
-            child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: isDark
-                    ? _BFColors.likeInactiveBgDark
-                    : _BFColors.likeInactiveBgLight,
-                borderRadius: BorderRadius.circular(20),
+        const SizedBox(height: 8),
+
+        Row(
+          children: [
+            // Comment button
+            GestureDetector(
+              onTap: _showCommentsSheet,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? _BFColors.likeInactiveBgDark
+                      : _BFColors.likeInactiveBgLight,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.chat_bubble_outline,
+                        size: 18, color: secondary),
+                    if (_commentCount > 0) ...[
+                      const SizedBox(width: 4),
+                      Text(
+                        '$_commentCount',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: secondary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
               ),
-              child: Icon(Icons.share_outlined, size: 18, color: secondary),
             ),
-          ),
-        ],
 
-        const Spacer(),
-
-        if (_reactionCounts.isNotEmpty)
-          ReactionSummary(
-            reactionCounts: _reactionCounts,
-            userReactions: _userReactions,
-          ),
+            // Share button (own activity only)
+            if (isOwn) ...[
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: _showShareSheet,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? _BFColors.likeInactiveBgDark
+                        : _BFColors.likeInactiveBgLight,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child:
+                      Icon(Icons.share_outlined, size: 18, color: secondary),
+                ),
+              ),
+            ],
+          ],
+        ),
       ],
     );
   }
