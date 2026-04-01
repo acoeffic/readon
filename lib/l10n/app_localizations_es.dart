@@ -411,6 +411,12 @@ class AppLocalizationsEs extends AppLocalizations {
   String get darkThemeActive => '🌙 Tema oscuro (activo)';
 
   @override
+  String get systemTheme => '📱 Automático';
+
+  @override
+  String get systemThemeActive => '📱 Automático (activo)';
+
+  @override
   String get languageSection => 'Idioma';
 
   @override
@@ -887,7 +893,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get mySessions => 'Mis Sesiones';
 
   @override
-  String get myStatistics => 'Mis Estadísticas';
+  String get myStatistics => 'Estadísticas';
 
   @override
   String get myLists => 'Mis Listas';
@@ -1508,6 +1514,26 @@ class AppLocalizationsEs extends AppLocalizations {
   String get titleRequired => 'El título es obligatorio';
 
   @override
+  String get startDate => 'Date de début';
+
+  @override
+  String get startsOn => 'Commence le';
+
+  @override
+  String get startsToday => 'Aujourd\'hui';
+
+  @override
+  String get upcoming => 'À venir';
+
+  @override
+  String daysUntilStart(int days) {
+    return 'Dans ${days}j';
+  }
+
+  @override
+  String get challengeStartNotifTitle => 'Le défi commence aujourd\'hui !';
+
+  @override
   String get deadline => 'Fecha límite';
 
   @override
@@ -1990,6 +2016,20 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
+  String get removeFromLibraryTitle => 'Supprimer de ma bibliothèque ?';
+
+  @override
+  String removeFromLibraryMessage(String title) {
+    return 'Supprimer \"$title\" définitivement de ta bibliothèque ?';
+  }
+
+  @override
+  String get removeFromLibraryAction => 'Supprimer';
+
+  @override
+  String get bookRemovedFromLibrary => 'Livre supprimé de ta bibliothèque';
+
+  @override
   String get myListsSection => 'Mis listas';
 
   @override
@@ -2232,6 +2272,43 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get notificationInfo =>
       'Recibirás una notificación los días seleccionados para recordarte leer y mantener tu flow.';
+
+  @override
+  String get notificationCenter => 'Centre de notifications';
+
+  @override
+  String get notificationCenterDescription =>
+      'Gère tes préférences de notifications.';
+
+  @override
+  String get friendRequestNotifications => 'Demandes d\'ami';
+
+  @override
+  String get friendRequestNotificationsDesc =>
+      'Être notifié des nouvelles demandes d\'ami';
+
+  @override
+  String get emailSection => 'Emails';
+
+  @override
+  String get emailSectionDescription =>
+      'Choisis les notifications que tu veux recevoir par email.';
+
+  @override
+  String get friendRequestEmail => 'Demandes d\'ami par email';
+
+  @override
+  String get friendRequestEmailDesc =>
+      'Recevoir un email quand quelqu\'un t\'envoie une demande d\'ami';
+
+  @override
+  String get pushSection => 'Notifications push';
+
+  @override
+  String get pushSectionDescription => 'Notifications sur ton appareil.';
+
+  @override
+  String get settingsSaved => 'Préférences enregistrées';
 
   @override
   String get myGoals => 'Mis objetivos';
@@ -2531,4 +2608,232 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get reactionPremiumOnly => 'Reacción reservada para miembros Premium';
+
+  @override
+  String get nearbyBookstores => 'Librerías cercanas';
+
+  @override
+  String get noBookstoresFound => 'No se encontraron librerías cercanas';
+
+  @override
+  String get openNow => 'Abierto';
+
+  @override
+  String get closed => 'Cerrado';
+
+  @override
+  String get navigate => 'Navegar';
+
+  @override
+  String get searchingBookstores => 'Buscando librerías...';
+
+  @override
+  String get offlineBanner =>
+      'Sin conexión — las sesiones se sincronizarán automáticamente';
+
+  @override
+  String get sessionSavedOffline =>
+      'Sesión guardada sin conexión. Se sincronizará al reconectarse.';
+
+  @override
+  String offlineSyncSuccess(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count sesiones sincronizadas',
+      one: '1 sesión sincronizada',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get markAllRead => 'Marcar todo leído';
+
+  @override
+  String get newNotifications => 'Nuevas';
+
+  @override
+  String get recentNotifications => 'Recientes';
+
+  @override
+  String get noNotifications => 'Sin notificaciones';
+
+  @override
+  String get noNotificationsDesc =>
+      'Serás notificado de likes, comentarios y solicitudes de amistad';
+
+  @override
+  String get notifTypeFriends => 'Amigos';
+
+  @override
+  String get notifTypeLike => 'Like';
+
+  @override
+  String get notifTypeComment => 'Comentario';
+
+  @override
+  String get notifTypeClub => 'Club';
+
+  @override
+  String get accept => 'Aceptar';
+
+  @override
+  String get ignore => 'Ignorar';
+
+  @override
+  String sentYouFriendRequest(String name) {
+    return '$name te envió una solicitud de amistad';
+  }
+
+  @override
+  String sentGroupJoinRequest(String name, String groupName) {
+    return '$name quiere unirse a $groupName';
+  }
+
+  @override
+  String likedYourReading(String name, String bookTitle) {
+    return '$name le gustó tu lectura de $bookTitle';
+  }
+
+  @override
+  String commentedYourReading(String name, String bookTitle) {
+    return '$name comentó tu lectura de $bookTitle';
+  }
+
+  @override
+  String get prizeSelections => 'Selecciones LexDay';
+
+  @override
+  String get prizeSelectionsSubtitle => 'Premios literarios oficiales';
+
+  @override
+  String get officialLexDay => 'Oficial LexDay';
+
+  @override
+  String get bookSummary => 'Resumen del libro';
+
+  @override
+  String get noDescriptionAvailable =>
+      'No hay resumen disponible para este libro.';
+
+  @override
+  String get buyOnAmazon => 'Comprar en Amazon';
+
+  @override
+  String get requestToJoin => 'Solicitar unirse';
+
+  @override
+  String get joinRequestSent => 'Solicitud enviada!';
+
+  @override
+  String get joinRequestPending => 'Solicitud pendiente…';
+
+  @override
+  String get joinRequestCancelled => 'Solicitud cancelada';
+
+  @override
+  String joinRequestAccepted(String name) {
+    return '$name ha sido aceptado/a en el club';
+  }
+
+  @override
+  String joinRequestRejected(String name) {
+    return 'Solicitud de $name rechazada';
+  }
+
+  @override
+  String pendingJoinRequests(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count solicitudes pendientes',
+      one: '1 solicitud pendiente',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get reject => 'Rechazar';
+
+  @override
+  String get readingForLabel => 'LEO PARA';
+
+  @override
+  String get readingForJustMe => 'Yo';
+
+  @override
+  String get readingForDaughter => 'Mi hija';
+
+  @override
+  String get readingForSon => 'Mi hijo';
+
+  @override
+  String get readingForFriend => 'Un(a) amigo(a)';
+
+  @override
+  String get readingForGrandmother => 'Mi abuela';
+
+  @override
+  String get readingForGrandfather => 'Mi abuelo';
+
+  @override
+  String get readingForPartner => 'Mi pareja';
+
+  @override
+  String get readingForFather => 'Mi padre';
+
+  @override
+  String get readingForMother => 'Mi madre';
+
+  @override
+  String get readingForOther => 'Otro';
+
+  @override
+  String readingForDisplay(String person) {
+    return 'Leído para $person';
+  }
+
+  @override
+  String get readingForStatsTitle => 'Lecturas compartidas';
+
+  @override
+  String get readingForStatsSubtitle =>
+      'Tiempo dedicado a leer para tus seres queridos';
+
+  @override
+  String readingForNoStats(String person) {
+    return 'Aún no tienes sesiones de lectura para $person';
+  }
+
+  @override
+  String readingForSessions(int count) {
+    return '$count sesiones';
+  }
+
+  @override
+  String readingForMinutes(int minutes) {
+    return '$minutes min';
+  }
+
+  @override
+  String readingForPages(int pages) {
+    return '$pages páginas';
+  }
+
+  @override
+  String get refreshCovers => 'Actualizar portadas';
+
+  @override
+  String get refreshingCovers => 'Actualizando portadas…';
+
+  @override
+  String coversRefreshed(int count) {
+    return '$count portada(s) actualizada(s)';
+  }
+
+  @override
+  String get coversUpToDate => 'Todas las portadas están actualizadas';
+
+  @override
+  String get friendsLabel => 'Amigos';
 }

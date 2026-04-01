@@ -30,21 +30,25 @@ CREATE INDEX IF NOT EXISTS idx_activity_reactions_user
 ALTER TABLE activity_reactions ENABLE ROW LEVEL SECURITY;
 
 -- Tout utilisateur authentifié peut voir les réactions
+DROP POLICY IF EXISTS "Authenticated users can view activity reactions" ON activity_reactions;
 CREATE POLICY "Authenticated users can view activity reactions"
   ON activity_reactions FOR SELECT TO authenticated
   USING (TRUE);
 
 -- Un utilisateur peut insérer sa propre réaction
+DROP POLICY IF EXISTS "Users can insert own activity reaction" ON activity_reactions;
 CREATE POLICY "Users can insert own activity reaction"
   ON activity_reactions FOR INSERT TO authenticated
   WITH CHECK (auth.uid() = user_id);
 
 -- Un utilisateur peut mettre à jour sa propre réaction
+DROP POLICY IF EXISTS "Users can update own activity reaction" ON activity_reactions;
 CREATE POLICY "Users can update own activity reaction"
   ON activity_reactions FOR UPDATE TO authenticated
   USING (auth.uid() = user_id);
 
 -- Un utilisateur peut supprimer sa propre réaction
+DROP POLICY IF EXISTS "Users can delete own activity reaction" ON activity_reactions;
 CREATE POLICY "Users can delete own activity reaction"
   ON activity_reactions FOR DELETE TO authenticated
   USING (auth.uid() = user_id);

@@ -1,6 +1,8 @@
 // lib/widgets/suggestion_card.dart
 
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../l10n/app_localizations.dart';
 import '../models/book_suggestion.dart';
 import '../theme/app_theme.dart';
 import 'cached_book_cover.dart';
@@ -8,13 +10,10 @@ import 'cached_book_cover.dart';
 class SuggestionCard extends StatelessWidget {
   final BookSuggestion suggestion;
   final VoidCallback? onTap;
-  final VoidCallback? onAddToLibrary;
-
   const SuggestionCard({
     super.key,
     required this.suggestion,
     this.onTap,
-    this.onAddToLibrary,
   });
 
   @override
@@ -31,16 +30,20 @@ class SuggestionCard extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Couverture du livre
+              // Couverture du livre — fixed width
               CachedBookCover(
                 imageUrl: book.coverUrl,
+                isbn: book.isbn,
+                googleId: book.googleId,
+                title: book.title,
+                author: book.author,
                 width: 60,
                 height: 90,
                 borderRadius: BorderRadius.circular(8),
               ),
-              const SizedBox(width: AppSpace.m),
+              const SizedBox(width: 12),
 
-              // Informations du livre
+              // Informations du livre — takes remaining space
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -63,12 +66,15 @@ class SuggestionCard extends StatelessWidget {
                             style: const TextStyle(fontSize: 12),
                           ),
                           const SizedBox(width: 4),
-                          Text(
-                            suggestion.typeLabel,
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: _getTypeColor(),
+                          Flexible(
+                            child: Text(
+                              suggestion.typeLabel,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: _getTypeColor(),
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ],
@@ -130,19 +136,127 @@ class SuggestionCard extends StatelessWidget {
                 ),
               ),
 
-              // Bouton ajouter
-              if (onAddToLibrary != null)
-                IconButton(
-                  icon: const Icon(Icons.add_circle_outline),
+              // Bouton résumé / commander — fixed width
+              SizedBox(
+                width: 40,
+                child: IconButton(
+                  icon: const Icon(Icons.add_circle_outline, size: 22),
                   color: AppColors.primary,
-                  tooltip: 'Ajouter à ma bibliothèque',
-                  onPressed: onAddToLibrary,
+                  tooltip: AppLocalizations.of(context).bookSummary,
+                  onPressed: () => _showBookSummarySheet(context),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(
+                    minWidth: 40,
+                    minHeight: 40,
+                  ),
                 ),
+              ),
             ],
           ),
         ),
       ),
     );
+  }
+
+  void _showBookSummarySheet(BuildContext context) {
+    final book = suggestion.book;
+    final l10n = AppLocalizations.of(context);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.5,
+        minChildSize: 0.3,
+        maxChildSize: 0.85,
+        expand: false,
+        builder: (context, scrollController) => Padding(
+          padding: const EdgeInsets.all(AppSpace.l),
+          child: ListView(
+            controller: scrollController,
+            children: [
+              // Drag handle
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: AppSpace.m),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).dividerColor,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              // Titre
+              Text(
+                book.title,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              if (book.author != null) ...[
+                const SizedBox(height: 4),
+                Text(
+                  book.author!,
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                  ),
+                ),
+              ],
+              const SizedBox(height: AppSpace.m),
+              // Résumé
+              Text(
+                l10n.bookSummary,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: AppSpace.s),
+              Text(
+                book.description?.isNotEmpty == true
+                    ? book.description!
+                    : l10n.noDescriptionAvailable,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.8),
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: AppSpace.l),
+              // Bouton Amazon
+              FilledButton.icon(
+                onPressed: () => _openAmazon(book.isbn, book.title, book.author),
+                icon: const Icon(Icons.shopping_cart_outlined),
+                label: Text(l10n.buyOnAmazon),
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  minimumSize: const Size(double.infinity, 48),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openAmazon(String? isbn, String title, String? author) async {
+    final String query;
+    if (isbn != null && isbn.isNotEmpty) {
+      query = isbn;
+    } else {
+      query = [title, if (author != null) author].join(' ');
+    }
+    final url = Uri.parse(
+      'https://www.amazon.fr/s?k=${Uri.encodeComponent(query)}',
+    );
+    await launchUrl(url, mode: LaunchMode.externalApplication);
   }
 
   Color _getTypeColor() {
@@ -157,6 +271,8 @@ class SuggestionCard extends StatelessWidget {
         return Colors.orange;
       case SuggestionType.trending:
         return Colors.red;
+      case SuggestionType.aiRecommended:
+        return Colors.purple;
     }
   }
 }
@@ -165,13 +281,10 @@ class SuggestionCard extends StatelessWidget {
 class SuggestionsCarousel extends StatelessWidget {
   final List<BookSuggestion> suggestions;
   final Function(BookSuggestion)? onSuggestionTap;
-  final Function(BookSuggestion)? onAddToLibrary;
-
   const SuggestionsCarousel({
     super.key,
     required this.suggestions,
     this.onSuggestionTap,
-    this.onAddToLibrary,
   });
 
   @override
@@ -188,16 +301,18 @@ class SuggestionsCarousel extends StatelessWidget {
         itemCount: suggestions.length,
         itemBuilder: (context, index) {
           final suggestion = suggestions[index];
-          return SizedBox(
-            width: 300,
-            child: SuggestionCard(
-              suggestion: suggestion,
-              onTap: onSuggestionTap != null
-                  ? () => onSuggestionTap!(suggestion)
-                  : null,
-              onAddToLibrary: onAddToLibrary != null
-                  ? () => onAddToLibrary!(suggestion)
-                  : null,
+          return Padding(
+            padding: EdgeInsets.only(
+              right: index < suggestions.length - 1 ? AppSpace.l : 0,
+            ),
+            child: SizedBox(
+              width: 300,
+              child: SuggestionCard(
+                suggestion: suggestion,
+                onTap: onSuggestionTap != null
+                    ? () => onSuggestionTap!(suggestion)
+                    : null,
+              ),
             ),
           );
         },

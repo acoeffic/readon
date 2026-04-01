@@ -2,6 +2,7 @@
 // Page d'inscription avec acceptation des CGU
 
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../config/env.dart';
 import '../../l10n/app_localizations.dart';
@@ -240,19 +241,12 @@ class _SignUpPageState extends State<SignUpPage> {
               Center(
                 child: Column(
                   children: [
-                    Container(
-                      width: 100,
-                      height: 100,
-                      decoration: BoxDecoration(
-                        color: AppColors.accentLight.withValues(alpha:0.6),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Center(
-                        child: Icon(
-                          Icons.menu_book_rounded,
-                          color: AppColors.primary,
-                          size: 52,
-                        ),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(22),
+                      child: SvgPicture.asset(
+                        'assets/images/logo_lexday.svg',
+                        width: 100,
+                        height: 100,
                       ),
                     ),
                     const SizedBox(height: AppSpace.s),

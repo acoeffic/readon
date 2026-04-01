@@ -11,7 +11,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../models/book.dart';
 import '../../models/reading_session.dart';
 import '../../features/wrapped/share/share_format.dart';
-import '../../services/readon_sync_service.dart';
+import '../../services/lexday_sync_service.dart';
 import '../../theme/app_theme.dart';
 import 'book_finished_share_card.dart';
 
@@ -181,7 +181,7 @@ class _BookFinishedShareSheetState extends State<_BookFinishedShareSheet> {
   }
 
   Future<void> _loadShareAssets() async {
-    // Try to fetch pre-rendered assets from readon-sync
+    // Try to fetch pre-rendered assets from lexday-sync
     try {
       final assets = await ReadonSyncService.getShareAssets(widget.book.id);
 
@@ -209,7 +209,7 @@ class _BookFinishedShareSheetState extends State<_BookFinishedShareSheet> {
         }
       }
     } catch (e) {
-      debugPrint('readon-sync getShareAssets fallback: $e');
+      debugPrint('lexday-sync getShareAssets fallback: $e');
     }
 
     // Fallback: capture locally via ScreenshotController

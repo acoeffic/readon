@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ThemeProvider with ChangeNotifier {
-  static const String _themeKey = 'theme_mode';
-  ThemeMode _themeMode = ThemeMode.light;
+  static const String _themeKey = 'theme_mode_v2';
+  ThemeMode _themeMode = ThemeMode.system;
 
   ThemeProvider() {
     _loadThemeMode();
@@ -11,12 +12,33 @@ class ThemeProvider with ChangeNotifier {
 
   ThemeMode get themeMode => _themeMode;
 
-  bool get isDarkMode => _themeMode == ThemeMode.dark;
+  /// Returns true if the effective theme is dark (resolves system mode).
+  bool get isDarkMode {
+    if (_themeMode == ThemeMode.system) {
+      final brightness =
+          SchedulerBinding.instance.platformDispatcher.platformBrightness;
+      return brightness == Brightness.dark;
+    }
+    return _themeMode == ThemeMode.dark;
+  }
 
   Future<void> _loadThemeMode() async {
     final prefs = await SharedPreferences.getInstance();
-    final isDark = prefs.getBool(_themeKey) ?? false;
-    _themeMode = isDark ? ThemeMode.dark : ThemeMode.light;
+    final stored = prefs.getString(_themeKey);
+    if (stored != null) {
+      _themeMode = ThemeMode.values.firstWhere(
+        (m) => m.name == stored,
+        orElse: () => ThemeMode.system,
+      );
+    } else {
+      // Migrate from old boolean key
+      final oldIsDark = prefs.getBool('theme_mode');
+      if (oldIsDark != null) {
+        _themeMode = oldIsDark ? ThemeMode.dark : ThemeMode.light;
+        await prefs.setString(_themeKey, _themeMode.name);
+        await prefs.remove('theme_mode');
+      }
+    }
     notifyListeners();
   }
 
@@ -27,13 +49,6 @@ class ThemeProvider with ChangeNotifier {
     notifyListeners();
 
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_themeKey, mode == ThemeMode.dark);
-  }
-
-  Future<void> toggleTheme() async {
-    final newMode = _themeMode == ThemeMode.light
-        ? ThemeMode.dark
-        : ThemeMode.light;
-    await setThemeMode(newMode);
+    await prefs.setString(_themeKey, mode.name);
   }
 }

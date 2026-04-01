@@ -9,6 +9,7 @@ enum SuggestionType {
   similarGenre, // Genre similaire
   googleBooks, // Suggestion Google Books API
   trending, // Tendances générales
+  aiRecommended, // Recommandé par l'IA
 }
 
 class BookSuggestion {
@@ -39,6 +40,8 @@ class BookSuggestion {
         return '🔍';
       case SuggestionType.trending:
         return '🔥';
+      case SuggestionType.aiRecommended:
+        return '✨';
     }
   }
 
@@ -55,6 +58,8 @@ class BookSuggestion {
         return 'Recommandé';
       case SuggestionType.trending:
         return 'Tendance';
+      case SuggestionType.aiRecommended:
+        return 'Recommandé par l\'IA';
     }
   }
 

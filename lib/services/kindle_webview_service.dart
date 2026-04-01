@@ -623,6 +623,18 @@ class KindleWebViewService {
           var rect = img.getBoundingClientRect();
           if (rect.width < 40 || rect.height < 40) return;
 
+          // Ignorer les images promotionnelles (bannières app store, badges, etc.)
+          var imgAlt = (img.getAttribute('alt') || '').toLowerCase();
+          if (imgAlt.includes('download') || imgAlt.includes('app store') ||
+              imgAlt.includes('google play') || imgAlt.includes('windows') ||
+              imgAlt.includes('get it on') || imgAlt.includes('available on') ||
+              imgAlt.includes('badge') || imgAlt.includes('banner') ||
+              imgAlt.includes('promotion') || imgAlt.includes('advertisement') ||
+              imgAlt.includes('install') || imgAlt.includes('platform')) return;
+
+          // Ignorer les images au format paysage (bannières) — les couvertures sont en portrait
+          if (rect.width > rect.height * 1.2) return;
+
           // Trouver le conteneur du livre
           var container = findBookContainer(img);
           if (!container) {

@@ -75,6 +75,10 @@ class StepSelectBook extends StatelessWidget {
                       children: [
                         CachedBookCover(
                           imageUrl: book.coverUrl,
+                          isbn: book.isbn,
+                          googleId: book.googleId,
+                          title: book.title,
+                          author: book.author,
                           width: 45,
                           height: 65,
                           borderRadius: BorderRadius.circular(AppRadius.s),

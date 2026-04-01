@@ -73,7 +73,8 @@
       "WebFetch(domain:raw.githubusercontent.com)",
       "WebFetch(domain:anasrin.dev)",
       "WebFetch(domain:dev.to)",
-      "Bash(open:*)"
+      "Bash(open:*)",
+      "Bash(/Users/adriencoeffic/flutter/bin/flutter pub:*)"
     ]
   }
 }

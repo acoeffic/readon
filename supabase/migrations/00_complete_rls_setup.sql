@@ -20,12 +20,15 @@ DROP POLICY IF EXISTS "Users can insert books" ON books;
 DROP POLICY IF EXISTS "Users can update books" ON books;
 
 -- Créer les nouvelles policies
+DROP POLICY IF EXISTS "Users can view all books" ON books;
 CREATE POLICY "Users can view all books"
 ON books FOR SELECT TO authenticated USING (true);
 
+DROP POLICY IF EXISTS "Users can insert books" ON books;
 CREATE POLICY "Users can insert books"
 ON books FOR INSERT TO authenticated WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Users can update books" ON books;
 CREATE POLICY "Users can update books"
 ON books FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
 
@@ -43,18 +46,22 @@ DROP POLICY IF EXISTS "Users can update their own books" ON user_books;
 DROP POLICY IF EXISTS "Users can delete their own books" ON user_books;
 
 -- Créer les nouvelles policies
+DROP POLICY IF EXISTS "Users can view their own books" ON user_books;
 CREATE POLICY "Users can view their own books"
 ON user_books FOR SELECT TO authenticated
 USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can insert their own books" ON user_books;
 CREATE POLICY "Users can insert their own books"
 ON user_books FOR INSERT TO authenticated
 WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can update their own books" ON user_books;
 CREATE POLICY "Users can update their own books"
 ON user_books FOR UPDATE TO authenticated
 USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can delete their own books" ON user_books;
 CREATE POLICY "Users can delete their own books"
 ON user_books FOR DELETE TO authenticated
 USING (auth.uid() = user_id);
@@ -73,6 +80,7 @@ DROP POLICY IF EXISTS "Users can update their own sessions" ON reading_sessions;
 DROP POLICY IF EXISTS "Users can delete their own sessions" ON reading_sessions;
 
 -- Créer les nouvelles policies
+DROP POLICY IF EXISTS "Users can view their own sessions" ON reading_sessions;
 CREATE POLICY "Users can view their own sessions"
 ON reading_sessions FOR SELECT TO authenticated
 USING (
@@ -84,14 +92,17 @@ USING (
   )
 );
 
+DROP POLICY IF EXISTS "Users can insert their own sessions" ON reading_sessions;
 CREATE POLICY "Users can insert their own sessions"
 ON reading_sessions FOR INSERT TO authenticated
 WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can update their own sessions" ON reading_sessions;
 CREATE POLICY "Users can update their own sessions"
 ON reading_sessions FOR UPDATE TO authenticated
 USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can delete their own sessions" ON reading_sessions;
 CREATE POLICY "Users can delete their own sessions"
 ON reading_sessions FOR DELETE TO authenticated
 USING (auth.uid() = user_id);

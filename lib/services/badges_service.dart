@@ -57,7 +57,7 @@ class UserBadge {
       requirement: (map['requirement'] as num?)?.toInt() ?? 0,
       color: map['color']?.toString() ?? '#000000',
       unlockedAt: map['unlocked_at'] != null
-          ? DateTime.parse(map['unlocked_at'].toString())
+          ? DateTime.tryParse(map['unlocked_at'].toString())
           : null,
       progress: (map['progress'] as num?)?.toInt() ?? 0,
       isUnlocked: map['is_unlocked'] == true,
@@ -106,18 +106,92 @@ class BadgesService {
         params: {'p_user_id': userId},
       );
 
-      if (response == null) return [];
+      if (response == null) return _getFallbackBadges(userId);
 
       final List<dynamic> list = response is List ? response : [response];
+      if (list.isEmpty) return _getFallbackBadges(userId);
 
       return list
           .map((item) => UserBadge.fromJson(item))
           .toList();
     } catch (e, stack) {
-      debugPrint('❌ ERREUR getUserBadges: $e');
+      debugPrint('❌ ERREUR getUserBadges RPC: $e');
       debugPrint('❌ Stack: $stack');
-      return [];
+      // Fallback: charger les badges directement depuis les tables
+      try {
+        final userId = _supabase.auth.currentUser?.id;
+        if (userId == null) return [];
+        return _getFallbackBadges(userId);
+      } catch (e2) {
+        debugPrint('❌ ERREUR getUserBadges fallback: $e2');
+        return [];
+      }
     }
+  }
+
+  /// Fallback quand le RPC échoue : charge les badges depuis les tables directement
+  Future<List<UserBadge>> _getFallbackBadges(String userId) async {
+    debugPrint('⚠️ getUserBadges: utilisation du fallback (requête directe)');
+
+    final badgesResponse = await _supabase
+        .from('badges')
+        .select()
+        .order('category')
+        .order('sort_order')
+        .order('requirement');
+
+    final userBadgesResponse = await _supabase
+        .from('user_badges')
+        .select()
+        .eq('user_id', userId);
+
+    final List<dynamic> allBadges =
+        badgesResponse is List ? badgesResponse : [];
+    final List<dynamic> earnedBadges =
+        userBadgesResponse is List ? userBadgesResponse : [];
+
+    final earnedMap = <String, dynamic>{};
+    for (final ub in earnedBadges) {
+      final map = ub is Map<String, dynamic>
+          ? ub
+          : Map<String, dynamic>.from(ub as Map);
+      earnedMap[map['badge_id']?.toString() ?? ''] = map;
+    }
+
+    return allBadges.map((item) {
+      final map = item is Map<String, dynamic>
+          ? item
+          : Map<String, dynamic>.from(item as Map);
+      final badgeId = map['id']?.toString() ?? '';
+      final earned = earnedMap[badgeId];
+      final earnedMap2 = earned is Map<String, dynamic>
+          ? earned
+          : earned != null
+              ? Map<String, dynamic>.from(earned as Map)
+              : null;
+
+      return UserBadge(
+        id: badgeId,
+        name: map['name']?.toString() ?? '',
+        description: map['description']?.toString() ?? '',
+        icon: map['icon']?.toString() ?? '',
+        category: map['category']?.toString() ?? '',
+        requirement: (map['requirement'] as num?)?.toInt() ?? 0,
+        color: map['color']?.toString() ?? '#000000',
+        unlockedAt: earnedMap2?['earned_at'] != null
+            ? DateTime.tryParse(earnedMap2!['earned_at'].toString())
+            : null,
+        progress: 0, // Pas de progression sans le RPC
+        isUnlocked: earnedMap2 != null,
+        isPremium: map['is_premium'] == true,
+        isSecret: map['is_secret'] == true,
+        isAnimated: map['is_animated'] == true,
+        progressUnit: map['progress_unit']?.toString() ?? 'livres',
+        lottieAsset: map['lottie_asset']?.toString(),
+        sortOrder: (map['sort_order'] as num?)?.toInt() ?? 0,
+        tier: map['tier']?.toString(),
+      );
+    }).toList();
   }
 
   /// Récupérer les badges d'un utilisateur par son ID.
@@ -126,20 +200,36 @@ class BadgesService {
     try {
       if (!await canAccessUserData(userId)) return [];
 
+      final currentUserId = _supabase.auth.currentUser?.id;
+      final isOwnUser = currentUserId == userId;
+
       final response = await _supabase.rpc(
         'get_all_user_badges',
         params: {'p_user_id': userId},
       );
 
-      if (response == null) return [];
+      if (response == null) {
+        return isOwnUser ? _getFallbackBadges(userId) : [];
+      }
 
       final List<dynamic> list = response is List ? response : [response];
+      if (list.isEmpty) {
+        return isOwnUser ? _getFallbackBadges(userId) : [];
+      }
 
       return list
           .map((item) => UserBadge.fromJson(item))
           .toList();
     } catch (e) {
-      debugPrint('Erreur getUserBadgesById: $e');
+      debugPrint('Erreur getUserBadgesById RPC: $e');
+      final currentUserId = _supabase.auth.currentUser?.id;
+      if (currentUserId == userId) {
+        try {
+          return _getFallbackBadges(userId);
+        } catch (e2) {
+          debugPrint('Erreur getUserBadgesById fallback: $e2');
+        }
+      }
       return [];
     }
   }

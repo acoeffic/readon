@@ -169,6 +169,8 @@
   "lightThemeActive": "🌞 Light theme (active)",
   "darkTheme": "🌙 Dark theme",
   "darkThemeActive": "🌙 Dark theme (active)",
+  "systemTheme": "📱 System",
+  "systemThemeActive": "📱 System (active)",
   "languageSection": "Language",
   "frenchActive": "🇫🇷 Français (actif)",
   "french": "🇫🇷 Français",
@@ -394,7 +396,7 @@
 
   "defaultUser": "User",
   "mySessions": "My Sessions",
-  "myStatistics": "My Statistics",
+  "myStatistics": "Statistics",
   "myLists": "My Lists",
 
   "statistics": "Statistics",
@@ -736,6 +738,17 @@
   "challengeTitleRequired": "Challenge title *",
   "challengeTitleHint": "E.g.: Reading marathon",
   "titleRequired": "Title is required",
+  "startDate": "Start date",
+  "startsOn": "Starts on",
+  "startsToday": "Today",
+  "upcoming": "Upcoming",
+  "daysUntilStart": "In {days}d",
+  "@daysUntilStart": {
+    "placeholders": {
+      "days": {"type": "int"}
+    }
+  },
+  "challengeStartNotifTitle": "The challenge starts today!",
   "deadline": "Deadline",
   "createChallengeBtn": "Create challenge",
   "challengeCreated": "Challenge created!",
@@ -780,7 +793,7 @@
   },
   "books": "Books",
   "viewFullProfile": "View full profile",
-  "followLabel": "Follow",
+  "followLabel": "Add friend",
   "pagesLabel": "Pages",
   "readingLabel": "Reading",
   "flowLabel": "Flow",
@@ -963,6 +976,15 @@
   "addBooksFromLibrary": "Add books from your library or by searching for a title.",
   "removeBookTitle": "Remove this book?",
   "removeBookMessage": "Remove \"{title}\" from this list?",
+  "removeFromLibraryTitle": "Remove from my library?",
+  "removeFromLibraryMessage": "Permanently remove \"{title}\" from your library?",
+  "@removeFromLibraryMessage": {
+    "placeholders": {
+      "title": {"type": "String"}
+    }
+  },
+  "removeFromLibraryAction": "Remove",
+  "bookRemovedFromLibrary": "Book removed from your library",
   "@removeBookMessage": {
     "placeholders": {
       "title": {"type": "String"}
@@ -1072,6 +1094,18 @@
   "whenReminder": "When do you want to receive the reminder?",
   "aboutNotifications": "About notifications",
   "notificationInfo": "You will receive a notification on selected days to remind you to read and maintain your flow.",
+
+  "notificationCenter": "Notification center",
+  "notificationCenterDescription": "Manage your notification preferences.",
+  "friendRequestNotifications": "Friend requests",
+  "friendRequestNotificationsDesc": "Get notified of new friend requests",
+  "emailSection": "Emails",
+  "emailSectionDescription": "Choose which notifications you want to receive by email.",
+  "friendRequestEmail": "Friend requests by email",
+  "friendRequestEmailDesc": "Receive an email when someone sends you a friend request",
+  "pushSection": "Push notifications",
+  "pushSectionDescription": "Notifications on your device.",
+  "settingsSaved": "Preferences saved",
 
   "myGoals": "My goals",
   "goalsDescription": "Customize your goals to stay motivated and track your progress.",
@@ -1219,5 +1253,147 @@
   "beFirstToComment": "Be the first to comment!",
   "send": "Send",
 
-  "reactionPremiumOnly": "Reaction reserved for Premium members"
+  "reactionPremiumOnly": "Reaction reserved for Premium members",
+
+  "nearbyBookstores": "Nearby Bookstores",
+  "noBookstoresFound": "No bookstores found nearby",
+  "openNow": "Open",
+  "closed": "Closed",
+  "navigate": "Navigate",
+  "searchingBookstores": "Searching for bookstores...",
+
+  "offlineBanner": "Offline — sessions will sync automatically",
+  "sessionSavedOffline": "Session saved offline. It will sync when you reconnect.",
+  "offlineSyncSuccess": "{count, plural, =1{1 session synced} other{{count} sessions synced}}",
+  "@offlineSyncSuccess": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+
+  "markAllRead": "Mark all read",
+  "newNotifications": "New",
+  "recentNotifications": "Recent",
+  "noNotifications": "No notifications",
+  "noNotificationsDesc": "You'll be notified of likes, comments and friend requests",
+  "notifTypeFriends": "Friends",
+  "notifTypeLike": "Like",
+  "notifTypeComment": "Comment",
+  "notifTypeClub": "Club",
+  "accept": "Accept",
+  "ignore": "Ignore",
+  "sentYouFriendRequest": "{name} sent you a friend request",
+  "sentGroupJoinRequest": "{name} wants to join {groupName}",
+  "@sentGroupJoinRequest": {
+    "placeholders": {
+      "name": {"type": "String"},
+      "groupName": {"type": "String"}
+    }
+  },
+  "@sentYouFriendRequest": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "likedYourReading": "{name} liked your reading of {bookTitle}",
+  "@likedYourReading": {
+    "placeholders": {
+      "name": {"type": "String"},
+      "bookTitle": {"type": "String"}
+    }
+  },
+  "commentedYourReading": "{name} commented on your reading of {bookTitle}",
+  "@commentedYourReading": {
+    "placeholders": {
+      "name": {"type": "String"},
+      "bookTitle": {"type": "String"}
+    }
+  },
+
+  "prizeSelections": "LexDay Selections",
+  "prizeSelectionsSubtitle": "Official literary prizes",
+  "officialLexDay": "Official LexDay",
+  "bookSummary": "Book summary",
+  "noDescriptionAvailable": "No summary available for this book.",
+  "buyOnAmazon": "Buy on Amazon",
+
+  "requestToJoin": "Request to join",
+  "joinRequestSent": "Request sent!",
+  "joinRequestPending": "Request pending…",
+  "joinRequestCancelled": "Request cancelled",
+  "joinRequestAccepted": "{name} has been accepted into the club",
+  "@joinRequestAccepted": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "joinRequestRejected": "{name}'s request rejected",
+  "@joinRequestRejected": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "pendingJoinRequests": "{count, plural, =1{1 pending request} other{{count} pending requests}}",
+  "@pendingJoinRequests": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "accept": "Accept",
+  "reject": "Reject",
+
+  "readingForLabel": "I'M READING FOR",
+  "readingForJustMe": "Myself",
+  "readingForDaughter": "My daughter",
+  "readingForSon": "My son",
+  "readingForFriend": "A friend",
+  "readingForGrandmother": "My grandmother",
+  "readingForGrandfather": "My grandfather",
+  "readingForPartner": "My partner",
+  "readingForFather": "My father",
+  "readingForMother": "My mother",
+  "readingForOther": "Other",
+  "readingForDisplay": "Read for {person}",
+  "@readingForDisplay": {
+    "placeholders": {
+      "person": {"type": "String"}
+    }
+  },
+
+  "readingForStatsTitle": "Shared readings",
+  "readingForStatsSubtitle": "Time spent reading for your loved ones",
+  "readingForNoStats": "You don''t have any reading sessions for {person} yet",
+  "@readingForNoStats": {
+    "placeholders": {
+      "person": {"type": "String"}
+    }
+  },
+  "readingForSessions": "{count} sessions",
+  "@readingForSessions": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "readingForMinutes": "{minutes} min",
+  "@readingForMinutes": {
+    "placeholders": {
+      "minutes": {"type": "int"}
+    }
+  },
+  "readingForPages": "{pages} pages",
+  "@readingForPages": {
+    "placeholders": {
+      "pages": {"type": "int"}
+    }
+  },
+  "refreshCovers": "Refresh book covers",
+  "refreshingCovers": "Refreshing covers…",
+  "coversRefreshed": "{count} cover(s) updated",
+  "@coversRefreshed": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "coversUpToDate": "All covers are already up to date",
+  "friendsLabel": "Friends"
 }

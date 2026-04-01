@@ -7,6 +7,7 @@ import '../../models/book.dart';
 import '../../services/challenge_service.dart';
 import '../../services/books_service.dart';
 import '../../services/google_books_service.dart';
+import '../../services/monthly_notification_service.dart';
 
 class CreateChallengePage extends StatefulWidget {
   final String groupId;
@@ -28,6 +29,7 @@ class _CreateChallengePageState extends State<CreateChallengePage> {
 
   String _type = 'read_pages';
   Book? _selectedBook;
+  DateTime _startsAt = DateTime.now();
   DateTime _endsAt = DateTime.now().add(const Duration(days: 7));
   bool _isCreating = false;
 
@@ -56,11 +58,25 @@ class _CreateChallengePageState extends State<CreateChallengePage> {
     }
   }
 
+  Future<void> _selectStartDate() async {
+    final today = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _startsAt.isBefore(today) ? today : _startsAt,
+      firstDate: today,
+      lastDate: _endsAt.subtract(const Duration(days: 1)),
+    );
+
+    if (picked != null) {
+      setState(() => _startsAt = picked);
+    }
+  }
+
   Future<void> _selectDate() async {
     final picked = await showDatePicker(
       context: context,
       initialDate: _endsAt,
-      firstDate: DateTime.now().add(const Duration(days: 1)),
+      firstDate: _startsAt.add(const Duration(days: 1)),
       lastDate: DateTime.now().add(const Duration(days: 365)),
     );
 
@@ -71,6 +87,7 @@ class _CreateChallengePageState extends State<CreateChallengePage> {
 
   Future<void> _createChallenge() async {
     final l = AppLocalizations.of(context);
+    final notifTitle = l.challengeStartNotifTitle;
     if (!_formKey.currentState!.validate()) return;
 
     if (_type == 'read_book' && _selectedBook == null) {
@@ -101,7 +118,7 @@ class _CreateChallengePageState extends State<CreateChallengePage> {
           targetValue = 1;
       }
 
-      await _challengeService.createChallenge(
+      final challenge = await _challengeService.createChallenge(
         groupId: widget.groupId,
         type: _type,
         title: _titleController.text.trim(),
@@ -111,7 +128,15 @@ class _CreateChallengePageState extends State<CreateChallengePage> {
         targetBookId: _selectedBook?.id,
         targetValue: targetValue,
         targetDays: targetDays,
+        startsAt: _startsAt,
         endsAt: _endsAt,
+      );
+
+      await MonthlyNotificationService().scheduleChallengeStart(
+        challengeId: challenge.id,
+        notifTitle: notifTitle,
+        notifBody: challenge.title,
+        startsAt: _startsAt,
       );
 
       if (mounted) {
@@ -200,6 +225,12 @@ class _CreateChallengePageState extends State<CreateChallengePage> {
 
                 // Type-specific fields
                 _buildTypeSpecificFields(),
+                const SizedBox(height: AppSpace.xl),
+
+                // Start date
+                _buildSectionTitle(l.startDate),
+                const SizedBox(height: AppSpace.m),
+                _buildStartDateSelector(),
                 const SizedBox(height: AppSpace.xl),
 
                 // Expiration date
@@ -350,6 +381,10 @@ class _CreateChallengePageState extends State<CreateChallengePage> {
                     children: [
                       CachedBookCover(
                         imageUrl: _selectedBook!.coverUrl,
+                        isbn: _selectedBook!.isbn,
+                        googleId: _selectedBook!.googleId,
+                        title: _selectedBook!.title,
+                        author: _selectedBook!.author,
                         width: 40,
                         height: 56,
                         borderRadius: BorderRadius.circular(4),
@@ -468,6 +503,52 @@ class _CreateChallengePageState extends State<CreateChallengePage> {
           },
         ),
       ],
+    );
+  }
+
+  Widget _buildStartDateSelector() {
+    final l = AppLocalizations.of(context);
+    final today = DateTime.now();
+    final isToday = _startsAt.year == today.year &&
+        _startsAt.month == today.month &&
+        _startsAt.day == today.day;
+
+    return GestureDetector(
+      onTap: _selectStartDate,
+      child: Container(
+        padding: const EdgeInsets.all(AppSpace.m),
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(AppRadius.m),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.play_circle_outline, color: AppColors.primary),
+            const SizedBox(width: AppSpace.m),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l.startsOn,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                  ),
+                ),
+                Text(
+                  isToday ? l.startsToday : _formatDate(_startsAt),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+            const Spacer(),
+            Icon(Icons.chevron_right, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4)),
+          ],
+        ),
+      ),
     );
   }
 
@@ -744,6 +825,8 @@ class _BookListTile extends StatelessWidget {
       contentPadding: const EdgeInsets.symmetric(vertical: 4),
       leading: CachedBookCover(
         imageUrl: coverUrl,
+        title: title,
+        author: author,
         width: 32,
         height: 48,
         borderRadius: BorderRadius.circular(4),

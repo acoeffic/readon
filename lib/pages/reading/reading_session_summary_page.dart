@@ -104,6 +104,10 @@ class _ReadingSessionSummaryPageState
               _buildAppBar(isDark, l),
               const SizedBox(height: 20),
               _buildHeader(isDark, l),
+              if (widget.session.readingFor != null) ...[
+                const SizedBox(height: 12),
+                _buildReadingForBadge(isDark, l),
+              ],
               const SizedBox(height: 24),
               _buildBookCard(isDark, l),
               const SizedBox(height: 16),
@@ -120,6 +124,55 @@ class _ReadingSessionSummaryPageState
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  // ── Reading for badge ────────────────────────────────────────────────
+
+  String _resolveReadingForLabel(String key, AppLocalizations l) {
+    switch (key) {
+      case 'daughter': return l.readingForDaughter;
+      case 'son': return l.readingForSon;
+      case 'friend': return l.readingForFriend;
+      case 'grandmother': return l.readingForGrandmother;
+      case 'grandfather': return l.readingForGrandfather;
+      case 'father': return l.readingForFather;
+      case 'mother': return l.readingForMother;
+      case 'partner': return l.readingForPartner;
+      case 'other': return l.readingForOther;
+      default: return key;
+    }
+  }
+
+  Widget _buildReadingForBadge(bool isDark, AppLocalizations l) {
+    final person = _resolveReadingForLabel(widget.session.readingFor!, l);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: isDark
+            ? AppColors.primary.withValues(alpha: 0.15)
+            : AppColors.primary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: AppColors.primary.withValues(alpha: 0.25),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text('\u{1F4D6}', style: TextStyle(fontSize: 16)),
+          const SizedBox(width: 8),
+          Text(
+            l.readingForDisplay(person),
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: AppColors.primary,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -241,6 +294,10 @@ class _ReadingSessionSummaryPageState
                 ),
                 child: CachedBookCover(
                   imageUrl: _book?.coverUrl,
+                  isbn: _book?.isbn,
+                  googleId: _book?.googleId,
+                  title: _book?.title,
+                  author: _book?.author,
                   width: 80,
                   height: 110,
                   borderRadius: BorderRadius.circular(10),
@@ -694,6 +751,9 @@ class _ReadingSessionSummaryPageState
             session: widget.session,
             bookTitle: _book?.title ?? l.noTitleDefault,
             bookAuthor: _book?.author,
+            coverUrl: _book?.coverUrl,
+            totalPages: _book?.pageCount,
+            streak: _currentStreak,
           );
         },
         icon: const Icon(Icons.share_outlined, size: 20),

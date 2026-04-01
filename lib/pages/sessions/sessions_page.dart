@@ -195,6 +195,10 @@ class _SessionsPageState extends State<SessionsPage> {
             // Cover du livre
             CachedBookCover(
               imageUrl: book?.coverUrl,
+              isbn: book?.isbn,
+              googleId: book?.googleId,
+              title: book?.title,
+              author: book?.author,
               width: 48,
               height: 68,
               borderRadius: BorderRadius.circular(6),

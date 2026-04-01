@@ -5,7 +5,7 @@ import 'package:path_provider/path_provider.dart';
 import '../../monthly_wrapped_data.dart';
 import '../../../share/monthly_share_service.dart';
 import '../../../share/share_format.dart';
-import '../../../../../services/readon_sync_service.dart';
+import '../../../../../services/lexday_sync_service.dart';
 import '../fade_up_animation.dart';
 
 /// Slide 4 – Conclusion message + mini-stats + share button + direct app links.
@@ -34,7 +34,7 @@ class _ShareSlideState extends State<ShareSlide> {
     _loadVideoAsset();
   }
 
-  /// Try to fetch the pre-rendered video from readon-sync (background).
+  /// Try to fetch the pre-rendered video from lexday-sync (background).
   Future<void> _loadVideoAsset() async {
     try {
       final assets = await ReadonSyncService.getMonthlyWrappedShareAssets(

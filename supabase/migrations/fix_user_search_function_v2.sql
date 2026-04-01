@@ -67,9 +67,9 @@ BEGIN
       'name', b.name,
       'icon', b.icon,
       'color', b.color,
-      'unlocked_at', ub.unlocked_at
+      'unlocked_at', ub.earned_at
     )
-    ORDER BY ub.unlocked_at DESC
+    ORDER BY ub.earned_at DESC
   )
   INTO v_badges
   FROM user_badges ub

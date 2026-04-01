@@ -146,7 +146,7 @@ class _CuratedListsCarouselState extends State<CuratedListsCarousel> {
                     ?.copyWith(fontWeight: FontWeight.bold),
               ),
               Text(
-                'Sélections curatées par readon',
+                'Sélections curatées par lexday',
                 style: TextStyle(
                   fontSize: 12,
                   color: Theme.of(context)

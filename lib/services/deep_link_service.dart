@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/book.dart';
 import '../pages/books/user_books_page.dart';
+import '../pages/groups/groups_page.dart';
 import 'books_service.dart';
 import 'notion_service.dart';
 import 'monthly_notification_service.dart';
@@ -18,20 +19,16 @@ class DeepLinkService {
   final _appLinks = AppLinks();
   StreamSubscription<Uri>? _sub;
 
-  /// Reuses the navigator key already defined in MonthlyNotificationService.
   static GlobalKey<NavigatorState> get navigatorKey =>
       MonthlyNotificationService.navigatorKey;
 
-  /// Call once after Supabase is initialised and the navigator is mounted.
   void init() {
     if (kIsWeb) return;
 
-    // Cold-start link
     _appLinks.getInitialLink().then((uri) {
       if (uri != null) _handleUri(uri);
     });
 
-    // Foreground links
     _sub = _appLinks.uriLinkStream.listen(_handleUri);
   }
 
@@ -39,18 +36,16 @@ class DeepLinkService {
     _sub?.cancel();
   }
 
-  // ── Routing ──────────────────────────────────────────────────────────
-
   void _handleUri(Uri uri) {
     if (uri.scheme != 'lexday') return;
 
-    // Notion OAuth callback — delegate to existing handler
+    // Notion OAuth callback
     if (uri.host == 'notion' && uri.path.startsWith('/callback')) {
       NotionService().handleDeepLink(uri);
       return;
     }
 
-    // Book deep link: lexday://book/{bookId}?from={userId}
+    // lexday://book/{bookId}?from={userId}
     if (uri.host == 'book') {
       final bookIdStr = uri.pathSegments.isNotEmpty ? uri.pathSegments.first : null;
       if (bookIdStr == null) return;
@@ -60,6 +55,17 @@ class DeepLinkService {
 
       final sharedByUserId = uri.queryParameters['from'];
       _navigateToBook(bookId, sharedByUserId: sharedByUserId);
+      return;
+    }
+
+    // lexday://groups
+    if (uri.host == 'groups') {
+      final nav = navigatorKey.currentState;
+      if (nav == null) return;
+      nav.push(
+        MaterialPageRoute(builder: (_) => const GroupsPage()),
+      );
+      return;
     }
   }
 

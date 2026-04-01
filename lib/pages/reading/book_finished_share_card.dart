@@ -1,10 +1,8 @@
-import 'dart:math';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../models/book.dart';
 import '../../models/reading_session.dart';
-import '../../theme/app_theme.dart';
 
 /// Share card for a finished book, rendered off-screen and captured as an image.
 ///
@@ -31,23 +29,17 @@ class BookFinishedShareCard extends StatelessWidget {
 // Constants
 // ==========================================================================
 
-const _dark = Color(0xFF1A1408);
-const _gold = Color(0xFFD4A855);
+const _bgColor = Color(0xFFF5F0E8); // Warm beige
+const _cardColor = Colors.white;
+const _textDark = Color(0xFF2D2D2D);
+const _textMuted = Color(0xFF9B9585);
+const _accent = Color(0xFF5B7B6D); // Muted green/teal
 
 String _formatDuration(int minutes) {
-  if (minutes < 60) return '${minutes}min';
+  if (minutes < 60) return '$minutes';
   final h = minutes ~/ 60;
   final m = minutes % 60;
-  return '${h}h\n${m > 0 ? '${m}min' : ''}';
-}
-
-String _formatDate() {
-  final now = DateTime.now();
-  const months = [
-    'jan.', 'fév.', 'mar.', 'avr.', 'mai', 'juin',
-    'juil.', 'août', 'sep.', 'oct.', 'nov.', 'déc.',
-  ];
-  return '${now.day} ${months[now.month - 1]} ${now.year}';
+  return '${h}h${m > 0 ? '${m.toString().padLeft(2, '0')}' : ''}';
 }
 
 // ==========================================================================
@@ -59,125 +51,95 @@ class _StoryCard extends StatelessWidget {
   final BookReadingStats stats;
   final Uint8List? coverBytes;
 
-  const _StoryCard({required this.book, required this.stats, this.coverBytes});
+  const _StoryCard({
+    required this.book,
+    required this.stats,
+    this.coverBytes,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final seed = book.title.hashCode;
-
     return SizedBox(
       width: 360,
       height: 640,
       child: DecoratedBox(
         decoration: BoxDecoration(
+          color: _bgColor,
           borderRadius: BorderRadius.circular(24),
-          gradient: RadialGradient(
-            center: const Alignment(0, -0.4),
-            radius: 1.4,
-            colors: [const Color(0xFF2A1E10), _dark],
-          ),
-          border: Border.all(color: _gold.withValues(alpha: 0.08)),
         ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(24),
-          child: Stack(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 32),
+          child: Column(
             children: [
-              // Dots background
-              Positioned.fill(
-                child: CustomPaint(
-                  painter: _DotsPainter(seed: seed, count: 40),
+              // ── Book cover ──
+              const SizedBox(height: 8),
+              _buildCover(),
+              const SizedBox(height: 24),
+
+              // ── Title ──
+              Text(
+                'Livre terminé !',
+                style: GoogleFonts.libreBaskerville(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                  color: _textDark,
                 ),
               ),
-              // Glow at top
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                height: 220,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: RadialGradient(
-                      center: const Alignment(0, -1),
-                      radius: 1.0,
-                      colors: [
-                        _gold.withValues(alpha: 0.08),
-                        Colors.transparent,
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              // Content
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-                child: Column(
-                  children: [
-                    // ── Header: Logo + date ──
-                    _Header(),
-                    const SizedBox(height: 20),
+              const SizedBox(height: 16),
 
-                    // ── Badge: LIVRE TERMINÉ ──
-                    _CompletedBadge(),
-                    const SizedBox(height: 24),
+              // ── Book info card ──
+              _BookInfoCard(book: book),
+              const SizedBox(height: 12),
 
-                    // ── Book cover ──
-                    if (coverBytes != null)
-                      _BookCover(coverBytes: coverBytes!)
-                    else
-                      _BookCoverPlaceholder(
-                        title: book.title,
-                        author: book.author,
-                      ),
-                    const SizedBox(height: 24),
+              // ── Stats card ──
+              _StatsCard(stats: stats),
 
-                    // ── Book title + author ──
-                    Text(
-                      book.title,
-                      style: GoogleFonts.libreBaskerville(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                      ),
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    if (book.author != null) ...[
-                      const SizedBox(height: 6),
-                      Text(
-                        book.author!,
-                        style: GoogleFonts.libreBaskerville(
-                          fontSize: 13,
-                          fontStyle: FontStyle.italic,
-                          color: _gold.withValues(alpha: 0.7),
-                        ),
-                        textAlign: TextAlign.center,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
+              const Spacer(),
 
-                    const Spacer(),
-
-                    // ── Stats row ──
-                    _StatsRow(stats: stats),
-                    const SizedBox(height: 20),
-
-                    // ── Footer ──
-                    Text(
-                      'Suis ma lecture sur lexday.app',
-                      style: GoogleFonts.jetBrainsMono(
-                        fontSize: 10,
-                        color: Colors.white.withValues(alpha: 0.35),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              // ── Footer ──
+              _LexDayFooter(),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildCover() {
+    const width = 110.0;
+    const height = 160.0;
+
+    if (coverBytes != null) {
+      return Container(
+        width: width,
+        height: height,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.25),
+              blurRadius: 12,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: Image.memory(
+            coverBytes!,
+            width: width,
+            height: height,
+            fit: BoxFit.cover,
+          ),
+        ),
+      );
+    }
+
+    return _BookCoverPlaceholder(
+      title: book.title,
+      author: book.author,
+      width: width,
+      height: height,
     );
   }
 }
@@ -186,193 +148,62 @@ class _StoryCard extends StatelessWidget {
 // Sub-widgets
 // ==========================================================================
 
-class _Header extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        // LexDay icon placeholder
-        Container(
-          width: 32,
-          height: 32,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(8),
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color(0xFFD4A855), Color(0xFFB8923A)],
-            ),
-          ),
-          child: Center(
-            child: Text(
-              'L',
-              style: GoogleFonts.libreBaskerville(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 10),
-        Text(
-          'LEXDAY',
-          style: GoogleFonts.jetBrainsMono(
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 2,
-            color: _gold,
-          ),
-        ),
-        const Spacer(),
-        Text(
-          _formatDate(),
-          style: GoogleFonts.jetBrainsMono(
-            fontSize: 11,
-            color: Colors.white.withValues(alpha: 0.4),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _CompletedBadge extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 28,
-            height: 28,
-            decoration: const BoxDecoration(
-              color: Color(0xFF2ECC71),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.check,
-              size: 16,
-              color: Colors.white,
-            ),
-          ),
-          const SizedBox(width: 10),
-          Text(
-            'LIVRE TERMINÉ',
-            style: GoogleFonts.jetBrainsMono(
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 2,
-              color: const Color(0xFF2ECC71),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _BookCover extends StatelessWidget {
-  final Uint8List coverBytes;
-
-  const _BookCover({required this.coverBytes});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 160,
-      height: 220,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.3),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: Image.memory(
-          coverBytes,
-          width: 160,
-          height: 220,
-          fit: BoxFit.cover,
-        ),
-      ),
-    );
-  }
-}
-
 class _BookCoverPlaceholder extends StatelessWidget {
   final String title;
   final String? author;
+  final double width;
+  final double height;
 
-  const _BookCoverPlaceholder({required this.title, this.author});
+  const _BookCoverPlaceholder({
+    required this.title,
+    this.author,
+    required this.width,
+    required this.height,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 160,
-      height: 220,
+      width: width,
+      height: height,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            const Color(0xFF3A2D18),
-            const Color(0xFF2A1E10),
-          ],
-        ),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.1),
-        ),
+        color: const Color(0xFF3A4A5C),
+        borderRadius: BorderRadius.circular(8),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.3),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
+            color: Colors.black.withValues(alpha: 0.25),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
           ),
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+        padding: const EdgeInsets.all(12),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
               title,
               style: GoogleFonts.libreBaskerville(
-                fontSize: 16,
+                fontSize: 13,
                 fontWeight: FontWeight.w700,
-                color: Colors.white.withValues(alpha: 0.85),
+                color: Colors.white,
               ),
               textAlign: TextAlign.center,
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
             ),
             if (author != null) ...[
-              const SizedBox(height: 12),
-              // Separator line
-              Container(
-                width: 30,
-                height: 1,
-                color: _gold.withValues(alpha: 0.3),
-              ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 6),
               Text(
-                author!.toUpperCase(),
-                style: GoogleFonts.jetBrainsMono(
+                author!,
+                style: GoogleFonts.libreBaskerville(
                   fontSize: 10,
-                  letterSpacing: 1.5,
-                  color: Colors.white.withValues(alpha: 0.45),
+                  fontStyle: FontStyle.italic,
+                  color: const Color(0xFFA8B8C8),
                 ),
                 textAlign: TextAlign.center,
-                maxLines: 1,
+                maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
             ],
@@ -383,76 +214,131 @@ class _BookCoverPlaceholder extends StatelessWidget {
   }
 }
 
-class _StatsRow extends StatelessWidget {
-  final BookReadingStats stats;
-  const _StatsRow({required this.stats});
+class _BookInfoCard extends StatelessWidget {
+  final Book book;
 
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: _StatBox(
-            value: '${stats.totalPagesRead}',
-            label: 'PAGES',
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _StatBox(
-            value: _formatDuration(stats.totalMinutesRead),
-            label: 'DE LECTURE',
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _StatBox(
-            value: '${stats.sessionsCount}',
-            label: 'SESSIONS',
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _StatBox extends StatelessWidget {
-  final String value;
-  final String label;
-
-  const _StatBox({required this.value, required this.label});
+  const _BookInfoCard({required this.book});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.08),
-        ),
+        color: _cardColor,
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            value,
-            style: GoogleFonts.jetBrainsMono(
-              fontSize: 20,
+            book.title,
+            style: GoogleFonts.libreBaskerville(
+              fontSize: 15,
               fontWeight: FontWeight.w700,
-              color: Colors.white,
+              color: _textDark,
             ),
-            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: GoogleFonts.jetBrainsMono(
-              fontSize: 8,
-              letterSpacing: 1,
-              color: Colors.white.withValues(alpha: 0.35),
+          if (book.author != null) ...[
+            const SizedBox(height: 3),
+            Text(
+              book.author!,
+              style: GoogleFonts.libreBaskerville(
+                fontSize: 12,
+                fontStyle: FontStyle.italic,
+                color: _textMuted,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-            textAlign: TextAlign.center,
+          ],
+          if (book.pageCount != null) ...[
+            const SizedBox(height: 10),
+            // Full progress bar (book is finished = 100%)
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: SizedBox(
+                height: 6,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: _accent,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Text(
+                  '${book.pageCount} pages',
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: _accent,
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  '100 %',
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 12,
+                    color: _textMuted,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _StatsCard extends StatelessWidget {
+  final BookReadingStats stats;
+
+  const _StatsCard({required this.stats});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 12),
+      decoration: BoxDecoration(
+        color: _cardColor,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          // Total pages
+          Expanded(
+            child: _StatColumn(
+              emoji: '\uD83D\uDCC4',
+              value: '${stats.totalPagesRead}',
+              unit: '',
+              label: 'pages lues',
+            ),
+          ),
+          // Total time
+          Expanded(
+            child: _StatColumn(
+              emoji: '\u23F1\uFE0F',
+              value: _formatDuration(stats.totalMinutesRead),
+              unit: stats.totalMinutesRead < 60 ? ' min' : '',
+              label: 'de lecture',
+            ),
+          ),
+          // Sessions
+          Expanded(
+            child: _StatColumn(
+              emoji: '\uD83D\uDCD6',
+              value: '${stats.sessionsCount}',
+              unit: '',
+              label: 'sessions',
+            ),
           ),
         ],
       ),
@@ -460,32 +346,88 @@ class _StatBox extends StatelessWidget {
   }
 }
 
-// ==========================================================================
-// Background painter
-// ==========================================================================
+class _StatColumn extends StatelessWidget {
+  final String emoji;
+  final String value;
+  final String unit;
+  final String label;
 
-class _DotsPainter extends CustomPainter {
-  final int seed;
-  final int count;
-
-  _DotsPainter({required this.seed, this.count = 30});
+  const _StatColumn({
+    required this.emoji,
+    required this.value,
+    required this.unit,
+    required this.label,
+  });
 
   @override
-  void paint(Canvas canvas, Size size) {
-    final rng = Random(seed);
-    for (var i = 0; i < count; i++) {
-      final x = rng.nextDouble() * size.width;
-      final y = rng.nextDouble() * size.height;
-      final radius = 0.6 + rng.nextDouble() * 1.0;
-      final opacity = 0.08 + rng.nextDouble() * 0.15;
-      final paint = Paint()
-        ..color = _gold.withValues(alpha: opacity)
-        ..maskFilter = MaskFilter.blur(BlurStyle.normal, radius);
-      canvas.drawCircle(Offset(x, y), radius, paint);
-    }
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text(emoji, style: const TextStyle(fontSize: 22)),
+        const SizedBox(height: 6),
+        RichText(
+          text: TextSpan(
+            children: [
+              TextSpan(
+                text: value,
+                style: GoogleFonts.libreBaskerville(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                  color: _textDark,
+                ),
+              ),
+              TextSpan(
+                text: unit,
+                style: GoogleFonts.libreBaskerville(
+                  fontSize: 13,
+                  color: _textMuted,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: GoogleFonts.jetBrainsMono(
+            fontSize: 10,
+            color: _textMuted,
+          ),
+        ),
+      ],
+    );
   }
+}
 
+class _LexDayFooter extends StatelessWidget {
   @override
-  bool shouldRepaint(covariant _DotsPainter old) =>
-      old.seed != seed || old.count != count;
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Icon(
+          Icons.bookmark,
+          size: 22,
+          color: _accent,
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'LexDay',
+          style: GoogleFonts.libreBaskerville(
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            color: _textDark,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          'YOUR READING LIFE, TRACKED',
+          style: GoogleFonts.jetBrainsMono(
+            fontSize: 8,
+            letterSpacing: 2,
+            color: _textMuted,
+          ),
+        ),
+      ],
+    );
+  }
 }

@@ -166,10 +166,10 @@ class ReadingGoal {
       year: json['year'] as int? ?? DateTime.now().year,
       isActive: json['is_active'] as bool? ?? true,
       createdAt: json['created_at'] != null
-          ? DateTime.parse(json['created_at'] as String)
+          ? (DateTime.tryParse(json['created_at'].toString()) ?? DateTime.now())
           : DateTime.now(),
       updatedAt: json['updated_at'] != null
-          ? DateTime.parse(json['updated_at'] as String)
+          ? (DateTime.tryParse(json['updated_at'].toString()) ?? DateTime.now())
           : DateTime.now(),
       currentValue: json['current_value'] as int? ?? 0,
       extraValue: json['extra_value'] as int?,

@@ -13,6 +13,7 @@ DROP POLICY IF EXISTS "Users can delete their own books" ON user_books;
 -- 3. Créer les nouvelles policies
 
 -- Policy pour SELECT : Les utilisateurs ne voient que leurs propres livres
+DROP POLICY IF EXISTS "Users can view their own books" ON user_books;
 CREATE POLICY "Users can view their own books"
 ON user_books
 FOR SELECT
@@ -20,6 +21,7 @@ TO authenticated
 USING (auth.uid() = user_id);
 
 -- Policy pour INSERT : Les utilisateurs peuvent ajouter des livres à leur bibliothèque
+DROP POLICY IF EXISTS "Users can insert their own books" ON user_books;
 CREATE POLICY "Users can insert their own books"
 ON user_books
 FOR INSERT
@@ -27,6 +29,7 @@ TO authenticated
 WITH CHECK (auth.uid() = user_id);
 
 -- Policy pour UPDATE : Les utilisateurs peuvent mettre à jour leurs propres livres
+DROP POLICY IF EXISTS "Users can update their own books" ON user_books;
 CREATE POLICY "Users can update their own books"
 ON user_books
 FOR UPDATE
@@ -35,6 +38,7 @@ USING (auth.uid() = user_id)
 WITH CHECK (auth.uid() = user_id);
 
 -- Policy pour DELETE : Les utilisateurs peuvent supprimer des livres de leur bibliothèque
+DROP POLICY IF EXISTS "Users can delete their own books" ON user_books;
 CREATE POLICY "Users can delete their own books"
 ON user_books
 FOR DELETE

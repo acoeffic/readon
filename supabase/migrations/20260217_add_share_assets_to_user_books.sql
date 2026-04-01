@@ -32,17 +32,20 @@ VALUES ('shares', 'shares', true)
 ON CONFLICT (id) DO NOTHING;
 
 -- Lecture publique (les URLs de partage doivent être accessibles par tous)
+DROP POLICY IF EXISTS "Public read access on shares" ON storage;
 CREATE POLICY "Public read access on shares"
   ON storage.objects FOR SELECT
   TO public
   USING (bucket_id = 'shares');
 
 -- Upload/update par service role uniquement (readon-sync utilise le service_role key)
+DROP POLICY IF EXISTS "Service role upload on shares" ON storage;
 CREATE POLICY "Service role upload on shares"
   ON storage.objects FOR INSERT
   TO service_role
   WITH CHECK (bucket_id = 'shares');
 
+DROP POLICY IF EXISTS "Service role update on shares" ON storage;
 CREATE POLICY "Service role update on shares"
   ON storage.objects FOR UPDATE
   TO service_role

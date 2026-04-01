@@ -48,8 +48,7 @@ class BadgesGrid extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: displayBadges.map((badge) => BadgeItem(badge: badge)).toList(),
+          children: displayBadges.map((badge) => Expanded(child: BadgeItem(badge: badge))).toList(),
         ),
       ],
     );
@@ -101,6 +100,8 @@ class BadgeItem extends StatelessWidget {
                   ? LegendeLitteraireBadge(size: 100, isLocked: !badge.isUnlocked)
                   : isBibliothequeVivanteBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
                   ? BibliothequeVivanteBadge(size: 100, isLocked: !badge.isUnlocked)
+                  : isFirstSessionBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                  ? FirstSessionBadge(size: 100, isLocked: !badge.isUnlocked)
                   : isOneHourMagicBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
                   ? OneHourMagicBadge(size: 100, isLocked: !badge.isUnlocked)
                   : isSundayReaderBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
@@ -217,6 +218,20 @@ class BadgeItem extends StatelessWidget {
                   ? GenreDevpersoMaitreBadge(size: 100, isLocked: !badge.isUnlocked)
                   : isGenreDevpersoLegendeBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
                   ? GenreDevpersoLegendeBadge(size: 100, isLocked: !badge.isUnlocked)
+                  : isStreak7DaysBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                  ? Streak7DaysBadge(size: 100, isLocked: !badge.isUnlocked)
+                  : isStreak14DaysBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                  ? Streak14DaysBadge(size: 100, isLocked: !badge.isUnlocked)
+                  : isStreak30DaysBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                  ? Streak30DaysBadge(size: 100, isLocked: !badge.isUnlocked)
+                  : isStreak60DaysBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                  ? Streak60DaysBadge(size: 100, isLocked: !badge.isUnlocked)
+                  : isStreak90DaysBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                  ? Streak90DaysBadge(size: 100, isLocked: !badge.isUnlocked)
+                  : isStreak180DaysBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                  ? Streak180DaysBadge(size: 100, isLocked: !badge.isUnlocked)
+                  : isStreak365DaysBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                  ? Streak365DaysBadge(size: 100, isLocked: !badge.isUnlocked)
                   : isComebackBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
                   ? ComebackBadge(badgeId: badge.id, size: 100, isLocked: !badge.isUnlocked)
                   : Container(
@@ -247,25 +262,22 @@ class BadgeItem extends StatelessWidget {
             imageFilter: _isAnniversaryHidden
                 ? ImageFilter.blur(sigmaX: 4, sigmaY: 4)
                 : ImageFilter.blur(sigmaX: 0, sigmaY: 0),
-            child: SizedBox(
-              width: 120,
-              child: Text(
-                badge.name,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: badge.isUnlocked ? Theme.of(context).colorScheme.onSurface : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-                ),
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+            child: Text(
+              badge.name,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: badge.isUnlocked ? Theme.of(context).colorScheme.onSurface : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
               ),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
           if (!badge.isUnlocked) ...[
             const SizedBox(height: 4),
-            SizedBox(
-              width: 100,
+            FractionallySizedBox(
+              widthFactor: 0.8,
               child: LinearProgressIndicator(
                 value: badge.progressPercentage,
                 backgroundColor: Theme.of(context).colorScheme.outlineVariant,
@@ -317,6 +329,8 @@ class BadgeItem extends StatelessWidget {
                     ? LegendeLitteraireBadge(size: 120, isLocked: !badge.isUnlocked)
                     : isBibliothequeVivanteBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
                     ? BibliothequeVivanteBadge(size: 120, isLocked: !badge.isUnlocked)
+                    : isFirstSessionBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                    ? FirstSessionBadge(size: 120, isLocked: !badge.isUnlocked)
                     : isOneHourMagicBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
                     ? OneHourMagicBadge(size: 120, isLocked: !badge.isUnlocked)
                     : isSundayReaderBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
@@ -433,6 +447,20 @@ class BadgeItem extends StatelessWidget {
                     ? GenreDevpersoMaitreBadge(size: 120, isLocked: !badge.isUnlocked)
                     : isGenreDevpersoLegendeBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
                     ? GenreDevpersoLegendeBadge(size: 120, isLocked: !badge.isUnlocked)
+                    : isStreak7DaysBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                    ? Streak7DaysBadge(size: 120, isLocked: !badge.isUnlocked)
+                    : isStreak14DaysBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                    ? Streak14DaysBadge(size: 120, isLocked: !badge.isUnlocked)
+                    : isStreak30DaysBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                    ? Streak30DaysBadge(size: 120, isLocked: !badge.isUnlocked)
+                    : isStreak60DaysBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                    ? Streak60DaysBadge(size: 120, isLocked: !badge.isUnlocked)
+                    : isStreak90DaysBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                    ? Streak90DaysBadge(size: 120, isLocked: !badge.isUnlocked)
+                    : isStreak180DaysBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                    ? Streak180DaysBadge(size: 120, isLocked: !badge.isUnlocked)
+                    : isStreak365DaysBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                    ? Streak365DaysBadge(size: 120, isLocked: !badge.isUnlocked)
                     : isComebackBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
                     ? ComebackBadge(badgeId: badge.id, size: 120, isLocked: !badge.isUnlocked)
                     : Container(

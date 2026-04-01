@@ -117,8 +117,8 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
       final fileName = 'group_${widget.group.id}_${DateTime.now().millisecondsSinceEpoch}.$extension';
       final filePath = 'group_covers/$fileName';
 
-      await supabase.storage.from('profiles').upload(filePath, file);
-      final publicUrl = supabase.storage.from('profiles').getPublicUrl(filePath);
+      await supabase.storage.from('groups').upload(filePath, file);
+      final publicUrl = supabase.storage.from('groups').getPublicUrl(filePath);
 
       await _groupsService.updateGroup(
         groupId: widget.group.id,

@@ -26,8 +26,8 @@ CREATE TABLE IF NOT EXISTS group_challenges (
   CONSTRAINT ends_after_starts CHECK (ends_at > starts_at)
 );
 
-CREATE INDEX idx_group_challenges_group ON group_challenges(group_id);
-CREATE INDEX idx_group_challenges_ends_at ON group_challenges(ends_at);
+CREATE INDEX IF NOT EXISTS idx_group_challenges_group ON group_challenges(group_id);
+CREATE INDEX IF NOT EXISTS idx_group_challenges_ends_at ON group_challenges(ends_at);
 
 -- =====================================================
 -- 2. CHALLENGE_PARTICIPANTS TABLE
@@ -44,8 +44,8 @@ CREATE TABLE IF NOT EXISTS challenge_participants (
   UNIQUE(challenge_id, user_id)
 );
 
-CREATE INDEX idx_challenge_participants_challenge ON challenge_participants(challenge_id);
-CREATE INDEX idx_challenge_participants_user ON challenge_participants(user_id);
+CREATE INDEX IF NOT EXISTS idx_challenge_participants_challenge ON challenge_participants(challenge_id);
+CREATE INDEX IF NOT EXISTS idx_challenge_participants_user ON challenge_participants(user_id);
 
 -- =====================================================
 -- 3. RLS POLICIES - GROUP_CHALLENGES
@@ -53,6 +53,7 @@ CREATE INDEX idx_challenge_participants_user ON challenge_participants(user_id);
 ALTER TABLE group_challenges ENABLE ROW LEVEL SECURITY;
 
 -- Members can view challenges in their groups
+DROP POLICY IF EXISTS "Members can view group challenges" ON group_challenges;
 CREATE POLICY "Members can view group challenges"
   ON group_challenges FOR SELECT
   USING (
@@ -60,6 +61,7 @@ CREATE POLICY "Members can view group challenges"
   );
 
 -- Only admins can create challenges
+DROP POLICY IF EXISTS "Admins can create challenges" ON group_challenges;
 CREATE POLICY "Admins can create challenges"
   ON group_challenges FOR INSERT
   WITH CHECK (
@@ -68,6 +70,7 @@ CREATE POLICY "Admins can create challenges"
   );
 
 -- Only admins can delete challenges
+DROP POLICY IF EXISTS "Admins can delete challenges" ON group_challenges;
 CREATE POLICY "Admins can delete challenges"
   ON group_challenges FOR DELETE
   USING (
@@ -80,6 +83,7 @@ CREATE POLICY "Admins can delete challenges"
 ALTER TABLE challenge_participants ENABLE ROW LEVEL SECURITY;
 
 -- Members can view participants of challenges in their groups
+DROP POLICY IF EXISTS "Members can view challenge participants" ON challenge_participants;
 CREATE POLICY "Members can view challenge participants"
   ON challenge_participants FOR SELECT
   USING (
@@ -91,6 +95,7 @@ CREATE POLICY "Members can view challenge participants"
   );
 
 -- Members can join challenges in their groups
+DROP POLICY IF EXISTS "Members can join challenges" ON challenge_participants;
 CREATE POLICY "Members can join challenges"
   ON challenge_participants FOR INSERT
   WITH CHECK (
@@ -103,12 +108,14 @@ CREATE POLICY "Members can join challenges"
   );
 
 -- Participants can update their own progress
+DROP POLICY IF EXISTS "Participants can update own progress" ON challenge_participants;
 CREATE POLICY "Participants can update own progress"
   ON challenge_participants FOR UPDATE
   USING (user_id = auth.uid())
   WITH CHECK (user_id = auth.uid());
 
 -- Participants can leave challenges
+DROP POLICY IF EXISTS "Participants can leave challenges" ON challenge_participants;
 CREATE POLICY "Participants can leave challenges"
   ON challenge_participants FOR DELETE
   USING (user_id = auth.uid());

@@ -24,7 +24,6 @@ class Annotation {
   final String? imagePath;
   final String? audioPath;
   final String? aiSummary;
-  final bool isPublic;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -39,7 +38,6 @@ class Annotation {
     this.imagePath,
     this.audioPath,
     this.aiSummary,
-    this.isPublic = false,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -56,7 +54,6 @@ class Annotation {
       imagePath: json['image_path'] as String?,
       audioPath: json['audio_path'] as String?,
       aiSummary: json['ai_summary'] as String?,
-      isPublic: json['is_public'] as bool? ?? false,
       createdAt: DateTime.parse(json['created_at'] as String).toLocal(),
       updatedAt: DateTime.parse(json['updated_at'] as String).toLocal(),
     );
@@ -74,7 +71,6 @@ class Annotation {
       'image_path': imagePath,
       'audio_path': audioPath,
       'ai_summary': aiSummary,
-      'is_public': isPublic,
       'created_at': createdAt.toUtc().toIso8601String(),
       'updated_at': updatedAt.toUtc().toIso8601String(),
     };
@@ -91,7 +87,6 @@ class Annotation {
     String? imagePath,
     String? audioPath,
     String? aiSummary,
-    bool? isPublic,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -106,7 +101,6 @@ class Annotation {
       imagePath: imagePath ?? this.imagePath,
       audioPath: audioPath ?? this.audioPath,
       aiSummary: aiSummary ?? this.aiSummary,
-      isPublic: isPublic ?? this.isPublic,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

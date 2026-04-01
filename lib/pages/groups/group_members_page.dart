@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../models/reading_group.dart';
 import '../../services/groups_service.dart';
+
+const _kSageGreen = Color(0xFF6B988D);
 
 class GroupMembersPage extends StatefulWidget {
   final String groupId;
@@ -24,12 +27,15 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
   final supabase = Supabase.instance.client;
 
   List<GroupMember> _members = [];
+  List<GroupJoinRequest> _joinRequests = [];
   bool _isLoading = true;
+  bool _isLoadingRequests = true;
 
   @override
   void initState() {
     super.initState();
     _loadMembers();
+    if (widget.isAdmin) _loadJoinRequests();
   }
 
   Future<void> _loadMembers() async {
@@ -42,6 +48,49 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
       });
     } catch (e) {
       setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _loadJoinRequests() async {
+    setState(() => _isLoadingRequests = true);
+    try {
+      final requests = await _groupsService.getJoinRequests(widget.groupId);
+      if (mounted) {
+        setState(() {
+          _joinRequests = requests;
+          _isLoadingRequests = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isLoadingRequests = false);
+    }
+  }
+
+  Future<void> _respondToJoinRequest(GroupJoinRequest request, bool accept) async {
+    final l = AppLocalizations.of(context);
+    try {
+      await _groupsService.respondToJoinRequest(
+        requestId: request.id,
+        accept: accept,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(accept
+                ? l.joinRequestAccepted(request.displayName)
+                : l.joinRequestRejected(request.displayName)),
+            backgroundColor: accept ? Colors.green : Colors.orange,
+          ),
+        );
+        _loadJoinRequests();
+        if (accept) _loadMembers();
+      }
+    } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Erreur: $e')),
@@ -258,6 +307,99 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
     );
   }
 
+  Widget _buildJoinRequestsSection() {
+    final l = AppLocalizations.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpace.l),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            l.pendingJoinRequests(_joinRequests.length),
+            style: GoogleFonts.dmSans(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: _kSageGreen,
+            ),
+          ),
+          const SizedBox(height: AppSpace.s),
+          ..._joinRequests.map((request) => Card(
+                margin: const EdgeInsets.only(bottom: AppSpace.s),
+                color: Theme.of(context).cardColor,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppRadius.m),
+                  side: BorderSide(
+                    color: _kSageGreen.withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 20,
+                        backgroundColor: _kSageGreen.withValues(alpha: 0.15),
+                        backgroundImage: request.userAvatar != null
+                            ? NetworkImage(request.userAvatar!)
+                            : null,
+                        child: request.userAvatar == null
+                            ? Text(
+                                request.displayName.substring(0, 1).toUpperCase(),
+                                style: GoogleFonts.dmSans(
+                                  color: _kSageGreen,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              )
+                            : null,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              request.displayName,
+                              style: GoogleFonts.dmSans(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                              ),
+                            ),
+                            if (request.message != null && request.message!.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 2),
+                                child: Text(
+                                  request.message!,
+                                  style: GoogleFonts.dmSans(
+                                    fontSize: 12,
+                                    color: Colors.grey.shade600,
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.check_circle, color: Colors.green),
+                        tooltip: l.accept,
+                        onPressed: () => _respondToJoinRequest(request, true),
+                      ),
+                      IconButton(
+                        icon: Icon(Icons.cancel, color: Colors.red.shade400),
+                        tooltip: l.reject,
+                        onPressed: () => _respondToJoinRequest(request, false),
+                      ),
+                    ],
+                  ),
+                ),
+              )),
+          const Divider(height: 24),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
@@ -295,6 +437,10 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
                 ],
               ),
             ),
+            // Pending join requests section (admin only)
+            if (widget.isAdmin && !_isLoadingRequests && _joinRequests.isNotEmpty)
+              _buildJoinRequestsSection(),
+
             Expanded(
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())

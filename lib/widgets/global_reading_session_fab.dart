@@ -691,6 +691,10 @@ class _UnifiedBookSelectorSheetState extends State<_UnifiedBookSelectorSheet> {
                         child: ListTile(
                           leading: CachedBookCover(
                             imageUrl: book.coverUrl,
+                            isbn: book.isbn,
+                            googleId: book.googleId,
+                            title: book.title,
+                            author: book.author,
                             width: 40,
                             height: 60,
                             borderRadius: BorderRadius.circular(4),

@@ -123,6 +123,27 @@ class Book {
     };
   }
 
+  Book copyWith({String? coverUrl}) {
+    return Book(
+      id: id,
+      googleId: googleId,
+      title: title,
+      author: author,
+      description: description,
+      coverUrl: coverUrl ?? this.coverUrl,
+      pageCount: pageCount,
+      publishedDate: publishedDate,
+      isbn: isbn,
+      externalId: externalId,
+      source: source,
+      publisher: publisher,
+      language: language,
+      genre: genre,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+    );
+  }
+
   bool get isKindle => source == 'kindle';
   bool get isPersonal => source != 'kindle';
   bool get isFromGoogleBooks => source == 'google_books';

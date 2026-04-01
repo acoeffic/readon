@@ -123,6 +123,8 @@ class _BookFinishedCardState extends State<BookFinishedCard>
   String? _bookTitle;
   String? _bookAuthor;
   String? _bookCover;
+  String? _bookIsbn;
+  String? _bookGoogleId;
 
   // Book stats (loaded for own activities)
   BookReadingStats? _bookStats;
@@ -219,6 +221,8 @@ class _BookFinishedCardState extends State<BookFinishedCard>
           _bookTitle = existingTitle;
           _bookAuthor = payload['book_author'] as String?;
           _bookCover = payload['book_cover'] as String?;
+          _bookIsbn = payload['book_isbn'] as String?;
+          _bookGoogleId = payload['book_google_id'] as String?;
         });
       }
       return;
@@ -227,7 +231,7 @@ class _BookFinishedCardState extends State<BookFinishedCard>
     try {
       final book = await supabase
           .from('books')
-          .select('title, author, cover_url, page_count')
+          .select('title, author, cover_url, page_count, isbn, google_id')
           .eq('id', bookId)
           .maybeSingle();
       if (!mounted || book == null) return;
@@ -235,6 +239,8 @@ class _BookFinishedCardState extends State<BookFinishedCard>
         _bookTitle = book['title'] as String?;
         _bookAuthor = book['author'] as String?;
         _bookCover = book['cover_url'] as String?;
+        _bookIsbn = book['isbn'] as String?;
+        _bookGoogleId = book['google_id'] as String?;
       });
     } catch (e) {
       debugPrint('Erreur _loadBookInfo: $e');
@@ -386,7 +392,7 @@ class _BookFinishedCardState extends State<BookFinishedCard>
     final title = _bookTitle ?? 'un livre';
     final author = _bookAuthor != null ? ' de $_bookAuthor' : '';
     final shareText =
-        "Je viens de terminer \"$title\"$author ! 📚✨\n\n#Lecture #ReadOn";
+        "Je viens de terminer \"$title\"$author ! 📚✨\n\n#Lecture #LexDay";
     if (!mounted) return;
     final box = context.findRenderObject() as RenderBox?;
     final origin =
@@ -439,9 +445,13 @@ class _BookFinishedCardState extends State<BookFinishedCard>
 
     if (!mounted || book == null) return;
 
+    final authorId = widget.activity['author_id'] as String?;
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => BookCompletedSummaryPage(book: book!),
+        builder: (_) => BookDetailPage(
+          book: book!,
+          sharedByUserId: authorId,
+        ),
       ),
     );
   }
@@ -657,6 +667,10 @@ class _BookFinishedCardState extends State<BookFinishedCard>
                                       const SizedBox(width: 2),
                                       CachedBookCover(
                                         imageUrl: _bookCover,
+                                        isbn: _bookIsbn,
+                                        googleId: _bookGoogleId,
+                                        title: _bookTitle,
+                                        author: _bookAuthor,
                                         width: 100,
                                         height: 150,
                                         borderRadius: BorderRadius.circular(12),

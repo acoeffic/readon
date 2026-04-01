@@ -37,17 +37,20 @@ CREATE INDEX IF NOT EXISTS idx_monthly_wrapped_shares_lookup
 ALTER TABLE monthly_wrapped_shares ENABLE ROW LEVEL SECURITY;
 
 -- Les utilisateurs peuvent lire leurs propres entrées
+DROP POLICY IF EXISTS "Users can read own monthly wrapped shares" ON monthly_wrapped_shares;
 CREATE POLICY "Users can read own monthly wrapped shares"
   ON monthly_wrapped_shares FOR SELECT
   TO authenticated
   USING (auth.uid() = user_id);
 
 -- Insert/update par service role uniquement (readon-sync)
+DROP POLICY IF EXISTS "Service role insert monthly wrapped shares" ON monthly_wrapped_shares;
 CREATE POLICY "Service role insert monthly wrapped shares"
   ON monthly_wrapped_shares FOR INSERT
   TO service_role
   WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Service role update monthly wrapped shares" ON monthly_wrapped_shares;
 CREATE POLICY "Service role update monthly wrapped shares"
   ON monthly_wrapped_shares FOR UPDATE
   TO service_role

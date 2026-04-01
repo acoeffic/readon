@@ -53,9 +53,11 @@ class FlowFreezeStatus {
       consecutiveFrozenDays: json['consecutive_frozen_days'] as int? ?? 0,
       maxConsecutive: json['max_consecutive'] as int? ?? 1,
       lastFreezeDate: json['last_freeze_date'] != null
-          ? DateTime.parse(json['last_freeze_date'] as String)
+          ? DateTime.tryParse(json['last_freeze_date'].toString())
           : null,
-      monthStart: DateTime.parse(json['month_start'] as String),
+      monthStart: json['month_start'] != null
+          ? (DateTime.tryParse(json['month_start'].toString()) ?? DateTime(DateTime.now().year, DateTime.now().month, 1))
+          : DateTime(DateTime.now().year, DateTime.now().month, 1),
     );
   }
 

@@ -25,6 +25,7 @@ import '../../services/suggestions_service.dart';
 import '../../models/book_suggestion.dart';
 import '../../widgets/suggestion_card.dart';
 import '../../services/trending_service.dart';
+import '../../services/feed_cache.dart';
 import 'widgets/trending_welcome_card.dart';
 import 'widgets/trending_books_card.dart';
 import 'widgets/community_session_card.dart';
@@ -40,13 +41,25 @@ import '../../services/curated_lists_service.dart';
 import '../../data/curated_lists_data.dart';
 import '../curated_lists/curated_list_detail_page.dart';
 import '../curated_lists/all_curated_lists_page.dart';
+import '../curated_lists/prize_list_detail_page.dart';
+import '../../models/prize_list.dart';
+import '../../services/prize_list_service.dart';
+import '../../widgets/prize_lists_carousel.dart';
 import '../books/user_books_page.dart';
 import 'widgets/active_readers_card.dart';
 import 'widgets/community_badge_unlock_card.dart';
 import '../friends/friend_profile_page.dart';
+import '../../widgets/feed_skeleton_list.dart';
 
 class FeedPage extends StatefulWidget {
   const FeedPage({super.key});
+
+  /// Notifier incrémenté quand la liste d'amis change (ajout/suppression).
+  /// Le feed écoute ce notifier pour se rafraîchir automatiquement.
+  static final friendsChanged = ValueNotifier<int>(0);
+
+  /// Appeler après avoir accepté/ajouté un ami pour rafraîchir le feed.
+  static void notifyFriendsChanged() => friendsChanged.value++;
 
   @override
   State<FeedPage> createState() => _FeedPageState();
@@ -59,6 +72,7 @@ class _FeedPageState extends State<FeedPage> {
   final suggestionsService = SuggestionsService();
   final trendingService = TrendingService();
   final curatedListsService = CuratedListsService();
+  final prizeListService = PrizeListService();
   final ScrollController _scrollController = ScrollController();
 
   List<Map<String, dynamic>> friendActivities = [];
@@ -85,6 +99,9 @@ class _FeedPageState extends State<FeedPage> {
   Map<int, int> curatedReaderCounts = {};
   Set<int> savedCuratedListIds = {};
 
+  // Listes prix littéraires
+  List<PrizeList> prizeLists = [];
+
   // Ordre aléatoire des sections du feed
   // 0 = sessions, 1 = suggestions, 2 = trending books, 3 = lecteurs actifs, 4 = badges
   List<int> _feedSectionOrder = [0, 1, 2, 3, 4];
@@ -94,6 +111,7 @@ class _FeedPageState extends State<FeedPage> {
     super.initState();
     _feedSectionOrder = [0, 1, 2, 3, 4]..shuffle(Random());
     _scrollController.addListener(_onScroll);
+    FeedPage.friendsChanged.addListener(_onFriendsChanged);
     loadFeed();
   }
 
@@ -101,7 +119,13 @@ class _FeedPageState extends State<FeedPage> {
   void dispose() {
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
+    FeedPage.friendsChanged.removeListener(_onFriendsChanged);
     super.dispose();
+  }
+
+  void _onFriendsChanged() {
+    FeedCache.invalidate();
+    loadFeed();
   }
 
   void _onScroll() {
@@ -142,7 +166,37 @@ class _FeedPageState extends State<FeedPage> {
     }
   }
 
+  /// Pull-to-refresh : invalide le cache et recharge
+  Future<void> _refreshFeed() async {
+    FeedCache.invalidate();
+    await loadFeed();
+  }
+
   Future<void> loadFeed() async {
+    // Utiliser le cache si valide
+    if (FeedCache.isValid) {
+      final c = FeedCache.data!;
+      setState(() {
+        friendActivities = c.friendActivities;
+        currentFlow = c.currentFlow;
+        currentReadingBook = c.currentReadingBook;
+        suggestions = c.suggestions;
+        friendCount = c.friendCount;
+        feedTier = c.feedTier;
+        trendingBooks = c.trendingBooks;
+        communitySessions = c.communitySessions;
+        activeReaders = c.activeReaders;
+        badgeUnlocks = c.badgeUnlocks;
+        curatedReaderCounts = c.curatedReaderCounts;
+        savedCuratedListIds = c.savedCuratedListIds;
+        prizeLists = c.prizeLists;
+        _lastActivityCursor = c.lastActivityCursor;
+        _hasMoreActivities = c.hasMoreActivities;
+        loading = false;
+      });
+      return;
+    }
+
     setState(() {
       loading = true;
       _lastActivityCursor = null;
@@ -156,15 +210,25 @@ class _FeedPageState extends State<FeedPage> {
         return;
       }
 
-      // Charger en parallele : flow, livre en cours, nombre d'amis, suggestions, curated lists
+      // Charger TOUT en parallèle (on filtre après selon le tier)
       final results = await Future.wait([
-        flowService.getUserFlow(),
-        booksService.getCurrentReadingBook(),
-        trendingService.getAcceptedFriendCount(),
-        suggestionsService.getPersonalizedSuggestions(limit: 5),
+        flowService.getUserFlow(),                                        // 0
+        booksService.getCurrentReadingBook(),                             // 1
+        trendingService.getAcceptedFriendCount(),                         // 2
+        suggestionsService.getPersonalizedSuggestions(limit: 5),          // 3
         curatedListsService.getReaderCounts(
-            kCuratedLists.map((l) => l.id).toList()),
-        curatedListsService.getSavedListIds(),
+            kCuratedLists.map((l) => l.id).toList()),                     // 4
+        curatedListsService.getSavedListIds(),                            // 5
+        prizeListService.fetchRecentPrizeLists(limit: 10),                // 6
+        supabase.rpc('get_feed', params: {                                // 7
+          'p_user_id': user.id,
+          'p_limit': _activitiesPageSize,
+          'p_cursor': null,
+        }),
+        trendingService.getTrendingBooks(limit: 5, forceRefresh: false),  // 8
+        trendingService.getCommunitySessions(limit: 10, forceRefresh: false), // 9
+        trendingService.getActiveReaders(limit: 10, forceRefresh: false), // 10
+        trendingService.getCommunityBadgeUnlocks(limit: 8, forceRefresh: false), // 11
       ]);
 
       final flow = results[0] as ReadingFlow?;
@@ -173,9 +237,10 @@ class _FeedPageState extends State<FeedPage> {
       final suggestionsRes = results[3] as List<BookSuggestion>;
       final readerCountsRes = results[4] as Map<int, int>;
       final savedListIdsRes = results[5] as Set<int>;
+      final prizeListsRes = results[6] as List<PrizeList>;
       final tier = trendingService.determineFeedTier(fCount);
 
-      // Charger conditionnellement selon le tier
+      // Utiliser les données selon le tier (déjà chargées en parallèle)
       List<Map<String, dynamic>> activities = [];
       List<Map<String, dynamic>> trending = [];
       List<Map<String, dynamic>> community = [];
@@ -183,25 +248,15 @@ class _FeedPageState extends State<FeedPage> {
       List<Map<String, dynamic>> unlocks = [];
 
       if (tier == FeedTier.friendsOnly || tier == FeedTier.mixed) {
-        final activitiesRes = await supabase.rpc('get_feed', params: {
-          'p_user_id': user.id,
-          'p_limit': _activitiesPageSize,
-          'p_cursor': null,
-        });
-        activities = List<Map<String, dynamic>>.from(activitiesRes ?? []);
+        final activitiesRaw = results[7];
+        activities = List<Map<String, dynamic>>.from(activitiesRaw is List ? activitiesRaw : []);
       }
 
       if (tier == FeedTier.mixed || tier == FeedTier.trending) {
-        final trendingResults = await Future.wait([
-          trendingService.getTrendingBooks(limit: 5, forceRefresh: false),
-          trendingService.getCommunitySessions(limit: 10, forceRefresh: false),
-          trendingService.getActiveReaders(limit: 10, forceRefresh: false),
-          trendingService.getCommunityBadgeUnlocks(limit: 8, forceRefresh: false),
-        ]);
-        trending = trendingResults[0];
-        community = trendingResults[1];
-        readers = trendingResults[2];
-        unlocks = trendingResults[3];
+        trending = results[8] as List<Map<String, dynamic>>;
+        community = results[9] as List<Map<String, dynamic>>;
+        readers = results[10] as List<Map<String, dynamic>>;
+        unlocks = results[11] as List<Map<String, dynamic>>;
       }
 
       if (!mounted) return;
@@ -210,6 +265,30 @@ class _FeedPageState extends State<FeedPage> {
       final random = Random();
       final newOrder = [0, 1, 2, 3, 4]..shuffle(random);
       debugPrint('Feed tier: $tier, section order: $newOrder');
+
+      final hasMore = activities.length >= _activitiesPageSize;
+      final cursor = activities.isNotEmpty
+          ? activities.last['created_at'] as String?
+          : null;
+
+      // Stocker dans le cache mémoire
+      FeedCache.store(FeedCacheData(
+        friendActivities: activities,
+        currentFlow: flow,
+        currentReadingBook: currentBook,
+        suggestions: suggestionsRes,
+        friendCount: fCount,
+        feedTier: tier,
+        trendingBooks: trending,
+        communitySessions: community,
+        activeReaders: readers,
+        badgeUnlocks: unlocks,
+        curatedReaderCounts: readerCountsRes,
+        savedCuratedListIds: savedListIdsRes,
+        prizeLists: prizeListsRes,
+        lastActivityCursor: cursor,
+        hasMoreActivities: hasMore,
+      ));
 
       setState(() {
         currentFlow = flow;
@@ -224,12 +303,11 @@ class _FeedPageState extends State<FeedPage> {
         suggestions = suggestionsRes;
         curatedReaderCounts = readerCountsRes;
         savedCuratedListIds = savedListIdsRes;
+        prizeLists = prizeListsRes;
         _feedSectionOrder = newOrder;
         loading = false;
-        _hasMoreActivities = activities.length >= _activitiesPageSize;
-        if (activities.isNotEmpty) {
-          _lastActivityCursor = activities.last['created_at'] as String?;
-        }
+        _hasMoreActivities = hasMore;
+        _lastActivityCursor = cursor;
       });
     } catch (e) {
       debugPrint('Erreur loadFeed: $e');
@@ -322,7 +400,7 @@ class _FeedPageState extends State<FeedPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SizedBox(height: AppSpace.l),
+        const SizedBox(height: AppSpace.xl),
         Text(
           AppLocalizations.of(context).suggestionsForYou,
           style: Theme.of(context).textTheme.titleMedium,
@@ -330,26 +408,6 @@ class _FeedPageState extends State<FeedPage> {
         const SizedBox(height: AppSpace.s),
         SuggestionsCarousel(
           suggestions: suggestions,
-          onAddToLibrary: (suggestion) async {
-            final success = await suggestionsService.addSuggestedBookToLibrary(suggestion);
-            if (!mounted) return;
-            if (success) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(AppLocalizations.of(context).bookAddedToLibrary(suggestion.book.title)),
-                  backgroundColor: Colors.green,
-                ),
-              );
-              loadFeed();
-            } else {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(AppLocalizations.of(context).errorAddingBook),
-                  backgroundColor: Colors.red,
-                ),
-              );
-            }
-          },
         ),
       ],
     );
@@ -390,6 +448,27 @@ class _FeedPageState extends State<FeedPage> {
       ),
       const SizedBox(height: AppSpace.l),
     ];
+  }
+
+  /// Construit la section des prix littéraires
+  List<Widget> _buildPrizeListsSection() {
+    if (prizeLists.isEmpty) return [];
+    return [
+      PrizeListsCarousel(
+        lists: prizeLists,
+        onListTap: _navigateToPrizeListDetail,
+      ),
+      const SizedBox(height: AppSpace.l),
+    ];
+  }
+
+  void _navigateToPrizeListDetail(PrizeList list) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PrizeListDetailPage(prizeList: list),
+      ),
+    );
   }
 
   /// Construit la section des listes curatées
@@ -571,6 +650,7 @@ class _FeedPageState extends State<FeedPage> {
       const SizedBox(height: AppSpace.l),
 
       // Listes curatées (position fixe)
+      ..._buildPrizeListsSection(),
       ..._buildCuratedListsSection(),
 
       // Sections dans l'ordre aléatoire
@@ -679,7 +759,8 @@ class _FeedPageState extends State<FeedPage> {
         // 5 premières activités
         ...friendActivities.take(5).map(_buildActivityCard),
         // Listes curatées après 5 activités
-        ..._buildCuratedListsSection(),
+        ..._buildPrizeListsSection(),
+      ..._buildCuratedListsSection(),
         // Activités restantes
         ...friendActivities.skip(5).map(_buildActivityCard),
       ],
@@ -745,7 +826,8 @@ class _FeedPageState extends State<FeedPage> {
         // 5 premières activités
         ...friendActivities.take(5).map(_buildActivityCard),
         // Listes curatées après 5 activités
-        ..._buildCuratedListsSection(),
+        ..._buildPrizeListsSection(),
+      ..._buildCuratedListsSection(),
         // Suggestions
         if (suggestions.isNotEmpty) ...[
           _buildSuggestionsSection(),
@@ -787,7 +869,7 @@ class _FeedPageState extends State<FeedPage> {
             const FeedHeader(),
             Expanded(
               child: RefreshIndicator(
-                onRefresh: loadFeed,
+                onRefresh: _refreshFeed,
                 child: ConstrainedContent(
                   child: ListView(
                   controller: _scrollController,
@@ -830,14 +912,7 @@ class _FeedPageState extends State<FeedPage> {
               ],
 
               // 👉 Flow de lecture
-              if (loading)
-                const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(20),
-                    child: CircularProgressIndicator(),
-                  ),
-                )
-              else if (currentFlow != null)
+              if (!loading && currentFlow != null)
                 FlowCard(
                   flow: currentFlow!,
                   onTap: () {
@@ -856,23 +931,16 @@ class _FeedPageState extends State<FeedPage> {
 
               // 👉 Contenu du feed (selon le tier)
               if (loading)
-                const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(20),
-                    child: CircularProgressIndicator(),
-                  ),
-                )
+                const FeedSkeletonList()
               else
                 ..._buildFeedContent(),
 
               // Loading indicator pour pagination
-              if (!loading && (_isLoadingMoreActivities || _hasMoreActivities))
-                Padding(
-                  padding: const EdgeInsets.all(16),
+              if (!loading && _isLoadingMoreActivities)
+                const Padding(
+                  padding: EdgeInsets.all(16),
                   child: Center(
-                    child: _isLoadingMoreActivities
-                        ? const CircularProgressIndicator()
-                        : const SizedBox.shrink(),
+                    child: CircularProgressIndicator(),
                   ),
                 ),
 

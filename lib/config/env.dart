@@ -13,6 +13,9 @@ abstract final class Env {
   // ── Google Books ───────────────────────────────────────────
   static const googleBooksApiKey = String.fromEnvironment('GOOGLE_BOOKS_API_KEY');
 
+  // ── Google Places / Maps ─────────────────────────────────
+  static const googlePlacesApiKey = String.fromEnvironment('GOOGLE_PLACES_API_KEY');
+
   // ── RevenueCat ─────────────────────────────────────────────
   static const revenueCatApiKeyIOS = String.fromEnvironment('REVENUECAT_API_KEY_IOS');
   static const revenueCatApiKeyAndroid = String.fromEnvironment('REVENUECAT_API_KEY_ANDROID');
@@ -25,7 +28,7 @@ abstract final class Env {
   static const notionClientId = String.fromEnvironment('NOTION_CLIENT_ID');
 
   // ── Readon Sync ───────────────────────────────────────────
-  static const readonSyncUrl = String.fromEnvironment('READON_SYNC_URL');
+  static const lexdaySyncUrl = String.fromEnvironment('LEXDAY_SYNC_URL');
 
   // ── Dev ──────────────────────────────────────────────────
   /// Forcer le statut premium sans RevenueCat (dev/test uniquement).

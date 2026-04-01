@@ -79,6 +79,9 @@ Widget _buildBadgeIcon(UserBadge badge, {required double size}) {
   if (isBibliothequeVivanteBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
     return BibliothequeVivanteBadge(size: size);
   }
+  if (isFirstSessionBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return FirstSessionBadge(size: size);
+  }
   if (isOneHourMagicBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
     return OneHourMagicBadge(size: size);
   }
@@ -281,6 +284,27 @@ Widget _buildBadgeIcon(UserBadge badge, {required double size}) {
     return GenreDevpersoLegendeBadge(size: size);
   }
 
+  if (isStreak7DaysBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return Streak7DaysBadge(size: size);
+  }
+  if (isStreak14DaysBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return Streak14DaysBadge(size: size);
+  }
+  if (isStreak30DaysBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return Streak30DaysBadge(size: size);
+  }
+  if (isStreak60DaysBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return Streak60DaysBadge(size: size);
+  }
+  if (isStreak90DaysBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return Streak90DaysBadge(size: size);
+  }
+  if (isStreak180DaysBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return Streak180DaysBadge(size: size);
+  }
+  if (isStreak365DaysBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
+    return Streak365DaysBadge(size: size);
+  }
   if (isComebackBadge(id: badge.id, category: badge.category, requirement: badge.requirement)) {
     return ComebackBadge(badgeId: badge.id, size: size);
   }
@@ -370,15 +394,16 @@ class _StoryCard extends StatelessWidget {
                   children: [
                     // Header
                     _Header(),
-                    const SizedBox(height: 24),
+
+                    const Spacer(flex: 3),
 
                     // Label
                     _UnlockedLabel(),
-                    const SizedBox(height: 40),
+                    const SizedBox(height: 32),
 
                     // Badge icon
                     _buildBadgeIcon(badge, size: 140),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 28),
 
                     // Badge name
                     Text(
@@ -408,7 +433,7 @@ class _StoryCard extends StatelessWidget {
                       ),
                     ],
 
-                    const Spacer(),
+                    const Spacer(flex: 2),
 
                     // Footer
                     Text(

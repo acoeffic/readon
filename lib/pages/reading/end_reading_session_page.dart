@@ -1,6 +1,7 @@
 // lib/pages/reading/end_reading_session_page.dart
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../l10n/app_localizations.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
@@ -12,7 +13,7 @@ import '../../services/books_service.dart';
 import '../../services/badges_service.dart';
 import '../../services/flow_service.dart';
 import '../../services/trophy_service.dart';
-import '../../services/readon_sync_service.dart';
+import '../../services/lexday_sync_service.dart';
 import '../../models/reading_session.dart';
 import '../../models/reading_flow.dart';
 import '../../models/trophy.dart';
@@ -23,6 +24,7 @@ import 'reading_session_summary_page.dart';
 import 'book_completed_summary_page.dart';
 import '../../theme/app_theme.dart';
 import '../../services/contacts_service.dart';
+import '../../providers/connectivity_provider.dart';
 import '../friends/contacts_suggestion_page.dart';
 import '../chat/ai_chat_page.dart';
 
@@ -199,14 +201,40 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
 
     setState(() => _isProcessing = true);
 
+    final isOffline = !Provider.of<ConnectivityProvider>(context, listen: false).isOnline;
+
     try {
       final completedSession = await _sessionService.endSession(
         sessionId: widget.activeSession.id,
         imagePath: _imageFile?.path,
         manualPageNumber: pageNumber,
+        offlineMode: isOffline,
+        activeSession: widget.activeSession,
       );
 
       if (!mounted) return;
+
+      // En mode offline, aller directement au résumé sans vérifications réseau
+      if (isOffline) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.sessionSavedOffline),
+            backgroundColor: Colors.orange.shade700,
+          ),
+        );
+
+        final trophy = _trophyService.selectTrophy(completedSession);
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(
+            builder: (context) => ReadingSessionSummaryPage(
+              session: completedSession,
+              trophy: trophy,
+            ),
+          ),
+          (route) => route.isFirst,
+        );
+        return;
+      }
 
       // Sélectionner le trophée contextuel
       final trophy = _trophyService.selectTrophy(completedSession);
@@ -393,7 +421,8 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
       setState(() => _isProcessing = true);
 
       try {
-        final pageNumber = _detectedPageNumber ?? _manualPageNumber;
+        // Utiliser le pageCount du livre si aucune page n'a été saisie
+        final pageNumber = _detectedPageNumber ?? _manualPageNumber ?? widget.book?.pageCount;
 
         // Terminer la session avec le livre marqué comme terminé
         final completedSession = await _sessionService.endSession(
@@ -715,9 +744,13 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
           ),
         ],
       ),
+      resizeToAvoidBottomInset: true,
       body: Stack(
         children: [
-          SingleChildScrollView(
+          Column(
+            children: [
+          Expanded(
+            child: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -993,38 +1026,52 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
               ),
             ],
 
-            // Boutons confirmer (visibles dès qu'on a un numéro de page)
-            if (_detectedPageNumber != null || _manualPageNumber != null) ...[
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: _isProcessing ? null : _endSession,
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.all(16),
-                  backgroundColor: Colors.green,
-                  foregroundColor: Colors.white,
-                ),
-                child: const Text(
-                  'Terminer la session',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-              ),
-              const SizedBox(height: 12),
-              ElevatedButton.icon(
-                onPressed: _isProcessing ? null : _finishBook,
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.all(16),
-                  backgroundColor: Colors.amber,
-                  foregroundColor: Colors.white,
-                ),
-                icon: const Icon(Icons.auto_awesome),
-                label: const Text(
-                  'Terminer le livre',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ],
           ],
         ),
+          ),
+            ),
+          // Boutons fixes en bas
+          if (_detectedPageNumber != null || _manualPageNumber != null || widget.book?.pageCount != null)
+            SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (_detectedPageNumber != null || _manualPageNumber != null)
+                      ElevatedButton(
+                        onPressed: _isProcessing ? null : _endSession,
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.all(16),
+                          backgroundColor: Colors.green,
+                          foregroundColor: Colors.white,
+                        ),
+                        child: const Text(
+                          'Terminer la session',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    if (_detectedPageNumber != null || _manualPageNumber != null)
+                      const SizedBox(height: 8),
+                    ElevatedButton.icon(
+                      onPressed: _isProcessing ? null : _finishBook,
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.all(16),
+                        backgroundColor: Colors.amber,
+                        foregroundColor: Colors.white,
+                      ),
+                      icon: const Icon(Icons.auto_awesome),
+                      label: const Text(
+                        'Terminer le livre',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            ],
           ),
           // Animation de confetti
           if (_showFinishBookAnimation)

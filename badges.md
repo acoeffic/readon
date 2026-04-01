@@ -93,23 +93,7 @@
 | `genre_fiction_5` | 🏰 | Amateur de Fiction | 5 livres | Non | Terminer 5 livres de fiction |
 | `genre_nonfiction_5` | 🧠 | Esprit Curieux | 5 livres | Non | Terminer 5 livres non-fiction |
 
-## 7. Genres — Maitres (`genres`) — 9 badges
-
-> Tous premium.
-
-| ID | Icone | Nom | Objectif | Premium | Declencheur |
-|---|---|---|---|---|---|
-| `genre_master_thriller` | 🔪 | Maitre du Thriller | 20 livres | **Oui** | 20 thrillers lus |
-| `genre_master_romance` | 💕 | Maitre de la Romance | 20 livres | **Oui** | 20 romances lues |
-| `genre_master_sf` | 🚀 | Maitre de la SF | 20 livres | **Oui** | 20 livres SF lus |
-| `genre_master_fantasy` | 🐉 | Maitre de la Fantasy | 20 livres | **Oui** | 20 livres fantasy lus |
-| `genre_master_mystery` | 🔍 | Maitre du Polar | 20 livres | **Oui** | 20 polars lus |
-| `genre_master_history` | ⚔️ | Maitre de l'Histoire | 20 livres | **Oui** | 20 livres d'histoire lus |
-| `genre_master_selfhelp` | 🧘 | Maitre du Dev Perso | 20 livres | **Oui** | 20 livres dev perso lus |
-| `genre_master_biography` | 👤 | Maitre de la Bio | 20 livres | **Oui** | 20 biographies lues |
-| `genre_master_all` | 🌟 | Omniscient | 8 badges | **Oui** | Avoir les 8 badges Maitre |
-
-## 8. Genres — Progressions par genre (7 x 4 = 28 badges)
+## 7. Genres — Progressions par genre (7 x 4 = 28 badges)
 
 > Chaque genre a 4 paliers : Apprenti (5), Adepte (15), Maitre (30), Legende (50). Tous gratuits.
 
@@ -343,7 +327,6 @@
 | Objectifs | 3 | 0 | 3 |
 | Social | 13 | 8 | 5 |
 | Genres (exploration) | 4 | 0 | 4 |
-| Genres (maitres) | 9 | 9 | 0 |
 | Genres (progressions x7) | 28 | 0 | 28 |
 | Engagement | 3 | 0 | 3 |
 | Animes | 5 | 5 | 0 |
@@ -355,4 +338,4 @@
 | Occasions | 12 | 0 | 12 |
 | Anniversaire | 5 | 2 | 3 |
 | Comeback | 6 | 0 | 6 |
-| **Total** | **147** | **59** | **88** |
+| **Total** | **138** | **50** | **88** |

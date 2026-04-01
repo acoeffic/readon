@@ -133,6 +133,10 @@ class _CustomListDetailPageState extends State<CustomListDetailPage> {
                 children: [
                   CachedBookCover(
                     imageUrl: book.coverUrl,
+                    isbn: book.isbn,
+                    googleId: book.googleId,
+                    title: book.title,
+                    author: book.author,
                     width: 100,
                     height: 150,
                     borderRadius: BorderRadius.circular(8),
@@ -587,6 +591,10 @@ class _CustomBookListItem extends StatelessWidget {
             // Cover
             CachedBookCover(
               imageUrl: book.coverUrl,
+              isbn: book.isbn,
+              googleId: book.googleId,
+              title: book.title,
+              author: book.author,
               width: 44,
               height: 64,
               borderRadius: BorderRadius.circular(4),

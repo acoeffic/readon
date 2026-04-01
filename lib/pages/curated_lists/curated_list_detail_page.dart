@@ -4,8 +4,8 @@ import 'package:lucide_icons/lucide_icons.dart';
 import '../../models/curated_list.dart';
 import '../../services/curated_lists_service.dart';
 import '../../services/google_books_service.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../bookstores/nearby_bookstores_page.dart';
 import '../../models/user_custom_list.dart';
 import '../../services/books_service.dart';
 import '../../services/user_custom_lists_service.dart';
@@ -68,8 +68,31 @@ class _CuratedListDetailPageState extends State<CuratedListDetailPage> {
   }
 
   Future<void> _loadGoogleBooksData() async {
+    // Phase 1 : Afficher immédiatement les couvertures depuis le cache persistant
     for (final book in widget.list.books) {
       if (!mounted) return;
+      final cachedUrl = _googleBooksService.getCachedCoverUrl(book.isbn);
+      if (cachedUrl != null) {
+        setState(() {
+          _googleBooks[book.isbn] = GoogleBook(
+            id: 'cached-${book.isbn}',
+            title: book.title,
+            authors: [book.author],
+            coverUrl: cachedUrl,
+            isbns: [book.isbn],
+          );
+        });
+      }
+    }
+
+    // Phase 2 : Charger les données complètes en arrière-plan pour les ISBN non cachés
+    for (final book in widget.list.books) {
+      if (!mounted) return;
+      // Skip si déjà chargé depuis le cache mémoire complet (pas juste le persistant)
+      if (_googleBooks.containsKey(book.isbn) &&
+          !_googleBooks[book.isbn]!.id.startsWith('cached-')) {
+        continue;
+      }
       try {
         GoogleBook? result;
 
@@ -112,7 +135,7 @@ class _CuratedListDetailPageState extends State<CuratedListDetailPage> {
       } catch (e) {
         debugPrint('Erreur chargement Google Book ${book.isbn}: $e');
         // Même en cas d'erreur, on met la couverture Open Library
-        if (mounted) {
+        if (mounted && !_googleBooks.containsKey(book.isbn)) {
           final fallback = GoogleBook(
             id: 'ol-${book.isbn}',
             title: book.title,
@@ -282,6 +305,8 @@ class _CuratedListDetailPageState extends State<CuratedListDetailPage> {
                   // Cover
                   CachedBookCover(
                     imageUrl: googleBook.coverUrl,
+                    isbn: googleBook.isbn13,
+                    googleId: googleBook.id,
                     width: 100,
                     height: 150,
                     borderRadius: BorderRadius.circular(8),
@@ -502,50 +527,11 @@ class _CuratedListDetailPageState extends State<CuratedListDetailPage> {
     }
   }
 
-  Future<void> _openNearbyBookstores(BuildContext parentContext) async {
-    try {
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(parentContext).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(parentContext)!.enableLocationSettings)),
-        );
-        return;
-      }
-
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-      }
-      if (permission == LocationPermission.denied ||
-          permission == LocationPermission.deniedForever) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(parentContext).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(parentContext)!.locationAccessRequired)),
-        );
-        return;
-      }
-
-      // Try to get last known position first (instant), fallback to current
-      Position? position = await Geolocator.getLastKnownPosition();
-      position ??= await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.low,
-          timeLimit: Duration(seconds: 15),
-        ),
-      );
-
-      final url = Uri.parse(
-        'https://www.google.com/maps/search/librairie/@${position.latitude},${position.longitude},14z',
-      );
-      await launchUrl(url, mode: LaunchMode.externalApplication);
-    } catch (e) {
-      debugPrint('Geolocation error: $e');
-      if (!mounted) return;
-      ScaffoldMessenger.of(parentContext).showSnackBar(
-        SnackBar(content: Text('Erreur localisation: $e')),
-      );
-    }
+  void _openNearbyBookstores(BuildContext parentContext) {
+    Navigator.push(
+      parentContext,
+      MaterialPageRoute(builder: (_) => const NearbyBookstoresPage()),
+    );
   }
 
   Widget _buildBuyOption({
@@ -574,8 +560,8 @@ class _CuratedListDetailPageState extends State<CuratedListDetailPage> {
     final progress = totalBooks > 0 ? readCount / totalBooks : 0.0;
 
     return Scaffold(
-      body: CustomScrollView(
-        slivers: [
+      body: NestedScrollView(
+        headerSliverBuilder: (context, innerBoxIsScrolled) => [
           // Gradient header
           SliverAppBar(
             expandedHeight: 200,
@@ -657,10 +643,11 @@ class _CuratedListDetailPageState extends State<CuratedListDetailPage> {
               ),
             ),
           ),
-
-          // Stats + description
-          SliverToBoxAdapter(
-            child: Padding(
+        ],
+        body: Column(
+          children: [
+            // Stats + description (fixed)
+            Padding(
               padding: const EdgeInsets.all(AppSpace.l),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -753,41 +740,34 @@ class _CuratedListDetailPageState extends State<CuratedListDetailPage> {
                 ],
               ),
             ),
-          ),
 
-          const SliverToBoxAdapter(child: Divider(height: 1)),
+            const Divider(height: 1),
 
-          // Book list
-          if (_isLoading)
-            const SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.all(40),
-                child: Center(child: CircularProgressIndicator()),
-              ),
-            )
-          else
-            SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  final book = widget.list.books[index];
-                  final isRead = _readIsbns.contains(book.isbn);
-                  final googleBook = _googleBooks[book.isbn];
-                  return _BookListItem(
-                    book: book,
-                    index: index,
-                    isRead: isRead,
-                    coverUrl: googleBook?.coverUrl,
-                    gradientColor: widget.list.gradientColors.last,
-                    onToggleRead: () => _toggleBookRead(book),
-                    onTap: () => _onBookTap(book),
-                  );
-                },
-                childCount: widget.list.books.length,
-              ),
+            // Book list (scrollable)
+            Expanded(
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : ListView.builder(
+                      padding: const EdgeInsets.only(bottom: 40),
+                      itemCount: widget.list.books.length,
+                      itemBuilder: (context, index) {
+                        final book = widget.list.books[index];
+                        final isRead = _readIsbns.contains(book.isbn);
+                        final googleBook = _googleBooks[book.isbn];
+                        return _BookListItem(
+                          book: book,
+                          index: index,
+                          isRead: isRead,
+                          coverUrl: googleBook?.coverUrl,
+                          gradientColor: widget.list.gradientColors.last,
+                          onToggleRead: () => _toggleBookRead(book),
+                          onTap: () => _onBookTap(book),
+                        );
+                      },
+                    ),
             ),
-
-          const SliverToBoxAdapter(child: SizedBox(height: 40)),
-        ],
+          ],
+        ),
       ),
     );
   }

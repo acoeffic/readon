@@ -35,9 +35,11 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
   ReadingGroup? _group;
   List<GroupActivity> _activities = [];
   List<GroupChallenge> _challenges = [];
+  int _pendingRequestsCount = 0;
   bool _isLoading = true;
   bool _isLoadingActivities = true;
   bool _isLoadingChallenges = true;
+  bool _isRequestingJoin = false;
 
   @override
   void initState() {
@@ -55,8 +57,67 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
         _group = group;
         _isLoading = false;
       });
+      if (group.isAdmin) {
+        _loadPendingRequestsCount();
+      }
     } catch (e) {
       setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _loadPendingRequestsCount() async {
+    try {
+      final requests = await _groupsService.getJoinRequests(widget.groupId);
+      if (mounted) {
+        setState(() => _pendingRequestsCount = requests.length);
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _requestToJoin() async {
+    final l = AppLocalizations.of(context);
+    setState(() => _isRequestingJoin = true);
+    try {
+      await _groupsService.requestToJoin(groupId: widget.groupId);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(l.joinRequestSent),
+            backgroundColor: Colors.green,
+          ),
+        );
+        _loadGroup();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isRequestingJoin = false);
+    }
+  }
+
+  Future<void> _cancelJoinRequest() async {
+    final l = AppLocalizations.of(context);
+    try {
+      await _groupsService.cancelJoinRequest(widget.groupId);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(l.joinRequestCancelled),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        _loadGroup();
+      }
+    } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Erreur: $e')),
@@ -222,8 +283,39 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
       backgroundColor: bg,
       body: CustomScrollView(
         slivers: [
-          // Hero with cover image
-          SliverToBoxAdapter(child: _buildHero(context)),
+          // Hero with cover image — pinned so it stays at top when scrolling
+          SliverAppBar(
+            pinned: true,
+            expandedHeight: 200,
+            backgroundColor: _kSageGreen,
+            automaticallyImplyLeading: false,
+            title: Text(
+              _group!.name,
+              style: GoogleFonts.cormorantGaramond(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            leading: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: _HeroButton(icon: Icons.arrow_back, onTap: () => Navigator.pop(context)),
+            ),
+            actions: [
+              if (_group!.isGroupMember)
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: _group!.isAdmin
+                      ? _HeroButton(icon: Icons.settings_outlined, onTap: _navigateToSettings)
+                      : _HeroButton(icon: Icons.exit_to_app, onTap: _leaveGroup),
+                ),
+            ],
+            flexibleSpace: FlexibleSpaceBar(
+              background: _buildHero(context),
+            ),
+          ),
 
           // Content
           SliverToBoxAdapter(
@@ -243,6 +335,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                         value: '${_group!.memberCount ?? 0}',
                         onTap: _navigateToMembers,
                         isDark: _isDark,
+                        badgeCount: _group!.isAdmin ? _pendingRequestsCount : 0,
                       ),
                       const SizedBox(width: AppSpace.m),
                       _StatCard(
@@ -404,41 +497,11 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                       ),
                     ),
 
-          // Invite CTA button
+          // Bottom CTA button
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(AppSpace.l, AppSpace.l, AppSpace.l, AppSpace.xl),
-              child: SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [_kSageGreen, Color(0xFF5A8A7E)],
-                    ),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: ElevatedButton.icon(
-                    onPressed: _navigateToMembers,
-                    icon: const Icon(Icons.person_add_outlined, color: Colors.white),
-                    label: Text(
-                      l.inviteMembers,
-                      style: GoogleFonts.dmSans(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.transparent,
-                      shadowColor: Colors.transparent,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
+              child: _buildBottomCta(l),
             ),
           ),
         ],
@@ -446,37 +509,129 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
     );
   }
 
+  Widget _buildBottomCta(AppLocalizations l) {
+    // Non-member: show "Request to join" or "Request pending"
+    if (!(_group?.isGroupMember ?? false)) {
+      if (_group?.hasPendingRequest ?? false) {
+        // Already requested — show cancel option
+        return SizedBox(
+          width: double.infinity,
+          height: 52,
+          child: OutlinedButton.icon(
+            onPressed: _cancelJoinRequest,
+            icon: const Icon(Icons.hourglass_top, color: _kSageGreen),
+            label: Text(
+              l.joinRequestPending,
+              style: GoogleFonts.dmSans(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: _kSageGreen,
+              ),
+            ),
+            style: OutlinedButton.styleFrom(
+              side: const BorderSide(color: _kSageGreen),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+          ),
+        );
+      }
+
+      // Not yet requested — show "Request to join"
+      return SizedBox(
+        width: double.infinity,
+        height: 52,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [_kSageGreen, Color(0xFF5A8A7E)],
+            ),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: ElevatedButton.icon(
+            onPressed: _isRequestingJoin ? null : _requestToJoin,
+            icon: _isRequestingJoin
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Icon(Icons.group_add_outlined, color: Colors.white),
+            label: Text(
+              l.requestToJoin,
+              style: GoogleFonts.dmSans(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.transparent,
+              shadowColor: Colors.transparent,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    // Member: show "Invite members"
+    return SizedBox(
+      width: double.infinity,
+      height: 52,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [_kSageGreen, Color(0xFF5A8A7E)],
+          ),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: ElevatedButton.icon(
+          onPressed: _navigateToMembers,
+          icon: const Icon(Icons.person_add_outlined, color: Colors.white),
+          label: Text(
+            l.inviteMembers,
+            style: GoogleFonts.dmSans(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.transparent,
+            shadowColor: Colors.transparent,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildHero(BuildContext context) {
     final l = AppLocalizations.of(context);
-    return SizedBox(
-      height: 200,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          // Cover image
-          if (_group!.coverUrl != null)
-            CachedNetworkImage(
-              imageUrl: _group!.coverUrl!,
-              fit: BoxFit.cover,
-              memCacheWidth: (MediaQuery.of(context).size.width * MediaQuery.of(context).devicePixelRatio).toInt(),
-              memCacheHeight: (200 * MediaQuery.of(context).devicePixelRatio).toInt(),
-              placeholder: (context, url) => Container(
-                color: _kSageGreen.withValues(alpha: 0.3),
-                child: const Center(child: CircularProgressIndicator(color: Colors.white)),
-              ),
-              errorWidget: (context, url, error) => Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [_kSageGreen, _kSageGreen.withValues(alpha: 0.6)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                ),
-                child: const Icon(Icons.menu_book, size: 60, color: Colors.white38),
-              ),
-            )
-          else
-            Container(
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        // Cover image
+        if (_group!.coverUrl != null)
+          CachedNetworkImage(
+            imageUrl: _group!.coverUrl!,
+            fit: BoxFit.cover,
+            memCacheWidth: (MediaQuery.of(context).size.width * MediaQuery.of(context).devicePixelRatio).toInt(),
+            memCacheHeight: (200 * MediaQuery.of(context).devicePixelRatio).toInt(),
+            placeholder: (context, url) => Container(
+              color: _kSageGreen.withValues(alpha: 0.3),
+              child: const Center(child: CircularProgressIndicator(color: Colors.white)),
+            ),
+            errorWidget: (context, url, error) => Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [_kSageGreen, _kSageGreen.withValues(alpha: 0.6)],
@@ -486,83 +641,69 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
               ),
               child: const Icon(Icons.menu_book, size: 60, color: Colors.white38),
             ),
-
-          // Gradient overlay: transparent top → dark bottom
+          )
+        else
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                stops: const [0.0, 0.5, 1.0],
-                colors: [
-                  Colors.transparent,
-                  Colors.black.withValues(alpha: 0.15),
-                  Colors.black.withValues(alpha: 0.65),
-                ],
+                colors: [_kSageGreen, _kSageGreen.withValues(alpha: 0.6)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
             ),
+            child: const Icon(Icons.menu_book, size: 60, color: Colors.white38),
           ),
 
-          // Back button top-left
-          Positioned(
-            top: MediaQuery.of(context).padding.top + 8,
-            left: 12,
-            child: _HeroButton(
-              icon: Icons.arrow_back,
-              onTap: () => Navigator.pop(context),
-            ),
-          ),
-
-          // Settings / Leave button top-right
-          Positioned(
-            top: MediaQuery.of(context).padding.top + 8,
-            right: 12,
-            child: _group!.isAdmin
-                ? _HeroButton(
-                    icon: Icons.settings_outlined,
-                    onTap: _navigateToSettings,
-                  )
-                : _HeroButton(
-                    icon: Icons.exit_to_app,
-                    onTap: _leaveGroup,
-                  ),
-          ),
-
-          // Club name + badges at bottom
-          Positioned(
-            bottom: 16,
-            left: 16,
-            right: 16,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Badges row
-                Row(
-                  children: [
-                    if (_group!.isPrivate)
-                      _HeroBadge(label: l.privateTag, icon: Icons.lock),
-                    if (_group!.isPrivate && _group!.isAdmin)
-                      const SizedBox(width: 6),
-                    if (_group!.isAdmin)
-                      _HeroBadge(label: l.adminTag),
-                  ],
-                ),
-                if (_group!.isPrivate || _group!.isAdmin) const SizedBox(height: 6),
-                Text(
-                  _group!.name,
-                  style: GoogleFonts.cormorantGaramond(
-                    fontSize: 26,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
+        // Gradient overlay: transparent top → dark bottom
+        Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              stops: const [0.0, 0.5, 1.0],
+              colors: [
+                Colors.transparent,
+                Colors.black.withValues(alpha: 0.15),
+                Colors.black.withValues(alpha: 0.65),
               ],
             ),
           ),
-        ],
-      ),
+        ),
+
+        // Club name + badges at bottom
+        Positioned(
+          bottom: 16,
+          left: 16,
+          right: 16,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Badges row
+              Row(
+                children: [
+                  if (_group!.isPrivate)
+                    _HeroBadge(label: l.privateTag, icon: Icons.lock),
+                  if (_group!.isPrivate && _group!.isAdmin)
+                    const SizedBox(width: 6),
+                  if (_group!.isAdmin)
+                    _HeroBadge(label: l.adminTag),
+                ],
+              ),
+              if (_group!.isPrivate || _group!.isAdmin) const SizedBox(height: 6),
+              Text(
+                _group!.name,
+                style: GoogleFonts.cormorantGaramond(
+                  fontSize: 26,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -689,6 +830,7 @@ class _StatCard extends StatelessWidget {
   final String value;
   final VoidCallback? onTap;
   final bool isDark;
+  final int badgeCount;
 
   const _StatCard({
     required this.icon,
@@ -696,6 +838,7 @@ class _StatCard extends StatelessWidget {
     required this.value,
     this.onTap,
     required this.isDark,
+    this.badgeCount = 0,
   });
 
   @override
@@ -703,36 +846,62 @@ class _StatCard extends StatelessWidget {
     return Expanded(
       child: GestureDetector(
         onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
-          decoration: BoxDecoration(
-            color: isDark ? AppColors.surfaceDark : _kCard,
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: Column(
-            children: [
-              Icon(icon, color: _kSageGreen, size: 24),
-              const SizedBox(height: 6),
-              Text(
-                value,
-                style: GoogleFonts.cormorantGaramond(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w700,
-                  color: isDark ? Colors.white : Colors.black,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+              decoration: BoxDecoration(
+                color: isDark ? AppColors.surfaceDark : _kCard,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Column(
+                children: [
+                  Icon(icon, color: _kSageGreen, size: 24),
+                  const SizedBox(height: 6),
+                  Text(
+                    value,
+                    style: GoogleFonts.cormorantGaramond(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                      color: isDark ? Colors.white : Colors.black,
+                    ),
+                  ),
+                  Text(
+                    label,
+                    style: GoogleFonts.dmSans(
+                      fontSize: 11,
+                      color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.5),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+            if (badgeCount > 0)
+              Positioned(
+                top: -4,
+                right: -4,
+                child: Container(
+                  padding: const EdgeInsets.all(5),
+                  decoration: const BoxDecoration(
+                    color: AppColors.error,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Text(
+                    '$badgeCount',
+                    style: GoogleFonts.dmSans(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
                 ),
               ),
-              Text(
-                label,
-                style: GoogleFonts.dmSans(
-                  fontSize: 11,
-                  color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.5),
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
+          ],
         ),
       ),
     );

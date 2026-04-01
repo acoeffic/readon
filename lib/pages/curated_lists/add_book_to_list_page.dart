@@ -364,6 +364,10 @@ class _AddBookToListPageState extends State<AddBookToListPage>
               return ListTile(
                 leading: CachedBookCover(
                   imageUrl: book.coverUrl,
+                  isbn: book.isbn,
+                  googleId: book.googleId,
+                  title: book.title,
+                  author: book.author,
                   width: 40,
                   height: 58,
                   borderRadius: BorderRadius.circular(4),
@@ -560,6 +564,10 @@ class _SearchResultCard extends StatelessWidget {
               // Cover
               CachedBookCover(
                 imageUrl: googleBook.coverUrl,
+                isbn: googleBook.isbn13,
+                googleId: googleBook.id,
+                title: googleBook.title,
+                author: googleBook.authorsString,
                 width: 48,
                 height: 70,
                 borderRadius: BorderRadius.circular(4),

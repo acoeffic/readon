@@ -381,7 +381,7 @@ class _ReaderCard extends StatelessWidget {
                 ),
               ),
               child: Text(
-                isFollowed ? 'Suivi' : 'Suivre',
+                isFollowed ? 'Suivi' : 'Ajouter cet ami',
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,

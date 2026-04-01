@@ -618,7 +618,7 @@ class _AnniversaryUnlockOverlayState extends State<AnniversaryUnlockOverlay>
 
       final dir = await getTemporaryDirectory();
       final file = File(
-          '${dir.path}/readon_anniversary_${widget.badge.years}ans.png');
+          '${dir.path}/lexday_anniversary_${widget.badge.years}ans.png');
       await file.writeAsBytes(bytes);
 
       final yearsText = widget.badge.years == 1

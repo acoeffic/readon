@@ -61,6 +61,13 @@ bool isBibliothequeVivanteBadge({required String id, String? category, int? requ
   return false;
 }
 
+/// Vérifie si un badge est le badge "Première Session" (1ère session enregistrée).
+bool isFirstSessionBadge({required String id, String? category, int? requirement}) {
+  if (id == 'time_first') return true;
+  if (category == 'reading_time' && requirement == 1) return true;
+  return false;
+}
+
 /// Vérifie si un badge est le badge "Une Heure de Magie" (1h de lecture cumulée).
 bool isOneHourMagicBadge({required String id, String? category, int? requirement}) {
   if (id == 'time_1h') return true;
@@ -146,6 +153,13 @@ bool isMonumentBadge({required String id, String? category, int? requirement}) {
   return false;
 }
 
+/// Vérifie si un badge est le badge "Une Semaine" (streak de 7 jours).
+bool isStreak7DaysBadge({required String id, String? category, int? requirement}) {
+  if (id == 'streak_7_days') return true;
+  if (category == 'streak' && requirement == 7) return true;
+  return false;
+}
+
 /// Widget réutilisable pour afficher le badge Premier Livre.
 class FirstBookBadge extends StatelessWidget {
   final double size;
@@ -166,8 +180,8 @@ class FirstBookBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget badge = SvgPicture.network(
-      '${Env.supabaseStorageUrl}/asset/Image/badge/nombre_livre/badge_livres_001.svg',
+    Widget badge = Image.network(
+      '${Env.supabaseStorageUrl}/asset/Image/badge/nombre_livre/ChatGPT%20Image%2030%20mars%202026,%2016_04_03.png',
       width: size,
       height: size,
     );
@@ -206,8 +220,8 @@ class ApprenticeReaderBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget badge = SvgPicture.network(
-      '${Env.supabaseStorageUrl}/asset/Image/badge/nombre_livre/badge_livres_005.svg',
+    Widget badge = Image.network(
+      '${Env.supabaseStorageUrl}/asset/Image/badge/nombre_livre/ChatGPT%20Image%2030%20mars%202026,%2016_41_14.png',
       width: size,
       height: size,
     );
@@ -290,8 +304,8 @@ class ConfirmedReaderBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget badge = SvgPicture.network(
-      '${Env.supabaseStorageUrl}/asset/Image/badge/nombre_livre/badge_livres_010.svg',
+    Widget badge = Image.network(
+      '${Env.supabaseStorageUrl}/asset/Image/badge/nombre_livre/ChatGPT%20Image%2030%20mars%202026,%2017_19_01.png',
       width: size,
       height: size,
     );
@@ -452,6 +466,46 @@ class BibliothequeVivanteBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     Widget badge = SvgPicture.network(
       '${Env.supabaseStorageUrl}/asset/Image/badge/nombre_livre/badge_livres_500.svg',
+      width: size,
+      height: size,
+    );
+
+    if (isLocked) {
+      badge = ColorFiltered(
+        colorFilter: _greyscale,
+        child: Opacity(
+          opacity: 0.45,
+          child: badge,
+        ),
+      );
+    }
+
+    return badge;
+  }
+}
+
+/// Widget réutilisable pour afficher le badge "Première Session" (1ère session).
+class FirstSessionBadge extends StatelessWidget {
+  final double size;
+  final bool isLocked;
+
+  const FirstSessionBadge({
+    super.key,
+    this.size = 80,
+    this.isLocked = false,
+  });
+
+  static const ColorFilter _greyscale = ColorFilter.matrix(<double>[
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0,      0,      0,      1, 0,
+  ]);
+
+  @override
+  Widget build(BuildContext context) {
+    Widget badge = SvgPicture.network(
+      '${Env.supabaseStorageUrl}/asset/Image/badge/genre/badge_premiere_session.svg',
       width: size,
       height: size,
     );
@@ -2968,6 +3022,332 @@ class AnnualCentenaireBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     Widget badge = SvgPicture.network(
       '${Env.supabaseStorageUrl}/asset/Image/badge/Livre_annuel/badge_annual_04_centenaire.svg',
+      width: size,
+      height: size,
+    );
+
+    if (isLocked) {
+      badge = ColorFiltered(
+        colorFilter: _greyscale,
+        child: Opacity(
+          opacity: 0.45,
+          child: badge,
+        ),
+      );
+    }
+
+    return badge;
+  }
+}
+
+// ─────────────────────────────────────────────
+// STREAK BADGES
+// ─────────────────────────────────────────────
+
+/// Vérifie si un badge est le badge "Deux Semaines" (streak de 14 jours).
+bool isStreak14DaysBadge({required String id, String? category, int? requirement}) {
+  if (id == 'streak_14_days') return true;
+  if (category == 'streak' && requirement == 14) return true;
+  return false;
+}
+
+/// Vérifie si un badge est le badge "Un Mois" (streak de 30 jours).
+bool isStreak30DaysBadge({required String id, String? category, int? requirement}) {
+  if (id == 'streak_30_days') return true;
+  if (category == 'streak' && requirement == 30) return true;
+  return false;
+}
+
+/// Vérifie si un badge est le badge "Incassable" (streak de 60 jours).
+bool isStreak60DaysBadge({required String id, String? category, int? requirement}) {
+  if (id == 'streak_60_days') return true;
+  if (category == 'streak' && requirement == 60) return true;
+  return false;
+}
+
+/// Vérifie si un badge est le badge "Trimestre Parfait" (streak de 90 jours).
+bool isStreak90DaysBadge({required String id, String? category, int? requirement}) {
+  if (id == 'streak_90_days') return true;
+  if (category == 'streak' && requirement == 90) return true;
+  return false;
+}
+
+/// Vérifie si un badge est le badge "Semi-Annuel" (streak de 180 jours).
+bool isStreak180DaysBadge({required String id, String? category, int? requirement}) {
+  if (id == 'streak_180_days') return true;
+  if (category == 'streak' && requirement == 180) return true;
+  return false;
+}
+
+/// Vérifie si un badge est le badge "Année Complète" (streak de 365 jours).
+bool isStreak365DaysBadge({required String id, String? category, int? requirement}) {
+  if (id == 'streak_365_days') return true;
+  if (category == 'streak' && requirement == 365) return true;
+  return false;
+}
+
+/// Widget réutilisable pour afficher le badge "Une Semaine" (streak 7 jours).
+class Streak7DaysBadge extends StatelessWidget {
+  final double size;
+  final bool isLocked;
+
+  const Streak7DaysBadge({
+    super.key,
+    this.size = 80,
+    this.isLocked = false,
+  });
+
+  static const ColorFilter _greyscale = ColorFilter.matrix(<double>[
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0,      0,      0,      1, 0,
+  ]);
+
+  @override
+  Widget build(BuildContext context) {
+    Widget badge = SvgPicture.network(
+      '${Env.supabaseStorageUrl}/asset/Image/badge/Flow/badge_flow_7j%20(1).svg',
+      width: size,
+      height: size,
+    );
+
+    if (isLocked) {
+      badge = ColorFiltered(
+        colorFilter: _greyscale,
+        child: Opacity(
+          opacity: 0.45,
+          child: badge,
+        ),
+      );
+    }
+
+    return badge;
+  }
+}
+
+/// Widget réutilisable pour afficher le badge "Deux Semaines" (streak 14 jours).
+class Streak14DaysBadge extends StatelessWidget {
+  final double size;
+  final bool isLocked;
+
+  const Streak14DaysBadge({
+    super.key,
+    this.size = 80,
+    this.isLocked = false,
+  });
+
+  static const ColorFilter _greyscale = ColorFilter.matrix(<double>[
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0,      0,      0,      1, 0,
+  ]);
+
+  @override
+  Widget build(BuildContext context) {
+    Widget badge = SvgPicture.network(
+      '${Env.supabaseStorageUrl}/asset/Image/badge/Flow/badge_flow_14j.svg',
+      width: size,
+      height: size,
+    );
+
+    if (isLocked) {
+      badge = ColorFiltered(
+        colorFilter: _greyscale,
+        child: Opacity(
+          opacity: 0.45,
+          child: badge,
+        ),
+      );
+    }
+
+    return badge;
+  }
+}
+
+/// Widget réutilisable pour afficher le badge "Un Mois" (streak 30 jours).
+class Streak30DaysBadge extends StatelessWidget {
+  final double size;
+  final bool isLocked;
+
+  const Streak30DaysBadge({
+    super.key,
+    this.size = 80,
+    this.isLocked = false,
+  });
+
+  static const ColorFilter _greyscale = ColorFilter.matrix(<double>[
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0,      0,      0,      1, 0,
+  ]);
+
+  @override
+  Widget build(BuildContext context) {
+    Widget badge = SvgPicture.network(
+      '${Env.supabaseStorageUrl}/asset/Image/badge/Flow/badge_flow_30j.svg',
+      width: size,
+      height: size,
+    );
+
+    if (isLocked) {
+      badge = ColorFiltered(
+        colorFilter: _greyscale,
+        child: Opacity(
+          opacity: 0.45,
+          child: badge,
+        ),
+      );
+    }
+
+    return badge;
+  }
+}
+
+/// Widget réutilisable pour afficher le badge "Incassable" (streak 60 jours).
+class Streak60DaysBadge extends StatelessWidget {
+  final double size;
+  final bool isLocked;
+
+  const Streak60DaysBadge({
+    super.key,
+    this.size = 80,
+    this.isLocked = false,
+  });
+
+  static const ColorFilter _greyscale = ColorFilter.matrix(<double>[
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0,      0,      0,      1, 0,
+  ]);
+
+  @override
+  Widget build(BuildContext context) {
+    Widget badge = SvgPicture.network(
+      '${Env.supabaseStorageUrl}/asset/Image/badge/Flow/badge_flow_60j.svg',
+      width: size,
+      height: size,
+    );
+
+    if (isLocked) {
+      badge = ColorFiltered(
+        colorFilter: _greyscale,
+        child: Opacity(
+          opacity: 0.45,
+          child: badge,
+        ),
+      );
+    }
+
+    return badge;
+  }
+}
+
+/// Widget réutilisable pour afficher le badge "Trimestre Parfait" (streak 90 jours).
+class Streak90DaysBadge extends StatelessWidget {
+  final double size;
+  final bool isLocked;
+
+  const Streak90DaysBadge({
+    super.key,
+    this.size = 80,
+    this.isLocked = false,
+  });
+
+  static const ColorFilter _greyscale = ColorFilter.matrix(<double>[
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0,      0,      0,      1, 0,
+  ]);
+
+  @override
+  Widget build(BuildContext context) {
+    Widget badge = SvgPicture.network(
+      '${Env.supabaseStorageUrl}/asset/Image/badge/Flow/badge_flow_90j.svg',
+      width: size,
+      height: size,
+    );
+
+    if (isLocked) {
+      badge = ColorFiltered(
+        colorFilter: _greyscale,
+        child: Opacity(
+          opacity: 0.45,
+          child: badge,
+        ),
+      );
+    }
+
+    return badge;
+  }
+}
+
+/// Widget réutilisable pour afficher le badge "Semi-Annuel" (streak 180 jours).
+class Streak180DaysBadge extends StatelessWidget {
+  final double size;
+  final bool isLocked;
+
+  const Streak180DaysBadge({
+    super.key,
+    this.size = 80,
+    this.isLocked = false,
+  });
+
+  static const ColorFilter _greyscale = ColorFilter.matrix(<double>[
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0,      0,      0,      1, 0,
+  ]);
+
+  @override
+  Widget build(BuildContext context) {
+    Widget badge = SvgPicture.network(
+      '${Env.supabaseStorageUrl}/asset/Image/badge/Flow/badge_flow_180j.svg',
+      width: size,
+      height: size,
+    );
+
+    if (isLocked) {
+      badge = ColorFiltered(
+        colorFilter: _greyscale,
+        child: Opacity(
+          opacity: 0.45,
+          child: badge,
+        ),
+      );
+    }
+
+    return badge;
+  }
+}
+
+/// Widget réutilisable pour afficher le badge "Année Complète" (streak 365 jours).
+class Streak365DaysBadge extends StatelessWidget {
+  final double size;
+  final bool isLocked;
+
+  const Streak365DaysBadge({
+    super.key,
+    this.size = 80,
+    this.isLocked = false,
+  });
+
+  static const ColorFilter _greyscale = ColorFilter.matrix(<double>[
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0,      0,      0,      1, 0,
+  ]);
+
+  @override
+  Widget build(BuildContext context) {
+    Widget badge = SvgPicture.network(
+      '${Env.supabaseStorageUrl}/asset/Image/badge/Flow/badge_flow_365j.svg',
       width: size,
       height: size,
     );

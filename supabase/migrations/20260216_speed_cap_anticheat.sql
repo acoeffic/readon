@@ -273,6 +273,7 @@ GRANT EXECUTE ON FUNCTION check_and_award_secret_badges(UUID, BOOLEAN) TO authen
 
 DROP FUNCTION IF EXISTS get_all_user_badges(UUID);
 
+DROP FUNCTION IF EXISTS get_all_user_badges(UUID) CASCADE;
 CREATE OR REPLACE FUNCTION get_all_user_badges(p_user_id UUID)
 RETURNS TABLE (
   badge_id TEXT,
@@ -446,7 +447,7 @@ BEGIN
     NULL::TEXT AS lottie_asset,
     COALESCE(b.sort_order, 0) AS sort_order,
     b.tier,
-    ub.unlocked_at AS unlocked_at,
+    ub.earned_at AS unlocked_at,
     -- Calculer la progression selon la catégorie
     CASE b.category
       WHEN 'books_completed' THEN LEAST(v_completed_books, b.requirement)
@@ -500,7 +501,7 @@ BEGIN
         END
       ELSE 0
     END AS progress,
-    (ub.unlocked_at IS NOT NULL) AS is_unlocked
+    (ub.earned_at IS NOT NULL) AS is_unlocked
   FROM badges b
   LEFT JOIN user_badges ub ON ub.badge_id = b.id AND ub.user_id = p_user_id
   ORDER BY b.category, COALESCE(b.sort_order, 0), b.requirement;
@@ -512,6 +513,7 @@ $$;
 -- ============================================================================
 -- Basé sur la version de 20260201_complete_badges_system.sql
 
+DROP FUNCTION IF EXISTS check_and_award_badges(UUID) CASCADE;
 CREATE OR REPLACE FUNCTION check_and_award_badges(p_user_id UUID)
 RETURNS TABLE (
   badge_id TEXT,

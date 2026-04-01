@@ -85,7 +85,7 @@ class TermsOfServicePage extends StatelessWidget {
                   ),
                   _buildSection(
                     '14. Contact',
-                    'Pour toute question relative aux CGU :\n📧 contact@readon.app',
+                    'Pour toute question relative aux CGU :\n📧 contact@lexday.app',
                   ),
                   const SizedBox(height: 80),
                 ],

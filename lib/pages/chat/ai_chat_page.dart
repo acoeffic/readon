@@ -1,8 +1,10 @@
+import 'dart:math' show sin;
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../bookstores/nearby_bookstores_page.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/cached_book_cover.dart';
 import '../../models/ai_message.dart';
@@ -574,6 +576,8 @@ class _AiChatPageState extends State<AiChatPage> {
                 children: [
                   CachedBookCover(
                     imageUrl: googleBook.coverUrl,
+                    isbn: googleBook.isbn13,
+                    googleId: googleBook.id,
                     width: 100,
                     height: 150,
                     borderRadius: BorderRadius.circular(8),
@@ -660,6 +664,44 @@ class _AiChatPageState extends State<AiChatPage> {
                                   style: const TextStyle(
                                     fontSize: 12,
                                     color: AppColors.primary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        GestureDetector(
+                          onTap: () {
+                            final query = Uri.encodeComponent(
+                              '${googleBook.title} ${googleBook.authorsString}'.trim(),
+                            );
+                            launchUrl(
+                              Uri.parse('https://www.amazon.fr/s?k=$query&i=stripbooks&tag=lexday-21'),
+                              mode: LaunchMode.externalApplication,
+                            );
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFF9900).withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: const Color(0xFFFF9900).withValues(alpha: 0.3),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.shopping_cart_outlined,
+                                    size: 14, color: Color(0xFFFF9900)),
+                                const SizedBox(width: 4),
+                                Text(
+                                  l.amazon,
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Color(0xFFFF9900),
                                   ),
                                 ),
                               ],
@@ -787,50 +829,11 @@ class _AiChatPageState extends State<AiChatPage> {
     }
   }
 
-  Future<void> _openNearbyBookstores(BuildContext parentContext) async {
-    final l = AppLocalizations.of(context);
-    try {
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(parentContext).showSnackBar(
-          SnackBar(content: Text(l.enableLocationSettings)),
-        );
-        return;
-      }
-
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-      }
-      if (permission == LocationPermission.denied ||
-          permission == LocationPermission.deniedForever) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(parentContext).showSnackBar(
-          SnackBar(content: Text(l.locationAccessRequired)),
-        );
-        return;
-      }
-
-      Position? position = await Geolocator.getLastKnownPosition();
-      position ??= await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.low,
-          timeLimit: Duration(seconds: 15),
-        ),
-      );
-
-      final url = Uri.parse(
-        'https://www.google.com/maps/search/librairie/@${position.latitude},${position.longitude},14z',
-      );
-      await launchUrl(url, mode: LaunchMode.externalApplication);
-    } catch (e) {
-      debugPrint('Geolocation error: $e');
-      if (!mounted) return;
-      ScaffoldMessenger.of(parentContext).showSnackBar(
-        SnackBar(content: Text('Erreur localisation: $e')),
-      );
-    }
+  void _openNearbyBookstores(BuildContext parentContext) {
+    Navigator.push(
+      parentContext,
+      MaterialPageRoute(builder: (_) => const NearbyBookstoresPage()),
+    );
   }
 
   Widget _buildBuyOption({
@@ -861,32 +864,7 @@ class _AiChatPageState extends State<AiChatPage> {
           color: isDark ? AppColors.surfaceDark : Colors.white,
           borderRadius: BorderRadius.circular(AppRadius.l),
         ),
-        child: SizedBox(
-          width: 48,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: List.generate(3, (index) {
-              return TweenAnimationBuilder<double>(
-                tween: Tween(begin: 0.3, end: 1.0),
-                duration: Duration(milliseconds: 600 + index * 200),
-                builder: (context, value, child) {
-                  return Opacity(
-                    opacity: value,
-                    child: Container(
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.6),
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  );
-                },
-              );
-            }),
-          ),
-        ),
+        child: const _BouncingDots(),
       ),
     );
   }
@@ -1001,6 +979,74 @@ class _AiChatPageState extends State<AiChatPage> {
     _scrollController.dispose();
     _focusNode.dispose();
     super.dispose();
+  }
+}
+
+class _BouncingDots extends StatefulWidget {
+  const _BouncingDots();
+
+  @override
+  State<_BouncingDots> createState() => _BouncingDotsState();
+}
+
+class _BouncingDotsState extends State<_BouncingDots>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 48,
+      height: 16,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: List.generate(3, (index) {
+          return AnimatedBuilder(
+            animation: _controller,
+            builder: (context, child) {
+              // Décalage de chaque point
+              final delay = index * 0.2;
+              final t = (_controller.value - delay) % 1.0;
+              // Rebond sinusoïdal dans la première moitié du cycle
+              final bounce = t < 0.5
+                  ? sin(t * 2 * 3.14159) * 4.0
+                  : 0.0;
+              final opacity = t < 0.5 ? 0.4 + 0.6 * sin(t * 2 * 3.14159) : 0.4;
+              return Transform.translate(
+                offset: Offset(0, -bounce),
+                child: Opacity(
+                  opacity: opacity,
+                  child: child,
+                ),
+              );
+            },
+            child: Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.6),
+                shape: BoxShape.circle,
+              ),
+            ),
+          );
+        }),
+      ),
+    );
   }
 }
 

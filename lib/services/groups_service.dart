@@ -117,10 +117,22 @@ class GroupsService {
         ? (response['group_members'] as List).length
         : 0;
 
+    // Check if user has a pending join request (only if not a member)
+    bool hasPendingRequest = false;
+    if (userId != null && userRole == null) {
+      try {
+        hasPendingRequest = await hasPendingJoinRequest(groupId);
+      } catch (_) {
+        // RPC may not be deployed yet — treat as no pending request
+        hasPendingRequest = false;
+      }
+    }
+
     return ReadingGroup.fromJson({
       ...response,
       'member_count': memberCount,
       'user_role': userRole,
+      'has_pending_request': hasPendingRequest,
     });
   }
 
@@ -162,6 +174,18 @@ class GroupsService {
     final userId = _supabase.auth.currentUser?.id;
     if (userId == null) throw Exception('User not authenticated');
 
+    // Check membership before attempting to leave
+    final member = await _supabase
+        .from('group_members')
+        .select('id')
+        .eq('group_id', groupId)
+        .eq('user_id', userId)
+        .maybeSingle();
+
+    if (member == null) {
+      throw Exception('Not a member of this group');
+    }
+
     await _supabase
         .from('group_members')
         .delete()
@@ -175,17 +199,28 @@ class GroupsService {
 
   /// Get group members with profile info
   Future<List<GroupMember>> getGroupMembers(String groupId) async {
-    final response = await _supabase
+    final membersResponse = await _supabase
         .from('group_members')
-        .select('''
-          *,
-          profiles:user_id(display_name, email, avatar_url)
-        ''')
+        .select('*')
         .eq('group_id', groupId)
         .order('joined_at', ascending: false);
 
-    return (response as List).map((json) {
-      final profile = json['profiles'] as Map<String, dynamic>?;
+    final members = membersResponse as List;
+    if (members.isEmpty) return [];
+
+    final userIds = members.map((m) => m['user_id'] as String).toList();
+    final profilesResponse = await _supabase
+        .from('profiles')
+        .select('id, display_name, email, avatar_url')
+        .inFilter('id', userIds);
+
+    final profilesMap = {
+      for (final p in profilesResponse as List)
+        p['id'] as String: p as Map<String, dynamic>
+    };
+
+    return members.map((json) {
+      final profile = profilesMap[json['user_id'] as String];
       return GroupMember.fromJson({
         ...json,
         'user_name': profile?['display_name'],
@@ -296,6 +331,85 @@ class GroupsService {
   }
 
   // =====================================================
+  // JOIN REQUESTS
+  // =====================================================
+
+  /// Request to join a group
+  Future<void> requestToJoin({
+    required String groupId,
+    String? message,
+  }) async {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) throw Exception('User not authenticated');
+
+    await _supabase.from('group_join_requests').insert({
+      'group_id': groupId,
+      'user_id': userId,
+      'message': message,
+      'status': 'pending',
+    });
+  }
+
+  /// Cancel own join request
+  Future<void> cancelJoinRequest(String groupId) async {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) throw Exception('User not authenticated');
+
+    await _supabase
+        .from('group_join_requests')
+        .delete()
+        .eq('group_id', groupId)
+        .eq('user_id', userId)
+        .eq('status', 'pending');
+  }
+
+  /// Check if user has a pending join request
+  Future<bool> hasPendingJoinRequest(String groupId) async {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) return false;
+
+    final response = await _supabase
+        .rpc('has_pending_join_request', params: {
+      'p_group_id': groupId,
+      'p_user_id': userId,
+    });
+
+    return response as bool? ?? false;
+  }
+
+  /// Get pending join requests for a group (admin only)
+  Future<List<GroupJoinRequest>> getJoinRequests(String groupId) async {
+    final response = await _supabase
+        .rpc('get_group_join_requests', params: {'p_group_id': groupId});
+
+    return (response as List)
+        .map((json) => GroupJoinRequest.fromJson(json as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Respond to a join request (admin only)
+  Future<void> respondToJoinRequest({
+    required String requestId,
+    required bool accept,
+  }) async {
+    await _supabase.rpc('respond_to_join_request', params: {
+      'p_request_id': requestId,
+      'p_accept': accept,
+    });
+  }
+
+  /// Watch pending join requests count for a group (real-time)
+  Stream<int> watchPendingJoinRequestsCount(String groupId) {
+    return _supabase
+        .from('group_join_requests')
+        .stream(primaryKey: ['id'])
+        .eq('group_id', groupId)
+        .map((data) => data
+            .where((r) => r['status'] == 'pending')
+            .length);
+  }
+
+  // =====================================================
   // GROUP ACTIVITIES
   // =====================================================
 
@@ -305,18 +419,29 @@ class GroupsService {
     int limit = 20,
     int offset = 0,
   }) async {
-    final response = await _supabase
+    final activitiesResponse = await _supabase
         .from('group_activities')
-        .select('''
-          *,
-          profiles:user_id(display_name, avatar_url)
-        ''')
+        .select('*')
         .eq('group_id', groupId)
         .order('created_at', ascending: false)
         .range(offset, offset + limit - 1);
 
-    return (response as List).map((json) {
-      final profile = json['profiles'] as Map<String, dynamic>?;
+    final activities = activitiesResponse as List;
+    if (activities.isEmpty) return [];
+
+    final userIds = activities.map((a) => a['user_id'] as String).toSet().toList();
+    final profilesResponse = await _supabase
+        .from('profiles')
+        .select('id, display_name, avatar_url')
+        .inFilter('id', userIds);
+
+    final profilesMap = {
+      for (final p in profilesResponse as List)
+        p['id'] as String: p as Map<String, dynamic>
+    };
+
+    return activities.map((json) {
+      final profile = profilesMap[json['user_id'] as String];
       return GroupActivity.fromJson({
         ...json,
         'user_name': profile?['display_name'],

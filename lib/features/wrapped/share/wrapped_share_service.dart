@@ -89,7 +89,7 @@ class WrappedShareService {
     int year,
   ) async {
     final dir = await getTemporaryDirectory();
-    final name = 'readon_wrapped_${year}_${format.name}.png';
+    final name = 'lexday_wrapped_${year}_${format.name}.png';
     final file = File('${dir.path}/$name');
     await file.writeAsBytes(bytes);
     Future.delayed(const Duration(seconds: 60), () => file.delete().catchError((_) => file));

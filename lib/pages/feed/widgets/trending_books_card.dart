@@ -30,7 +30,7 @@ class TrendingBooksCard extends StatelessWidget {
         ),
         const SizedBox(height: AppSpace.m),
         SizedBox(
-          height: 220,
+          height: 280,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             itemCount: books.length,
@@ -41,6 +41,8 @@ class TrendingBooksCard extends StatelessWidget {
                 title: book['book_title'] as String? ?? '',
                 author: book['book_author'] as String? ?? '',
                 coverUrl: book['book_cover'] as String?,
+                isbn: book['book_isbn'] as String?,
+                googleId: book['book_google_id'] as String?,
                 sessionCount: (book['session_count'] as num?)?.toInt() ?? 0,
                 readerCount: (book['reader_count'] as num?)?.toInt() ?? 0,
                 onTap: onBookTap != null ? () => onBookTap!(book) : null,
@@ -58,6 +60,8 @@ class _TrendingBookItem extends StatelessWidget {
   final String title;
   final String author;
   final String? coverUrl;
+  final String? isbn;
+  final String? googleId;
   final int sessionCount;
   final int readerCount;
   final VoidCallback? onTap;
@@ -67,6 +71,8 @@ class _TrendingBookItem extends StatelessWidget {
     required this.title,
     required this.author,
     this.coverUrl,
+    this.isbn,
+    this.googleId,
     required this.sessionCount,
     required this.readerCount,
     this.onTap,
@@ -79,7 +85,7 @@ class _TrendingBookItem extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-      width: 140,
+      width: 160,
       margin: const EdgeInsets.only(right: 12),
       child: Card(
         elevation: isDark ? 0 : 1,
@@ -96,8 +102,12 @@ class _TrendingBookItem extends StatelessWidget {
                 children: [
                   CachedBookCover(
                     imageUrl: coverUrl,
-                    width: 124,
-                    height: 110,
+                    isbn: isbn,
+                    googleId: googleId,
+                    title: title,
+                    author: author,
+                    width: 144,
+                    height: 140,
                     borderRadius: BorderRadius.circular(AppRadius.s),
                   ),
                   Positioned(

@@ -60,6 +60,8 @@ class ActiveReadersCard extends StatelessWidget {
                 bookTitle: reader['book_title'] as String? ?? '',
                 bookAuthor: reader['book_author'] as String?,
                 bookCover: reader['book_cover'] as String?,
+                bookIsbn: reader['book_isbn'] as String?,
+                bookGoogleId: reader['book_google_id'] as String?,
                 startTime: reader['start_time'] as String?,
                 onTap: onReaderTap != null ? () => onReaderTap!(reader) : null,
               );
@@ -77,6 +79,8 @@ class _ActiveReaderItem extends StatelessWidget {
   final String bookTitle;
   final String? bookAuthor;
   final String? bookCover;
+  final String? bookIsbn;
+  final String? bookGoogleId;
   final String? startTime;
   final VoidCallback? onTap;
 
@@ -86,6 +90,8 @@ class _ActiveReaderItem extends StatelessWidget {
     required this.bookTitle,
     this.bookAuthor,
     this.bookCover,
+    this.bookIsbn,
+    this.bookGoogleId,
     this.startTime,
     this.onTap,
   });
@@ -128,6 +134,10 @@ class _ActiveReaderItem extends StatelessWidget {
                   children: [
                     CachedBookCover(
                       imageUrl: bookCover,
+                      isbn: bookIsbn,
+                      googleId: bookGoogleId,
+                      title: bookTitle,
+                      author: bookAuthor,
                       width: 114,
                       height: 85,
                       borderRadius: BorderRadius.circular(AppRadius.s),

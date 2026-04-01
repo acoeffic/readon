@@ -10,6 +10,7 @@ import '../../providers/subscription_provider.dart';
 import '../../pages/profile/upgrade_page.dart';
 import '../../theme/app_theme.dart';
 import '../../features/badges/widgets/first_book_badge_painter.dart';
+import '../badges/badge_share_service.dart';
 
 class AllBadgesPage extends StatefulWidget {
   const AllBadgesPage({super.key});
@@ -22,7 +23,7 @@ class _AllBadgesPageState extends State<AllBadgesPage> {
   final badgesService = BadgesService();
   List<UserBadge> _allBadges = [];
   bool _isLoading = true;
-  String _selectedMainFilter = 'all'; // 'all', 'unlocked', 'locked'
+  String _selectedMainFilter = 'unlocked'; // 'unlocked', 'locked'
   final Set<String> _selectedSubFilters = {}; // 'premium', 'secret'
 
   @override
@@ -606,7 +607,7 @@ class _PremiumBanner extends StatelessWidget {
   }
 }
 
-// Main filter tabs (Tous, Débloqués, Verrouillés)
+// Main filter tabs (Débloqués, Verrouillés)
 class _MainFilterTabs extends StatelessWidget {
   final String selectedFilter;
   final ValueChanged<String> onFilterChanged;
@@ -628,11 +629,6 @@ class _MainFilterTabs extends StatelessWidget {
       ),
       child: Row(
         children: [
-          _TabButton(
-            label: 'Tous',
-            isSelected: selectedFilter == 'all',
-            onTap: () => onFilterChanged('all'),
-          ),
           _TabButton(
             label: 'Débloqués',
             isSelected: selectedFilter == 'unlocked',
@@ -951,6 +947,8 @@ class _BadgeCard extends StatelessWidget {
                     ? LegendeLitteraireBadge(size: 80, isLocked: !badge.isUnlocked)
                     : isBibliothequeVivanteBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
                     ? BibliothequeVivanteBadge(size: 80, isLocked: !badge.isUnlocked)
+                    : isFirstSessionBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                    ? FirstSessionBadge(size: 80, isLocked: !badge.isUnlocked)
                     : isOneHourMagicBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
                     ? OneHourMagicBadge(size: 80, isLocked: !badge.isUnlocked)
                     : isSundayReaderBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
@@ -1067,6 +1065,20 @@ class _BadgeCard extends StatelessWidget {
                     ? GenreDevpersoMaitreBadge(size: 80, isLocked: !badge.isUnlocked)
                     : isGenreDevpersoLegendeBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
                     ? GenreDevpersoLegendeBadge(size: 80, isLocked: !badge.isUnlocked)
+                    : isStreak7DaysBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                    ? Streak7DaysBadge(size: 80, isLocked: !badge.isUnlocked)
+                    : isStreak14DaysBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                    ? Streak14DaysBadge(size: 80, isLocked: !badge.isUnlocked)
+                    : isStreak30DaysBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                    ? Streak30DaysBadge(size: 80, isLocked: !badge.isUnlocked)
+                    : isStreak60DaysBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                    ? Streak60DaysBadge(size: 80, isLocked: !badge.isUnlocked)
+                    : isStreak90DaysBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                    ? Streak90DaysBadge(size: 80, isLocked: !badge.isUnlocked)
+                    : isStreak180DaysBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                    ? Streak180DaysBadge(size: 80, isLocked: !badge.isUnlocked)
+                    : isStreak365DaysBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                    ? Streak365DaysBadge(size: 80, isLocked: !badge.isUnlocked)
                     : isComebackBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
                     ? ComebackBadge(badgeId: badge.id, size: 80, isLocked: !badge.isUnlocked)
                     : Container(
@@ -1335,6 +1347,8 @@ class _BadgeCard extends StatelessWidget {
                     ? ConfirmedReaderBadge(size: 120, isLocked: !badge.isUnlocked)
                     : isBibliophileBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
                     ? BibliophileBadge(size: 120, isLocked: !badge.isUnlocked)
+                    : isFirstSessionBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                    ? FirstSessionBadge(size: 120, isLocked: !badge.isUnlocked)
                     : isOneHourMagicBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
                     ? OneHourMagicBadge(size: 120, isLocked: !badge.isUnlocked)
                     : isSundayReaderBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
@@ -1451,6 +1465,20 @@ class _BadgeCard extends StatelessWidget {
                     ? GenreDevpersoMaitreBadge(size: 120, isLocked: !badge.isUnlocked)
                     : isGenreDevpersoLegendeBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
                     ? GenreDevpersoLegendeBadge(size: 120, isLocked: !badge.isUnlocked)
+                    : isStreak7DaysBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                    ? Streak7DaysBadge(size: 120, isLocked: !badge.isUnlocked)
+                    : isStreak14DaysBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                    ? Streak14DaysBadge(size: 120, isLocked: !badge.isUnlocked)
+                    : isStreak30DaysBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                    ? Streak30DaysBadge(size: 120, isLocked: !badge.isUnlocked)
+                    : isStreak60DaysBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                    ? Streak60DaysBadge(size: 120, isLocked: !badge.isUnlocked)
+                    : isStreak90DaysBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                    ? Streak90DaysBadge(size: 120, isLocked: !badge.isUnlocked)
+                    : isStreak180DaysBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                    ? Streak180DaysBadge(size: 120, isLocked: !badge.isUnlocked)
+                    : isStreak365DaysBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
+                    ? Streak365DaysBadge(size: 120, isLocked: !badge.isUnlocked)
                     : isComebackBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
                     ? ComebackBadge(badgeId: badge.id, size: 120, isLocked: !badge.isUnlocked)
                     : Container(
@@ -1660,6 +1688,20 @@ class _BadgeCard extends StatelessWidget {
                 'Passer Premium',
                 style: TextStyle(
                   color: Colors.amber.shade700,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          if (badge.isUnlocked)
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                showBadgeShareSheet(context: context, badge: badge);
+              },
+              child: Text(
+                'Partager',
+                style: TextStyle(
+                  color: AppColors.primary,
                   fontWeight: FontWeight.w600,
                 ),
               ),

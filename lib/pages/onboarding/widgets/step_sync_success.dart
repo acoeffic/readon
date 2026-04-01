@@ -69,6 +69,10 @@ class StepSyncSuccess extends StatelessWidget {
                     padding: const EdgeInsets.only(right: AppSpace.s),
                     child: CachedBookCover(
                       imageUrl: book.coverUrl,
+                      isbn: book.isbn,
+                      googleId: book.googleId,
+                      title: book.title,
+                      author: book.author,
                       width: 80,
                       height: 120,
                       borderRadius: BorderRadius.circular(AppRadius.s),

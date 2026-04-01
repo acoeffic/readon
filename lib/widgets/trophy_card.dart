@@ -4,6 +4,8 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import '../models/trophy.dart';
+import '../pages/badges/badge_share_service.dart';
+import '../services/badges_service.dart';
 import '../theme/app_theme.dart';
 
 class TrophyCard extends StatelessWidget {
@@ -229,26 +231,74 @@ class _TrophyUnlockedDialogState extends State<TrophyUnlockedDialog>
 
                   const SizedBox(height: 24),
 
-                  ElevatedButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 32,
-                        vertical: 16,
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Partager
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                          final badge = UserBadge(
+                            id: widget.trophy.id,
+                            name: widget.trophy.name,
+                            description: widget.trophy.description,
+                            icon: widget.trophy.icon,
+                            category: 'trophy',
+                            requirement: 1,
+                            color: '#8FBC8F',
+                            unlockedAt: widget.trophy.unlockedAt,
+                            progress: 1,
+                            isUnlocked: true,
+                          );
+                          showBadgeShareSheet(
+                            context: context,
+                            badge: badge,
+                          );
+                        },
+                        icon: const Icon(Icons.share, size: 18),
+                        label: const Text(
+                          'Partager',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 14,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                        ),
                       ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30),
+                      const SizedBox(width: 12),
+                      // Fermer
+                      OutlinedButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.primary,
+                          side: const BorderSide(color: AppColors.primary),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 14,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                        ),
+                        child: const Text(
+                          'Super !',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
-                    ),
-                    child: const Text(
-                      'Super !',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    ],
                   ),
                 ],
               ),

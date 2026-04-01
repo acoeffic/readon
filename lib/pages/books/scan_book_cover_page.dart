@@ -253,16 +253,41 @@ class _ScanBookCoverPageState extends State<ScanBookCoverPage>
         .where((l) => l.length > 2) // Ignorer lignes trop courtes
         .where((l) => !RegExp(r'^\d[\d\s\-\./:]*$').hasMatch(l)) // Ignorer dates/numéros purs
         .where((l) {
-          // Ignorer les noms d'éditeurs/collections courants
           final lower = l.toLowerCase();
-          const noise = [
+          // Ignorer les noms d'éditeurs/collections/mentions courantes
+          const noiseExact = [
+            // Éditeurs
             'texto', 'folio', 'poche', 'pocket', 'j\'ai lu', 'livre de poche',
             'gallimard', 'hachette', 'flammarion', 'albin michel', 'seuil',
-            'grasset', 'actes sud', 'points', 'babel', 'edition', 'édition',
-            'editions', 'éditions', 'collection', 'isbn', 'roman', 'essai',
-            'prix', 'best-seller', 'bestseller', 'www.', 'http',
+            'grasset', 'actes sud', 'points', 'babel', 'nathan', 'casterman',
+            'bayard', 'milan', 'didier jeunesse', 'père castor', 'père castor',
+            'l\'école des loisirs', 'ecole des loisirs', 'kaléidoscope',
+            'kaleidoscope', 'gautier-languereau', 'auzou', 'fleurus',
+            'larousse', 'robert laffont', 'calmann-lévy', 'calmann-levy',
+            'le cherche midi', 'stock', 'jc lattès', 'jc lattes', 'belfond',
+            'denoël', 'denoel', 'rivages', 'minuit', 'p.o.l', 'verdier',
+            'zulma', 'sabine wespieser', 'l\'olivier', 'mercure de france',
+            'penguin', 'harper collins', 'harpercollins', 'simon & schuster',
+            'random house', 'macmillan', 'scholastic', 'bloomsbury',
+            // Collections / types
+            'edition', 'édition', 'editions', 'éditions', 'collection',
+            'album', 'album nathan', 'album jeunesse', 'roman', 'essai',
+            'bd', 'bande dessinée', 'manga', 'poche', 'grand format',
+            // Mentions marketing
+            'isbn', 'prix', 'best-seller', 'bestseller', 'www.', 'http',
+            'nouveau', 'nouveauté', 'nouveaute', 'inédit', 'inedit',
           ];
-          return !noise.any((n) => lower == n || lower.startsWith('$n '));
+          // Correspondance exacte ou préfixe
+          if (noiseExact.any((n) => lower == n || lower.startsWith('$n '))) {
+            return false;
+          }
+          // Ignorer les lignes qui sont juste "Éditions X" ou "Collection X"
+          if (RegExp(r'^(éditions?|editions?|collection)\b', caseSensitive: false).hasMatch(lower)) {
+            return false;
+          }
+          // Ignorer les lignes contenant uniquement un copyright/année
+          if (RegExp(r'^[©®]\s*\d{4}').hasMatch(l)) return false;
+          return true;
         })
         .toList();
 
@@ -270,7 +295,14 @@ class _ScanBookCoverPageState extends State<ScanBookCoverPage>
 
     // Prendre les 2 lignes les plus longues (probablement titre + auteur)
     final sorted = List<String>.from(lines)..sort((a, b) => b.length.compareTo(a.length));
-    return sorted.take(2).join(' ');
+    final topLines = sorted.take(2).toList();
+
+    // Utiliser intitle: sur la ligne la plus longue (titre probable)
+    // pour améliorer la pertinence Google Books
+    if (topLines.length >= 2) {
+      return 'intitle:${topLines[0]} inauthor:${topLines[1]}';
+    }
+    return 'intitle:${topLines[0]}';
   }
 
   /// Rechercher sur Google Books avec le texte OCR
@@ -284,9 +316,16 @@ class _ScanBookCoverPageState extends State<ScanBookCoverPage>
       final cleanQuery = _cleanOCRQuery(query);
       debugPrint('OCR search query: "$cleanQuery"');
 
-      var results = await _googleBooksService.searchBooks(cleanQuery);
+      // 1. Essayer avec la requête nettoyée (intitle:/inauthor:) + restriction FR
+      var results = await _googleBooksService.searchBooks(cleanQuery, langRestrict: true);
 
-      // Si pas de résultat, essayer avec seulement la ligne la plus longue (titre probable)
+      // 2. Si pas de résultat, réessayer sans restriction de langue
+      if (results.isEmpty) {
+        debugPrint('OCR retry without lang restrict');
+        results = await _googleBooksService.searchBooks(cleanQuery);
+      }
+
+      // 3. Fallback : requête simple avec la ligne la plus longue (sans intitle:)
       if (results.isEmpty) {
         final fallbackLines = query
             .split('\n')
@@ -294,7 +333,6 @@ class _ScanBookCoverPageState extends State<ScanBookCoverPage>
             .where((l) => l.length > 3)
             .toList();
         if (fallbackLines.isNotEmpty) {
-          // Essayer la ligne la plus longue seule
           fallbackLines.sort((a, b) => b.length.compareTo(a.length));
           final fallbackQuery = fallbackLines.first;
           debugPrint('OCR fallback query: "$fallbackQuery"');
@@ -898,6 +936,10 @@ class _ScanBookCoverPageState extends State<ScanBookCoverPage>
                 child: ListTile(
                   leading: CachedBookCover(
                     imageUrl: book.coverUrl,
+                    isbn: book.isbn13,
+                    googleId: book.id,
+                    title: book.title,
+                    author: book.authorsString,
                     width: 50,
                     height: 70,
                     borderRadius: BorderRadius.circular(4),

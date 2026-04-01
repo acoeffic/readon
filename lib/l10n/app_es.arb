@@ -169,6 +169,8 @@
   "lightThemeActive": "🌞 Tema claro (activo)",
   "darkTheme": "🌙 Tema oscuro",
   "darkThemeActive": "🌙 Tema oscuro (activo)",
+  "systemTheme": "📱 Automático",
+  "systemThemeActive": "📱 Automático (activo)",
   "languageSection": "Idioma",
   "frenchActive": "🇫🇷 Français (actif)",
   "french": "🇫🇷 Français",
@@ -394,7 +396,7 @@
 
   "defaultUser": "Usuario",
   "mySessions": "Mis Sesiones",
-  "myStatistics": "Mis Estadísticas",
+  "myStatistics": "Estadísticas",
   "myLists": "Mis Listas",
 
   "statistics": "Estadísticas",
@@ -1219,5 +1221,147 @@
   "beFirstToComment": "¡Sé el primero en comentar!",
   "send": "Enviar",
 
-  "reactionPremiumOnly": "Reacción reservada para miembros Premium"
+  "reactionPremiumOnly": "Reacción reservada para miembros Premium",
+
+  "nearbyBookstores": "Librerías cercanas",
+  "noBookstoresFound": "No se encontraron librerías cercanas",
+  "openNow": "Abierto",
+  "closed": "Cerrado",
+  "navigate": "Navegar",
+  "searchingBookstores": "Buscando librerías...",
+
+  "offlineBanner": "Sin conexión — las sesiones se sincronizarán automáticamente",
+  "sessionSavedOffline": "Sesión guardada sin conexión. Se sincronizará al reconectarse.",
+  "offlineSyncSuccess": "{count, plural, =1{1 sesión sincronizada} other{{count} sesiones sincronizadas}}",
+  "@offlineSyncSuccess": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+
+  "markAllRead": "Marcar todo leído",
+  "newNotifications": "Nuevas",
+  "recentNotifications": "Recientes",
+  "noNotifications": "Sin notificaciones",
+  "noNotificationsDesc": "Serás notificado de likes, comentarios y solicitudes de amistad",
+  "notifTypeFriends": "Amigos",
+  "notifTypeLike": "Like",
+  "notifTypeComment": "Comentario",
+  "notifTypeClub": "Club",
+  "accept": "Aceptar",
+  "ignore": "Ignorar",
+  "sentYouFriendRequest": "{name} te envió una solicitud de amistad",
+  "sentGroupJoinRequest": "{name} quiere unirse a {groupName}",
+  "@sentGroupJoinRequest": {
+    "placeholders": {
+      "name": {"type": "String"},
+      "groupName": {"type": "String"}
+    }
+  },
+  "@sentYouFriendRequest": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "likedYourReading": "{name} le gustó tu lectura de {bookTitle}",
+  "@likedYourReading": {
+    "placeholders": {
+      "name": {"type": "String"},
+      "bookTitle": {"type": "String"}
+    }
+  },
+  "commentedYourReading": "{name} comentó tu lectura de {bookTitle}",
+  "@commentedYourReading": {
+    "placeholders": {
+      "name": {"type": "String"},
+      "bookTitle": {"type": "String"}
+    }
+  },
+
+  "prizeSelections": "Selecciones LexDay",
+  "prizeSelectionsSubtitle": "Premios literarios oficiales",
+  "officialLexDay": "Oficial LexDay",
+  "bookSummary": "Resumen del libro",
+  "noDescriptionAvailable": "No hay resumen disponible para este libro.",
+  "buyOnAmazon": "Comprar en Amazon",
+
+  "requestToJoin": "Solicitar unirse",
+  "joinRequestSent": "Solicitud enviada!",
+  "joinRequestPending": "Solicitud pendiente…",
+  "joinRequestCancelled": "Solicitud cancelada",
+  "joinRequestAccepted": "{name} ha sido aceptado/a en el club",
+  "@joinRequestAccepted": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "joinRequestRejected": "Solicitud de {name} rechazada",
+  "@joinRequestRejected": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "pendingJoinRequests": "{count, plural, =1{1 solicitud pendiente} other{{count} solicitudes pendientes}}",
+  "@pendingJoinRequests": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "accept": "Aceptar",
+  "reject": "Rechazar",
+
+  "readingForLabel": "LEO PARA",
+  "readingForJustMe": "Yo",
+  "readingForDaughter": "Mi hija",
+  "readingForSon": "Mi hijo",
+  "readingForFriend": "Un(a) amigo(a)",
+  "readingForGrandmother": "Mi abuela",
+  "readingForGrandfather": "Mi abuelo",
+  "readingForPartner": "Mi pareja",
+  "readingForFather": "Mi padre",
+  "readingForMother": "Mi madre",
+  "readingForOther": "Otro",
+  "readingForDisplay": "Leído para {person}",
+  "@readingForDisplay": {
+    "placeholders": {
+      "person": {"type": "String"}
+    }
+  },
+
+  "readingForStatsTitle": "Lecturas compartidas",
+  "readingForStatsSubtitle": "Tiempo dedicado a leer para tus seres queridos",
+  "readingForNoStats": "Aún no tienes sesiones de lectura para {person}",
+  "@readingForNoStats": {
+    "placeholders": {
+      "person": {"type": "String"}
+    }
+  },
+  "readingForSessions": "{count} sesiones",
+  "@readingForSessions": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "readingForMinutes": "{minutes} min",
+  "@readingForMinutes": {
+    "placeholders": {
+      "minutes": {"type": "int"}
+    }
+  },
+  "readingForPages": "{pages} páginas",
+  "@readingForPages": {
+    "placeholders": {
+      "pages": {"type": "int"}
+    }
+  },
+  "refreshCovers": "Actualizar portadas",
+  "refreshingCovers": "Actualizando portadas…",
+  "coversRefreshed": "{count} portada(s) actualizada(s)",
+  "@coversRefreshed": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "coversUpToDate": "Todas las portadas están actualizadas",
+  "friendsLabel": "Amigos"
 }

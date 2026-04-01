@@ -24,6 +24,10 @@ class StepFirstSession extends StatelessWidget {
           const Spacer(),
           CachedBookCover(
             imageUrl: selectedBook?.coverUrl,
+            isbn: selectedBook?.isbn,
+            googleId: selectedBook?.googleId,
+            title: selectedBook?.title,
+            author: selectedBook?.author,
             width: 140,
             height: 210,
             borderRadius: BorderRadius.circular(AppRadius.m),

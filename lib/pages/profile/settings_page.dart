@@ -7,7 +7,7 @@ import '../../theme/app_theme.dart';
 import '../../widgets/constrained_content.dart';
 import '../../widgets/back_header.dart';
 import '../../providers/theme_provider.dart';
-import '../../providers/locale_provider.dart';
+
 import '../../l10n/app_localizations.dart';
 import '../../providers/subscription_provider.dart';
 import '../../services/subscription_service.dart';
@@ -25,6 +25,9 @@ import '../auth/privacy_policy_page.dart';
 import '../../services/trending_service.dart';
 import '../../services/google_books_service.dart';
 import '../../services/notion_service.dart';
+import '../../services/avatar_cache_service.dart';
+import '../../services/push_notification_service.dart';
+import '../../services/books_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -48,6 +51,7 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _notionConnected = false;
   String? _notionWorkspaceName;
   bool _loadingNotion = true;
+  bool _refreshingCovers = false;
 
   @override
   void initState() {
@@ -317,6 +321,34 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
+  Future<void> _refreshCovers() async {
+    if (_refreshingCovers) return;
+    setState(() => _refreshingCovers = true);
+    try {
+      final count = await BooksService().refreshAllCovers();
+      if (mounted) {
+        final l10n = AppLocalizations.of(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(count > 0 ? l10n.coversRefreshed(count) : l10n.coversUpToDate),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _refreshingCovers = false);
+    }
+  }
+
   Future<void> _changeProfilePicture() async {
     try {
       // Afficher le choix caméra/galerie
@@ -398,7 +430,7 @@ if (!allowedExtensions.contains(fileExtension)) {
         if (oldAvatarUrl != null && oldAvatarUrl.isNotEmpty) {
           // Extraire le path du fichier depuis l'URL
           final uri = Uri.parse(oldAvatarUrl);
-          final oldPath = uri.pathSegments.skip(4).join('/'); // Skip /storage/v1/object/public/profiles/
+          final oldPath = uri.pathSegments.skip(5).join('/'); // Skip /storage/v1/object/public/profiles/
           
           if (oldPath.isNotEmpty) {
             await supabase.storage
@@ -428,10 +460,17 @@ if (!allowedExtensions.contains(fileExtension)) {
           .getPublicUrl(filePath);
 
       // Mettre à jour le profil dans la base de données
-      await supabase
+      final updateResult = await supabase
           .from('profiles')
           .update({'avatar_url': avatarUrl})
-          .eq('id', user.id);
+          .eq('id', supabase.auth.currentUser!.id)
+          .select()
+          .single();
+
+      debugPrint('Avatar URL saved: ${updateResult['avatar_url']}');
+
+      // Sauvegarder en cache local
+      await AvatarCacheService.instance.saveFromFile(File(image.path), avatarUrl);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -685,7 +724,11 @@ if (!allowedExtensions.contains(fileExtension)) {
       // Nettoyage caches et listeners
       TrendingService.clearCache();
       GoogleBooksService.clearCache();
+      await AvatarCacheService.instance.clear();
       subscriptionProvider.detachRevenueCatListener();
+
+      // Nettoyer le token FCM AVANT la déconnexion
+      await PushNotificationService().clearToken();
 
       // Déconnexion Supabase AVANT la navigation pour que
       // AuthGate voit session == null et affiche LoginPage
@@ -722,9 +765,6 @@ if (!allowedExtensions.contains(fileExtension)) {
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
-    final isDark = themeProvider.isDarkMode;
-    final localeProvider = Provider.of<LocaleProvider>(context);
-    final currentLang = localeProvider.locale.languageCode;
     final l10n = AppLocalizations.of(context);
 
     return Scaffold(
@@ -960,7 +1000,7 @@ if (!allowedExtensions.contains(fileExtension)) {
                     },
                   ),
                   _SettingsItem(
-                    label: l10n.flowNotifications,
+                    label: l10n.notificationCenter,
                     onTap: () {
                       Navigator.of(context).push(
                         MaterialPageRoute(
@@ -968,6 +1008,12 @@ if (!allowedExtensions.contains(fileExtension)) {
                         ),
                       );
                     },
+                  ),
+                  _SettingsItem(
+                    label: _refreshingCovers
+                        ? l10n.refreshingCovers
+                        : l10n.refreshCovers,
+                    onTap: _refreshingCovers ? null : _refreshCovers,
                   ),
                 ],
               ),
@@ -1217,42 +1263,27 @@ if (!allowedExtensions.contains(fileExtension)) {
                 title: l10n.appearanceSection,
                 items: [
                   _SettingsItem(
-                    label: isDark ? l10n.lightTheme : l10n.lightThemeActive,
-                    onTap: isDark
+                    label: themeProvider.themeMode == ThemeMode.light
+                        ? l10n.lightThemeActive
+                        : l10n.lightTheme,
+                    onTap: themeProvider.themeMode != ThemeMode.light
                         ? () => themeProvider.setThemeMode(ThemeMode.light)
                         : null,
                   ),
                   _SettingsItem(
-                    label: isDark ? l10n.darkThemeActive : l10n.darkTheme,
-                    onTap: !isDark
+                    label: themeProvider.themeMode == ThemeMode.dark
+                        ? l10n.darkThemeActive
+                        : l10n.darkTheme,
+                    onTap: themeProvider.themeMode != ThemeMode.dark
                         ? () => themeProvider.setThemeMode(ThemeMode.dark)
                         : null,
                   ),
-                ],
-              ),
-
-              const SizedBox(height: AppSpace.m),
-
-              // --- Section Langue ---
-              _SettingsSection(
-                title: l10n.languageSection,
-                items: [
                   _SettingsItem(
-                    label: currentLang == 'fr' ? l10n.frenchActive : l10n.french,
-                    onTap: currentLang != 'fr'
-                        ? () => localeProvider.setLocale(const Locale('fr'))
-                        : null,
-                  ),
-                  _SettingsItem(
-                    label: currentLang == 'en' ? l10n.englishActive : l10n.english,
-                    onTap: currentLang != 'en'
-                        ? () => localeProvider.setLocale(const Locale('en'))
-                        : null,
-                  ),
-                  _SettingsItem(
-                    label: currentLang == 'es' ? l10n.spanishActive : l10n.spanish,
-                    onTap: currentLang != 'es'
-                        ? () => localeProvider.setLocale(const Locale('es'))
+                    label: themeProvider.themeMode == ThemeMode.system
+                        ? l10n.systemThemeActive
+                        : l10n.systemTheme,
+                    onTap: themeProvider.themeMode != ThemeMode.system
+                        ? () => themeProvider.setThemeMode(ThemeMode.system)
                         : null,
                   ),
                 ],
@@ -1334,6 +1365,8 @@ if (!allowedExtensions.contains(fileExtension)) {
                     if (confirm == true) {
                       TrendingService.clearCache();
                       GoogleBooksService.clearCache();
+                      await AvatarCacheService.instance.clear();
+                      await PushNotificationService().clearToken();
                       await SubscriptionService().logoutUser();
                       await Supabase.instance.client.auth.signOut();
 

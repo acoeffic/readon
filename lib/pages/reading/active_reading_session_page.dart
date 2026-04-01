@@ -188,6 +188,7 @@ class _ActiveReadingSessionPageState extends State<ActiveReadingSessionPage>
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      enableDrag: false,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -421,6 +422,10 @@ class _ActiveReadingSessionPageState extends State<ActiveReadingSessionPage>
                               ),
                               child: CachedBookCover(
                                 imageUrl: widget.book.coverUrl,
+                                isbn: widget.book.isbn,
+                                googleId: widget.book.googleId,
+                                title: widget.book.title,
+                                author: widget.book.author,
                                 width: 180,
                                 height: 260,
                                 borderRadius: BorderRadius.circular(12),
@@ -1060,23 +1065,13 @@ class _AnnotationBottomSheetState extends State<_AnnotationBottomSheet> {
           );
         }
       } else if (_mode == _AnnotationMode.photo && _capturedImage != null) {
-        final content = _contentController.text.trim();
-        final annotation = await _annotationService.createAnnotation(
+        await _annotationService.createAnnotation(
           bookId: widget.bookId,
           sessionId: widget.sessionId,
-          content: content,
+          content: _contentController.text.trim(),
           pageNumber: int.tryParse(_pageController.text),
-          type: AnnotationType.photo,
+          type: AnnotationType.text,
         );
-
-        final imagePath = await _annotationService.uploadAnnotationImage(
-          annotation.id,
-          _capturedImage!.path,
-        );
-        await Supabase.instance.client
-            .from('annotations')
-            .update({'image_path': imagePath})
-            .eq('id', annotation.id);
 
         if (mounted) {
           Navigator.pop(context);

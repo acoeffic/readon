@@ -22,20 +22,11 @@
 	<string>$(FLUTTER_BUILD_NAME)</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
-	<key>CFBundleVersion</key>
-	<string>$(FLUTTER_BUILD_NUMBER)</string>
-	<key>LSApplicationQueriesSchemes</key>
-	<array>
-		<string>instagram</string>
-		<string>snssdk1233</string>
-		<string>twitter</string>
-		<string>linkedin</string>
-	</array>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
 			<key>CFBundleURLName</key>
-			<string>com.acoeffic.lexday</string>
+			<string>fr.lexday.app</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>lexday</string>
@@ -46,36 +37,71 @@
 			<string>Editor</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<!-- Remplacer par ton reversed client ID iOS Google (ex: com.googleusercontent.apps.XXXX) -->
 				<string>com.googleusercontent.apps.870762668846-f550jt8npljlch1vtu0q6tj3qt94amtd</string>
 			</array>
 		</dict>
 	</array>
+	<key>CFBundleVersion</key>
+	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>GIDClientID</key>
 	<string>870762668846-f550jt8npljlch1vtu0q6tj3qt94amtd.apps.googleusercontent.com</string>
 	<key>GIDServerClientID</key>
 	<string>870762668846-dq8n3pvgrpo3vcrtuciogf4dc9gik0am.apps.googleusercontent.com</string>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>instagram</string>
+		<string>snssdk1233</string>
+		<string>twitter</string>
+		<string>linkedin</string>
+	</array>
+	<key>LSRequiresIPhoneOS</key>
+	<true/>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
-	<key>LSRequiresIPhoneOS</key>
-	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>LexDay a besoin d'accéder à votre caméra pour scanner les pages de vos livres et détecter automatiquement les numéros de page.</string>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>LexDay utilise le microphone pour enregistrer vos annotations vocales pendant la lecture.</string>
 	<key>NSContactsUsageDescription</key>
 	<string>LexDay utilise vos contacts pour trouver vos amis qui utilisent déjà l'application.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>LexDay utilise votre localisation pour enrichir vos sessions de lecture.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>LexDay utilise votre localisation pour enrichir vos sessions de lecture.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>LexDay utilise le microphone pour enregistrer vos annotations vocales pendant la lecture.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>LexDay a besoin d'accéder à vos photos pour sauvegarder votre Wrapped.</string>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>LexDay utilise votre position pour trouver les librairies proches de vous.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>LexDay a besoin d'accéder à vos photos pour sélectionner des images de pages de livre à analyser.</string>
+	<key>UIApplicationSceneManifest</key>
+	<dict>
+		<key>UIApplicationSupportsMultipleScenes</key>
+		<false/>
+		<key>UISceneConfigurations</key>
+		<dict>
+			<key>UIWindowSceneSessionRoleApplication</key>
+			<array>
+				<dict>
+					<key>UISceneClassName</key>
+					<string>UIWindowScene</string>
+					<key>UISceneConfigurationName</key>
+					<string>flutter</string>
+					<key>UISceneDelegateClassName</key>
+					<string>FlutterSceneDelegate</string>
+					<key>UISceneStoryboardFile</key>
+					<string>Main</string>
+				</dict>
+			</array>
+		</dict>
+	</dict>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>

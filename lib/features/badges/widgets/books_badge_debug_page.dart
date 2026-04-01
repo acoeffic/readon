@@ -65,7 +65,7 @@ const _allSeniorityBadges = [
   _BookBadgeData(
     id: 'seniority_2y',
     name: 'Habitué',
-    description: 'Lexsta, c\'est chez toi',
+    description: 'LexDay, c\'est chez toi',
     icon: '🏡',
     requirement: 730,
     tier: 'platinum',
@@ -401,6 +401,9 @@ class _BooksBadgeDebugPageState extends State<BooksBadgeDebugPage> {
       return BibliothequeVivanteBadge(size: size, isLocked: locked);
     }
 
+    if (isFirstSessionBadge(id: data.id, category: 'reading_time', requirement: data.requirement)) {
+      return FirstSessionBadge(size: size, isLocked: locked);
+    }
     if (isOneHourMagicBadge(id: data.id, category: 'reading_time', requirement: data.requirement)) {
       return OneHourMagicBadge(size: size, isLocked: locked);
     }
@@ -601,6 +604,27 @@ class _BooksBadgeDebugPageState extends State<BooksBadgeDebugPage> {
 
     if (isGenreDevpersoLegendeBadge(id: data.id, category: 'genres', requirement: data.requirement)) {
       return GenreDevpersoLegendeBadge(size: size, isLocked: locked);
+    }
+    if (isStreak7DaysBadge(id: data.id, category: 'streak', requirement: data.requirement)) {
+      return Streak7DaysBadge(size: size, isLocked: locked);
+    }
+    if (isStreak14DaysBadge(id: data.id, category: 'streak', requirement: data.requirement)) {
+      return Streak14DaysBadge(size: size, isLocked: locked);
+    }
+    if (isStreak30DaysBadge(id: data.id, category: 'streak', requirement: data.requirement)) {
+      return Streak30DaysBadge(size: size, isLocked: locked);
+    }
+    if (isStreak60DaysBadge(id: data.id, category: 'streak', requirement: data.requirement)) {
+      return Streak60DaysBadge(size: size, isLocked: locked);
+    }
+    if (isStreak90DaysBadge(id: data.id, category: 'streak', requirement: data.requirement)) {
+      return Streak90DaysBadge(size: size, isLocked: locked);
+    }
+    if (isStreak180DaysBadge(id: data.id, category: 'streak', requirement: data.requirement)) {
+      return Streak180DaysBadge(size: size, isLocked: locked);
+    }
+    if (isStreak365DaysBadge(id: data.id, category: 'streak', requirement: data.requirement)) {
+      return Streak365DaysBadge(size: size, isLocked: locked);
     }
 
     // Fallback : emoji dans un cercle

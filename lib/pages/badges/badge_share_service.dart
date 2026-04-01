@@ -124,7 +124,7 @@ class BadgeShareService {
 
   Future<File> _saveTempFile(Uint8List bytes, String badgeId) async {
     final dir = await getTemporaryDirectory();
-    final file = File('${dir.path}/readon_badge_$badgeId.png');
+    final file = File('${dir.path}/lexday_badge_$badgeId.png');
     await file.writeAsBytes(bytes);
     Future.delayed(const Duration(seconds: 60), () => file.delete().catchError((_) => file));
     return file;

@@ -2,7 +2,7 @@
 -- Stores conversations and messages for the AI recommendation chatbot
 
 -- Table for conversations
-CREATE TABLE ai_conversations (
+CREATE TABLE IF NOT EXISTS ai_conversations (
   id         bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   user_id    uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   title      text,
@@ -12,26 +12,30 @@ CREATE TABLE ai_conversations (
 
 ALTER TABLE ai_conversations ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view their own conversations" ON ai_conversations;
 CREATE POLICY "Users can view their own conversations"
 ON ai_conversations FOR SELECT TO authenticated
 USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can insert their own conversations" ON ai_conversations;
 CREATE POLICY "Users can insert their own conversations"
 ON ai_conversations FOR INSERT TO authenticated
 WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can update their own conversations" ON ai_conversations;
 CREATE POLICY "Users can update their own conversations"
 ON ai_conversations FOR UPDATE TO authenticated
 USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can delete their own conversations" ON ai_conversations;
 CREATE POLICY "Users can delete their own conversations"
 ON ai_conversations FOR DELETE TO authenticated
 USING (auth.uid() = user_id);
 
-CREATE INDEX idx_ai_conversations_user_id ON ai_conversations(user_id);
+CREATE INDEX IF NOT EXISTS idx_ai_conversations_user_id ON ai_conversations(user_id);
 
 -- Table for messages within conversations
-CREATE TABLE ai_messages (
+CREATE TABLE IF NOT EXISTS ai_messages (
   id               bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   conversation_id  bigint NOT NULL REFERENCES ai_conversations(id) ON DELETE CASCADE,
   role             text NOT NULL CHECK (role IN ('user', 'assistant')),
@@ -41,6 +45,7 @@ CREATE TABLE ai_messages (
 
 ALTER TABLE ai_messages ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view messages in their own conversations" ON ai_messages;
 CREATE POLICY "Users can view messages in their own conversations"
 ON ai_messages FOR SELECT TO authenticated
 USING (
@@ -51,6 +56,7 @@ USING (
   )
 );
 
+DROP POLICY IF EXISTS "Users can insert messages in their own conversations" ON ai_messages;
 CREATE POLICY "Users can insert messages in their own conversations"
 ON ai_messages FOR INSERT TO authenticated
 WITH CHECK (
@@ -61,7 +67,7 @@ WITH CHECK (
   )
 );
 
-CREATE INDEX idx_ai_messages_conversation_id ON ai_messages(conversation_id);
+CREATE INDEX IF NOT EXISTS idx_ai_messages_conversation_id ON ai_messages(conversation_id);
 
 -- RPC: Count conversations for a user (for limit enforcement)
 CREATE OR REPLACE FUNCTION get_ai_conversation_count()

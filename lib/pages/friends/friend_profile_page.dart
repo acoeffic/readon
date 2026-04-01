@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../theme/app_theme.dart';
+import '../../models/reading_session.dart';
+import '../../models/book.dart';
 import '../../services/badges_service.dart';
 import '../../services/flow_service.dart';
+import '../../pages/sessions/session_detail_page.dart';
 import '../../widgets/badges_grid.dart';
 import '../../widgets/cached_profile_avatar.dart';
 import '../../widgets/constrained_content.dart';
@@ -38,6 +41,7 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
   int _totalHours = 0;
   bool _readingHoursHidden = false;
   int _currentFlow = 0;
+  int _friendCount = 0;
   List<Map<String, dynamic>> _recentSessions = [];
   List<UserBadge> _badges = [];
   String? _friendshipStatus; // 'accepted', 'pending', null
@@ -114,6 +118,7 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
           _totalPages = (stats['total_pages'] as num?)?.toInt() ?? 0;
           _readingHoursHidden = totalMinutes == null;
           _totalHours = ((totalMinutes as num?)?.toDouble() ?? 0) ~/ 60;
+          _friendCount = (stats['friend_count'] as num?)?.toInt() ?? 0;
         });
       }
     } catch (e) {
@@ -456,6 +461,7 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
           if (!_readingHoursHidden)
             _buildStatItem(Icons.schedule, '${_totalHours}h', l.readingLabel),
           _buildStatItem(Icons.local_fire_department, '$_currentFlow', l.flowLabel),
+          _buildStatItem(Icons.people, '$_friendCount', l.friendsLabel),
         ],
       ),
     );
@@ -482,6 +488,49 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
           ),
         ),
       ],
+    );
+  }
+
+  void _openSessionDetail(Map<String, dynamic> session) {
+    final now = DateTime.now();
+    final readingSession = ReadingSession(
+      id: session['id'] as String,
+      userId: session['user_id'] as String,
+      bookId: session['book_id'] as String,
+      startPage: (session['start_page'] as num).toInt(),
+      endPage: (session['end_page'] as num?)?.toInt(),
+      startTime: DateTime.parse(session['start_time'] as String).toLocal(),
+      endTime: session['end_time'] != null
+          ? DateTime.parse(session['end_time'] as String).toLocal()
+          : null,
+      isHidden: session['is_hidden'] as bool? ?? false,
+      readingFor: session['reading_for'] as String?,
+      createdAt: session['created_at'] != null
+          ? DateTime.parse(session['created_at'] as String).toLocal()
+          : now,
+      updatedAt: session['updated_at'] != null
+          ? DateTime.parse(session['updated_at'] as String).toLocal()
+          : now,
+    );
+
+    final book = session['b_id'] != null
+        ? Book(
+            id: session['b_id'] as int,
+            title: session['book_title'] as String? ?? '',
+            author: session['book_author'] as String?,
+            coverUrl: session['book_cover_url'] as String?,
+            pageCount: (session['book_page_count'] as num?)?.toInt(),
+          )
+        : null;
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => SessionDetailPage(
+          session: readingSession,
+          book: book,
+          isOwn: false,
+        ),
+      ),
     );
   }
 
@@ -522,46 +571,59 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
 
               return Padding(
                 padding: EdgeInsets.only(top: index == 0 ? 0 : AppSpace.s),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(AppRadius.s),
-                      ),
-                      child: const Icon(Icons.auto_stories, color: AppColors.primary, size: 18),
-                    ),
-                    const SizedBox(width: AppSpace.m),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            bookTitle,
-                            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(AppRadius.s),
+                  onTap: () => _openSessionDetail(session),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(AppRadius.s),
                           ),
-                          Text(
-                            '${pagesRead > 0 ? l.nPages(pagesRead) : ''}${pagesRead > 0 && duration.isNotEmpty ? ' · ' : ''}$duration',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-                            ),
+                          child: const Icon(Icons.auto_stories, color: AppColors.primary, size: 18),
+                        ),
+                        const SizedBox(width: AppSpace.m),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                bookTitle,
+                                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              Text(
+                                '${pagesRead > 0 ? l.nPages(pagesRead) : ''}${pagesRead > 0 && duration.isNotEmpty ? ' · ' : ''}$duration',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
+                        ),
+                        Text(
+                          date,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Icon(
+                          Icons.chevron_right,
+                          size: 18,
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
+                        ),
+                      ],
                     ),
-                    Text(
-                      date,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               );
             }),

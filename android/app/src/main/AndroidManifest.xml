@@ -40,6 +40,10 @@
                 <data android:scheme="lexday" android:host="notion" android:pathPrefix="/callback"/>
             </intent-filter>
         </activity>
+        <!-- Google Maps API key -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="${GOOGLE_PLACES_API_KEY}"/>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

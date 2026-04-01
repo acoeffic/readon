@@ -13,6 +13,7 @@ import '../../services/reading_session_service.dart';
 import '../../services/user_custom_lists_service.dart';
 import '../../models/reading_session.dart';
 import '../reading/start_reading_session_page_unified.dart';
+import '../reading/active_reading_session_page.dart';
 import '../reading/end_reading_session_page.dart';
 import '../reading/book_finished_share_service.dart';
 import '../reading/book_completed_summary_page.dart';
@@ -227,19 +228,25 @@ class _UserBooksPageState extends State<UserBooksPage> {
               ? const Center(child: CircularProgressIndicator())
               : _booksWithStatus.isEmpty
                   ? _buildEmptyState(l10n)
-                  : RefreshIndicator(
-                      onRefresh: _loadAll,
-                      color: AppColors.sageGreen,
-                      child: CustomScrollView(
-                        slivers: [
-                          _buildHeader(l10n),
-                          if (_showSearch) _buildSearchBar(l10n),
-                          _buildFilterPills(l10n),
-                          ..._buildContent(l10n),
-                          const SliverToBoxAdapter(
-                              child: SizedBox(height: 100)),
-                        ],
-                      ),
+                  : Column(
+                      children: [
+                        _buildHeaderWidget(l10n),
+                        if (_showSearch) _buildSearchBarWidget(l10n),
+                        _buildFilterPillsWidget(l10n),
+                        Expanded(
+                          child: RefreshIndicator(
+                            onRefresh: _loadAll,
+                            color: AppColors.sageGreen,
+                            child: CustomScrollView(
+                              slivers: [
+                                ..._buildContent(l10n),
+                                const SliverToBoxAdapter(
+                                    child: SizedBox(height: 100)),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
         ),
       ),
@@ -273,102 +280,104 @@ class _UserBooksPageState extends State<UserBooksPage> {
     );
   }
 
-  SliverToBoxAdapter _buildHeader(AppLocalizations l10n) {
-    return SliverToBoxAdapter(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 16, 16, 0),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(l10n.libraryTitle,
-                      style: TextStyle(
-                        fontFamily: 'Poppins',
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: _isDark ? AppColors.textPrimaryDark : Colors.black,
-                      )),
-                  Text(l10n.librarySubtitle.toUpperCase(),
-                      style: const TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                        letterSpacing: 1.2,
-                        color: AppColors.sageGreen,
-                      )),
-                ],
-              ),
-            ),
+  Widget _buildHeaderWidget(AppLocalizations l10n) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 16, 0),
+      child: Row(
+        children: [
+          if (Navigator.canPop(context))
             IconButton(
-              icon: Icon(
-                _showSearch ? LucideIcons.x : LucideIcons.search,
-                color: AppColors.sageGreen,
-              ),
-              onPressed: () {
-                setState(() {
-                  _showSearch = !_showSearch;
-                  if (!_showSearch) {
-                    _searchController.clear();
-                    _searchQuery = '';
-                  }
-                });
-              },
+              icon: Icon(LucideIcons.arrowLeft,
+                  color: _isDark ? AppColors.textPrimaryDark : Colors.black),
+              onPressed: () => Navigator.pop(context),
             ),
-            IconButton(
-              icon: Icon(
-                _luGridView ? LucideIcons.layoutGrid : LucideIcons.list,
-                color: AppColors.sageGreen,
-              ),
-              onPressed: () => setState(() => _luGridView = !_luGridView),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(l10n.libraryTitle,
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: _isDark ? AppColors.textPrimaryDark : Colors.black,
+                    )),
+                Text(l10n.librarySubtitle.toUpperCase(),
+                    style: const TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: 1.2,
+                      color: AppColors.sageGreen,
+                    )),
+              ],
             ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  SliverToBoxAdapter _buildSearchBar(AppLocalizations l10n) {
-    return SliverToBoxAdapter(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-        child: TextField(
-          controller: _searchController,
-          decoration: InputDecoration(
-            hintText: l10n.searchBook,
-            prefixIcon: const Icon(Icons.search, size: 20),
-            suffixIcon: _searchQuery.isNotEmpty
-                ? IconButton(
-                    icon: const Icon(Icons.clear, size: 20),
-                    onPressed: () {
-                      _searchController.clear();
-                      setState(() => _searchQuery = '');
-                    })
-                : null,
-            isDense: true,
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppRadius.pill)),
-            enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppRadius.pill),
-                borderSide: BorderSide(
-                    color: _isDark ? AppColors.borderDark : AppColors.border)),
-            focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppRadius.pill),
-                borderSide:
-                    const BorderSide(color: AppColors.sageGreen, width: 2)),
-            filled: true,
-            fillColor: _isDark ? AppColors.surfaceDark : Colors.white,
           ),
-          onChanged: (v) => setState(() => _searchQuery = v),
-        ),
+          IconButton(
+            icon: Icon(
+              _showSearch ? LucideIcons.x : LucideIcons.search,
+              color: AppColors.sageGreen,
+            ),
+            onPressed: () {
+              setState(() {
+                _showSearch = !_showSearch;
+                if (!_showSearch) {
+                  _searchController.clear();
+                  _searchQuery = '';
+                }
+              });
+            },
+          ),
+          IconButton(
+            icon: Icon(
+              _luGridView ? LucideIcons.layoutGrid : LucideIcons.list,
+              color: AppColors.sageGreen,
+            ),
+            onPressed: () => setState(() => _luGridView = !_luGridView),
+          ),
+        ],
       ),
     );
   }
 
-  SliverToBoxAdapter _buildFilterPills(AppLocalizations l10n) {
+  Widget _buildSearchBarWidget(AppLocalizations l10n) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+      child: TextField(
+        controller: _searchController,
+        decoration: InputDecoration(
+          hintText: l10n.searchBook,
+          prefixIcon: const Icon(Icons.search, size: 20),
+          suffixIcon: _searchQuery.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.clear, size: 20),
+                  onPressed: () {
+                    _searchController.clear();
+                    setState(() => _searchQuery = '');
+                  })
+              : null,
+          isDense: true,
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppRadius.pill)),
+          enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppRadius.pill),
+              borderSide: BorderSide(
+                  color: _isDark ? AppColors.borderDark : AppColors.border)),
+          focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppRadius.pill),
+              borderSide:
+                  const BorderSide(color: AppColors.sageGreen, width: 2)),
+          filled: true,
+          fillColor: _isDark ? AppColors.surfaceDark : Colors.white,
+        ),
+        onChanged: (v) => setState(() => _searchQuery = v),
+      ),
+    );
+  }
+
+  Widget _buildFilterPillsWidget(AppLocalizations l10n) {
     final filters = [
       ('all', l10n.filterAll),
       ('reading', l10n.filterReading),
@@ -376,10 +385,9 @@ class _UserBooksPageState extends State<UserBooksPage> {
       ('lists', l10n.filterMyLists),
     ];
 
-    return SliverToBoxAdapter(
-      child: SizedBox(
-        height: 52,
-        child: ListView.separated(
+    return SizedBox(
+      height: 52,
+      child: ListView.separated(
           scrollDirection: Axis.horizontal,
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
           separatorBuilder: (_, __) => const SizedBox(width: 8),
@@ -420,7 +428,6 @@ class _UserBooksPageState extends State<UserBooksPage> {
             );
           },
         ),
-      ),
     );
   }
 
@@ -717,6 +724,10 @@ class _UserBooksPageState extends State<UserBooksPage> {
           return ListTile(
             leading: CachedBookCover(
               imageUrl: book.coverUrl,
+              isbn: book.isbn,
+              googleId: book.googleId,
+              title: book.title,
+              author: book.author,
               width: 45,
               height: 65,
               borderRadius: BorderRadius.circular(6),
@@ -874,6 +885,10 @@ class _UserBooksPageState extends State<UserBooksPage> {
           borderRadius: BorderRadius.circular(12),
           child: CachedBookCover(
             imageUrl: book.coverUrl,
+            isbn: book.isbn,
+            googleId: book.googleId,
+            title: book.title,
+            author: book.author,
             width: width.isFinite ? width : 140,
             height: height.isFinite ? height : 200,
             fit: BoxFit.cover,
@@ -984,6 +999,10 @@ class _SeeAllBooksPage extends StatelessWidget {
               child: ListTile(
                 leading: CachedBookCover(
                   imageUrl: book.coverUrl,
+                  isbn: book.isbn,
+                  googleId: book.googleId,
+                  title: book.title,
+                  author: book.author,
                   width: 45,
                   height: 65,
                   borderRadius: BorderRadius.circular(6),
@@ -1072,6 +1091,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
   bool _isSyncingNotion = false;
   String? _playingAnnotationId;
   AudioPlayer? _annotationAudioPlayer;
+  String? _coverUrl;
 
   // Shared-by banner
   String? _sharerName;
@@ -1119,6 +1139,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
   @override
   void initState() {
     super.initState();
+    _coverUrl = widget.book.coverUrl;
     _loadSessionData();
     _loadSharerProfile();
   }
@@ -1195,6 +1216,19 @@ class _BookDetailPageState extends State<BookDetailPage> {
       final remainingSummaries = await _aiService.getRemainingAiSummaries();
       final cachedSheet = await _aiService.getCachedReadingSheet(widget.book.id);
 
+      // Refresh cover URL from DB (may have been enriched in background)
+      String? freshCoverUrl = widget.book.coverUrl;
+      if (freshCoverUrl == null || freshCoverUrl.isEmpty) {
+        try {
+          final bookRow = await Supabase.instance.client
+              .from('books')
+              .select('cover_url')
+              .eq('id', widget.book.id)
+              .maybeSingle();
+          freshCoverUrl = bookRow?['cover_url'] as String?;
+        } catch (_) {}
+      }
+
       setState(() {
         _activeSession = activeSession;
         _stats = stats;
@@ -1204,6 +1238,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
         _bookStatus = status;
         _currentGenre = widget.book.genre;
         _isHidden = hidden;
+        _coverUrl = freshCoverUrl;
         _isLoading = false;
       });
     } catch (e) {
@@ -1220,8 +1255,18 @@ class _BookDetailPageState extends State<BookDetailPage> {
       ),
     );
 
-    // Si une session a été créée, recharger les données
+    // Si une session a été créée, naviguer vers la session active
     if (result != null) {
+      if (!mounted) return;
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ActiveReadingSessionPage(
+            activeSession: result,
+            book: widget.book,
+          ),
+        ),
+      );
       _loadSessionData();
     }
   }
@@ -1239,6 +1284,44 @@ class _BookDetailPageState extends State<BookDetailPage> {
     );
 
     _loadSessionData();
+  }
+
+  Future<void> _removeFromLibrary() async {
+    final l10n = AppLocalizations.of(context);
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.removeFromLibraryTitle),
+        content: Text(l10n.removeFromLibraryMessage(widget.book.title)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(l10n.removeFromLibraryAction),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+    try {
+      await _booksService.removeBookFromLibrary(widget.book.id);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context).bookRemovedFromLibrary)),
+        );
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 
   Future<void> _toggleHidden() async {
@@ -1479,6 +1562,11 @@ class _BookDetailPageState extends State<BookDetailPage> {
             tooltip: _isHidden ? 'Livre masqué aux autres' : 'Masquer ce livre',
             onPressed: _toggleHidden,
           ),
+          IconButton(
+            icon: const Icon(Icons.delete_outline),
+            tooltip: AppLocalizations.of(context).removeFromLibraryTitle,
+            onPressed: _removeFromLibrary,
+          ),
         ],
       ),
       body: SingleChildScrollView(
@@ -1486,10 +1574,10 @@ class _BookDetailPageState extends State<BookDetailPage> {
           children: [
             if (_sharerName != null) _buildSharedByBanner(),
             _buildBookHeader(),
-            if (!_isLoading) _buildReadingSessionSection(),
+            if (!_isLoading && _bookStatus != null) _buildReadingSessionSection(),
             if (_stats != null && _stats!.sessionsCount > 0) _buildStatsSection(),
-            if (!_isLoading) _buildAnnotationsSection(),
-            if (!_isLoading && _annotations.length >= 3) _buildReadingSheetSection(),
+            if (!_isLoading && widget.sharedByUserId == null) _buildAnnotationsSection(),
+            if (!_isLoading && widget.sharedByUserId == null && _annotations.length >= 3) _buildReadingSheetSection(),
             if (widget.book.description != null) _buildDescriptionSection(),
           ],
         ),
@@ -1529,7 +1617,11 @@ class _BookDetailPageState extends State<BookDetailPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           CachedBookCover(
-            imageUrl: widget.book.coverUrl,
+            imageUrl: _coverUrl,
+            isbn: widget.book.isbn,
+            googleId: widget.book.googleId,
+            title: widget.book.title,
+            author: widget.book.author,
             height: 180,
             width: 120,
             borderRadius: BorderRadius.circular(8),
@@ -1574,7 +1666,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
                   const SizedBox(height: 4),
                   Text(
                     '${widget.book.pageCount} pages',
-                    style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
+                    style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7)),
                   ),
                 ],
                 const SizedBox(height: 8),
@@ -1584,7 +1676,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
                       color: _currentGenre != null
-                          ? Theme.of(context).primaryColor.withValues(alpha: 0.1)
+                          ? Theme.of(context).primaryColor.withValues(alpha: 0.2)
                           : Theme.of(context).colorScheme.surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(

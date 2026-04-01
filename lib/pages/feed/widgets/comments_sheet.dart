@@ -100,6 +100,7 @@ class _CommentsSheetState extends State<CommentsSheet> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final keyboardHeight = MediaQuery.viewInsetsOf(context).bottom;
 
     return DraggableScrollableSheet(
       initialChildSize: 0.6,
@@ -170,6 +171,7 @@ class _CommentsSheetState extends State<CommentsSheet> {
 
             // Input bar
             _buildInputBar(isDark, l10n),
+            SizedBox(height: keyboardHeight),
           ],
         );
       },

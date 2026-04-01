@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import 'find_contacts_friends_page.dart';
+import 'friend_profile_page.dart';
 import 'friend_requests_page.dart';
 import 'search_users_page.dart';
 
@@ -196,7 +197,20 @@ class _FriendsPageState extends State<FriendsPage> {
                     final email = f['email'] as String? ?? '';
                     final friendId = f['id'] as String? ?? '';
 
-                    return Container(
+                    return GestureDetector(
+                      onTap: friendId.isEmpty
+                          ? null
+                          : () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => FriendProfilePage(
+                                    userId: friendId,
+                                    initialName: name,
+                                  ),
+                                ),
+                              );
+                            },
+                      child: Container(
                       padding: const EdgeInsets.all(AppSpace.m),
                       decoration: BoxDecoration(
                         color: Theme.of(context).cardColor,
@@ -241,6 +255,7 @@ class _FriendsPageState extends State<FriendsPage> {
                                 : () => _removeFriend(friendId),
                           ),
                         ],
+                      ),
                       ),
                     );
                   },

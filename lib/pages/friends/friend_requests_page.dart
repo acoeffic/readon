@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/back_header.dart';
+import '../feed/feed_page.dart';
 
 class FriendRequestsPage extends StatefulWidget {
   const FriendRequestsPage({super.key});
@@ -114,6 +115,10 @@ class _FriendRequestsPageState extends State<FriendRequestsPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(accept ? l.friendAdded : l.requestDeclined)),
       );
+
+      if (accept) {
+        FeedPage.notifyFriendsChanged();
+      }
 
       await _loadRequests();
     } catch (_) {

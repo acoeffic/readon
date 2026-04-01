@@ -411,6 +411,10 @@ class _BookCompletedSummaryPageState extends State<BookCompletedSummaryPage>
             ),
             child: CachedBookCover(
               imageUrl: book.coverUrl,
+              isbn: book.isbn,
+              googleId: book.googleId,
+              title: book.title,
+              author: book.author,
               width: 80,
               height: 110,
               borderRadius: BorderRadius.circular(10),

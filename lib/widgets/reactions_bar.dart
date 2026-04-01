@@ -18,8 +18,6 @@ class ReactionsBar extends StatelessWidget {
     required this.onToggleReaction,
   });
 
-  static const _pillBg = Color(0xFFF0EBE1);
-  static const _pillBgDark = Color(0xFF2A2520);
   static const _activeBorder = Color(0xFF6B988D);
 
   @override
@@ -31,11 +29,22 @@ class ReactionsBar extends StatelessWidget {
         .toList()
       ..sort((a, b) => b.value.compareTo(a.value));
 
+    // Le coeur est déjà affiché comme pill si il a des réactions
+    final heartInPills = activeReactions.any((e) => e.key == '❤️');
+
     return Wrap(
       spacing: 6,
       runSpacing: 6,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
+        // Bouton coeur par défaut (si pas déjà dans les pills)
+        if (!heartInPills)
+          _HeartButton(
+            isActive: userEmoji == '❤️',
+            isDark: isDark,
+            onTap: () => onToggleReaction('❤️'),
+            onLongPress: onOpenPicker,
+          ),
         ...activeReactions.map((entry) {
           final isUserReaction = userEmoji == entry.key;
           return _ReactionPill(
@@ -44,29 +53,78 @@ class ReactionsBar extends StatelessWidget {
             isActive: isUserReaction,
             isDark: isDark,
             onTap: () => onToggleReaction(entry.key),
+            onLongPress: entry.key == '❤️' ? onOpenPicker : null,
           );
         }),
-        // Bouton "+"
-        GestureDetector(
-          onTap: onOpenPicker,
-          child: Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: isDark ? _pillBgDark : _pillBg,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.add,
-              size: 16,
-              color: Theme.of(context)
+      ],
+    );
+  }
+}
+
+class _HeartButton extends StatefulWidget {
+  final bool isActive;
+  final bool isDark;
+  final VoidCallback onTap;
+  final VoidCallback onLongPress;
+
+  const _HeartButton({
+    required this.isActive,
+    required this.isDark,
+    required this.onTap,
+    required this.onLongPress,
+  });
+
+  @override
+  State<_HeartButton> createState() => _HeartButtonState();
+}
+
+class _HeartButtonState extends State<_HeartButton>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 150),
+      vsync: this,
+    );
+    _scaleAnimation = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.3), weight: 50),
+      TweenSequenceItem(tween: Tween(begin: 1.3, end: 1.0), weight: 50),
+    ]).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutBack));
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _handleTap() {
+    _controller.forward(from: 0);
+    widget.onTap();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: _handleTap,
+      onLongPress: widget.onLongPress,
+      child: ScaleTransition(
+        scale: _scaleAnimation,
+        child: Icon(
+          widget.isActive ? Icons.favorite : Icons.favorite_border,
+          size: 22,
+          color: widget.isActive
+              ? Colors.red
+              : Theme.of(context)
                   .colorScheme
                   .onSurface
-                  .withValues(alpha: 0.5),
-            ),
-          ),
+                  .withValues(alpha: 0.4),
         ),
-      ],
+      ),
     );
   }
 }
@@ -77,6 +135,7 @@ class _ReactionPill extends StatefulWidget {
   final bool isActive;
   final bool isDark;
   final VoidCallback onTap;
+  final VoidCallback? onLongPress;
 
   const _ReactionPill({
     required this.emoji,
@@ -84,6 +143,7 @@ class _ReactionPill extends StatefulWidget {
     required this.isActive,
     required this.isDark,
     required this.onTap,
+    this.onLongPress,
   });
 
   @override
@@ -123,14 +183,13 @@ class _ReactionPillState extends State<_ReactionPill>
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: _handleTap,
+      onLongPress: widget.onLongPress,
       child: ScaleTransition(
         scale: _scaleAnimation,
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
-            color: widget.isDark
-                ? ReactionsBar._pillBgDark
-                : ReactionsBar._pillBg,
+            color: context.appColors.pillBg,
             borderRadius: BorderRadius.circular(AppRadius.pill),
             border: widget.isActive
                 ? Border.all(color: ReactionsBar._activeBorder, width: 1.5)

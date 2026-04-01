@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import '../../l10n/app_localizations.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
@@ -13,6 +14,7 @@ import '../../models/reading_session.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/cached_book_cover.dart';
 import '../../widgets/constrained_content.dart';
+import '../../providers/connectivity_provider.dart';
 import 'active_reading_session_page.dart';
 
 const _kBgColor = Color(0xFFFAF3E8);
@@ -50,6 +52,7 @@ class _StartReadingSessionPageUnifiedState extends State<StartReadingSessionPage
 
   ReadingSession? _activeSession;
   int? _lastPage;
+  String? _readingFor;
 
   @override
   void initState() {
@@ -203,6 +206,28 @@ class _StartReadingSessionPageUnifiedState extends State<StartReadingSessionPage
     });
   }
 
+  List<DropdownMenuItem<String>> _buildReadingForItems(AppLocalizations l) {
+    final options = <String, String>{
+      'myself': l.readingForJustMe,
+      'daughter': l.readingForDaughter,
+      'son': l.readingForSon,
+      'friend': l.readingForFriend,
+      'grandmother': l.readingForGrandmother,
+      'grandfather': l.readingForGrandfather,
+      'father': l.readingForFather,
+      'mother': l.readingForMother,
+      'partner': l.readingForPartner,
+      'other': l.readingForOther,
+    };
+
+    return options.entries.map((e) {
+      return DropdownMenuItem<String>(
+        value: e.key,
+        child: Text(e.value),
+      );
+    }).toList();
+  }
+
   Future<void> _startSession() async {
     final pageNumber = _detectedPageNumber ?? _manualPageNumber;
 
@@ -216,13 +241,26 @@ class _StartReadingSessionPageUnifiedState extends State<StartReadingSessionPage
     setState(() => _isProcessing = true);
 
     try {
+      final isOffline = !Provider.of<ConnectivityProvider>(context, listen: false).isOnline;
+
       final session = await _sessionService.startSession(
         bookId: widget.book.id.toString(),
         imagePath: _imageFile?.path,
         manualPageNumber: pageNumber,
+        offlineMode: isOffline,
+        readingFor: _readingFor == 'myself' ? null : _readingFor,
       );
 
       if (!mounted) return;
+
+      if (isOffline) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context).sessionSavedOffline),
+            backgroundColor: Colors.orange.shade700,
+          ),
+        );
+      }
 
       Navigator.of(context).pop(session);
 
@@ -240,12 +278,25 @@ class _StartReadingSessionPageUnifiedState extends State<StartReadingSessionPage
     setState(() => _isProcessing = true);
 
     try {
+      final isOffline = !Provider.of<ConnectivityProvider>(context, listen: false).isOnline;
+
       final session = await _sessionService.startSession(
         bookId: widget.book.id.toString(),
         manualPageNumber: _lastPage!,
+        offlineMode: isOffline,
+        readingFor: _readingFor == 'myself' ? null : _readingFor,
       );
 
       if (!mounted) return;
+
+      if (isOffline) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context).sessionSavedOffline),
+            backgroundColor: Colors.orange.shade700,
+          ),
+        );
+      }
 
       Navigator.of(context).pop(session);
 
@@ -425,6 +476,10 @@ class _StartReadingSessionPageUnifiedState extends State<StartReadingSessionPage
                                 child: book.coverUrl != null
                                     ? CachedBookCover(
                                         imageUrl: book.coverUrl,
+                                        isbn: book.isbn,
+                                        googleId: book.googleId,
+                                        title: book.title,
+                                        author: book.author,
                                         width: 72,
                                         height: 108,
                                         borderRadius: BorderRadius.circular(12),
@@ -526,7 +581,62 @@ class _StartReadingSessionPageUnifiedState extends State<StartReadingSessionPage
                   ),
                 ),
 
-                const SizedBox(height: 28),
+                const SizedBox(height: 20),
+
+                // ── Reading for dropdown ──
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l.readingForLabel,
+                        style: GoogleFonts.dmSans(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 1.5,
+                          color: _kSageGreen,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: const Color(0xFFE2DDD5),
+                            width: 1.5,
+                          ),
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: _readingFor,
+                            isExpanded: true,
+                            icon: Icon(Icons.keyboard_arrow_down_rounded, color: _kSageGreen),
+                            hint: Text(
+                              l.readingForJustMe,
+                              style: GoogleFonts.dmSans(
+                                fontSize: 15,
+                                color: const Color(0xFF1A1A1A),
+                              ),
+                            ),
+                            style: GoogleFonts.dmSans(
+                              fontSize: 15,
+                              color: const Color(0xFF1A1A1A),
+                            ),
+                            items: _buildReadingForItems(l),
+                            onChanged: (value) {
+                              setState(() => _readingFor = value);
+                            },
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 20),
 
                 // ── Page input section ──
                 Padding(

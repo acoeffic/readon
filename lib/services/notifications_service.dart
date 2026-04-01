@@ -7,7 +7,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 enum NotificationType {
   like,
   comment,
-  friendRequest;
+  friendRequest,
+  groupJoinRequest;
 
   static NotificationType fromString(String type) {
     switch (type) {
@@ -17,6 +18,8 @@ enum NotificationType {
         return NotificationType.comment;
       case 'friend_request':
         return NotificationType.friendRequest;
+      case 'group_join_request':
+        return NotificationType.groupJoinRequest;
       default:
         return NotificationType.like;
     }
@@ -71,7 +74,7 @@ class AppNotification {
 
   String get message {
     final bookTitle = activityPayload?['book_title']?.toString() ?? 'votre lecture';
-    
+
     switch (type) {
       case NotificationType.like:
         return '$fromUserName a aimé votre lecture de $bookTitle';
@@ -79,6 +82,9 @@ class AppNotification {
         return '$fromUserName a commenté votre lecture de $bookTitle';
       case NotificationType.friendRequest:
         return '$fromUserName vous a envoyé une demande d\'ami';
+      case NotificationType.groupJoinRequest:
+        final groupName = activityPayload?['group_name']?.toString() ?? 'votre club';
+        return '$fromUserName souhaite rejoindre $groupName';
     }
   }
 
@@ -112,40 +118,20 @@ class NotificationsService {
       final userId = _supabase.auth.currentUser?.id;
       if (userId == null) return [];
 
-      final response = await _supabase
-          .from('notifications')
-          .select('id, type, activity_id, from_user_id, is_read, created_at')
-          .eq('user_id', userId)
-          .order('created_at', ascending: false)
-          .range(offset, offset + limit - 1);
+      final response = await _supabase.rpc(
+        'get_user_notifications',
+        params: {
+          'p_user_id': userId,
+          'p_limit': limit,
+          'p_offset': offset,
+        },
+      );
 
-      if (response.isEmpty) return [];
+      if (response == null || (response as List).isEmpty) return [];
 
-      // Récupérer les profils des expéditeurs
-      final fromUserIds = (response as List)
-          .map((n) => n['from_user_id'] as String)
-          .toSet()
+      return (response as List)
+          .map((item) => AppNotification.fromJson(item))
           .toList();
-
-      final profiles = await _supabase
-          .from('profiles')
-          .select('id, display_name, avatar_url')
-          .inFilter('id', fromUserIds);
-
-      final profileMap = <String, Map<String, dynamic>>{};
-      for (final p in profiles) {
-        profileMap[p['id'] as String] = p;
-      }
-
-      return response.map((item) {
-        final fromUserId = item['from_user_id'] as String;
-        final profile = profileMap[fromUserId];
-        return AppNotification.fromJson({
-          ...item,
-          'from_user_name': profile?['display_name'] ?? 'Un utilisateur',
-          'from_user_avatar': profile?['avatar_url'],
-        });
-      }).toList();
     } catch (e) {
       debugPrint('Erreur getNotifications: $e');
       return [];
@@ -213,20 +199,17 @@ class NotificationsService {
   }
 
   /// Stream du compteur de notifications non lues
-Stream<int> watchUnreadCount() {
-  final userId = _supabase.auth.currentUser?.id;
-  if (userId == null) return Stream.value(0);
+  Stream<int> watchUnreadCount() {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) return Stream.value(0);
 
-  return _supabase
-      .from('notifications')
-      .stream(primaryKey: ['id'])
-      .order('created_at')
-      .map((data) {
-        // Filtrer côté client
-        return data.where((notif) => 
-          notif['user_id'] == userId && 
-          notif['is_read'] == false
-        ).length;
-      });
-}
+    return _supabase
+        .from('notifications')
+        .stream(primaryKey: ['id'])
+        .eq('user_id', userId)
+        .order('created_at')
+        .map((data) {
+          return data.where((notif) => notif['is_read'] == false).length;
+        });
+  }
 }

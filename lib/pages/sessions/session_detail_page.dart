@@ -60,6 +60,7 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
+          duration: const Duration(seconds: 4),
           content: Text(newValue
               ? l.sessionHiddenInfo
               : l.sessionVisible),
@@ -247,6 +248,13 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
 
             // Book Header with progress
             _buildBookHeader(isDark, terracotta, subtitleColor),
+
+            // Reading for badge
+            if (widget.session.readingFor != null) ...[
+              const SizedBox(height: 12),
+              _buildReadingForBadge(isDark),
+            ],
+
             const SizedBox(height: 24),
 
             // Stats Row (duration, pages, pace)
@@ -267,7 +275,7 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
               const SizedBox(height: 20),
 
               // Share Button
-              _buildShareButton(isDark),
+              if (widget.isOwn) _buildShareButton(isDark),
             ] else ...[
               _buildActiveSessionCard(isDark, cardColor, terracotta),
             ],
@@ -276,6 +284,55 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
           ],
         ),
       ),
+      ),
+    );
+  }
+
+  String _resolveReadingForLabel(String key, AppLocalizations l) {
+    switch (key) {
+      case 'daughter': return l.readingForDaughter;
+      case 'son': return l.readingForSon;
+      case 'friend': return l.readingForFriend;
+      case 'grandmother': return l.readingForGrandmother;
+      case 'grandfather': return l.readingForGrandfather;
+      case 'father': return l.readingForFather;
+      case 'mother': return l.readingForMother;
+      case 'partner': return l.readingForPartner;
+      case 'other': return l.readingForOther;
+      default: return key;
+    }
+  }
+
+  Widget _buildReadingForBadge(bool isDark) {
+    final l = AppLocalizations.of(context);
+    final person = _resolveReadingForLabel(widget.session.readingFor!, l);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: isDark
+            ? const Color(0xFFCC8B65).withValues(alpha: 0.15)
+            : const Color(0xFFCC8B65).withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: const Color(0xFFCC8B65).withValues(alpha: 0.25),
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Text('\u{1F4D6}', style: TextStyle(fontSize: 16)),
+          const SizedBox(width: 8),
+          Text(
+            l.readingForDisplay(person),
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: isDark ? const Color(0xFFCC8B65) : const Color(0xFF9A6840),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -301,6 +358,10 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
           ),
           child: CachedBookCover(
             imageUrl: widget.book?.coverUrl,
+            isbn: widget.book?.isbn,
+            googleId: widget.book?.googleId,
+            title: widget.book?.title,
+            author: widget.book?.author,
             width: 80,
             height: 110,
             borderRadius: BorderRadius.circular(8),

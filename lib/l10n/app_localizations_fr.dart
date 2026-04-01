@@ -413,6 +413,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String get darkThemeActive => '🌙 Thème sombre (actif)';
 
   @override
+  String get systemTheme => '📱 Automatique';
+
+  @override
+  String get systemThemeActive => '📱 Automatique (actif)';
+
+  @override
   String get languageSection => 'Langue';
 
   @override
@@ -891,7 +897,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get mySessions => 'Mes Sessions';
 
   @override
-  String get myStatistics => 'Mes Statistiques';
+  String get myStatistics => 'Statistiques';
 
   @override
   String get myLists => 'Mes Listes';
@@ -1512,6 +1518,26 @@ class AppLocalizationsFr extends AppLocalizations {
   String get titleRequired => 'Le titre est requis';
 
   @override
+  String get startDate => 'Date de début';
+
+  @override
+  String get startsOn => 'Commence le';
+
+  @override
+  String get startsToday => 'Aujourd\'hui';
+
+  @override
+  String get upcoming => 'À venir';
+
+  @override
+  String daysUntilStart(int days) {
+    return 'Dans ${days}j';
+  }
+
+  @override
+  String get challengeStartNotifTitle => 'Le défi commence aujourd\'hui !';
+
+  @override
   String get deadline => 'Date limite';
 
   @override
@@ -1615,7 +1641,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get viewFullProfile => 'Voir le profil complet';
 
   @override
-  String get followLabel => 'Suivre';
+  String get followLabel => 'Ajouter cet ami';
 
   @override
   String get pagesLabel => 'Pages';
@@ -1998,6 +2024,20 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get removeFromLibraryTitle => 'Supprimer de ma bibliothèque ?';
+
+  @override
+  String removeFromLibraryMessage(String title) {
+    return 'Supprimer \"$title\" définitivement de ta bibliothèque ?';
+  }
+
+  @override
+  String get removeFromLibraryAction => 'Supprimer';
+
+  @override
+  String get bookRemovedFromLibrary => 'Livre supprimé de ta bibliothèque';
+
+  @override
   String get myListsSection => 'Mes listes';
 
   @override
@@ -2240,6 +2280,43 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get notificationInfo =>
       'Tu recevras une notification les jours sélectionnés pour te rappeler de lire et maintenir ton flow.';
+
+  @override
+  String get notificationCenter => 'Centre de notifications';
+
+  @override
+  String get notificationCenterDescription =>
+      'Gère tes préférences de notifications.';
+
+  @override
+  String get friendRequestNotifications => 'Demandes d\'ami';
+
+  @override
+  String get friendRequestNotificationsDesc =>
+      'Être notifié des nouvelles demandes d\'ami';
+
+  @override
+  String get emailSection => 'Emails';
+
+  @override
+  String get emailSectionDescription =>
+      'Choisis les notifications que tu veux recevoir par email.';
+
+  @override
+  String get friendRequestEmail => 'Demandes d\'ami par email';
+
+  @override
+  String get friendRequestEmailDesc =>
+      'Recevoir un email quand quelqu\'un t\'envoie une demande d\'ami';
+
+  @override
+  String get pushSection => 'Notifications push';
+
+  @override
+  String get pushSectionDescription => 'Notifications sur ton appareil.';
+
+  @override
+  String get settingsSaved => 'Préférences enregistrées';
 
   @override
   String get myGoals => 'Mes objectifs';
@@ -2539,4 +2616,230 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get reactionPremiumOnly => 'Réaction réservée aux membres Premium';
+
+  @override
+  String get nearbyBookstores => 'Librairies proches';
+
+  @override
+  String get noBookstoresFound => 'Aucune librairie trouvée à proximité';
+
+  @override
+  String get openNow => 'Ouvert';
+
+  @override
+  String get closed => 'Fermé';
+
+  @override
+  String get navigate => 'Itinéraire';
+
+  @override
+  String get searchingBookstores => 'Recherche de librairies...';
+
+  @override
+  String get offlineBanner =>
+      'Hors ligne — les sessions seront synchronisées automatiquement';
+
+  @override
+  String get sessionSavedOffline =>
+      'Session enregistrée hors ligne. Elle sera synchronisée à la reconnexion.';
+
+  @override
+  String offlineSyncSuccess(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count sessions synchronisées',
+      one: '1 session synchronisée',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get markAllRead => 'Tout lire';
+
+  @override
+  String get newNotifications => 'Nouvelles';
+
+  @override
+  String get recentNotifications => 'Récentes';
+
+  @override
+  String get noNotifications => 'Aucune notification';
+
+  @override
+  String get noNotificationsDesc =>
+      'Tu seras notifié des likes, commentaires et demandes d\'amis';
+
+  @override
+  String get notifTypeFriends => 'Amis';
+
+  @override
+  String get notifTypeLike => 'Like';
+
+  @override
+  String get notifTypeComment => 'Commentaire';
+
+  @override
+  String get notifTypeClub => 'Club';
+
+  @override
+  String get accept => 'Accepter';
+
+  @override
+  String get ignore => 'Ignorer';
+
+  @override
+  String sentYouFriendRequest(String name) {
+    return '$name vous a envoyé une demande d\'ami';
+  }
+
+  @override
+  String sentGroupJoinRequest(String name, String groupName) {
+    return '$name souhaite rejoindre $groupName';
+  }
+
+  @override
+  String likedYourReading(String name, String bookTitle) {
+    return '$name a aimé votre lecture de $bookTitle';
+  }
+
+  @override
+  String commentedYourReading(String name, String bookTitle) {
+    return '$name a commenté votre lecture de $bookTitle';
+  }
+
+  @override
+  String get prizeSelections => 'Sélections LexDay';
+
+  @override
+  String get prizeSelectionsSubtitle => 'Prix littéraires officiels';
+
+  @override
+  String get officialLexDay => 'Officielle LexDay';
+
+  @override
+  String get bookSummary => 'Résumé du livre';
+
+  @override
+  String get noDescriptionAvailable => 'Aucun résumé disponible pour ce livre.';
+
+  @override
+  String get buyOnAmazon => 'Commander sur Amazon';
+
+  @override
+  String get requestToJoin => 'Demander à rejoindre';
+
+  @override
+  String get joinRequestSent => 'Demande envoyée !';
+
+  @override
+  String get joinRequestPending => 'Demande en attente…';
+
+  @override
+  String get joinRequestCancelled => 'Demande annulée';
+
+  @override
+  String joinRequestAccepted(String name) {
+    return '$name a été accepté(e) dans le club';
+  }
+
+  @override
+  String joinRequestRejected(String name) {
+    return 'Demande de $name refusée';
+  }
+
+  @override
+  String pendingJoinRequests(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count demandes en attente',
+      one: '1 demande en attente',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get reject => 'Refuser';
+
+  @override
+  String get readingForLabel => 'JE LIS POUR';
+
+  @override
+  String get readingForJustMe => 'Moi';
+
+  @override
+  String get readingForDaughter => 'Ma fille';
+
+  @override
+  String get readingForSon => 'Mon fils';
+
+  @override
+  String get readingForFriend => 'Un(e) ami(e)';
+
+  @override
+  String get readingForGrandmother => 'Ma grand-mère';
+
+  @override
+  String get readingForGrandfather => 'Mon grand-père';
+
+  @override
+  String get readingForPartner => 'Mon/Ma partenaire';
+
+  @override
+  String get readingForFather => 'Mon père';
+
+  @override
+  String get readingForMother => 'Ma mère';
+
+  @override
+  String get readingForOther => 'Autre';
+
+  @override
+  String readingForDisplay(String person) {
+    return 'Lu pour $person';
+  }
+
+  @override
+  String get readingForStatsTitle => 'Lectures partagées';
+
+  @override
+  String get readingForStatsSubtitle => 'Temps passé à lire pour vos proches';
+
+  @override
+  String readingForNoStats(String person) {
+    return 'Vous n\'\'avez pas encore de session de lecture pour $person';
+  }
+
+  @override
+  String readingForSessions(int count) {
+    return '$count sessions';
+  }
+
+  @override
+  String readingForMinutes(int minutes) {
+    return '$minutes min';
+  }
+
+  @override
+  String readingForPages(int pages) {
+    return '$pages pages';
+  }
+
+  @override
+  String get refreshCovers => 'Actualiser les couvertures';
+
+  @override
+  String get refreshingCovers => 'Actualisation en cours…';
+
+  @override
+  String coversRefreshed(int count) {
+    return '$count couverture(s) mise(s) à jour';
+  }
+
+  @override
+  String get coversUpToDate => 'Toutes les couvertures sont déjà à jour';
+
+  @override
+  String get friendsLabel => 'Amis';
 }

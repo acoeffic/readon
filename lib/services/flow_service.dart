@@ -146,9 +146,13 @@ class FlowService {
           .not('end_time', 'is', null)
           .order('end_time', ascending: false);
 
-      // Récupérer les dates frozen et le statut du freeze
-      final frozenDates = await getFrozenDates();
-      final freezeStatus = await getFreezeStatus();
+      // Récupérer les dates frozen et le statut du freeze en parallèle
+      final freezeResults = await Future.wait([
+        getFrozenDates(),
+        getFreezeStatus(),
+      ]);
+      final frozenDates = freezeResults[0] as List<DateTime>;
+      final freezeStatus = freezeResults[1] as FlowFreezeStatus;
 
       // Extraire les dates uniques (format YYYY-MM-DD)
       final Set<String> uniqueDates = {};

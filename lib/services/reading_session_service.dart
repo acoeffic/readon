@@ -5,19 +5,24 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/reading_session.dart';
 import 'ocr_service.dart';
 import 'challenge_service.dart';
+import 'offline_session_queue.dart';
 
 class ReadingSessionService {
   final SupabaseClient _supabase = Supabase.instance.client;
   final OCRService ocrService = OCRService();
   final ChallengeService _challengeService = ChallengeService();
+  final OfflineSessionQueue _offlineQueue = OfflineSessionQueue();
   
   /// Démarrer une nouvelle session de lecture
   /// Soit [imagePath] est fourni (OCR extraira le numéro de page),
   /// soit [manualPageNumber] est fourni directement.
+  /// Si [offlineMode] est true, la session est sauvegardée localement.
   Future<ReadingSession> startSession({
     required String bookId,
     String? imagePath,
     int? manualPageNumber,
+    bool offlineMode = false,
+    String? readingFor,
   }) async {
     try {
       int? pageNumber = manualPageNumber;
@@ -32,6 +37,21 @@ class ReadingSessionService {
 
       if (pageNumber == null) {
         throw Exception('Veuillez fournir un numéro de page.');
+      }
+
+      // Mode offline : sauvegarder localement
+      if (offlineMode) {
+        // Vérifier les sessions offline existantes
+        final offlineSession = await _offlineQueue.getOfflineActiveSession(bookId);
+        if (offlineSession != null) {
+          throw Exception('Une session de lecture est déjà en cours pour ce livre.');
+        }
+
+        return await _offlineQueue.queueStartSession(
+          bookId: bookId,
+          startPage: pageNumber,
+          startImagePath: imagePath,
+        );
       }
 
       // Vérifier qu'il n'y a pas déjà une session active pour ce livre
@@ -52,6 +72,9 @@ class ReadingSessionService {
       if (imagePath != null) {
         insertData['start_image_path'] = imagePath;
       }
+      if (readingFor != null) {
+        insertData['reading_for'] = readingFor;
+      }
 
       final response = await _supabase
           .from('reading_sessions')
@@ -69,10 +92,14 @@ class ReadingSessionService {
   /// Terminer une session de lecture active
   /// Soit [imagePath] est fourni (OCR extraira le numéro de page),
   /// soit [manualPageNumber] est fourni directement.
+  /// Si [offlineMode] est true, la fin de session est sauvegardée localement.
+  /// [activeSession] est requis en mode offline pour construire la session complète.
   Future<ReadingSession> endSession({
     required String sessionId,
     String? imagePath,
     int? manualPageNumber,
+    bool offlineMode = false,
+    ReadingSession? activeSession,
   }) async {
     try {
       int? pageNumber = manualPageNumber;
@@ -89,6 +116,15 @@ class ReadingSessionService {
         throw Exception('Veuillez fournir un numéro de page.');
       }
 
+      // Mode offline : sauvegarder localement
+      if (offlineMode && activeSession != null) {
+        return await _offlineQueue.queueEndSession(
+          activeSession: activeSession,
+          endPage: pageNumber,
+          endImagePath: imagePath,
+        );
+      }
+
       // Mettre à jour la session
       final updateData = <String, dynamic>{
         'end_page': pageNumber,
@@ -102,8 +138,13 @@ class ReadingSessionService {
           .from('reading_sessions')
           .update(updateData)
           .eq('id', sessionId)
+          .eq('user_id', _supabase.auth.currentUser!.id)
           .select()
-          .single();
+          .maybeSingle();
+
+      if (response == null) {
+        throw Exception('Session introuvable ou déjà terminée.');
+      }
 
       final session = ReadingSession.fromJson(response);
 
@@ -125,7 +166,7 @@ class ReadingSessionService {
     }
   }
   
-  /// Récupérer la session active pour un livre
+  /// Récupérer la session active pour un livre (inclut les sessions offline)
   Future<ReadingSession?> getActiveSession(String bookId) async {
     try {
       final response = await _supabase
@@ -135,18 +176,26 @@ class ReadingSessionService {
           .eq('user_id', _supabase.auth.currentUser!.id)
           .isFilter('end_page', null)
           .maybeSingle();
-      
-      if (response == null) return null;
-      
-      return ReadingSession.fromJson(response);
+
+      if (response != null) return ReadingSession.fromJson(response);
+
+      // Vérifier aussi les sessions offline
+      return await _offlineQueue.getOfflineActiveSession(bookId);
     } catch (e) {
       debugPrint('Erreur getActiveSession: $e');
-      return null;
+      // En cas d'erreur réseau, vérifier les sessions offline
+      try {
+        return await _offlineQueue.getOfflineActiveSession(bookId);
+      } catch (_) {
+        return null;
+      }
     }
   }
-  
-  /// Récupérer toutes les sessions actives (tous livres confondus)
+
+  /// Récupérer toutes les sessions actives (tous livres confondus, inclut offline)
   Future<List<ReadingSession>> getAllActiveSessions() async {
+    final List<ReadingSession> sessions = [];
+
     try {
       final response = await _supabase
           .from('reading_sessions')
@@ -154,14 +203,23 @@ class ReadingSessionService {
           .eq('user_id', _supabase.auth.currentUser!.id)
           .isFilter('end_page', null)
           .order('start_time', ascending: false);
-      
-      return (response as List)
-          .map((json) => ReadingSession.fromJson(json))
-          .toList();
+
+      sessions.addAll(
+        (response as List).map((json) => ReadingSession.fromJson(json)),
+      );
     } catch (e) {
-      debugPrint('Erreur getAllActiveSessions: $e');
-      return [];
+      debugPrint('Erreur getAllActiveSessions (Supabase): $e');
     }
+
+    // Ajouter les sessions offline
+    try {
+      final offlineSessions = await _offlineQueue.getAllOfflineActiveSessions();
+      sessions.addAll(offlineSessions);
+    } catch (e) {
+      debugPrint('Erreur getAllActiveSessions (offline): $e');
+    }
+
+    return sessions;
   }
   
   /// Récupérer toutes les sessions d'un livre (historique)

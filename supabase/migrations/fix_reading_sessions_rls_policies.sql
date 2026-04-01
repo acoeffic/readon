@@ -14,6 +14,7 @@ DROP POLICY IF EXISTS "Users can delete their own sessions" ON reading_sessions;
 
 -- Policy pour SELECT : Les utilisateurs voient leurs propres sessions
 -- ET celles de leurs amis (pour le feed)
+DROP POLICY IF EXISTS "Users can view their own sessions" ON reading_sessions;
 CREATE POLICY "Users can view their own sessions"
 ON reading_sessions
 FOR SELECT
@@ -30,6 +31,7 @@ USING (
 );
 
 -- Policy pour INSERT : Les utilisateurs peuvent créer leurs propres sessions
+DROP POLICY IF EXISTS "Users can insert their own sessions" ON reading_sessions;
 CREATE POLICY "Users can insert their own sessions"
 ON reading_sessions
 FOR INSERT
@@ -37,6 +39,7 @@ TO authenticated
 WITH CHECK (auth.uid() = user_id);
 
 -- Policy pour UPDATE : Les utilisateurs peuvent mettre à jour leurs propres sessions
+DROP POLICY IF EXISTS "Users can update their own sessions" ON reading_sessions;
 CREATE POLICY "Users can update their own sessions"
 ON reading_sessions
 FOR UPDATE
@@ -45,6 +48,7 @@ USING (auth.uid() = user_id)
 WITH CHECK (auth.uid() = user_id);
 
 -- Policy pour DELETE : Les utilisateurs peuvent supprimer leurs propres sessions
+DROP POLICY IF EXISTS "Users can delete their own sessions" ON reading_sessions;
 CREATE POLICY "Users can delete their own sessions"
 ON reading_sessions
 FOR DELETE

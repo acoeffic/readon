@@ -101,11 +101,11 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
       final filePath = 'group_covers/$fileName';
 
       await supabase.storage
-          .from('profiles')
+          .from('groups')
           .upload(filePath, _coverImage!);
 
       return supabase.storage
-          .from('profiles')
+          .from('groups')
           .getPublicUrl(filePath);
     } catch (e) {
       debugPrint('Erreur upload image: $e');

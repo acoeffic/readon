@@ -258,21 +258,29 @@ class _ChallengeDetailPageState extends State<ChallengeDetailPage> {
                                         vertical: 2,
                                       ),
                                       decoration: BoxDecoration(
-                                        color: challenge.isActive
-                                            ? Colors.green.withValues(alpha:0.1)
-                                            : Colors.red.withValues(alpha:0.1),
+                                        color: challenge.isUpcoming
+                                            ? Colors.orange.withValues(alpha: 0.1)
+                                            : challenge.isActive
+                                                ? Colors.green.withValues(alpha: 0.1)
+                                                : Colors.red.withValues(alpha: 0.1),
                                         borderRadius: BorderRadius.circular(12),
                                       ),
                                       child: Text(
-                                        challenge.isActive
-                                            ? _formatTimeRemaining(context, challenge.timeRemaining)
-                                            : l.expired,
+                                        challenge.isUpcoming
+                                            ? l.daysUntilStart(
+                                                challenge.startsAt.difference(DateTime.now()).inDays + 1,
+                                              )
+                                            : challenge.isActive
+                                                ? _formatTimeRemaining(context, challenge.timeRemaining)
+                                                : l.expired,
                                         style: TextStyle(
                                           fontSize: 12,
                                           fontWeight: FontWeight.w600,
-                                          color: challenge.isActive
-                                              ? Colors.green
-                                              : Colors.red,
+                                          color: challenge.isUpcoming
+                                              ? Colors.orange
+                                              : challenge.isActive
+                                                  ? Colors.green
+                                                  : Colors.red,
                                         ),
                                       ),
                                     ),

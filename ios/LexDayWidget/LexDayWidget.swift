@@ -3,7 +3,7 @@ import SwiftUI
 
 // MARK: - Data Model
 
-struct LexstaEntry: TimelineEntry {
+struct LexDayEntry: TimelineEntry {
     let date: Date
     let currentBook: String
     let currentAuthor: String
@@ -17,19 +17,19 @@ struct LexstaEntry: TimelineEntry {
 struct Provider: TimelineProvider {
     let appGroup = "group.com.acoeffic.lexday"
     
-    func placeholder(in context: Context) -> LexstaEntry {
-        LexstaEntry(date: Date(), currentBook: "Le Petit Prince",
+    func placeholder(in context: Context) -> LexDayEntry {
+        LexDayEntry(date: Date(), currentBook: "Le Petit Prince",
                     currentAuthor: "Saint-Exupéry", todayMinutes: 32,
                     streak: 7, progressPercent: 0.65)
     }
     
-    func getSnapshot(in context: Context, completion: @escaping (LexstaEntry) -> Void) {
+    func getSnapshot(in context: Context, completion: @escaping (LexDayEntry) -> Void) {
         completion(placeholder(in: context))
     }
     
-    func getTimeline(in context: Context, completion: @escaping (Timeline<LexstaEntry>) -> Void) {
+    func getTimeline(in context: Context, completion: @escaping (Timeline<LexDayEntry>) -> Void) {
         let defaults = UserDefaults(suiteName: appGroup)
-        let entry = LexstaEntry(
+        let entry = LexDayEntry(
             date: Date(),
             currentBook: defaults?.string(forKey: "currentBook") ?? "Aucun livre",
             currentAuthor: defaults?.string(forKey: "currentAuthor") ?? "",
@@ -53,7 +53,7 @@ extension Color {
 // MARK: - Small Widget
 
 struct SmallWidgetView: View {
-    let entry: LexstaEntry
+    let entry: LexDayEntry
     
     var body: some View {
         ZStack {
@@ -106,7 +106,7 @@ struct SmallWidgetView: View {
 // MARK: - Medium Widget
 
 struct MediumWidgetView: View {
-    let entry: LexstaEntry
+    let entry: LexDayEntry
     
     var body: some View {
         ZStack {
@@ -180,7 +180,7 @@ struct MediumWidgetView: View {
 
 struct LexDayWidgetEntryView: View {
     @Environment(\.widgetFamily) var family
-    let entry: LexstaEntry
+    let entry: LexDayEntry
     
     var body: some View {
         switch family {

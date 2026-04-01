@@ -254,6 +254,10 @@ class _StepManualAddState extends State<StepManualAdd> {
                 contentPadding: EdgeInsets.zero,
                 leading: CachedBookCover(
                   imageUrl: book.coverUrl,
+                  isbn: book.isbn,
+                  googleId: book.googleId,
+                  title: book.title,
+                  author: book.author,
                   width: 40,
                   height: 60,
                   borderRadius: BorderRadius.circular(AppRadius.s),
@@ -301,6 +305,8 @@ class _SearchResultTile extends StatelessWidget {
       contentPadding: const EdgeInsets.symmetric(vertical: AppSpace.xs),
       leading: CachedBookCover(
         imageUrl: googleBook.coverUrl,
+        isbn: googleBook.isbn13,
+        googleId: googleBook.id,
         width: 40,
         height: 60,
         borderRadius: BorderRadius.circular(AppRadius.s),

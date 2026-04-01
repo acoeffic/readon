@@ -18,11 +18,16 @@ import '../theme/app_theme.dart';
 import '../providers/subscription_provider.dart';
 import '../features/badges/services/anniversary_service.dart';
 import '../features/badges/widgets/anniversary_unlock_overlay.dart';
+import '../services/books_service.dart';
 import '../services/kindle_auto_sync_service.dart';
 import '../services/monthly_notification_service.dart';
+import '../services/push_notification_service.dart';
+import '../features/wrapped/monthly/monthly_wrapped_screen.dart';
 import '../widgets/kindle_auto_sync_widget.dart';
+import '../widgets/offline_banner.dart';
 import '../utils/responsive.dart';
 import '../l10n/app_localizations.dart';
+import '../providers/connectivity_provider.dart';
 
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
@@ -59,7 +64,29 @@ class _MainNavigationState extends State<MainNavigation>
       _checkAnniversary();
       _checkKindleAutoSync();
       _checkActiveSession();
+      _setupSyncListener();
+      _enrichMissingCovers();
+      _consumePendingNotification();
     });
+  }
+
+  void _setupSyncListener() {
+    final connectivity = Provider.of<ConnectivityProvider>(context, listen: false);
+    connectivity.onSyncCompleted = () {
+      if (!mounted) return;
+      final count = connectivity.lastSyncCount;
+      if (count > 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context).offlineSyncSuccess(count)),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+        // Rafraîchir les sessions actives après sync
+        _checkActiveSession();
+      }
+    };
   }
 
   @override
@@ -77,6 +104,33 @@ class _MainNavigationState extends State<MainNavigation>
       _checkActiveSession();
       _refreshSubscription();
       MonthlyNotificationService().scheduleNextMonthlyNotification();
+    }
+  }
+
+  Future<void> _enrichMissingCovers() async {
+    try {
+      final service = BooksService();
+      await service.enrichMissingCovers();
+      await service.reEnrichSuspiciousBooks();
+    } catch (_) {}
+  }
+
+  void _consumePendingNotification() {
+    final message = PushNotificationService.pendingInitialMessage;
+    if (message == null) return;
+    PushNotificationService.pendingInitialMessage = null;
+
+    final data = message.data;
+    if (data['type'] == 'monthly_wrapped') {
+      final month = int.tryParse(data['month'] ?? '');
+      final year = int.tryParse(data['year'] ?? '');
+      if (month == null || year == null) return;
+
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => MonthlyWrappedScreen(month: month, year: year),
+        ),
+      );
     }
   }
 
@@ -243,23 +297,32 @@ class _MainNavigationState extends State<MainNavigation>
 
     final hasActiveBanner =
         _activeSession != null && _activeSessionBook != null;
+    final isOffline = !Provider.of<ConnectivityProvider>(context).isOnline;
+
+    final topPadding = (hasActiveBanner ? 44.0 : 0.0) + (isOffline ? 36.0 : 0.0);
 
     final body = Stack(
       children: [
         Padding(
-          padding: EdgeInsets.only(top: hasActiveBanner ? 44.0 : 0),
+          padding: EdgeInsets.only(top: topPadding),
           child: IndexedStack(
             index: _selectedIndex,
             children: _pages,
           ),
         ),
-        if (hasActiveBanner)
-          ActiveSessionBanner(
-            session: _activeSession!,
-            book: _activeSessionBook!,
-            elapsed: _activeSessionElapsed,
-            onTap: _navigateToActiveSession,
-          ),
+        Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (isOffline) const OfflineBanner(),
+            if (hasActiveBanner)
+              ActiveSessionBanner(
+                session: _activeSession!,
+                book: _activeSessionBook!,
+                elapsed: _activeSessionElapsed,
+                onTap: _navigateToActiveSession,
+              ),
+          ],
+        ),
         if (_showKindleAutoSync)
           KindleAutoSyncWidget(
             onCompleted: _onKindleAutoSyncCompleted,

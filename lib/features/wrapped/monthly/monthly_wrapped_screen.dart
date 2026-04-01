@@ -2,7 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import '../../../config/env.dart';
-import '../../../services/readon_sync_service.dart';
+import '../../../services/lexday_sync_service.dart';
 import 'monthly_wrapped_data.dart';
 import 'monthly_wrapped_service.dart';
 import 'widgets/monthly_slide_container.dart';

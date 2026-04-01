@@ -149,32 +149,35 @@ class _ReadingGoalsPageState extends State<ReadingGoalsPage> {
             ? const Center(child: CircularProgressIndicator())
             : Column(
                 children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(AppSpace.l, AppSpace.l, AppSpace.l, 0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        BackHeader(
+                          title: l.myGoals,
+                          titleColor: AppColors.primary,
+                        ),
+                        const SizedBox(height: AppSpace.s),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: AppSpace.s),
+                          child: Text(
+                            l.goalsDescription,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                   Expanded(
                     child: SingleChildScrollView(
                       padding: const EdgeInsets.all(AppSpace.l),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          BackHeader(
-                            title: l.myGoals,
-                            titleColor: AppColors.primary,
-                          ),
-                          const SizedBox(height: AppSpace.s),
-
-                          // Sous-titre
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: AppSpace.s),
-                            child: Text(
-                              l.goalsDescription,
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
-                              ),
-                            ),
-                          ),
-
-                          const SizedBox(height: AppSpace.xl),
-
                           // ===== SECTION 1 : QUANTITE =====
                           _buildSectionHeader('📊', 'Objectif de quantite'),
                           _buildSectionSubtitle('Combien de livres veux-tu lire cette annee ?'),

@@ -826,6 +826,18 @@ abstract class AppLocalizations {
   /// **'🌙 Thème sombre (actif)'**
   String get darkThemeActive;
 
+  /// No description provided for @systemTheme.
+  ///
+  /// In fr, this message translates to:
+  /// **'📱 Automatique'**
+  String get systemTheme;
+
+  /// No description provided for @systemThemeActive.
+  ///
+  /// In fr, this message translates to:
+  /// **'📱 Automatique (actif)'**
+  String get systemThemeActive;
+
   /// No description provided for @languageSection.
   ///
   /// In fr, this message translates to:
@@ -1669,7 +1681,7 @@ abstract class AppLocalizations {
   /// No description provided for @myStatistics.
   ///
   /// In fr, this message translates to:
-  /// **'Mes Statistiques'**
+  /// **'Statistiques'**
   String get myStatistics;
 
   /// No description provided for @myLists.
@@ -2776,6 +2788,42 @@ abstract class AppLocalizations {
   /// **'Le titre est requis'**
   String get titleRequired;
 
+  /// No description provided for @startDate.
+  ///
+  /// In fr, this message translates to:
+  /// **'Date de début'**
+  String get startDate;
+
+  /// No description provided for @startsOn.
+  ///
+  /// In fr, this message translates to:
+  /// **'Commence le'**
+  String get startsOn;
+
+  /// No description provided for @startsToday.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aujourd\'hui'**
+  String get startsToday;
+
+  /// No description provided for @upcoming.
+  ///
+  /// In fr, this message translates to:
+  /// **'À venir'**
+  String get upcoming;
+
+  /// No description provided for @daysUntilStart.
+  ///
+  /// In fr, this message translates to:
+  /// **'Dans {days}j'**
+  String daysUntilStart(int days);
+
+  /// No description provided for @challengeStartNotifTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le défi commence aujourd\'hui !'**
+  String get challengeStartNotifTitle;
+
   /// No description provided for @deadline.
   ///
   /// In fr, this message translates to:
@@ -2977,7 +3025,7 @@ abstract class AppLocalizations {
   /// No description provided for @followLabel.
   ///
   /// In fr, this message translates to:
-  /// **'Suivre'**
+  /// **'Ajouter cet ami'**
   String get followLabel;
 
   /// No description provided for @pagesLabel.
@@ -3616,6 +3664,30 @@ abstract class AppLocalizations {
   /// **'Retirer \"{title}\" de cette liste ?'**
   String removeBookMessage(String title);
 
+  /// No description provided for @removeFromLibraryTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Supprimer de ma bibliothèque ?'**
+  String get removeFromLibraryTitle;
+
+  /// No description provided for @removeFromLibraryMessage.
+  ///
+  /// In fr, this message translates to:
+  /// **'Supprimer \"{title}\" définitivement de ta bibliothèque ?'**
+  String removeFromLibraryMessage(String title);
+
+  /// No description provided for @removeFromLibraryAction.
+  ///
+  /// In fr, this message translates to:
+  /// **'Supprimer'**
+  String get removeFromLibraryAction;
+
+  /// No description provided for @bookRemovedFromLibrary.
+  ///
+  /// In fr, this message translates to:
+  /// **'Livre supprimé de ta bibliothèque'**
+  String get bookRemovedFromLibrary;
+
   /// No description provided for @myListsSection.
   ///
   /// In fr, this message translates to:
@@ -4077,6 +4149,72 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Tu recevras une notification les jours sélectionnés pour te rappeler de lire et maintenir ton flow.'**
   String get notificationInfo;
+
+  /// No description provided for @notificationCenter.
+  ///
+  /// In fr, this message translates to:
+  /// **'Centre de notifications'**
+  String get notificationCenter;
+
+  /// No description provided for @notificationCenterDescription.
+  ///
+  /// In fr, this message translates to:
+  /// **'Gère tes préférences de notifications.'**
+  String get notificationCenterDescription;
+
+  /// No description provided for @friendRequestNotifications.
+  ///
+  /// In fr, this message translates to:
+  /// **'Demandes d\'ami'**
+  String get friendRequestNotifications;
+
+  /// No description provided for @friendRequestNotificationsDesc.
+  ///
+  /// In fr, this message translates to:
+  /// **'Être notifié des nouvelles demandes d\'ami'**
+  String get friendRequestNotificationsDesc;
+
+  /// No description provided for @emailSection.
+  ///
+  /// In fr, this message translates to:
+  /// **'Emails'**
+  String get emailSection;
+
+  /// No description provided for @emailSectionDescription.
+  ///
+  /// In fr, this message translates to:
+  /// **'Choisis les notifications que tu veux recevoir par email.'**
+  String get emailSectionDescription;
+
+  /// No description provided for @friendRequestEmail.
+  ///
+  /// In fr, this message translates to:
+  /// **'Demandes d\'ami par email'**
+  String get friendRequestEmail;
+
+  /// No description provided for @friendRequestEmailDesc.
+  ///
+  /// In fr, this message translates to:
+  /// **'Recevoir un email quand quelqu\'un t\'envoie une demande d\'ami'**
+  String get friendRequestEmailDesc;
+
+  /// No description provided for @pushSection.
+  ///
+  /// In fr, this message translates to:
+  /// **'Notifications push'**
+  String get pushSection;
+
+  /// No description provided for @pushSectionDescription.
+  ///
+  /// In fr, this message translates to:
+  /// **'Notifications sur ton appareil.'**
+  String get pushSectionDescription;
+
+  /// No description provided for @settingsSaved.
+  ///
+  /// In fr, this message translates to:
+  /// **'Préférences enregistrées'**
+  String get settingsSaved;
 
   /// No description provided for @myGoals.
   ///
@@ -4623,6 +4761,372 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Réaction réservée aux membres Premium'**
   String get reactionPremiumOnly;
+
+  /// No description provided for @nearbyBookstores.
+  ///
+  /// In fr, this message translates to:
+  /// **'Librairies proches'**
+  String get nearbyBookstores;
+
+  /// No description provided for @noBookstoresFound.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucune librairie trouvée à proximité'**
+  String get noBookstoresFound;
+
+  /// No description provided for @openNow.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ouvert'**
+  String get openNow;
+
+  /// No description provided for @closed.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fermé'**
+  String get closed;
+
+  /// No description provided for @navigate.
+  ///
+  /// In fr, this message translates to:
+  /// **'Itinéraire'**
+  String get navigate;
+
+  /// No description provided for @searchingBookstores.
+  ///
+  /// In fr, this message translates to:
+  /// **'Recherche de librairies...'**
+  String get searchingBookstores;
+
+  /// No description provided for @offlineBanner.
+  ///
+  /// In fr, this message translates to:
+  /// **'Hors ligne — les sessions seront synchronisées automatiquement'**
+  String get offlineBanner;
+
+  /// No description provided for @sessionSavedOffline.
+  ///
+  /// In fr, this message translates to:
+  /// **'Session enregistrée hors ligne. Elle sera synchronisée à la reconnexion.'**
+  String get sessionSavedOffline;
+
+  /// No description provided for @offlineSyncSuccess.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =1{1 session synchronisée} other{{count} sessions synchronisées}}'**
+  String offlineSyncSuccess(int count);
+
+  /// No description provided for @markAllRead.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tout lire'**
+  String get markAllRead;
+
+  /// No description provided for @newNotifications.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nouvelles'**
+  String get newNotifications;
+
+  /// No description provided for @recentNotifications.
+  ///
+  /// In fr, this message translates to:
+  /// **'Récentes'**
+  String get recentNotifications;
+
+  /// No description provided for @noNotifications.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucune notification'**
+  String get noNotifications;
+
+  /// No description provided for @noNotificationsDesc.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tu seras notifié des likes, commentaires et demandes d\'amis'**
+  String get noNotificationsDesc;
+
+  /// No description provided for @notifTypeFriends.
+  ///
+  /// In fr, this message translates to:
+  /// **'Amis'**
+  String get notifTypeFriends;
+
+  /// No description provided for @notifTypeLike.
+  ///
+  /// In fr, this message translates to:
+  /// **'Like'**
+  String get notifTypeLike;
+
+  /// No description provided for @notifTypeComment.
+  ///
+  /// In fr, this message translates to:
+  /// **'Commentaire'**
+  String get notifTypeComment;
+
+  /// No description provided for @notifTypeClub.
+  ///
+  /// In fr, this message translates to:
+  /// **'Club'**
+  String get notifTypeClub;
+
+  /// No description provided for @accept.
+  ///
+  /// In fr, this message translates to:
+  /// **'Accepter'**
+  String get accept;
+
+  /// No description provided for @ignore.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ignorer'**
+  String get ignore;
+
+  /// No description provided for @sentYouFriendRequest.
+  ///
+  /// In fr, this message translates to:
+  /// **'{name} vous a envoyé une demande d\'ami'**
+  String sentYouFriendRequest(String name);
+
+  /// No description provided for @sentGroupJoinRequest.
+  ///
+  /// In fr, this message translates to:
+  /// **'{name} souhaite rejoindre {groupName}'**
+  String sentGroupJoinRequest(String name, String groupName);
+
+  /// No description provided for @likedYourReading.
+  ///
+  /// In fr, this message translates to:
+  /// **'{name} a aimé votre lecture de {bookTitle}'**
+  String likedYourReading(String name, String bookTitle);
+
+  /// No description provided for @commentedYourReading.
+  ///
+  /// In fr, this message translates to:
+  /// **'{name} a commenté votre lecture de {bookTitle}'**
+  String commentedYourReading(String name, String bookTitle);
+
+  /// No description provided for @prizeSelections.
+  ///
+  /// In fr, this message translates to:
+  /// **'Sélections LexDay'**
+  String get prizeSelections;
+
+  /// No description provided for @prizeSelectionsSubtitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Prix littéraires officiels'**
+  String get prizeSelectionsSubtitle;
+
+  /// No description provided for @officialLexDay.
+  ///
+  /// In fr, this message translates to:
+  /// **'Officielle LexDay'**
+  String get officialLexDay;
+
+  /// No description provided for @bookSummary.
+  ///
+  /// In fr, this message translates to:
+  /// **'Résumé du livre'**
+  String get bookSummary;
+
+  /// No description provided for @noDescriptionAvailable.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun résumé disponible pour ce livre.'**
+  String get noDescriptionAvailable;
+
+  /// No description provided for @buyOnAmazon.
+  ///
+  /// In fr, this message translates to:
+  /// **'Commander sur Amazon'**
+  String get buyOnAmazon;
+
+  /// No description provided for @requestToJoin.
+  ///
+  /// In fr, this message translates to:
+  /// **'Demander à rejoindre'**
+  String get requestToJoin;
+
+  /// No description provided for @joinRequestSent.
+  ///
+  /// In fr, this message translates to:
+  /// **'Demande envoyée !'**
+  String get joinRequestSent;
+
+  /// No description provided for @joinRequestPending.
+  ///
+  /// In fr, this message translates to:
+  /// **'Demande en attente…'**
+  String get joinRequestPending;
+
+  /// No description provided for @joinRequestCancelled.
+  ///
+  /// In fr, this message translates to:
+  /// **'Demande annulée'**
+  String get joinRequestCancelled;
+
+  /// No description provided for @joinRequestAccepted.
+  ///
+  /// In fr, this message translates to:
+  /// **'{name} a été accepté(e) dans le club'**
+  String joinRequestAccepted(String name);
+
+  /// No description provided for @joinRequestRejected.
+  ///
+  /// In fr, this message translates to:
+  /// **'Demande de {name} refusée'**
+  String joinRequestRejected(String name);
+
+  /// No description provided for @pendingJoinRequests.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =1{1 demande en attente} other{{count} demandes en attente}}'**
+  String pendingJoinRequests(int count);
+
+  /// No description provided for @reject.
+  ///
+  /// In fr, this message translates to:
+  /// **'Refuser'**
+  String get reject;
+
+  /// No description provided for @readingForLabel.
+  ///
+  /// In fr, this message translates to:
+  /// **'JE LIS POUR'**
+  String get readingForLabel;
+
+  /// No description provided for @readingForJustMe.
+  ///
+  /// In fr, this message translates to:
+  /// **'Moi'**
+  String get readingForJustMe;
+
+  /// No description provided for @readingForDaughter.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ma fille'**
+  String get readingForDaughter;
+
+  /// No description provided for @readingForSon.
+  ///
+  /// In fr, this message translates to:
+  /// **'Mon fils'**
+  String get readingForSon;
+
+  /// No description provided for @readingForFriend.
+  ///
+  /// In fr, this message translates to:
+  /// **'Un(e) ami(e)'**
+  String get readingForFriend;
+
+  /// No description provided for @readingForGrandmother.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ma grand-mère'**
+  String get readingForGrandmother;
+
+  /// No description provided for @readingForGrandfather.
+  ///
+  /// In fr, this message translates to:
+  /// **'Mon grand-père'**
+  String get readingForGrandfather;
+
+  /// No description provided for @readingForPartner.
+  ///
+  /// In fr, this message translates to:
+  /// **'Mon/Ma partenaire'**
+  String get readingForPartner;
+
+  /// No description provided for @readingForFather.
+  ///
+  /// In fr, this message translates to:
+  /// **'Mon père'**
+  String get readingForFather;
+
+  /// No description provided for @readingForMother.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ma mère'**
+  String get readingForMother;
+
+  /// No description provided for @readingForOther.
+  ///
+  /// In fr, this message translates to:
+  /// **'Autre'**
+  String get readingForOther;
+
+  /// No description provided for @readingForDisplay.
+  ///
+  /// In fr, this message translates to:
+  /// **'Lu pour {person}'**
+  String readingForDisplay(String person);
+
+  /// No description provided for @readingForStatsTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Lectures partagées'**
+  String get readingForStatsTitle;
+
+  /// No description provided for @readingForStatsSubtitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Temps passé à lire pour vos proches'**
+  String get readingForStatsSubtitle;
+
+  /// No description provided for @readingForNoStats.
+  ///
+  /// In fr, this message translates to:
+  /// **'Vous n\'\'avez pas encore de session de lecture pour {person}'**
+  String readingForNoStats(String person);
+
+  /// No description provided for @readingForSessions.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count} sessions'**
+  String readingForSessions(int count);
+
+  /// No description provided for @readingForMinutes.
+  ///
+  /// In fr, this message translates to:
+  /// **'{minutes} min'**
+  String readingForMinutes(int minutes);
+
+  /// No description provided for @readingForPages.
+  ///
+  /// In fr, this message translates to:
+  /// **'{pages} pages'**
+  String readingForPages(int pages);
+
+  /// No description provided for @refreshCovers.
+  ///
+  /// In fr, this message translates to:
+  /// **'Actualiser les couvertures'**
+  String get refreshCovers;
+
+  /// No description provided for @refreshingCovers.
+  ///
+  /// In fr, this message translates to:
+  /// **'Actualisation en cours…'**
+  String get refreshingCovers;
+
+  /// No description provided for @coversRefreshed.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count} couverture(s) mise(s) à jour'**
+  String coversRefreshed(int count);
+
+  /// No description provided for @coversUpToDate.
+  ///
+  /// In fr, this message translates to:
+  /// **'Toutes les couvertures sont déjà à jour'**
+  String get coversUpToDate;
+
+  /// No description provided for @friendsLabel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Amis'**
+  String get friendsLabel;
 }
 
 class _AppLocalizationsDelegate

@@ -90,13 +90,11 @@ class AnnotationService {
     String id, {
     String? content,
     int? pageNumber,
-    bool? isPublic,
   }) async {
     try {
       final updateData = <String, dynamic>{};
       if (content != null) updateData['content'] = content;
       if (pageNumber != null) updateData['page_number'] = pageNumber;
-      if (isPublic != null) updateData['is_public'] = isPublic;
 
       final response = await _supabase
           .from('annotations')

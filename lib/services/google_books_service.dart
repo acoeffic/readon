@@ -3,6 +3,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../config/env.dart';
 
@@ -10,11 +11,55 @@ class GoogleBooksService {
   static const String _baseUrl = 'https://www.googleapis.com/books/v1/volumes';
   static String get _apiKey => Env.googleBooksApiKey;
 
+  /// Clé SharedPreferences pour le cache persistant ISBN → coverUrl
+  static const String _coverCacheKey = 'google_books_cover_cache';
+
   /// Cache en mémoire : ISBN → GoogleBook (évite les appels API répétés)
   static final Map<String, GoogleBook> _isbnCache = {};
 
+  /// Cache persistant : ISBN → coverUrl (survit au redémarrage)
+  static Map<String, String>? _persistentCoverCache;
+
+  /// Charge le cache persistant depuis SharedPreferences
+  static Future<void> loadPersistentCache() async {
+    if (_persistentCoverCache != null) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_coverCacheKey);
+      if (raw != null) {
+        final decoded = jsonDecode(raw) as Map<String, dynamic>;
+        _persistentCoverCache = decoded.map((k, v) => MapEntry(k, v as String));
+      } else {
+        _persistentCoverCache = {};
+      }
+    } catch (e) {
+      debugPrint('Erreur chargement cache couvertures: $e');
+      _persistentCoverCache = {};
+    }
+  }
+
+  /// Sauvegarde le cache persistant
+  static Future<void> _savePersistentCache() async {
+    if (_persistentCoverCache == null) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_coverCacheKey, jsonEncode(_persistentCoverCache));
+    } catch (e) {
+      debugPrint('Erreur sauvegarde cache couvertures: $e');
+    }
+  }
+
+  /// Retourne la coverUrl en cache pour un ISBN (persistant), ou null
+  String? getCachedCoverUrl(String isbn) {
+    return _persistentCoverCache?[isbn];
+  }
+
   /// Vide le cache (utile pour les tests ou un refresh forcé)
-  static void clearCache() => _isbnCache.clear();
+  static void clearCache() {
+    _isbnCache.clear();
+    _persistentCoverCache?.clear();
+    _savePersistentCache();
+  }
 
   /// Rechercher des livres via Google Books API (1 seul appel)
   Future<List<GoogleBook>> searchBooks(String query, {bool langRestrict = false}) async {
@@ -40,9 +85,9 @@ class GoogleBooksService {
   }
 
   /// Rechercher par ISBN (1 appel, pas de restriction de langue).
-  /// Les résultats sont cachés en mémoire pour éviter les appels répétés.
+  /// Les résultats sont cachés en mémoire et la coverUrl est persistée sur disque.
   Future<GoogleBook?> searchByISBN(String isbn) async {
-    // Vérifier le cache d'abord
+    // Vérifier le cache mémoire d'abord
     if (_isbnCache.containsKey(isbn)) {
       return _isbnCache[isbn];
     }
@@ -57,6 +102,7 @@ class GoogleBooksService {
         if (items == null || items.isEmpty) return null;
         final book = GoogleBook.fromJson(items.first);
         _isbnCache[isbn] = book;
+        _persistCoverUrl(isbn, book.coverUrl);
         return book;
       }
       return null;
@@ -69,6 +115,14 @@ class GoogleBooksService {
   /// Met en cache un GoogleBook pour un ISBN donné (utile après un fallback).
   void cacheBook(String isbn, GoogleBook book) {
     _isbnCache[isbn] = book;
+    _persistCoverUrl(isbn, book.coverUrl);
+  }
+
+  /// Persiste la coverUrl sur disque
+  void _persistCoverUrl(String isbn, String? coverUrl) {
+    if (coverUrl == null || _persistentCoverCache == null) return;
+    _persistentCoverCache![isbn] = coverUrl;
+    _savePersistentCache();
   }
 
   /// Rechercher par titre et auteur (1 appel)
@@ -117,9 +171,12 @@ class GoogleBook {
     String? coverUrl;
     if (imageLinks != null) {
       // Prefer larger images
-      coverUrl = imageLinks['large'] ??
+      coverUrl = imageLinks['extraLarge'] ??
+                 imageLinks['large'] ??
                  imageLinks['medium'] ??
-                 imageLinks['thumbnail'];
+                 imageLinks['small'] ??
+                 imageLinks['thumbnail'] ??
+                 imageLinks['smallThumbnail'];
 
       // Replace http with https for security
       if (coverUrl != null && coverUrl.startsWith('http:')) {
@@ -127,13 +184,8 @@ class GoogleBook {
       }
     }
 
-    // Fallback: Open Library cover via ISBN (validé alphanumerique)
-    if (coverUrl == null && isbns.isNotEmpty) {
-      final isbn = isbns.firstWhere((i) => i.length == 13, orElse: () => isbns.first);
-      if (RegExp(r'^[0-9Xx-]+$').hasMatch(isbn)) {
-        coverUrl = 'https://covers.openlibrary.org/b/isbn/$isbn-L.jpg';
-      }
-    }
+    // NOTE: Open Library fallback removed — CoverUrlService handles fallback
+    // chain at display time (Google Books API → Open Library → placeholder).
     
     // Extract categories
     final categories = (volumeInfo['categories'] as List<dynamic>?)
@@ -168,10 +220,12 @@ class GoogleBook {
   }
 
   String? get isbn13 {
-    return isbns.firstWhere(
-      (isbn) => isbn.length == 13,
-      orElse: () => isbns.isNotEmpty ? isbns.first : '',
+    if (isbns.isEmpty) return null;
+    final match = isbns.cast<String?>().firstWhere(
+      (isbn) => isbn != null && isbn.length == 13,
+      orElse: () => null,
     );
+    return match ?? isbns.first;
   }
 }
 

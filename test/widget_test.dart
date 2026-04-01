@@ -7,13 +7,13 @@
 
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:readon/app.dart';
+import 'package:lexday/app.dart';
 
 void main() {
-  testWidgets('ReadOn app renders welcome screen', (WidgetTester tester) async {
-    await tester.pumpWidget(const ReadOnApp());
+  testWidgets('LexDay app renders welcome screen', (WidgetTester tester) async {
+    await tester.pumpWidget(const LexDayApp());
 
-    expect(find.text('ReadOn'), findsWidgets);
+    expect(find.text('LexDay'), findsWidgets);
     expect(find.textContaining('compte'), findsWidgets);
   });
 }

@@ -65,6 +65,10 @@ class ContinueReadingCard extends StatelessWidget {
                         tag: 'book_cover_${book.id}',
                         child: CachedBookCover(
                           imageUrl: book.coverUrl,
+                          isbn: book.isbn,
+                          googleId: book.googleId,
+                          title: book.title,
+                          author: book.author,
                           width: 80,
                           height: 120,
                           borderRadius: BorderRadius.circular(8),

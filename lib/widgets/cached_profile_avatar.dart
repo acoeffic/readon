@@ -1,6 +1,7 @@
 // lib/widgets/cached_profile_avatar.dart
 // Widget réutilisable pour afficher les avatars de profil avec cache
 
+import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -11,6 +12,7 @@ import '../theme/app_theme.dart';
 /// Évite de re-télécharger les images à chaque affichage et gère les erreurs.
 class CachedProfileAvatar extends StatelessWidget {
   final String? imageUrl;
+  final String? localFilePath;
   final String? userName;
   final double radius;
   final Color? backgroundColor;
@@ -21,6 +23,7 @@ class CachedProfileAvatar extends StatelessWidget {
   const CachedProfileAvatar({
     super.key,
     required this.imageUrl,
+    this.localFilePath,
     this.userName,
     this.radius = 20,
     this.backgroundColor,
@@ -32,6 +35,18 @@ class CachedProfileAvatar extends StatelessWidget {
   String get _initial {
     if (userName == null || userName!.isEmpty) return '?';
     return userName![0].toUpperCase();
+  }
+
+  /// Retourne le widget image depuis le fichier local si disponible.
+  Widget? _buildLocalImage() {
+    if (localFilePath == null) return null;
+    final file = File(localFilePath!);
+    if (!file.existsSync()) return null;
+    return Image.file(
+      file,
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+    );
   }
 
   @override
@@ -59,8 +74,11 @@ class CachedProfileAvatar extends StatelessWidget {
       ),
     );
 
-    // Si pas d'URL valide, afficher l'initiale
-    if (imageUrl == null || imageUrl!.isEmpty) {
+    // Tenter le fichier local d'abord
+    final localImage = _buildLocalImage();
+
+    // Si pas d'URL valide ET pas de fichier local, afficher l'initiale
+    if ((imageUrl == null || imageUrl!.isEmpty) && localImage == null) {
       if (decoration != null) {
         return Container(
           width: radius * 2,
@@ -78,9 +96,30 @@ class CachedProfileAvatar extends StatelessWidget {
       );
     }
 
-    // Avec URL, utiliser CachedNetworkImage
+    // Construire le widget image (local prioritaire, puis réseau)
     final dpr = ui.PlatformDispatcher.instance.displays.first.devicePixelRatio;
     final cacheSize = (radius * 2 * dpr).toInt();
+
+    Widget imageWidget;
+    if (localImage != null) {
+      imageWidget = localImage;
+    } else {
+      imageWidget = CachedNetworkImage(
+        imageUrl: imageUrl!,
+        fit: BoxFit.cover,
+        memCacheWidth: cacheSize,
+        placeholder: (context, url) => Container(
+          color: bgColor,
+          child: fallbackWidget,
+        ),
+        errorWidget: (context, url, error) => Container(
+          color: bgColor,
+          child: fallbackWidget,
+        ),
+        fadeInDuration: const Duration(milliseconds: 200),
+        fadeOutDuration: const Duration(milliseconds: 200),
+      );
+    }
 
     if (decoration != null) {
       return Container(
@@ -90,21 +129,7 @@ class CachedProfileAvatar extends StatelessWidget {
         child: ClipRRect(
           borderRadius: decoration!.borderRadius as BorderRadius? ??
               BorderRadius.circular(radius),
-          child: CachedNetworkImage(
-            imageUrl: imageUrl!,
-            fit: BoxFit.cover,
-            memCacheWidth: cacheSize,
-            placeholder: (context, url) => Container(
-              color: bgColor,
-              child: fallbackWidget,
-            ),
-            errorWidget: (context, url, error) => Container(
-              color: bgColor,
-              child: fallbackWidget,
-            ),
-            fadeInDuration: const Duration(milliseconds: 200),
-            fadeOutDuration: const Duration(milliseconds: 200),
-          ),
+          child: imageWidget,
         ),
       );
     }
@@ -116,15 +141,7 @@ class CachedProfileAvatar extends StatelessWidget {
         child: SizedBox(
           width: radius * 2,
           height: radius * 2,
-          child: CachedNetworkImage(
-            imageUrl: imageUrl!,
-            fit: BoxFit.cover,
-            memCacheWidth: cacheSize,
-            placeholder: (context, url) => fallbackWidget,
-            errorWidget: (context, url, error) => fallbackWidget,
-            fadeInDuration: const Duration(milliseconds: 200),
-            fadeOutDuration: const Duration(milliseconds: 200),
-          ),
+          child: imageWidget,
         ),
       ),
     );

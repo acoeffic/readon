@@ -9,6 +9,7 @@ class ReadingGroup {
   final int? memberCount;
   final String? userRole;
   final String? creatorName;
+  final bool hasPendingRequest;
 
   ReadingGroup({
     required this.id,
@@ -21,6 +22,7 @@ class ReadingGroup {
     this.memberCount,
     this.userRole,
     this.creatorName,
+    this.hasPendingRequest = false,
   });
 
   factory ReadingGroup.fromJson(Map<String, dynamic> json) {
@@ -35,6 +37,7 @@ class ReadingGroup {
       memberCount: json['member_count'] as int?,
       userRole: json['user_role'] as String?,
       creatorName: json['creator_name'] as String?,
+      hasPendingRequest: json['has_pending_request'] as bool? ?? false,
     );
   }
 
@@ -55,6 +58,7 @@ class ReadingGroup {
 
   bool get isAdmin => userRole == 'admin';
   bool get isMember => userRole == 'member';
+  bool get isGroupMember => userRole != null;
 }
 
 class GroupMember {
@@ -126,6 +130,44 @@ class GroupInvitation {
     );
   }
 
+  bool get isPending => status == 'pending';
+}
+
+class GroupJoinRequest {
+  final String id;
+  final String groupId;
+  final String userId;
+  final String? userName;
+  final String? userAvatar;
+  final String? message;
+  final String status;
+  final DateTime createdAt;
+
+  GroupJoinRequest({
+    required this.id,
+    required this.groupId,
+    required this.userId,
+    this.userName,
+    this.userAvatar,
+    this.message,
+    required this.status,
+    required this.createdAt,
+  });
+
+  factory GroupJoinRequest.fromJson(Map<String, dynamic> json) {
+    return GroupJoinRequest(
+      id: json['id'] as String,
+      groupId: json['group_id'] as String,
+      userId: json['user_id'] as String,
+      userName: json['user_name'] as String?,
+      userAvatar: json['user_avatar'] as String?,
+      message: json['message'] as String?,
+      status: json['status'] as String,
+      createdAt: DateTime.parse(json['created_at'] as String),
+    );
+  }
+
+  String get displayName => userName ?? 'Unknown';
   bool get isPending => status == 'pending';
 }
 

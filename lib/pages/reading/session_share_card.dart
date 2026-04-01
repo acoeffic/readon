@@ -1,18 +1,18 @@
-import 'dart:math';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import '../../models/reading_session.dart';
 import '../../features/wrapped/share/share_format.dart';
-import '../../theme/app_theme.dart';
 
 /// Share card for a reading session, rendered off-screen and captured as an image.
-///
-/// All widgets are static (no animations) so the screenshot captures
-/// a fully-rendered frame at [pixelRatio] 3.0.
 class SessionShareCard extends StatelessWidget {
   final ReadingSession session;
   final String bookTitle;
   final String? bookAuthor;
+  final Uint8List? coverBytes;
+  final int? totalPages;
+  final int streak;
   final ShareFormat format;
 
   const SessionShareCard({
@@ -20,6 +20,9 @@ class SessionShareCard extends StatelessWidget {
     required this.session,
     required this.bookTitle,
     this.bookAuthor,
+    this.coverBytes,
+    this.totalPages,
+    this.streak = 0,
     required this.format,
   });
 
@@ -30,86 +33,113 @@ class SessionShareCard extends StatelessWidget {
           session: session,
           bookTitle: bookTitle,
           bookAuthor: bookAuthor,
+          coverBytes: coverBytes,
+          totalPages: totalPages,
+          streak: streak,
         ),
       ShareFormat.square => _SquareCard(
           session: session,
           bookTitle: bookTitle,
           bookAuthor: bookAuthor,
+          coverBytes: coverBytes,
+          totalPages: totalPages,
+          streak: streak,
         ),
     };
   }
 }
 
 // ==========================================================================
-// Shared helpers
+// Shared constants & helpers
 // ==========================================================================
 
-const _accent = AppColors.primary;
-const _dark = Color(0xFF0A1F1A);
+const _bgColor = Color(0xFFF5F0E8); // Warm beige
+const _cardColor = Colors.white;
+const _textDark = Color(0xFF2D2D2D);
+const _textMuted = Color(0xFF9B9585);
+const _accent = Color(0xFF5B7B6D); // Muted green/teal
+const _accentLight = Color(0xFFD4E0DA);
 
 String _formatDuration(int minutes) {
-  if (minutes < 60) return '$minutes min';
+  if (minutes < 60) return '$minutes';
   final h = minutes ~/ 60;
   final m = minutes % 60;
-  return '${h}h${m > 0 ? ' ${m}min' : ''}';
+  return '${h}h${m > 0 ? '${m.toString().padLeft(2, '0')}' : ''}';
 }
 
-String _formatPace(ReadingSession session) {
-  if (session.pagesRead == 0 || session.durationMinutes == 0) return '-';
-  final ppm = session.pagesRead / session.durationMinutes;
-  if (ppm >= 1) return '${ppm.toStringAsFixed(1)} p/min';
-  final mpp = session.durationMinutes / session.pagesRead;
-  return '${mpp.toStringAsFixed(1)} min/p';
+String _formatDate(DateTime date) {
+  final formatter = DateFormat("d MMM yyyy · HH:mm", 'fr_FR');
+  return formatter.format(date);
 }
 
-class _AccentLine extends StatelessWidget {
+// ==========================================================================
+// Book cover placeholder (when no coverUrl)
+// ==========================================================================
+
+class _BookCoverPlaceholder extends StatelessWidget {
+  final String title;
+  final String? author;
   final double width;
-  const _AccentLine({this.width = 60});
+  final double height;
+
+  const _BookCoverPlaceholder({
+    required this.title,
+    this.author,
+    required this.width,
+    required this.height,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Container(
-        width: width,
-        height: 1,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Colors.transparent,
-              _accent.withValues(alpha: 0.5),
-              Colors.transparent,
-            ],
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: const Color(0xFF3A4A5C),
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.25),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
           ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              title,
+              style: GoogleFonts.libreBaskerville(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+            ),
+            if (author != null) ...[
+              const SizedBox(height: 6),
+              Text(
+                author!,
+                style: GoogleFonts.libreBaskerville(
+                  fontSize: 10,
+                  fontStyle: FontStyle.italic,
+                  color: const Color(0xFFA8B8C8),
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ],
         ),
       ),
     );
   }
-}
-
-class _DotsPainter extends CustomPainter {
-  final int seed;
-  final int count;
-
-  _DotsPainter({required this.seed, this.count = 30});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final rng = Random(seed);
-    for (var i = 0; i < count; i++) {
-      final x = rng.nextDouble() * size.width;
-      final y = rng.nextDouble() * size.height;
-      final radius = 0.6 + rng.nextDouble() * 1.0;
-      final opacity = 0.1 + rng.nextDouble() * 0.25;
-      final paint = Paint()
-        ..color = _accent.withValues(alpha: opacity)
-        ..maskFilter = MaskFilter.blur(BlurStyle.normal, radius);
-      canvas.drawCircle(Offset(x, y), radius, paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _DotsPainter old) =>
-      old.seed != seed || old.count != count;
 }
 
 // ==========================================================================
@@ -120,137 +150,115 @@ class _StoryCard extends StatelessWidget {
   final ReadingSession session;
   final String bookTitle;
   final String? bookAuthor;
+  final Uint8List? coverBytes;
+  final int? totalPages;
+  final int streak;
+
   const _StoryCard({
     required this.session,
     required this.bookTitle,
     this.bookAuthor,
+    this.coverBytes,
+    this.totalPages,
+    this.streak = 0,
   });
 
   @override
   Widget build(BuildContext context) {
-    final seed = bookTitle.hashCode;
+    final progressPercent = totalPages != null && totalPages! > 0
+        ? ((session.endPage ?? 0) / totalPages! * 100).round()
+        : null;
 
     return SizedBox(
       width: 360,
       height: 640,
       child: DecoratedBox(
         decoration: BoxDecoration(
+          color: _bgColor,
           borderRadius: BorderRadius.circular(24),
-          gradient: RadialGradient(
-            center: const Alignment(0, -0.6),
-            radius: 1.2,
-            colors: [const Color(0xFF0F2A22), _dark],
-          ),
-          border: Border.all(color: _accent.withValues(alpha: 0.06)),
         ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(24),
-          child: Stack(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 32),
+          child: Column(
             children: [
-              Positioned.fill(
-                child: CustomPaint(
-                  painter: _DotsPainter(seed: seed, count: 35),
+              // ── Book cover ──
+              const SizedBox(height: 8),
+              _buildCover(100, 150),
+              const SizedBox(height: 24),
+
+              // ── Title ──
+              Text(
+                'Session terminée !',
+                style: GoogleFonts.libreBaskerville(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                  color: _textDark,
                 ),
               ),
-              // Glow at top
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                height: 200,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: RadialGradient(
-                      center: const Alignment(0, -1),
-                      radius: 1.0,
-                      colors: [
-                        _accent.withValues(alpha: 0.12),
-                        Colors.transparent,
-                      ],
-                    ),
-                  ),
+              const SizedBox(height: 6),
+              Text(
+                _formatDate(session.endTime ?? session.startTime),
+                style: GoogleFonts.jetBrainsMono(
+                  fontSize: 11,
+                  color: _textMuted,
                 ),
               ),
-              // Content
-              Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
-                child: Column(
-                  children: [
-                    // ── Header ──
-                    Text(
-                      'SESSION DE LECTURE',
-                      style: GoogleFonts.jetBrainsMono(
-                        fontSize: 9,
-                        letterSpacing: 5,
-                        color: _accent.withValues(alpha: 0.5),
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    // Book icon
-                    Text(
-                      '\uD83D\uDCDA',
-                      style: const TextStyle(fontSize: 32),
-                    ),
-                    const SizedBox(height: 10),
-                    const _AccentLine(width: 60),
-                    const SizedBox(height: 14),
+              const SizedBox(height: 24),
 
-                    // ── Book title ──
-                    Text(
-                      bookTitle,
-                      style: GoogleFonts.libreBaskerville(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                      ),
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    if (bookAuthor != null) ...[
-                      const SizedBox(height: 6),
-                      Text(
-                        bookAuthor!,
-                        style: GoogleFonts.libreBaskerville(
-                          fontSize: 12,
-                          fontStyle: FontStyle.italic,
-                          color: Colors.white.withValues(alpha: 0.5),
-                        ),
-                        textAlign: TextAlign.center,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                    const SizedBox(height: 20),
-
-                    // ── Stats 2x2 grid ──
-                    _StatsGrid(session: session),
-                    const SizedBox(height: 16),
-
-                    // ── Progression ──
-                    _ProgressionBar(session: session),
-
-                    const Spacer(),
-
-                    // ── Footer ──
-                    const _AccentLine(width: 30),
-                    const SizedBox(height: 10),
-                    Text(
-                      'LEXDAY',
-                      style: GoogleFonts.jetBrainsMono(
-                        fontSize: 9,
-                        letterSpacing: 3,
-                        color: _accent.withValues(alpha: 0.25),
-                      ),
-                    ),
-                  ],
-                ),
+              // ── Book info card ──
+              _BookInfoCard(
+                bookTitle: bookTitle,
+                bookAuthor: bookAuthor,
+                session: session,
+                progressPercent: progressPercent,
               ),
+              const SizedBox(height: 12),
+
+              // ── Stats card ──
+              _StatsCard(session: session, streak: streak),
+
+              const Spacer(),
+
+              // ── Footer ──
+              _LexDayFooter(),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildCover(double width, double height) {
+    if (coverBytes != null) {
+      return Container(
+        width: width,
+        height: height,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.25),
+              blurRadius: 12,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: Image.memory(
+            coverBytes!,
+            width: width,
+            height: height,
+            fit: BoxFit.cover,
+          ),
+        ),
+      );
+    }
+    return _BookCoverPlaceholder(
+      title: bookTitle,
+      author: bookAuthor,
+      width: width,
+      height: height,
     );
   }
 }
@@ -263,112 +271,138 @@ class _SquareCard extends StatelessWidget {
   final ReadingSession session;
   final String bookTitle;
   final String? bookAuthor;
+  final Uint8List? coverBytes;
+  final int? totalPages;
+  final int streak;
+
   const _SquareCard({
     required this.session,
     required this.bookTitle,
     this.bookAuthor,
+    this.coverBytes,
+    this.totalPages,
+    this.streak = 0,
   });
 
   @override
   Widget build(BuildContext context) {
-    final seed = bookTitle.hashCode;
+    final progressPercent = totalPages != null && totalPages! > 0
+        ? ((session.endPage ?? 0) / totalPages! * 100).round()
+        : null;
 
     return SizedBox(
       width: 360,
       height: 360,
       child: DecoratedBox(
         decoration: BoxDecoration(
+          color: _bgColor,
           borderRadius: BorderRadius.circular(24),
-          gradient: RadialGradient(
-            center: const Alignment(0, -0.4),
-            radius: 1.2,
-            colors: [const Color(0xFF0F2A22), _dark],
-          ),
-          border: Border.all(color: _accent.withValues(alpha: 0.06)),
         ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(24),
-          child: Stack(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
             children: [
-              Positioned.fill(
-                child: CustomPaint(
-                  painter: _DotsPainter(seed: seed, count: 20),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // ── Header row ──
-                    Row(
+              // ── Header row: cover + title ──
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildCover(60, 90),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        const SizedBox(height: 4),
                         Text(
-                          '\uD83D\uDCDA',
-                          style: const TextStyle(fontSize: 28),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                bookTitle,
-                                style: GoogleFonts.libreBaskerville(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.white,
-                                ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              if (bookAuthor != null) ...[
-                                const SizedBox(height: 4),
-                                Text(
-                                  bookAuthor!,
-                                  style: GoogleFonts.libreBaskerville(
-                                    fontSize: 11,
-                                    fontStyle: FontStyle.italic,
-                                    color:
-                                        Colors.white.withValues(alpha: 0.5),
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ],
-                            ],
+                          'Session terminée !',
+                          style: GoogleFonts.libreBaskerville(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: _textDark,
                           ),
                         ),
+                        const SizedBox(height: 4),
+                        Text(
+                          bookTitle,
+                          style: GoogleFonts.libreBaskerville(
+                            fontSize: 12,
+                            color: _textDark,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        if (bookAuthor != null) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            bookAuthor!,
+                            style: GoogleFonts.libreBaskerville(
+                              fontSize: 10,
+                              fontStyle: FontStyle.italic,
+                              color: _textMuted,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
                       ],
                     ),
-                    const SizedBox(height: 16),
-                    const _AccentLine(width: 40),
-                    const SizedBox(height: 16),
-
-                    // ── Horizontal stats ──
-                    _HorizontalStats(session: session),
-
-                    const Spacer(),
-
-                    // ── Footer ──
-                    Center(
-                      child: Text(
-                        'LEXDAY',
-                        style: GoogleFonts.jetBrainsMono(
-                          fontSize: 8,
-                          letterSpacing: 3,
-                          color: _accent.withValues(alpha: 0.25),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
+              const SizedBox(height: 14),
+
+              // ── Progress bar ──
+              _ProgressSection(
+                session: session,
+                progressPercent: progressPercent,
+              ),
+              const SizedBox(height: 12),
+
+              // ── Stats ──
+              _StatsCard(session: session, streak: streak),
+
+              const Spacer(),
+
+              // ── Footer ──
+              _LexDayFooter(compact: true),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildCover(double width, double height) {
+    if (coverBytes != null) {
+      return Container(
+        width: width,
+        height: height,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(6),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.2),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(6),
+          child: Image.memory(
+            coverBytes!,
+            width: width,
+            height: height,
+            fit: BoxFit.cover,
+          ),
+        ),
+      );
+    }
+    return _BookCoverPlaceholder(
+      title: bookTitle,
+      author: bookAuthor,
+      width: width,
+      height: height,
     );
   }
 }
@@ -377,156 +411,60 @@ class _SquareCard extends StatelessWidget {
 // Sub-widgets
 // ==========================================================================
 
-class _StatsGrid extends StatelessWidget {
+class _BookInfoCard extends StatelessWidget {
+  final String bookTitle;
+  final String? bookAuthor;
   final ReadingSession session;
-  const _StatsGrid({required this.session});
+  final int? progressPercent;
 
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: Column(
-            children: [
-              _StatItem(
-                emoji: '\uD83D\uDCD6',
-                value: '${session.pagesRead}',
-                label: 'pages',
-              ),
-              const SizedBox(height: 10),
-              _StatItem(
-                emoji: '\u26A1',
-                value: _formatPace(session),
-                label: 'rythme',
-              ),
-            ],
-          ),
-        ),
-        Container(
-          width: 1,
-          height: 80,
-          color: _accent.withValues(alpha: 0.08),
-        ),
-        Expanded(
-          child: Column(
-            children: [
-              _StatItem(
-                emoji: '\u23F1\uFE0F',
-                value: _formatDuration(session.durationMinutes),
-                label: 'de lecture',
-              ),
-              const SizedBox(height: 10),
-              _StatItem(
-                emoji: '\uD83D\uDCCC',
-                value: 'p.${session.startPage}\u2192${session.endPage}',
-                label: 'progression',
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _StatItem extends StatelessWidget {
-  final String emoji;
-  final String value;
-  final String label;
-
-  const _StatItem({
-    required this.emoji,
-    required this.value,
-    required this.label,
+  const _BookInfoCard({
+    required this.bookTitle,
+    this.bookAuthor,
+    required this.session,
+    this.progressPercent,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Text(emoji, style: const TextStyle(fontSize: 16)),
-        const SizedBox(height: 3),
-        Text(
-          value,
-          style: GoogleFonts.jetBrainsMono(
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
-            color: Colors.white,
-          ),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 2),
-        Text(
-          label,
-          style: GoogleFonts.jetBrainsMono(
-            fontSize: 9,
-            color: Colors.white.withValues(alpha: 0.35),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _ProgressionBar extends StatelessWidget {
-  final ReadingSession session;
-  const _ProgressionBar({required this.session});
-
-  @override
-  Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.04),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: _accent.withValues(alpha: 0.08)),
+        color: _cardColor,
+        borderRadius: BorderRadius.circular(16),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Page ${session.startPage}',
-            style: GoogleFonts.jetBrainsMono(
-              fontSize: 12,
-              color: Colors.white.withValues(alpha: 0.5),
+            bookTitle,
+            style: GoogleFonts.libreBaskerville(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: _textDark,
             ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Stack(
-              children: [
-                Container(
-                  height: 3,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                FractionallySizedBox(
-                  widthFactor: 1.0,
-                  child: Container(
-                    height: 3,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          _accent.withValues(alpha: 0.3),
-                          _accent,
-                        ],
-                      ),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-              ],
+          if (bookAuthor != null) ...[
+            const SizedBox(height: 3),
+            Text(
+              bookAuthor!,
+              style: GoogleFonts.libreBaskerville(
+                fontSize: 12,
+                fontStyle: FontStyle.italic,
+                color: _textMuted,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-          ),
-          const SizedBox(width: 12),
-          Text(
-            'Page ${session.endPage}',
-            style: GoogleFonts.jetBrainsMono(
-              fontSize: 12,
-              color: Colors.white,
-              fontWeight: FontWeight.w600,
-            ),
+          ],
+          const SizedBox(height: 12),
+
+          // Progress bar
+          _ProgressSection(
+            session: session,
+            progressPercent: progressPercent,
           ),
         ],
       ),
@@ -534,47 +472,212 @@ class _ProgressionBar extends StatelessWidget {
   }
 }
 
-class _HorizontalStats extends StatelessWidget {
+class _ProgressSection extends StatelessWidget {
   final ReadingSession session;
-  const _HorizontalStats({required this.session});
+  final int? progressPercent;
+
+  const _ProgressSection({
+    required this.session,
+    this.progressPercent,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final items = [
-      ('\uD83D\uDCD6', '${session.pagesRead}', 'pages'),
-      ('\u23F1\uFE0F', _formatDuration(session.durationMinutes), 'durée'),
-      ('\u26A1', _formatPace(session), 'rythme'),
-      ('\uD83D\uDCCC', '${session.startPage}\u2192${session.endPage}', 'pages'),
-    ];
+    final fraction = progressPercent != null ? progressPercent! / 100.0 : 0.0;
 
-    return Row(
-      children: items.map((item) {
-        return Expanded(
-          child: Column(
-            children: [
-              Text(item.$1, style: const TextStyle(fontSize: 16)),
-              const SizedBox(height: 6),
-              Text(
-                item.$2,
-                style: GoogleFonts.jetBrainsMono(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
+    return Column(
+      children: [
+        // Progress bar
+        ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: SizedBox(
+            height: 6,
+            child: Stack(
+              children: [
+                Container(
+                  decoration: BoxDecoration(
+                    color: _accentLight,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
                 ),
-                textAlign: TextAlign.center,
+                FractionallySizedBox(
+                  widthFactor: fraction.clamp(0.0, 1.0),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: _accent,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+
+        // Page range + percentage
+        Row(
+          children: [
+            Text(
+              'p. ${session.startPage} \u2192 ${session.endPage ?? session.startPage}',
+              style: GoogleFonts.jetBrainsMono(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: _accent,
               ),
-              const SizedBox(height: 2),
+            ),
+            const Spacer(),
+            if (progressPercent != null)
               Text(
-                item.$3,
+                '$progressPercent %',
                 style: GoogleFonts.jetBrainsMono(
-                  fontSize: 8,
-                  color: Colors.white.withValues(alpha: 0.3),
+                  fontSize: 12,
+                  color: _textMuted,
+                ),
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _StatsCard extends StatelessWidget {
+  final ReadingSession session;
+  final int streak;
+
+  const _StatsCard({required this.session, required this.streak});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 12),
+      decoration: BoxDecoration(
+        color: _cardColor,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          // Duration
+          Expanded(
+            child: _StatColumn(
+              emoji: '\u23F1\uFE0F',
+              value: _formatDuration(session.durationMinutes),
+              unit: session.durationMinutes < 60 ? ' min' : '',
+              label: 'durée',
+            ),
+          ),
+          // Pages
+          Expanded(
+            child: _StatColumn(
+              emoji: '\uD83D\uDCC4',
+              value: '${session.pagesRead}',
+              unit: '',
+              label: 'pages lues',
+            ),
+          ),
+          // Streak
+          if (streak > 0)
+            Expanded(
+              child: _StatColumn(
+                emoji: '\uD83D\uDD25',
+                value: '$streak',
+                unit: ' j.',
+                label: 'série',
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatColumn extends StatelessWidget {
+  final String emoji;
+  final String value;
+  final String unit;
+  final String label;
+
+  const _StatColumn({
+    required this.emoji,
+    required this.value,
+    required this.unit,
+    required this.label,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text(emoji, style: const TextStyle(fontSize: 22)),
+        const SizedBox(height: 6),
+        RichText(
+          text: TextSpan(
+            children: [
+              TextSpan(
+                text: value,
+                style: GoogleFonts.libreBaskerville(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                  color: _textDark,
+                ),
+              ),
+              TextSpan(
+                text: unit,
+                style: GoogleFonts.libreBaskerville(
+                  fontSize: 13,
+                  color: _textMuted,
                 ),
               ),
             ],
           ),
-        );
-      }).toList(),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: GoogleFonts.jetBrainsMono(
+            fontSize: 10,
+            color: _textMuted,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _LexDayFooter extends StatelessWidget {
+  final bool compact;
+  const _LexDayFooter({this.compact = false});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Icon(
+          Icons.bookmark,
+          size: compact ? 18 : 22,
+          color: _accent,
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'LexDay',
+          style: GoogleFonts.libreBaskerville(
+            fontSize: compact ? 16 : 20,
+            fontWeight: FontWeight.w700,
+            color: _textDark,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          'YOUR READING LIFE, TRACKED',
+          style: GoogleFonts.jetBrainsMono(
+            fontSize: compact ? 7 : 8,
+            letterSpacing: 2,
+            color: _textMuted,
+          ),
+        ),
+      ],
     );
   }
 }

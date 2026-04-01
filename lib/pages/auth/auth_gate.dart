@@ -1,99 +1,106 @@
-import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../theme/app_theme.dart';
-import '../../navigation/main_navigation.dart';
-import '../../services/subscription_service.dart';
-import '../onboarding/onboarding_page.dart';
-import 'login_page.dart';
+  import 'package:flutter/foundation.dart';
+  import 'package:flutter/material.dart';
+  import 'package:supabase_flutter/supabase_flutter.dart';
+  import '../../theme/app_theme.dart';
+  import '../../navigation/main_navigation.dart';
+  import '../../services/push_notification_service.dart';
+  import '../../services/subscription_service.dart';
+  import '../onboarding/onboarding_page.dart';
+  import 'login_page.dart';
 
-class AuthGate extends StatefulWidget {
-  const AuthGate({super.key});
+  class AuthGate extends StatefulWidget {
+    const AuthGate({super.key});
 
-  @override
-  State<AuthGate> createState() => _AuthGateState();
-}
-
-class _AuthGateState extends State<AuthGate> {
-  bool _loading = true;
-  Widget? _destination;
-
-  @override
-  void initState() {
-    super.initState();
-    _checkAuthState();
+    @override
+    State<AuthGate> createState() => _AuthGateState();
   }
 
-  Future<void> _checkAuthState() async {
-    final session = Supabase.instance.client.auth.currentSession;
+  class _AuthGateState extends State<AuthGate> {
+    bool _loading = true;
+    Widget? _destination;
 
-    if (session == null) {
-      setState(() {
-        _destination = const LoginPage();
-        _loading = false;
-      });
-      return;
+    @override
+    void initState() {
+      super.initState();
+      _checkAuthState();
     }
 
-    try {
-      final user = session.user;
-      final userId = user.id;
+    Future<void> _checkAuthState() async {
+      final session = Supabase.instance.client.auth.currentSession;
 
-      // Associer l'utilisateur à RevenueCat
-      await SubscriptionService().loginUser(userId);
-
-      // Verifier si le profil existe
-      final profile = await Supabase.instance.client
-          .from('profiles')
-          .select('onboarding_completed')
-          .eq('id', userId)
-          .maybeSingle();
-
-      // Si le profil n'existe pas (signup avec confirmation email),
-      // le creer maintenant avec les metadata de l'utilisateur
-      if (profile == null) {
-        final meta = user.userMetadata ?? {};
-        await Supabase.instance.client.from('profiles').upsert({
-          'id': userId,
-          'email': user.email,
-          'display_name': meta['display_name'] ?? meta['full_name'] ?? meta['name'] ?? '',
-          'created_at': DateTime.now().toIso8601String(),
-        });
-
-        if (!mounted) return;
+      if (session == null) {
         setState(() {
-          _destination = const OnboardingPage();
+          _destination = const LoginPage();
           _loading = false;
         });
         return;
       }
 
-      final completed = profile['onboarding_completed'] == true;
+      try {
+        final user = session.user;
+        final userId = user.id;
 
-      if (!mounted) return;
-      setState(() {
-        _destination =
-            completed ? const MainNavigation() : const OnboardingPage();
-        _loading = false;
-      });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _destination = const MainNavigation();
-        _loading = false;
-      });
+        // Associer l'utilisateur à RevenueCat
+        await SubscriptionService().loginUser(userId);
+
+        // Verifier si le profil existe
+        final profile = await Supabase.instance.client
+            .from('profiles')
+            .select('onboarding_completed')
+            .eq('id', userId)
+            .maybeSingle();
+
+        // Si le profil n'existe pas (signup avec confirmation email),
+        // le creer maintenant avec les metadata de l'utilisateur
+        if (profile == null) {
+          final meta = user.userMetadata ?? {};
+          await Supabase.instance.client.from('profiles').upsert({
+            'id': userId,
+            'email': user.email,
+            'display_name': meta['display_name'] ?? meta['full_name'] ?? meta['name'] ?? '',
+            'created_at': DateTime.now().toIso8601String(),
+          });
+
+          if (!mounted) return;
+          setState(() {
+            _destination = const OnboardingPage();
+            _loading = false;
+          });
+          return;
+        }
+
+        final completed = profile['onboarding_completed'] == true;
+
+        if (!mounted) return;
+        setState(() {
+          _destination =
+              completed ? const MainNavigation() : const OnboardingPage();
+          _loading = false;
+        });
+      } catch (e, stack) {
+        debugPrint('AuthGate error: $e\n$stack');
+        if (!mounted) return;
+        setState(() {
+          _destination = const MainNavigation();
+          _loading = false;
+        });
+      } finally {
+        if (Supabase.instance.client.auth.currentUser != null) {
+          await PushNotificationService().initialize();
+        }
+      }
+    }
+
+    @override
+    Widget build(BuildContext context) {
+      if (_loading) {
+        return const Scaffold(
+          backgroundColor: AppColors.bgLight,
+          body: Center(
+            child: CircularProgressIndicator(color: AppColors.primary),
+          ),
+        );
+      }
+      return _destination!;
     }
   }
-
-  @override
-  Widget build(BuildContext context) {
-    if (_loading) {
-      return const Scaffold(
-        backgroundColor: AppColors.bgLight,
-        body: Center(
-          child: CircularProgressIndicator(color: AppColors.primary),
-        ),
-      );
-    }
-    return _destination!;
-  }
-}

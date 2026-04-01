@@ -26,11 +26,13 @@ ON streak_freezes(user_id, frozen_date);
 ALTER TABLE streak_freezes ENABLE ROW LEVEL SECURITY;
 
 -- Politique: Les utilisateurs ne voient que leurs propres freezes
+DROP POLICY IF EXISTS "Users can view own freezes" ON streak_freezes;
 CREATE POLICY "Users can view own freezes"
 ON streak_freezes FOR SELECT
 USING (auth.uid() = user_id);
 
 -- Politique: Les utilisateurs peuvent créer leurs propres freezes
+DROP POLICY IF EXISTS "Users can insert own freezes" ON streak_freezes;
 CREATE POLICY "Users can insert own freezes"
 ON streak_freezes FOR INSERT
 WITH CHECK (auth.uid() = user_id);

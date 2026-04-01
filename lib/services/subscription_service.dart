@@ -33,9 +33,9 @@ class SubscriptionService {
   static String get _apiKeyAndroid => Env.revenueCatApiKeyAndroid;
 
   // Product identifiers (configurés dans RevenueCat dashboard)
-  static const monthlyProductId = 'readon_premium_monthly';
-  static const annualProductId = 'readon_premium_annual';
-  static const entitlementId = 'premium';
+  static const monthlyProductId = 'fr.lexday.premium.monthly';
+  static const annualProductId = 'fr.lexday.premium.yearly';
+  static const entitlementId = 'LexDay SAS Pro';
 
   final SupabaseClient _supabase = Supabase.instance.client;
 

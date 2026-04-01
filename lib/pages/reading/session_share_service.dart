@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:screenshot/screenshot.dart';
 import 'package:share_plus/share_plus.dart';
@@ -19,17 +20,33 @@ import 'session_share_card.dart';
 class SessionShareService {
   final _screenshotController = ScreenshotController();
 
+  /// Pre-download the book cover image bytes.
+  Future<Uint8List?> downloadCover(String? url) async {
+    if (url == null || url.isEmpty) return null;
+    try {
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) return response.bodyBytes;
+    } catch (_) {}
+    return null;
+  }
+
   /// Capture the [SessionShareCard] as a high-res PNG.
   Future<Uint8List?> captureCard({
     required ReadingSession session,
     required String bookTitle,
     required String? bookAuthor,
+    Uint8List? coverBytes,
+    int? totalPages,
+    int streak = 0,
     required ShareFormat format,
   }) async {
     final card = SessionShareCard(
       session: session,
       bookTitle: bookTitle,
       bookAuthor: bookAuthor,
+      coverBytes: coverBytes,
+      totalPages: totalPages,
+      streak: streak,
       format: format,
     );
     return _screenshotController.captureFromWidget(
@@ -93,7 +110,7 @@ class SessionShareService {
 
   Future<File> _saveTempFile(Uint8List bytes, String sessionId) async {
     final dir = await getTemporaryDirectory();
-    final file = File('${dir.path}/readon_session_$sessionId.png');
+    final file = File('${dir.path}/lexday_session_$sessionId.png');
     await file.writeAsBytes(bytes);
     Future.delayed(const Duration(seconds: 60), () => file.delete().catchError((_) => file));
     return file;
@@ -110,6 +127,9 @@ Future<void> showSessionShareSheet({
   required ReadingSession session,
   required String bookTitle,
   required String? bookAuthor,
+  String? coverUrl,
+  int? totalPages,
+  int streak = 0,
 }) {
   return showModalBottomSheet(
     context: context,
@@ -119,6 +139,9 @@ Future<void> showSessionShareSheet({
       session: session,
       bookTitle: bookTitle,
       bookAuthor: bookAuthor,
+      coverUrl: coverUrl,
+      totalPages: totalPages,
+      streak: streak,
     ),
   );
 }
@@ -127,11 +150,17 @@ class _SessionShareSheet extends StatefulWidget {
   final ReadingSession session;
   final String bookTitle;
   final String? bookAuthor;
+  final String? coverUrl;
+  final int? totalPages;
+  final int streak;
 
   const _SessionShareSheet({
     required this.session,
     required this.bookTitle,
     required this.bookAuthor,
+    this.coverUrl,
+    this.totalPages,
+    this.streak = 0,
   });
 
   @override
@@ -151,10 +180,16 @@ class _SessionShareSheetState extends State<_SessionShareSheet> {
   }
 
   Future<void> _capturePreview() async {
+    final coverBytes = await _service.downloadCover(widget.coverUrl);
+    if (!mounted) return;
+
     final bytes = await _service.captureCard(
       session: widget.session,
       bookTitle: widget.bookTitle,
       bookAuthor: widget.bookAuthor,
+      coverBytes: coverBytes,
+      totalPages: widget.totalPages,
+      streak: widget.streak,
       format: ShareFormat.story,
     );
     if (!mounted) return;

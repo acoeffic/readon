@@ -138,17 +138,7 @@ VALUES
   ('genre_explorer_3',   'Explorateur',       'Lire 3 genres différents',       '🧭', 'genres', 3,  '#009688', false, 'genres', 1),
   ('genre_explorer_5',   'Éclectique',        'Lire 5 genres différents',       '🌈', 'genres', 5,  '#00796B', false, 'genres', 2),
   ('genre_fiction_5',    'Amateur de Fiction', '5 livres de fiction',            '🏰', 'genres', 5,  '#00695C', false, 'livres', 3),
-  ('genre_nonfiction_5', 'Esprit Curieux',    '5 livres non-fiction',           '🧠', 'genres', 5,  '#004D40', false, 'livres', 4),
-  -- Maîtres (premium)
-  ('genre_master_thriller',  'Maître du Thriller',  '20 thrillers lus',         '🔪', 'genres', 20, '#FFD700', true, 'livres', 5),
-  ('genre_master_romance',   'Maître de la Romance','20 romances lues',         '💕', 'genres', 20, '#E91E63', true, 'livres', 6),
-  ('genre_master_sf',        'Maître de la SF',     '20 livres SF lus',         '🚀', 'genres', 20, '#2196F3', true, 'livres', 7),
-  ('genre_master_fantasy',   'Maître de la Fantasy','20 livres fantasy lus',    '🐉', 'genres', 20, '#9C27B0', true, 'livres', 8),
-  ('genre_master_mystery',   'Maître du Polar',     '20 polars lus',            '🔍', 'genres', 20, '#607D8B', true, 'livres', 9),
-  ('genre_master_history',   'Maître de l''Histoire','20 livres historiques',   '⚔️', 'genres', 20, '#795548', true, 'livres', 10),
-  ('genre_master_selfhelp',  'Maître du Dev Perso', '20 livres dev perso',      '🧘', 'genres', 20, '#FF9800', true, 'livres', 11),
-  ('genre_master_biography', 'Maître de la Bio',    '20 biographies lues',      '👤', 'genres', 20, '#4CAF50', true, 'livres', 12),
-  ('genre_master_all',       'Omniscient',          'Tous les badges Maître',   '🌟', 'genres', 8,  '#FFD700', true, 'badges', 13)
+  ('genre_nonfiction_5', 'Esprit Curieux',    '5 livres non-fiction',           '🧠', 'genres', 5,  '#004D40', false, 'livres', 4)
 ON CONFLICT (id) DO UPDATE SET
   name = EXCLUDED.name, description = EXCLUDED.description, icon = EXCLUDED.icon,
   category = EXCLUDED.category, requirement = EXCLUDED.requirement, color = EXCLUDED.color,
@@ -267,6 +257,7 @@ ON CONFLICT (id) DO UPDATE SET
 -- ============================================================================
 -- Retourne tous les badges avec la progression de l'utilisateur
 
+DROP FUNCTION IF EXISTS get_all_user_badges(UUID) CASCADE;
 CREATE OR REPLACE FUNCTION get_all_user_badges(p_user_id UUID)
 RETURNS TABLE (
   badge_id TEXT,
@@ -496,6 +487,7 @@ $$;
 -- Vérifie toutes les conditions et attribue les badges mérités
 -- Retourne la liste des badges nouvellement débloqués
 
+DROP FUNCTION IF EXISTS check_and_award_badges(UUID) CASCADE;
 CREATE OR REPLACE FUNCTION check_and_award_badges(p_user_id UUID)
 RETURNS TABLE (
   badge_id TEXT,

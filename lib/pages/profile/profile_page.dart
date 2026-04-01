@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/constrained_content.dart';
 import '../../widgets/cached_profile_avatar.dart';
+import '../../services/avatar_cache_service.dart';
 import 'settings_page.dart';
 import 'profile_detail_page.dart';
 import '../sessions/sessions_tab.dart';
@@ -24,6 +26,7 @@ class _ProfilePageState extends State<ProfilePage>
   final _savedListsKey = GlobalKey<SavedListsTabState>();
   String _userName = 'Utilisateur';
   String? _avatarUrl;
+  String? _localAvatarPath;
 
   @override
   void initState() {
@@ -51,6 +54,13 @@ class _ProfilePageState extends State<ProfilePage>
       final user = supabase.auth.currentUser;
       if (user == null) return;
 
+      // Charger immédiatement depuis le cache local
+      final cache = AvatarCacheService.instance;
+      final localPath = await cache.getLocalPath();
+      if (localPath != null && mounted) {
+        setState(() => _localAvatarPath = localPath);
+      }
+
       final profile = await supabase
           .from('profiles')
           .select('display_name, avatar_url')
@@ -59,6 +69,18 @@ class _ProfilePageState extends State<ProfilePage>
 
       final displayName = profile?['display_name'] as String?;
       final avatarUrl = profile?['avatar_url'] as String?;
+
+      // Mettre à jour le cache local si l'URL distante a changé
+      if (avatarUrl != null && avatarUrl.isNotEmpty) {
+        final cachedUrl = await cache.getCachedUrl();
+        if (cachedUrl != avatarUrl) {
+          await cache.saveFromUrl(avatarUrl);
+          final newPath = await cache.getLocalPath();
+          if (mounted && newPath != null) {
+            setState(() => _localAvatarPath = newPath);
+          }
+        }
+      }
 
       if (mounted) {
         setState(() {
@@ -74,6 +96,7 @@ class _ProfilePageState extends State<ProfilePage>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
@@ -112,6 +135,7 @@ class _ProfilePageState extends State<ProfilePage>
                       children: [
                         CachedProfileAvatar(
                           imageUrl: _avatarUrl,
+                          localFilePath: _localAvatarPath,
                           userName: _userName,
                           radius: 18,
                           backgroundColor:
@@ -156,10 +180,11 @@ class _ProfilePageState extends State<ProfilePage>
               labelColor: AppColors.primary,
               unselectedLabelColor:
                   Theme.of(context).textTheme.bodyMedium?.color,
-              tabs: const [
-                Tab(text: 'Mes Sessions'),
-                Tab(text: 'Mes Statistiques'),
-                Tab(text: 'Mes Listes'),
+              tabAlignment: TabAlignment.fill,
+              tabs: [
+                Tab(text: l10n.mySessions),
+                Tab(text: l10n.myStatistics),
+                Tab(text: l10n.myLists),
               ],
             ),
 

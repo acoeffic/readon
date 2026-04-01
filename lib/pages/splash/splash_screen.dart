@@ -13,11 +13,7 @@ import '../../services/monthly_notification_service.dart';
 import '../../services/deep_link_service.dart';
 import '../auth/auth_gate.dart';
 
-const _bookmarkSvg = '''
-<svg viewBox="0 0 28 38" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path d="M6 0 H22 C25.31 0 28 2.69 28 6 V35.5 C28 36.8 26.4 37.5 25.4 36.6 L14.6 27.2 C14.26 26.9 13.74 26.9 13.4 27.2 L2.6 36.6 C1.6 37.5 0 36.8 0 35.5 V6 C0 2.69 2.69 0 6 0 Z" fill="#6B988D"/>
-</svg>
-''';
+const _logoAsset = 'assets/images/logo_lexday.svg';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -190,9 +186,12 @@ class _SplashScreenState extends State<SplashScreen>
               position: _logoSlide,
               child: FadeTransition(
                 opacity: _logoFade,
-                child: SvgPicture.string(
-                  _bookmarkSvg,
-                  height: 72,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(18),
+                  child: SvgPicture.asset(
+                    _logoAsset,
+                    height: 120,
+                  ),
                 ),
               ),
             ),
@@ -221,7 +220,7 @@ class _SplashScreenState extends State<SplashScreen>
               child: FadeTransition(
                 opacity: _subtitleFade,
                 child: const Text(
-                  'YOUR READING LIFE, TRACKED',
+                  'UNE PAGE. CHAQUE JOUR.',
                   style: TextStyle(
                     fontFamily: 'DM Sans',
                     fontWeight: FontWeight.w300,

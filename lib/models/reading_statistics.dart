@@ -58,6 +58,20 @@ class GenreStatData {
   });
 }
 
+class ReadingForStatEntry {
+  final String key; // e.g. "daughter", "son", "friend"
+  final int totalMinutes;
+  final int totalPages;
+  final int totalSessions;
+
+  const ReadingForStatEntry({
+    required this.key,
+    required this.totalMinutes,
+    required this.totalPages,
+    required this.totalSessions,
+  });
+}
+
 class ReadingStatistics {
   final List<ReadingGoal> activeGoals;
   final List<MonthlyPageCount> pagesPerMonth;
@@ -67,6 +81,8 @@ class ReadingStatistics {
   final int unlockedBadges;
   final int totalBadges;
   final List<UserBadge> recentBadges;
+  final List<ReadingForStatEntry> readingForStats;
+  final int sessionCount;
 
   const ReadingStatistics({
     required this.activeGoals,
@@ -77,5 +93,7 @@ class ReadingStatistics {
     required this.unlockedBadges,
     required this.totalBadges,
     required this.recentBadges,
+    this.readingForStats = const [],
+    this.sessionCount = 0,
   });
 }

@@ -315,7 +315,9 @@ class UserSearchCard extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFF3E0),
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? const Color(0xFF3D2E0A)
+                      : const Color(0xFFFFF3E0),
                   borderRadius: BorderRadius.circular(AppRadius.pill),
                   border: Border.all(
                     color: Theme.of(context).scaffoldBackgroundColor,
@@ -566,6 +568,7 @@ class UserSearchCard extends StatelessWidget {
     if (isCentenaireLivresBadge(id: badge.id)) return const CentenaireLivresBadge(size: 26);
     if (isLegendeLitteraireBadge(id: badge.id)) return const LegendeLitteraireBadge(size: 26);
     if (isBibliothequeVivanteBadge(id: badge.id)) return const BibliothequeVivanteBadge(size: 26);
+    if (isFirstSessionBadge(id: badge.id)) return const FirstSessionBadge(size: 26);
     if (isOneHourMagicBadge(id: badge.id)) return const OneHourMagicBadge(size: 26);
     if (isSundayReaderBadge(id: badge.id)) return const SundayReaderBadge(size: 26);
     if (isPassionateBadge(id: badge.id)) return const PassionateBadge(size: 26);
@@ -623,6 +626,13 @@ class UserSearchCard extends StatelessWidget {
     if (isGenreDevpersoAdepteBadge(id: badge.id)) return const GenreDevpersoAdepteBadge(size: 26);
     if (isGenreDevpersoMaitreBadge(id: badge.id)) return const GenreDevpersoMaitreBadge(size: 26);
     if (isGenreDevpersoLegendeBadge(id: badge.id)) return const GenreDevpersoLegendeBadge(size: 26);
+    if (isStreak7DaysBadge(id: badge.id)) return const Streak7DaysBadge(size: 26);
+    if (isStreak14DaysBadge(id: badge.id)) return const Streak14DaysBadge(size: 26);
+    if (isStreak30DaysBadge(id: badge.id)) return const Streak30DaysBadge(size: 26);
+    if (isStreak60DaysBadge(id: badge.id)) return const Streak60DaysBadge(size: 26);
+    if (isStreak90DaysBadge(id: badge.id)) return const Streak90DaysBadge(size: 26);
+    if (isStreak180DaysBadge(id: badge.id)) return const Streak180DaysBadge(size: 26);
+    if (isStreak365DaysBadge(id: badge.id)) return const Streak365DaysBadge(size: 26);
     if (badge.id.startsWith('comeback_')) return ComebackBadge(badgeId: badge.id, size: 26);
     return Text(badge.icon, style: const TextStyle(fontSize: 20));
   }

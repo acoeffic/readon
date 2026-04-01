@@ -27,6 +27,11 @@ class MonthlyNotificationService {
   static const String _channelDescription =
       'Notification mensuelle pour consulter ton résumé de lecture';
 
+  static const String _challengeChannelId = 'challenge_start';
+  static const String _challengeChannelName = 'Début de défi';
+  static const String _challengeChannelDescription =
+      'Notification quand un défi de club commence';
+
   bool _initialized = false;
 
   /// Initialize the plugin. Call once from main.dart.
@@ -136,6 +141,65 @@ class MonthlyNotificationService {
       'MonthlyNotification scheduled for $nextFirst (payload: $payload)',
     );
   }
+
+  /// Schedule a start notification for a challenge (at 9:00 AM on [startsAt]).
+  /// Does nothing if [startsAt] is today or in the past.
+  Future<void> scheduleChallengeStart({
+    required String challengeId,
+    required String notifTitle,
+    required String notifBody,
+    required DateTime startsAt,
+  }) async {
+    final startDate = DateTime(startsAt.year, startsAt.month, startsAt.day);
+    final todayDate = DateTime.now();
+    final today = DateTime(todayDate.year, todayDate.month, todayDate.day);
+    if (!startDate.isAfter(today)) return;
+
+    final scheduledTime = tz.TZDateTime(
+      tz.local,
+      startsAt.year,
+      startsAt.month,
+      startsAt.day,
+      9,
+    );
+
+    final notificationDetails = NotificationDetails(
+      android: AndroidNotificationDetails(
+        _challengeChannelId,
+        _challengeChannelName,
+        channelDescription: _challengeChannelDescription,
+        importance: Importance.high,
+        priority: Priority.high,
+        icon: '@mipmap/ic_launcher',
+      ),
+      iOS: const DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+      ),
+    );
+
+    await _plugin.zonedSchedule(
+      _challengeNotifId(challengeId),
+      notifTitle,
+      notifBody,
+      scheduledTime,
+      notificationDetails,
+      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+    );
+
+    debugPrint('Challenge start notification scheduled: "$notifTitle" at $scheduledTime');
+  }
+
+  /// Cancel a previously scheduled challenge start notification.
+  Future<void> cancelChallengeStart(String challengeId) async {
+    await _plugin.cancel(_challengeNotifId(challengeId));
+  }
+
+  int _challengeNotifId(String challengeId) =>
+      challengeId.hashCode.abs() % 8000 + 2000;
 
   /// Next 1st-of-month at 09:00 local time.
   tz.TZDateTime _nextFirstOfMonth(tz.TZDateTime now) {

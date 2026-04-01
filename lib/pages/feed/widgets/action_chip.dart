@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:readon/theme/app_theme.dart';
+import 'package:lexday/theme/app_theme.dart';
 
 class ActionChipButton extends StatelessWidget {
   final IconData icon;

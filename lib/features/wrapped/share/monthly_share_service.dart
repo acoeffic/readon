@@ -109,14 +109,14 @@ class MonthlyShareService {
   }) async {
     final result = await ImageGallerySaverPlus.saveImage(
       imageBytes,
-      name: 'readon_wrapped_${year}_$month',
+      name: 'lexday_wrapped_${year}_$month',
     );
     return result != null && (result['isSuccess'] == true);
   }
 
   Future<File> _saveTempFile(Uint8List bytes, int year, int month) async {
     final dir = await getTemporaryDirectory();
-    final file = File('${dir.path}/readon_wrapped_${year}_$month.png');
+    final file = File('${dir.path}/lexday_wrapped_${year}_$month.png');
     await file.writeAsBytes(bytes);
     Future.delayed(const Duration(seconds: 60), () => file.delete().catchError((_) => file));
     return file;

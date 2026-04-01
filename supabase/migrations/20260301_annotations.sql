@@ -5,7 +5,7 @@
 -- 1. Table annotations
 -- ============================================================================
 
-CREATE TABLE annotations (
+CREATE TABLE IF NOT EXISTS annotations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   book_id TEXT NOT NULL,
@@ -24,9 +24,9 @@ CREATE TABLE annotations (
 -- 2. Indexes
 -- ============================================================================
 
-CREATE INDEX idx_annotations_user_book ON annotations (user_id, book_id);
-CREATE INDEX idx_annotations_session ON annotations (session_id);
-CREATE INDEX idx_annotations_created_at ON annotations (created_at);
+CREATE INDEX IF NOT EXISTS idx_annotations_user_book ON annotations (user_id, book_id);
+CREATE INDEX IF NOT EXISTS idx_annotations_session ON annotations (session_id);
+CREATE INDEX IF NOT EXISTS idx_annotations_created_at ON annotations (created_at);
 
 -- ============================================================================
 -- 3. Trigger updated_at automatique
@@ -40,6 +40,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trigger_annotations_updated_at ON annotations;
 CREATE TRIGGER trigger_annotations_updated_at
   BEFORE UPDATE ON annotations
   FOR EACH ROW
@@ -52,10 +53,12 @@ CREATE TRIGGER trigger_annotations_updated_at
 ALTER TABLE annotations ENABLE ROW LEVEL SECURITY;
 
 -- SELECT : ses propres annotations + annotations publiques de ses amis
+DROP POLICY IF EXISTS "Users can view own annotations" ON annotations;
 CREATE POLICY "Users can view own annotations"
 ON annotations FOR SELECT
 USING (user_id = auth.uid());
 
+DROP POLICY IF EXISTS "Users can view public annotations from friends" ON annotations;
 CREATE POLICY "Users can view public annotations from friends"
 ON annotations FOR SELECT
 USING (
@@ -70,16 +73,19 @@ USING (
 );
 
 -- INSERT : uniquement ses propres annotations
+DROP POLICY IF EXISTS "Users can insert own annotations" ON annotations;
 CREATE POLICY "Users can insert own annotations"
 ON annotations FOR INSERT
 WITH CHECK (user_id = auth.uid());
 
 -- UPDATE : uniquement ses propres annotations
+DROP POLICY IF EXISTS "Users can update own annotations" ON annotations;
 CREATE POLICY "Users can update own annotations"
 ON annotations FOR UPDATE
 USING (user_id = auth.uid());
 
 -- DELETE : uniquement ses propres annotations
+DROP POLICY IF EXISTS "Users can delete own annotations" ON annotations;
 CREATE POLICY "Users can delete own annotations"
 ON annotations FOR DELETE
 USING (user_id = auth.uid());

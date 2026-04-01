@@ -2,6 +2,7 @@
 // Page paywall pour s'abonner à LexDay Premium
 
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../../l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
@@ -208,16 +209,11 @@ class _UpgradePageState extends State<UpgradePage> {
 
                 const SizedBox(height: AppSpace.s),
 
-                // Icon
+                // Logo
                 Container(
                   width: 62,
                   height: 62,
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [AppColors.primary, Color(0xFF5C8377)],
-                    ),
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
@@ -227,10 +223,14 @@ class _UpgradePageState extends State<UpgradePage> {
                       ),
                     ],
                   ),
-                  child: const Icon(
-                    Icons.auto_stories_rounded,
-                    size: 32,
-                    color: Colors.white,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: SvgPicture.asset(
+                      'assets/images/logo_lexday.svg',
+                      width: 62,
+                      height: 62,
+                      fit: BoxFit.cover,
+                    ),
                   ),
                 ),
 
@@ -441,7 +441,7 @@ class _UpgradePageState extends State<UpgradePage> {
                     children: [
                       GestureDetector(
                         onTap: () => launchUrl(
-                          Uri.parse('https://readon.app/terms'),
+                          Uri.parse('https://lexday.app/terms'),
                           mode: LaunchMode.externalApplication,
                         ),
                         child: Text(
@@ -464,7 +464,7 @@ class _UpgradePageState extends State<UpgradePage> {
                       ),
                       GestureDetector(
                         onTap: () => launchUrl(
-                          Uri.parse('https://readon.app/privacy'),
+                          Uri.parse('https://lexday.app/privacy'),
                           mode: LaunchMode.externalApplication,
                         ),
                         child: Text(

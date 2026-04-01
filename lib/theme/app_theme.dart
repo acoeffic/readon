@@ -46,97 +46,189 @@ class AppRadius {
   static const pill = 32.0;
 }
 
-class AppTheme {
-  static ThemeData light = ThemeData(
-    scaffoldBackgroundColor: AppColors.bgLight,
-    colorScheme: ColorScheme.fromSeed(
-      seedColor: AppColors.primary,
-      brightness: Brightness.light,
-    ),
-    useMaterial3: true,
-    textTheme: const TextTheme(
-      headlineMedium: TextStyle(
-        fontSize: 22,
-        fontWeight: FontWeight.bold,
-        color: Colors.black,
-      ),
-      titleMedium: TextStyle(
-        fontSize: 16,
-        fontWeight: FontWeight.w600,
-        color: Colors.black,
-      ),
-      bodyMedium: TextStyle(
-        fontSize: 14,
-        color: Colors.black87,
-      ),
-    ),
-    inputDecorationTheme: InputDecorationTheme(
-      filled: true,
-      fillColor: Colors.white,
-      contentPadding: const EdgeInsets.symmetric(
-        vertical: 12,
-        horizontal: 16,
-      ),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(AppRadius.m),
-        borderSide: const BorderSide(color: AppColors.border),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(AppRadius.m),
-        borderSide: const BorderSide(color: AppColors.border),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(AppRadius.m),
-        borderSide: const BorderSide(color: AppColors.primary, width: 2),
-      ),
-    ),
-  );
+// ---------------------------------------------------------------------------
+// Extension for easy theme-aware color access: context.appColors.cardBg
+// ---------------------------------------------------------------------------
+class AppThemeColors {
+  final Brightness brightness;
+  const AppThemeColors._(this.brightness);
 
-  static ThemeData dark = ThemeData(
-    scaffoldBackgroundColor: AppColors.bgDark,
-    colorScheme: ColorScheme.fromSeed(
+  bool get isDark => brightness == Brightness.dark;
+
+  // Backgrounds
+  Color get scaffoldBg => isDark ? AppColors.bgDark : AppColors.bgLight;
+  Color get cardBg => isDark ? AppColors.surfaceDark : Colors.white;
+  Color get accent => isDark ? AppColors.accentDark : AppColors.accentLight;
+  Color get libraryBg => isDark ? const Color(0xFF1A1814) : AppColors.libraryBg;
+
+  // Text
+  Color get textPrimary => isDark ? AppColors.textPrimaryDark : Colors.black;
+  Color get textSecondary => isDark ? AppColors.textSecondaryDark : AppColors.textSecondary;
+
+  // Borders & dividers
+  Color get border => isDark ? AppColors.borderDark : AppColors.border;
+  Color get divider => isDark ? AppColors.borderDark : const Color(0xFFE8E8E8);
+
+  // Pill / chip backgrounds (for reactions, tags, etc.)
+  Color get pillBg => isDark ? const Color(0xFF2A2520) : const Color(0xFFF0EBE1);
+
+  // Snackbar
+  Color get snackbarSuccess => isDark ? const Color(0xFF1B5E20) : const Color(0xFF4CAF50);
+  Color get snackbarError => isDark ? const Color(0xFFB71C1C) : AppColors.error;
+
+  // Misc
+  Color get shadow => isDark ? Colors.black54 : Colors.black12;
+  Color get shimmerBase => isDark ? const Color(0xFF2A2A2A) : const Color(0xFFE0E0E0);
+  Color get shimmerHighlight => isDark ? const Color(0xFF3A3A3A) : const Color(0xFFF5F5F5);
+}
+
+extension AppThemeColorsExtension on BuildContext {
+  AppThemeColors get appColors =>
+      AppThemeColors._(Theme.of(this).brightness);
+
+  bool get isDarkMode => Theme.of(this).brightness == Brightness.dark;
+}
+
+// ---------------------------------------------------------------------------
+// Theme definitions
+// ---------------------------------------------------------------------------
+class AppTheme {
+  static ThemeData light = _buildTheme(Brightness.light);
+  static ThemeData dark = _buildTheme(Brightness.dark);
+
+  static ThemeData _buildTheme(Brightness brightness) {
+    final isDark = brightness == Brightness.dark;
+    final colors = AppThemeColors._(brightness);
+
+    final colorScheme = ColorScheme.fromSeed(
       seedColor: AppColors.primary,
-      brightness: Brightness.dark,
-      surface: AppColors.surfaceDark,
-    ),
-    useMaterial3: true,
-    textTheme: const TextTheme(
-      headlineMedium: TextStyle(
-        fontSize: 22,
-        fontWeight: FontWeight.bold,
-        color: AppColors.textPrimaryDark,
+      brightness: brightness,
+      surface: isDark ? AppColors.surfaceDark : null,
+    );
+
+    return ThemeData(
+      brightness: brightness,
+      scaffoldBackgroundColor: colors.scaffoldBg,
+      colorScheme: colorScheme,
+      useMaterial3: true,
+
+      // Text
+      textTheme: TextTheme(
+        headlineMedium: TextStyle(
+          fontSize: 22,
+          fontWeight: FontWeight.bold,
+          color: colors.textPrimary,
+        ),
+        titleMedium: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          color: colors.textPrimary,
+        ),
+        bodyMedium: TextStyle(
+          fontSize: 14,
+          color: isDark ? AppColors.textPrimaryDark : Colors.black87,
+        ),
       ),
-      titleMedium: TextStyle(
-        fontSize: 16,
-        fontWeight: FontWeight.w600,
-        color: AppColors.textPrimaryDark,
+
+      // AppBar
+      appBarTheme: AppBarTheme(
+        backgroundColor: colors.scaffoldBg,
+        foregroundColor: colors.textPrimary,
+        elevation: 0,
+        scrolledUnderElevation: 0.5,
+        surfaceTintColor: Colors.transparent,
       ),
-      bodyMedium: TextStyle(
-        fontSize: 14,
-        color: AppColors.textPrimaryDark,
+
+      // Card
+      cardTheme: CardThemeData(
+        color: colors.cardBg,
+        elevation: isDark ? 0 : 1,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.m),
+          side: isDark
+              ? BorderSide(color: colors.border, width: 0.5)
+              : BorderSide.none,
+        ),
       ),
-    ),
-    inputDecorationTheme: InputDecorationTheme(
-      filled: true,
-      fillColor: AppColors.surfaceDark,
-      contentPadding: const EdgeInsets.symmetric(
-        vertical: 12,
-        horizontal: 16,
+
+      // Dialog
+      dialogTheme: DialogThemeData(
+        backgroundColor: colors.cardBg,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.l),
+        ),
       ),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(AppRadius.m),
-        borderSide: const BorderSide(color: AppColors.borderDark),
+
+      // BottomSheet
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: colors.cardBg,
+        surfaceTintColor: Colors.transparent,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
       ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(AppRadius.m),
-        borderSide: const BorderSide(color: AppColors.borderDark),
+
+      // SnackBar
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: isDark ? AppColors.surfaceDark : Colors.black87,
+        contentTextStyle: TextStyle(
+          color: isDark ? AppColors.textPrimaryDark : Colors.white,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.s),
+        ),
+        behavior: SnackBarBehavior.floating,
       ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(AppRadius.m),
-        borderSide: const BorderSide(color: AppColors.primary, width: 2),
+
+      // Divider
+      dividerTheme: DividerThemeData(
+        color: colors.divider,
+        thickness: 0.5,
       ),
-    ),
-    cardColor: AppColors.surfaceDark,
-    dividerColor: AppColors.borderDark,
-  );
+
+      // ListTile
+      listTileTheme: ListTileThemeData(
+        iconColor: colorScheme.onSurface,
+        textColor: colors.textPrimary,
+      ),
+
+      // Chip
+      chipTheme: ChipThemeData(
+        backgroundColor: colors.pillBg,
+        selectedColor: AppColors.primary.withValues(alpha: isDark ? 0.3 : 0.15),
+        labelStyle: TextStyle(color: colors.textPrimary, fontSize: 13),
+        side: BorderSide.none,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.pill),
+        ),
+      ),
+
+      // Input
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: isDark ? AppColors.surfaceDark : Colors.white,
+        contentPadding: const EdgeInsets.symmetric(
+          vertical: 12,
+          horizontal: 16,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppRadius.m),
+          borderSide: BorderSide(color: colors.border),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppRadius.m),
+          borderSide: BorderSide(color: colors.border),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppRadius.m),
+          borderSide: const BorderSide(color: AppColors.primary, width: 2),
+        ),
+      ),
+
+      // Misc
+      cardColor: colors.cardBg,
+      dividerColor: colors.divider,
+    );
+  }
 }

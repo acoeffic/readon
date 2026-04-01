@@ -19,6 +19,7 @@ import '../../../services/comments_service.dart';
 import '../../reading/book_finished_share_service.dart';
 import '../../sessions/session_detail_page.dart';
 import '../../reading/book_completed_summary_page.dart';
+import '../../books/user_books_page.dart';
 import 'comments_sheet.dart';
 
 class FriendActivityCard extends StatefulWidget {
@@ -45,6 +46,8 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
   String? _bookTitle;
   String? _bookAuthor;
   String? _bookCover;
+  String? _bookIsbn;
+  String? _bookGoogleId;
   int? _bookPageCount;
 
   @override
@@ -86,6 +89,8 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
           _bookTitle = existingTitle;
           _bookAuthor = payload['book_author'] as String?;
           _bookCover = payload['book_cover'] as String?;
+          _bookIsbn = payload['book_isbn'] as String?;
+          _bookGoogleId = payload['book_google_id'] as String?;
         });
       }
       return;
@@ -94,7 +99,7 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
     try {
       final book = await supabase
           .from('books')
-          .select('title, author, cover_url, page_count')
+          .select('title, author, cover_url, page_count, isbn, google_id')
           .eq('id', bookId)
           .maybeSingle();
       if (!mounted || book == null) return;
@@ -102,6 +107,8 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
         _bookTitle = book['title'] as String?;
         _bookAuthor = book['author'] as String?;
         _bookCover = book['cover_url'] as String?;
+        _bookIsbn = book['isbn'] as String?;
+        _bookGoogleId = book['google_id'] as String?;
         _bookPageCount = book['page_count'] as int?;
       });
     } catch (e) {
@@ -257,12 +264,12 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
     final title = bookTitle ?? 'un livre';
     final author = bookAuthor != null ? ' de $bookAuthor' : '';
     if (_isBookFinished()) {
-      return "Je viens de terminer \"$title\"$author ! 📚✨\n\n#Lecture #ReadOn";
+      return "Je viens de terminer \"$title\"$author ! 📚✨\n\n#Lecture #LexDay";
     }
     final payload = widget.activity['payload'] as Map<String, dynamic>?;
     final pagesRead = payload?['pages_read'] as int?;
     final pages = pagesRead != null ? '$pagesRead pages de ' : '';
-    return "Je viens de lire $pages\"$title\"$author 📖\n\n#Lecture #ReadOn";
+    return "Je viens de lire $pages\"$title\"$author 📖\n\n#Lecture #LexDay";
   }
 
   Future<void> _showShareSheet(String? bookTitle, String? bookAuthor) async {
@@ -348,6 +355,8 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
             title: _bookTitle!,
             author: _bookAuthor,
             coverUrl: _bookCover,
+            isbn: _bookIsbn,
+            googleId: _bookGoogleId,
             pageCount: _bookPageCount,
           )
         : null;
@@ -372,6 +381,50 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
         ),
       );
     }
+  }
+
+  Future<void> _navigateToBookDetail() async {
+    final payload = widget.activity['payload'] as Map<String, dynamic>?;
+    if (payload == null) return;
+
+    Book? book;
+
+    // 1) Try by book_id
+    final rawId = payload['book_id'];
+    if (rawId != null) {
+      try {
+        final row = await supabase
+            .from('books')
+            .select()
+            .eq('id', rawId)
+            .maybeSingle();
+        if (row != null) book = Book.fromJson(row);
+      } catch (e) {
+        debugPrint('navigateToBookDetail by id failed: $e');
+      }
+    }
+
+    // 2) Fallback: search by title in user's library
+    if (book == null && _bookTitle != null) {
+      try {
+        final userBooks = await BooksService().getUserBooks();
+        book = userBooks.where((b) => b.title == _bookTitle).firstOrNull;
+      } catch (e) {
+        debugPrint('navigateToBookDetail by title failed: $e');
+      }
+    }
+
+    if (!mounted || book == null) return;
+
+    final authorId = widget.activity['author_id'] as String?;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => BookDetailPage(
+          book: book!,
+          sharedByUserId: authorId,
+        ),
+      ),
+    );
   }
 
   String _formatDuration(double? durationMinutes) {
@@ -523,65 +576,73 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
                 ],
               ),
 
+              if (bookTitle != null) ...[
+                const SizedBox(height: 14),
+                GestureDetector(
+                  onTap: _navigateToBookDetail,
+                  behavior: HitTestBehavior.opaque,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      CachedBookCover(
+                        imageUrl: bookCover,
+                        isbn: _bookIsbn,
+                        googleId: _bookGoogleId,
+                        title: _bookTitle,
+                        author: _bookAuthor,
+                        width: 80,
+                        height: 110,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const SizedBox(height: 4),
+                            Text(
+                              bookTitle,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 16,
+                                height: 1.2,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            if (bookAuthor != null) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                bookAuthor,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: muted,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      if (progressPercent != null) ...[
+                        const SizedBox(width: 10),
+                        _CircularProgress(
+                          percent: progressPercent,
+                          color: isBookFinished ? Colors.amber.shade600 : AppColors.primary,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+
               GestureDetector(
                 onTap: _navigateToSessionDetail,
                 behavior: HitTestBehavior.opaque,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (bookTitle != null) ...[
-                      const SizedBox(height: 14),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          CachedBookCover(
-                            imageUrl: bookCover,
-                            width: 80,
-                            height: 110,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const SizedBox(height: 4),
-                                Text(
-                                  bookTitle,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 16,
-                                    height: 1.2,
-                                  ),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                if (bookAuthor != null) ...[
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    bookAuthor,
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: muted,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ),
-                          if (progressPercent != null) ...[
-                            const SizedBox(width: 10),
-                            _CircularProgress(
-                              percent: progressPercent,
-                              color: isBookFinished ? Colors.amber.shade600 : AppColors.primary,
-                            ),
-                          ],
-                        ],
-                      ),
-                    ],
-
                     if (pagesRead != null || durationMinutes != null) ...[
                       const SizedBox(height: 14),
                       _StatsBar(
@@ -1061,7 +1122,7 @@ class _ShareBottomSheet extends StatelessWidget {
 
   Future<void> _shareToLinkedIn(BuildContext context) async {
     final text = Uri.encodeComponent(shareText);
-    final url = Uri.parse('https://www.linkedin.com/sharing/share-offsite/?url=https://readon.app&summary=$text');
+    final url = Uri.parse('https://www.linkedin.com/sharing/share-offsite/?url=https://lexday.app&summary=$text');
     if (await canLaunchUrl(url)) {
       await launchUrl(url, mode: LaunchMode.externalApplication);
     }
@@ -1079,7 +1140,7 @@ class _ShareBottomSheet extends StatelessWidget {
 
   Future<void> _shareToMessenger(BuildContext context) async {
     final text = Uri.encodeComponent(shareText);
-    final url = Uri.parse('fb-messenger://share?link=https://readon.app&quote=$text');
+    final url = Uri.parse('fb-messenger://share?link=https://lexday.app&quote=$text');
     if (await canLaunchUrl(url)) {
       await launchUrl(url, mode: LaunchMode.externalApplication);
     }

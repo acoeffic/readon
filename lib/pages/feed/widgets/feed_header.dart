@@ -1,9 +1,11 @@
+import 'dart:io';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../theme/app_theme.dart';
 import '../../../utils/responsive.dart';
+import '../../../services/avatar_cache_service.dart';
 import '../../profile/profile_page.dart';
 import '../../friends/search_users_page.dart';
 import '../../notifications/notifications_page.dart';
@@ -16,10 +18,11 @@ class FeedHeader extends StatefulWidget {
   State<FeedHeader> createState() => _FeedHeaderState();
 }
 
-class _FeedHeaderState extends State<FeedHeader> with TickerProviderStateMixin {
+class _FeedHeaderState extends State<FeedHeader> with TickerProviderStateMixin, WidgetsBindingObserver {
   final supabase = Supabase.instance.client;
   final notificationsService = NotificationsService();
   String? _avatarUrl;
+  String? _localAvatarPath;
   String _userName = '';
 
   late AnimationController _floatController;
@@ -28,6 +31,7 @@ class _FeedHeaderState extends State<FeedHeader> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadUserProfile();
 
     _floatController = AnimationController(
@@ -42,7 +46,15 @@ class _FeedHeaderState extends State<FeedHeader> with TickerProviderStateMixin {
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _loadUserProfile();
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _floatController.dispose();
     _sparkleController.dispose();
     super.dispose();
@@ -53,15 +65,36 @@ class _FeedHeaderState extends State<FeedHeader> with TickerProviderStateMixin {
       final user = supabase.auth.currentUser;
       if (user == null) return;
 
+      // Charger immédiatement depuis le cache local
+      final cache = AvatarCacheService.instance;
+      final localPath = await cache.getLocalPath();
+      if (localPath != null && mounted) {
+        setState(() => _localAvatarPath = localPath);
+      }
+
       final profile = await supabase
           .from('profiles')
           .select('avatar_url, display_name')
           .eq('id', user.id)
           .maybeSingle();
 
+      final remoteUrl = profile?['avatar_url'] as String?;
+
+      // Mettre à jour le cache local si l'URL distante a changé
+      if (remoteUrl != null && remoteUrl.isNotEmpty) {
+        final cachedUrl = await cache.getCachedUrl();
+        if (cachedUrl != remoteUrl) {
+          await cache.saveFromUrl(remoteUrl);
+          final newPath = await cache.getLocalPath();
+          if (mounted && newPath != null) {
+            setState(() => _localAvatarPath = newPath);
+          }
+        }
+      }
+
       if (mounted) {
         setState(() {
-          _avatarUrl = profile?['avatar_url'] as String?;
+          _avatarUrl = remoteUrl;
           _userName = profile?['display_name'] as String? ??
               user.email?.split('@').first ??
               'Utilisateur';
@@ -70,6 +103,19 @@ class _FeedHeaderState extends State<FeedHeader> with TickerProviderStateMixin {
     } catch (e) {
       debugPrint('Erreur _loadUserProfile: $e');
     }
+  }
+
+  Widget _buildInitial() {
+    return Center(
+      child: Text(
+        _userName.isNotEmpty ? _userName[0].toUpperCase() : '?',
+        style: const TextStyle(
+          color: AppColors.primary,
+          fontWeight: FontWeight.w700,
+          fontSize: 20,
+        ),
+      ),
+    );
   }
 
   String _getGreeting() {
@@ -208,43 +254,20 @@ class _FeedHeaderState extends State<FeedHeader> with TickerProviderStateMixin {
                               width: 48,
                               height: 48,
                               color: Colors.white,
-                              child: _avatarUrl != null && _avatarUrl!.isNotEmpty
-                                  ? CachedNetworkImage(
-                                      imageUrl: _avatarUrl!,
+                              child: _localAvatarPath != null && File(_localAvatarPath!).existsSync()
+                                  ? Image.file(
+                                      File(_localAvatarPath!),
                                       fit: BoxFit.cover,
-                                      placeholder: (context, url) => Center(
-                                        child: Text(
-                                          _userName.isNotEmpty ? _userName[0].toUpperCase() : '?',
-                                          style: const TextStyle(
-                                            color: AppColors.primary,
-                                            fontWeight: FontWeight.w700,
-                                            fontSize: 20,
-                                          ),
-                                        ),
-                                      ),
-                                      errorWidget: (context, url, error) => Center(
-                                        child: Text(
-                                          _userName.isNotEmpty ? _userName[0].toUpperCase() : '?',
-                                          style: const TextStyle(
-                                            color: AppColors.primary,
-                                            fontWeight: FontWeight.w700,
-                                            fontSize: 20,
-                                          ),
-                                        ),
-                                      ),
+                                      errorBuilder: (_, __, ___) => _buildInitial(),
                                     )
-                                  : Center(
-                                      child: Text(
-                                        _userName.isNotEmpty
-                                            ? _userName[0].toUpperCase()
-                                            : '?',
-                                        style: const TextStyle(
-                                          color: AppColors.primary,
-                                          fontWeight: FontWeight.w700,
-                                          fontSize: 20,
-                                        ),
-                                      ),
-                                    ),
+                                  : _avatarUrl != null && _avatarUrl!.isNotEmpty
+                                      ? CachedNetworkImage(
+                                          imageUrl: _avatarUrl!,
+                                          fit: BoxFit.cover,
+                                          placeholder: (context, url) => _buildInitial(),
+                                          errorWidget: (context, url, error) => _buildInitial(),
+                                        )
+                                      : _buildInitial(),
                             ),
                           ),
                         ),

@@ -12,6 +12,7 @@ DROP POLICY IF EXISTS "Users can update their own books" ON books;
 -- 3. Créer les nouvelles policies
 
 -- Policy pour SELECT : Tous les utilisateurs authentifiés peuvent voir tous les livres
+DROP POLICY IF EXISTS "Users can view all books" ON books;
 CREATE POLICY "Users can view all books"
 ON books
 FOR SELECT
@@ -19,6 +20,7 @@ TO authenticated
 USING (true);
 
 -- Policy pour INSERT : Tous les utilisateurs authentifiés peuvent ajouter des livres
+DROP POLICY IF EXISTS "Users can insert books" ON books;
 CREATE POLICY "Users can insert books"
 ON books
 FOR INSERT
@@ -27,6 +29,7 @@ WITH CHECK (true);
 
 -- Policy pour UPDATE : Les utilisateurs peuvent mettre à jour n'importe quel livre
 -- (car les livres sont partagés entre tous les utilisateurs)
+DROP POLICY IF EXISTS "Users can update books" ON books;
 CREATE POLICY "Users can update books"
 ON books
 FOR UPDATE

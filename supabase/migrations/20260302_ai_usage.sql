@@ -5,7 +5,7 @@
 -- 1. Table ai_usage
 -- ============================================================================
 
-CREATE TABLE ai_usage (
+CREATE TABLE IF NOT EXISTS ai_usage (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   feature TEXT NOT NULL DEFAULT 'summary',
@@ -13,7 +13,7 @@ CREATE TABLE ai_usage (
 );
 
 -- Index pour les requêtes de comptage par mois
-CREATE INDEX idx_ai_usage_user_month ON ai_usage (user_id, feature, used_at);
+CREATE INDEX IF NOT EXISTS idx_ai_usage_user_month ON ai_usage (user_id, feature, used_at);
 
 -- ============================================================================
 -- 2. RLS
@@ -21,10 +21,12 @@ CREATE INDEX idx_ai_usage_user_month ON ai_usage (user_id, feature, used_at);
 
 ALTER TABLE ai_usage ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view own usage" ON ai_usage;
 CREATE POLICY "Users can view own usage"
   ON ai_usage FOR SELECT
   USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can insert own usage" ON ai_usage;
 CREATE POLICY "Users can insert own usage"
   ON ai_usage FOR INSERT
   WITH CHECK (auth.uid() = user_id);

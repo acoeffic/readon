@@ -34,6 +34,8 @@ class CommunitySessionCard extends StatelessWidget {
     final bookTitle = session['book_title'] as String?;
     final bookAuthor = session['book_author'] as String?;
     final bookCover = session['book_cover'] as String?;
+    final bookIsbn = session['book_isbn'] as String?;
+    final bookGoogleId = session['book_google_id'] as String?;
     final startPage = session['start_page'] as int?;
     final endPage = session['end_page'] as int?;
     final createdAt = session['session_created_at'] as String?;
@@ -167,6 +169,10 @@ class CommunitySessionCard extends StatelessWidget {
                   children: [
                     CachedBookCover(
                       imageUrl: bookCover,
+                      isbn: bookIsbn,
+                      googleId: bookGoogleId,
+                      title: bookTitle,
+                      author: bookAuthor,
                       width: 40,
                       height: 56,
                       borderRadius: BorderRadius.circular(4),

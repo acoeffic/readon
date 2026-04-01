@@ -237,6 +237,8 @@ class _AddBookPageState extends State<AddBookPage> {
                     child: ListTile(
                       leading: CachedBookCover(
                         imageUrl: book['cover_url'] as String?,
+                        title: book['title'] as String?,
+                        author: book['author'] as String?,
                         width: 40,
                         height: 60,
                         borderRadius: BorderRadius.circular(4),
