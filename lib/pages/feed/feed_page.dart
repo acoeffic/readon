@@ -74,6 +74,7 @@ class _FeedPageState extends State<FeedPage> {
   final curatedListsService = CuratedListsService();
   final prizeListService = PrizeListService();
   final ScrollController _scrollController = ScrollController();
+  RealtimeChannel? _feedChannel;
 
   List<Map<String, dynamic>> friendActivities = [];
   ReadingFlow? currentFlow;
@@ -81,11 +82,9 @@ class _FeedPageState extends State<FeedPage> {
   List<BookSuggestion> suggestions = [];
   bool loading = true;
 
-  // Pagination des activités (cursor-based)
-  bool _isLoadingMoreActivities = false;
-  bool _hasMoreActivities = true;
-  String? _lastActivityCursor; // created_at du dernier élément
-  static const int _activitiesPageSize = 20;
+  bool _isLoadingMore = false;
+  bool _hasMore = true;
+  static const int _pageSize = 15;
 
   // Contenu communautaire
   int friendCount = 0;
@@ -111,12 +110,16 @@ class _FeedPageState extends State<FeedPage> {
     super.initState();
     _feedSectionOrder = [0, 1, 2, 3, 4]..shuffle(Random());
     _scrollController.addListener(_onScroll);
+    _subscribeToFeed();
     FeedPage.friendsChanged.addListener(_onFriendsChanged);
     loadFeed();
   }
 
   @override
   void dispose() {
+    if (_feedChannel != null) {
+      supabase.removeChannel(_feedChannel!);
+    }
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     FeedPage.friendsChanged.removeListener(_onFriendsChanged);
@@ -128,41 +131,80 @@ class _FeedPageState extends State<FeedPage> {
     loadFeed();
   }
 
-  void _onScroll() {
-    if (_scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent - 200) {
-      _loadMoreActivities();
-    }
-  }
-
-  Future<void> _loadMoreActivities() async {
-    if (_isLoadingMoreActivities || !_hasMoreActivities) return;
-    if (feedTier == FeedTier.trending) return; // Pas d'activités amis
-
+  void _subscribeToFeed() {
     final user = supabase.auth.currentUser;
     if (user == null) return;
 
-    setState(() => _isLoadingMoreActivities = true);
+    _feedChannel = supabase
+        .channel('feed_realtime')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.insert,
+          schema: 'public',
+          table: 'activities',
+          callback: (payload) {
+            _onNewActivity(payload.newRecord);
+          },
+        )
+        .subscribe();
+  }
+
+  Future<void> _onNewActivity(Map<String, dynamic> record) async {
+    // Ignorer ses propres activités (déjà dans "tes dernières lectures")
+    final user = supabase.auth.currentUser;
+    if (record['author_id'] == user?.id) return;
+
+    // Enrichir avec les infos auteur
+    final profile = await supabase
+        .from('user_profiles')
+        .select('display_name, avatar_url')
+        .eq('user_id', record['author_id'])
+        .maybeSingle();
+
+    final enriched = {
+      ...record,
+      'author_name': profile?['display_name'],
+      'author_avatar': profile?['avatar_url'],
+    };
+
+    if (mounted) {
+      setState(() {
+        friendActivities.insert(0, enriched);
+      });
+    }
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+            _scrollController.position.maxScrollExtent - 300 &&
+        !_isLoadingMore &&
+        _hasMore) {
+      _loadMore();
+    }
+  }
+
+  Future<void> _loadMore() async {
+    if (_isLoadingMore || !_hasMore) return;
+
+    setState(() => _isLoadingMore = true);
 
     try {
-      final activitiesRes = await supabase.rpc('get_feed', params: {
-        'p_user_id': user.id,
-        'p_limit': _activitiesPageSize,
-        'p_cursor': _lastActivityCursor,
-      });
-      final newActivities = List<Map<String, dynamic>>.from(activitiesRes ?? []);
+      final user = supabase.auth.currentUser;
+      if (user == null) return;
+
+      final more = await supabase
+          .from('friend_activity_view')
+          .select()
+          .order('created_at', ascending: false)
+          .range(friendActivities.length,
+              friendActivities.length + _pageSize - 1);
 
       setState(() {
-        friendActivities.addAll(newActivities);
-        _isLoadingMoreActivities = false;
-        _hasMoreActivities = newActivities.length >= _activitiesPageSize;
-        if (newActivities.isNotEmpty) {
-          _lastActivityCursor = newActivities.last['created_at'] as String?;
-        }
+        friendActivities.addAll(more);
+        _hasMore = (more as List).length == _pageSize;
+        _isLoadingMore = false;
       });
     } catch (e) {
-      debugPrint('Erreur _loadMoreActivities: $e');
-      setState(() => _isLoadingMoreActivities = false);
+      setState(() => _isLoadingMore = false);
     }
   }
 
@@ -190,8 +232,7 @@ class _FeedPageState extends State<FeedPage> {
         curatedReaderCounts = c.curatedReaderCounts;
         savedCuratedListIds = c.savedCuratedListIds;
         prizeLists = c.prizeLists;
-        _lastActivityCursor = c.lastActivityCursor;
-        _hasMoreActivities = c.hasMoreActivities;
+        _hasMore = c.hasMore;
         loading = false;
       });
       return;
@@ -199,8 +240,7 @@ class _FeedPageState extends State<FeedPage> {
 
     setState(() {
       loading = true;
-      _lastActivityCursor = null;
-      _hasMoreActivities = true;
+      _hasMore = true;
     });
 
     try {
@@ -220,11 +260,11 @@ class _FeedPageState extends State<FeedPage> {
             kCuratedLists.map((l) => l.id).toList()),                     // 4
         curatedListsService.getSavedListIds(),                            // 5
         prizeListService.fetchRecentPrizeLists(limit: 10),                // 6
-        supabase.rpc('get_feed', params: {                                // 7
-          'p_user_id': user.id,
-          'p_limit': _activitiesPageSize,
-          'p_cursor': null,
-        }),
+        supabase                                                            // 7
+            .from('friend_activity_view')
+            .select()
+            .order('created_at', ascending: false)
+            .limit(_pageSize),
         trendingService.getTrendingBooks(limit: 5, forceRefresh: false),  // 8
         trendingService.getCommunitySessions(limit: 10, forceRefresh: false), // 9
         trendingService.getActiveReaders(limit: 10, forceRefresh: false), // 10
@@ -266,10 +306,7 @@ class _FeedPageState extends State<FeedPage> {
       final newOrder = [0, 1, 2, 3, 4]..shuffle(random);
       debugPrint('Feed tier: $tier, section order: $newOrder');
 
-      final hasMore = activities.length >= _activitiesPageSize;
-      final cursor = activities.isNotEmpty
-          ? activities.last['created_at'] as String?
-          : null;
+      final hasMore = activities.length >= _pageSize;
 
       // Stocker dans le cache mémoire
       FeedCache.store(FeedCacheData(
@@ -286,8 +323,7 @@ class _FeedPageState extends State<FeedPage> {
         curatedReaderCounts: readerCountsRes,
         savedCuratedListIds: savedListIdsRes,
         prizeLists: prizeListsRes,
-        lastActivityCursor: cursor,
-        hasMoreActivities: hasMore,
+        hasMore: hasMore,
       ));
 
       setState(() {
@@ -306,8 +342,7 @@ class _FeedPageState extends State<FeedPage> {
         prizeLists = prizeListsRes;
         _feedSectionOrder = newOrder;
         loading = false;
-        _hasMoreActivities = hasMore;
-        _lastActivityCursor = cursor;
+        _hasMore = hasMore;
       });
     } catch (e) {
       debugPrint('Erreur loadFeed: $e');
@@ -935,13 +970,10 @@ class _FeedPageState extends State<FeedPage> {
               else
                 ..._buildFeedContent(),
 
-              // Loading indicator pour pagination
-              if (!loading && _isLoadingMoreActivities)
+              if (_isLoadingMore)
                 const Padding(
                   padding: EdgeInsets.all(16),
-                  child: Center(
-                    child: CircularProgressIndicator(),
-                  ),
+                  child: Center(child: CircularProgressIndicator()),
                 ),
 
                   ],

@@ -20,8 +20,7 @@ class FeedCacheData {
   final Map<int, int> curatedReaderCounts;
   final Set<int> savedCuratedListIds;
   final List<PrizeList> prizeLists;
-  final String? lastActivityCursor;
-  final bool hasMoreActivities;
+  final bool hasMore;
 
   FeedCacheData({
     required this.friendActivities,
@@ -37,8 +36,7 @@ class FeedCacheData {
     required this.curatedReaderCounts,
     required this.savedCuratedListIds,
     required this.prizeLists,
-    required this.lastActivityCursor,
-    required this.hasMoreActivities,
+    required this.hasMore,
   });
 }
 

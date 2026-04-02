@@ -126,6 +126,9 @@ class PushNotificationService {
         final year = int.tryParse(data['year'] ?? '');
         if (month == null || year == null) return;
 
+        // Re-schedule local notification for next month
+        MonthlyNotificationService().scheduleNextMonthlyNotification();
+
         MonthlyNotificationService.navigatorKey.currentState?.push(
           MaterialPageRoute(
             builder: (_) => MonthlyWrappedScreen(month: month, year: year),

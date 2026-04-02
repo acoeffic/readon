@@ -53,6 +53,20 @@ async function getAccessToken(): Promise<string> {
 }
 
 serve(async (req) => {
+  // Auth check — require service_role_key or CRON_SECRET
+  const cronSecret = Deno.env.get('CRON_SECRET')
+  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+  const authorization = req.headers.get('authorization') ?? ''
+  const bearerToken = authorization.replace('Bearer ', '')
+
+  const isAuthorized = (cronSecret && bearerToken === cronSecret) || (serviceRoleKey && bearerToken === serviceRoleKey)
+  if (!isAuthorized) {
+    return new Response(
+      JSON.stringify({ error: 'Unauthorized' }),
+      { status: 401, headers: { 'Content-Type': 'application/json' } }
+    )
+  }
+
   const { token, title, body, data } = await req.json();
 
   const accessToken = await getAccessToken();

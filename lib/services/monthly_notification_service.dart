@@ -228,6 +228,9 @@ class MonthlyNotificationService {
     final year = int.tryParse(parts[1]);
     if (month == null || year == null) return;
 
+    // Re-schedule for next month so the user keeps getting notifications
+    MonthlyNotificationService().scheduleNextMonthlyNotification();
+
     navigatorKey.currentState?.push(
       MaterialPageRoute(
         builder: (_) => MonthlyWrappedScreen(month: month, year: year),

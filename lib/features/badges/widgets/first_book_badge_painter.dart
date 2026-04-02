@@ -260,8 +260,8 @@ class BibliophileBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget badge = SvgPicture.network(
-      '${Env.supabaseStorageUrl}/asset/Image/badge/nombre_livre/badge_livres_025.svg',
+    Widget badge = Image.network(
+      '${Env.supabaseStorageUrl}/asset/Image/badge/nombre_livre/ChatGPT%20Image%202%20avr.%202026,%2022_27_21.png',
       width: size,
       height: size,
     );
@@ -344,8 +344,8 @@ class DevoreurBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget badge = SvgPicture.network(
-      '${Env.supabaseStorageUrl}/asset/Image/badge/nombre_livre/badge_livres_050.svg',
+    Widget badge = Image.network(
+      '${Env.supabaseStorageUrl}/asset/Image/badge/nombre_livre/ChatGPT%20Image%202%20avr.%202026,%2022_28_57.png',
       width: size,
       height: size,
     );

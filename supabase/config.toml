@@ -1,7 +1,7 @@
 
 [functions.send-push-notification]
 enabled = true
-verify_jwt = true
+verify_jwt = false
 import_map = "./functions/send-push-notification/deno.json"
 entrypoint = "./functions/send-push-notification/index.ts"
 
@@ -12,7 +12,7 @@ entrypoint = "./functions/send-streak-reminders/index.ts"
 
 [functions.send-wrapped-notification]
 enabled = true
-verify_jwt = true
+verify_jwt = false
 import_map = "./functions/send-wrapped-notification/deno.json"
 # Uncomment to specify a custom file path to the entrypoint.
 # Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx

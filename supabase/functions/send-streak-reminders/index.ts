@@ -60,13 +60,19 @@ async function getAccessToken(): Promise<string> {
   return access_token
 }
 
+interface FCMResult {
+  success: boolean
+  unregistered: boolean
+  response?: any
+}
+
 async function sendFCMNotification(
   accessToken: string,
   fcmToken: string,
   title: string,
   body: string,
   data: Record<string, string>
-) {
+): Promise<FCMResult> {
   const projectId = FCM_SERVICE_ACCOUNT.project_id
 
   const response = await fetch(
@@ -82,6 +88,12 @@ async function sendFCMNotification(
           token: fcmToken,
           notification: { title, body },
           data,
+          android: {
+            notification: {
+              sound: 'default',
+              channel_id: 'streak_reminder',
+            },
+          },
           apns: {
             payload: {
               aps: { sound: 'default' },
@@ -93,11 +105,18 @@ async function sendFCMNotification(
   )
 
   if (!response.ok) {
-    const error = await response.text()
-    throw new Error(`FCM request failed: ${error}`)
+    const errorText = await response.text()
+    // Detect unregistered / invalid token
+    const isUnregistered = errorText.includes('UNREGISTERED') ||
+      errorText.includes('NOT_FOUND') ||
+      errorText.includes('INVALID_ARGUMENT')
+    if (isUnregistered) {
+      return { success: false, unregistered: true }
+    }
+    throw new Error(`FCM request failed: ${errorText}`)
   }
 
-  return await response.json()
+  return { success: true, unregistered: false, response: await response.json() }
 }
 
 // ── Calcul du flow (streak) depuis reading_sessions + streak_freezes ──
@@ -294,6 +313,7 @@ serve(async (req) => {
 
     let successCount = 0
     let errorCount = 0
+    let cleanedTokens = 0
 
     for (const user of usersToNotify) {
       try {
@@ -318,13 +338,23 @@ serve(async (req) => {
 
         const { title, body } = getNotificationMessage(currentFlow, user.display_name)
 
-        await sendFCMNotification(accessToken, user.fcm_token, title, body, {
+        const result = await sendFCMNotification(accessToken, user.fcm_token, title, body, {
           type: 'streak_reminder',
           user_id: user.id,
         })
 
-        successCount++
-        console.log(`✅ Notification envoyée à ${user.display_name} (flow: ${currentFlow})`)
+        if (result.unregistered) {
+          // Token is no longer valid — clean it from the database
+          await supabase
+            .from('profiles')
+            .update({ fcm_token: null })
+            .eq('id', user.id)
+          cleanedTokens++
+          console.log(`🧹 Token invalide nettoyé pour ${user.display_name}`)
+        } else {
+          successCount++
+          console.log(`✅ Notification envoyée à ${user.display_name} (flow: ${currentFlow})`)
+        }
       } catch (error) {
         errorCount++
         console.error(`❌ Erreur pour ${user.display_name}:`, error)
@@ -337,6 +367,7 @@ serve(async (req) => {
       total_profiles: profiles.length,
       users_who_read_today: usersWhoReadToday.size,
       notifications_sent: successCount,
+      cleaned_tokens: cleanedTokens,
       errors: errorCount,
     }
 
