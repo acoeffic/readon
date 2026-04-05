@@ -1395,5 +1395,67 @@
     }
   },
   "coversUpToDate": "All covers are already up to date",
-  "friendsLabel": "Friends"
+  "friendsLabel": "Friends",
+
+  "kindleLoginTitle": "Kindle Connection",
+  "kindleTrustBanner": "Direct connection to Amazon. Your credentials never pass through LexDay.",
+  "kindleBooksFound": "{count, plural, =1{book found} other{books found}}",
+  "@kindleBooksFound": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "kindleStepLibrary": "Books",
+  "kindleStepInsights": "Stats",
+  "kindleStepImport": "Import",
+  "kindlePhaseLoginTitle": "Sign in to Amazon",
+  "kindlePhaseLoginSubtitle": "Your credentials stay on Amazon.\nWe never have access to them.",
+  "kindlePhaseConnectingTitle": "Connected!",
+  "kindlePhaseConnectingSubtitle": "Redirecting to your library…",
+  "kindlePhaseLibraryTitle": "Fetching your books…",
+  "kindlePhaseLibrarySubtitle": "Browsing your Kindle library.",
+  "kindlePhaseInsightsTitle": "Analyzing your reading…",
+  "kindlePhaseInsightsSubtitle": "Retrieving your reading statistics.",
+  "kindlePhaseImportingTitle": "Importing…",
+  "kindlePhaseImportingSubtitle": "Your books are being added to your LexDay library.",
+  "kindlePhaseDoneTitle": "All set!",
+  "kindlePhaseDoneSubtitle": "Your Kindle library is synced.",
+
+  "kindleOnboardingTitle": "Connect your Kindle",
+  "kindleOnboardingSubtitle": "Automatically import your Kindle library.\nYour credentials stay on Amazon,\nwe never have access to them.",
+  "kindleOnboardingButton": "Connect my Kindle",
+  "kindleOnboardingSkip": "Skip this step",
+
+  "kindlePhaseErrorTitle": "Sync took too long",
+  "kindlePhaseErrorSubtitle": "Amazon didn't respond in time.\nYou can try again — it usually takes just a few seconds.",
+  "kindleRetryButton": "Try again",
+
+  "premiumFeature": "Premium Feature",
+  "unlockFeatureWith": "Unlock with Premium",
+  "premiumUpsellCta": "Discover Premium",
+  "billingIssueTitle": "Billing issue",
+  "billingIssueSubtitle": "Check your payment method to continue",
+  "savingsPercent": "Save {percent}%",
+  "@savingsPercent": {
+    "placeholders": {
+      "percent": {"type": "int"}
+    }
+  },
+  "trialBadge": "7 days free",
+  "perMonth": "/month",
+  "thenPerYear": "then {price}/year",
+  "@thenPerYear": {
+    "placeholders": {
+      "price": {"type": "String"}
+    }
+  },
+  "noCommitment": "No commitment",
+  "recommended": "✦ Recommended",
+  "privacyPolicy": "Privacy policy",
+  "freeIncludedSessions": "Unlimited sessions",
+  "freeIncludedLibrary": "Unlimited library",
+  "freeIncludedFeed": "Social feed",
+  "freeIncludedGoals": "Goals & basic badges",
+  "freeIncludedWrapped": "Monthly & yearly wrapped",
+  "freeIncludedWidget": "iOS Widget"
 }

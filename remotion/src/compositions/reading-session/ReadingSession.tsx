@@ -75,6 +75,7 @@ export const ReadingSession: React.FC<ReadingSessionInput> = (props) => {
     durationMinutes,
     startPage,
     endPage,
+    audioUrl,
   } = props;
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -86,6 +87,7 @@ export const ReadingSession: React.FC<ReadingSessionInput> = (props) => {
   }, [handle]);
 
   const isStory = format === 'story';
+  const audioSrc = audioUrl || staticFile('audio/wrapped_melody.wav');
   const SCALE = 3;
   const W = 360;
   const H = isStory ? 640 : 360;
@@ -116,7 +118,7 @@ export const ReadingSession: React.FC<ReadingSessionInput> = (props) => {
 
   return (
     <AbsoluteFill style={{ backgroundColor: '#000' }}>
-      <Audio src={staticFile('audio/wrapped_melody.wav')} volume={musicVolume} />
+      <Audio src={audioSrc} volume={musicVolume} />
       {/* Scaled content container */}
       <div
         style={{

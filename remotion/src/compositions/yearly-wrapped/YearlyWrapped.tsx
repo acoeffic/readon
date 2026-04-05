@@ -82,6 +82,7 @@ export const YearlyWrapped: React.FC<YearlyWrappedInput> = (props) => {
     bestFlow,
     percentileRank,
     topBooks,
+    audioUrl,
   } = props;
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -92,6 +93,7 @@ export const YearlyWrapped: React.FC<YearlyWrappedInput> = (props) => {
   }, [fontHandle]);
 
   const name = userName || 'Lecteur';
+  const audioSrc = audioUrl || staticFile('audio/wrapped_melody.wav');
   const isStory = format === 'story';
   const SCALE = 3;
   const W = 360;
@@ -127,7 +129,7 @@ export const YearlyWrapped: React.FC<YearlyWrappedInput> = (props) => {
 
   return (
     <AbsoluteFill style={{ backgroundColor: '#000' }}>
-      <Audio src={staticFile('audio/wrapped_melody.wav')} volume={musicVolume} />
+      <Audio src={audioSrc} volume={musicVolume} />
       <div
         style={{
           position: 'absolute',

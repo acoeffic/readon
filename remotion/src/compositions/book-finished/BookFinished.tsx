@@ -47,6 +47,7 @@ export const BookFinished: React.FC<BookFinishedInput> = (props) => {
     dominantColor,
     secondaryColor,
     seed,
+    audioUrl,
   } = props;
 
   const frame = useCurrentFrame();
@@ -59,6 +60,7 @@ export const BookFinished: React.FC<BookFinishedInput> = (props) => {
   }, [fontHandle]);
 
   const isStory = format === 'story';
+  const audioSrc = audioUrl || staticFile('audio/wrapped_melody.wav');
   const SCALE = 3;
   const W = 360;
   const H = isStory ? 640 : 360;
@@ -78,7 +80,7 @@ export const BookFinished: React.FC<BookFinishedInput> = (props) => {
 
   return (
     <AbsoluteFill style={{ backgroundColor: '#000' }}>
-      <Audio src={staticFile('audio/wrapped_melody.wav')} volume={musicVolume} />
+      <Audio src={audioSrc} volume={musicVolume} />
       <div
         style={{
           position: 'absolute',

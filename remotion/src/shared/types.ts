@@ -31,6 +31,7 @@ export interface MonthlyBookCount {
 export interface YearlyWrappedInput {
   format: ShareFormat;
   year: number;
+  audioUrl?: string; // Public URL to audio file (Supabase Storage)
   userName?: string;
   totalMinutes: number;
   totalSessions: number;
@@ -81,12 +82,14 @@ export interface MonthlyWrappedInput {
   vsLastMonthPercent: number;
   dailyMinutes: number[];
   badges: BadgeData[];
+  audioUrl?: string; // Public URL to audio file (Supabase Storage)
 }
 
 // ─── Book Finished ──────────────────────────────────────────────────
 
 export interface BookFinishedInput {
   format: ShareFormat;
+  audioUrl?: string; // Public URL to audio file (Supabase Storage)
   title: string;
   author: string;
   coverUrl: string;
@@ -105,6 +108,7 @@ export interface BookFinishedInput {
 
 export interface ReadingSessionInput {
   format: ShareFormat;
+  audioUrl?: string; // Public URL to audio file (Supabase Storage)
   bookTitle: string;
   bookAuthor?: string;
   pagesRead: number;

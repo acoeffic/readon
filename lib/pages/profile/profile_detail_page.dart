@@ -12,6 +12,7 @@ import '../../features/wrapped/monthly/monthly_wrapped_data.dart';
 import '../../features/wrapped/yearly/yearly_wrapped_screen.dart';
 import '../../features/badges/widgets/anniversary_debug_page.dart';
 import '../../features/badges/widgets/books_badge_debug_page.dart';
+import '../../services/lexday_sync_service.dart';
 
 class ProfileDetailPage extends StatefulWidget {
   const ProfileDetailPage({super.key});
@@ -190,6 +191,54 @@ class _ProfileDetailPageState extends State<ProfileDetailPage> {
                     ),
                   ),
                 ),
+              ),
+              const SizedBox(height: AppSpace.m),
+              _navButton(
+                context,
+                label: 'Test Render Serveur (Mars 2026)',
+                icon: Icons.video_camera_back_outlined,
+                onPressed: () async {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Lancement du rendu serveur...')),
+                  );
+                  try {
+                    await ReadonSyncService.renderMonthlyWrapped(3, 2026);
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Rendu lancé ! Vérification en cours...')),
+                    );
+                    // Poll every 5s for up to 2 minutes
+                    for (int i = 0; i < 24; i++) {
+                      await Future.delayed(const Duration(seconds: 5));
+                      final assets = await ReadonSyncService.getMonthlyWrappedShareAssets(3, 2026);
+                      if (assets.status == 'done') {
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Vidéo prête ! ${assets.videoUrl}'),
+                            duration: const Duration(seconds: 10),
+                          ),
+                        );
+                        return;
+                      } else if (assets.status == 'error') {
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Erreur lors du rendu')),
+                        );
+                        return;
+                      }
+                    }
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Timeout — le rendu prend trop de temps')),
+                    );
+                  } catch (e) {
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Erreur: $e')),
+                    );
+                  }
+                },
               ),
               const SizedBox(height: AppSpace.m),
               _navButton(

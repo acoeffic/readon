@@ -8,8 +8,8 @@ import '../../widgets/back_header.dart';
 import '../../services/groups_service.dart';
 import '../../providers/subscription_provider.dart';
 import '../../models/feature_flags.dart';
-import '../../pages/profile/upgrade_page.dart';
 import '../../services/badges_service.dart';
+import '../../widgets/premium_gate.dart';
 import '../../widgets/badge_unlocked_dialog.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -181,37 +181,10 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
 
   void _showGroupLimitDialog() {
     final l = AppLocalizations.of(context);
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadius.l),
-        ),
-        title: Text(l.limitReached),
-        content: Text(
-          l.groupLimitMessage(FeatureFlags.maxFreeGroups),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(l.cancel),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const UpgradePage()),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-            ),
-            child: Text(l.becomePremium),
-          ),
-        ],
-      ),
+    showPremiumUpsellSheet(
+      context,
+      feature: Feature.customLists,
+      customMessage: l.groupLimitMessage(FeatureFlags.maxFreeGroups),
     );
   }
 

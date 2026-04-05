@@ -7,9 +7,9 @@ import '../../models/curated_list.dart';
 import '../../models/feature_flags.dart';
 import '../../models/user_custom_list.dart';
 import '../../pages/feed/widgets/curated_lists_carousel.dart';
-import '../../pages/profile/upgrade_page.dart';
 import '../../providers/subscription_provider.dart';
 import '../../services/curated_lists_service.dart';
+import '../../widgets/premium_gate.dart';
 import '../../services/user_custom_lists_service.dart';
 import '../../theme/app_theme.dart';
 import 'all_curated_lists_page.dart';
@@ -104,33 +104,10 @@ class SavedListsTabState extends State<SavedListsTab> {
 
   void _showListLimitDialog() {
     final l = AppLocalizations.of(context)!;
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l.limitReached),
-        content: Text(
-          l.listLimitMessage(FeatureFlags.maxFreeCustomLists),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(l.ok),
-          ),
-          FilledButton(
-            onPressed: () {
-              Navigator.pop(context);
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const UpgradePage()),
-              );
-            },
-            style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFFFF6B35),
-            ),
-            child: Text(l.goPremium),
-          ),
-        ],
-      ),
+    showPremiumUpsellSheet(
+      context,
+      feature: Feature.customLists,
+      customMessage: l.listLimitMessage(FeatureFlags.maxFreeCustomLists),
     );
   }
 

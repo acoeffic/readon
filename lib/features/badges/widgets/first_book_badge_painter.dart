@@ -384,8 +384,8 @@ class CentenaireLivresBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget badge = SvgPicture.network(
-      '${Env.supabaseStorageUrl}/asset/Image/badge/nombre_livre/badge_livres_100.svg',
+    Widget badge = Image.network(
+      '${Env.supabaseStorageUrl}/asset/Image/badge/nombre_livre/ChatGPT%20Image%203%20avr.%202026,%2009_12_59.png',
       width: size,
       height: size,
     );
@@ -424,8 +424,8 @@ class LegendeLitteraireBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget badge = SvgPicture.network(
-      '${Env.supabaseStorageUrl}/asset/Image/badge/nombre_livre/badge_livres_200.svg',
+    Widget badge = Image.network(
+      '${Env.supabaseStorageUrl}/asset/Image/badge/nombre_livre/ChatGPT%20Image%203%20avr.%202026,%2009_16_36.png',
       width: size,
       height: size,
     );
@@ -464,8 +464,8 @@ class BibliothequeVivanteBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget badge = SvgPicture.network(
-      '${Env.supabaseStorageUrl}/asset/Image/badge/nombre_livre/badge_livres_500.svg',
+    Widget badge = Image.network(
+      '${Env.supabaseStorageUrl}/asset/Image/badge/nombre_livre/ChatGPT%20Image%203%20avr.%202026,%2009_21_55.png',
       width: size,
       height: size,
     );

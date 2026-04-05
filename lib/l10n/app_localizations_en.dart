@@ -446,7 +446,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get termsOfService => '📜 Terms of service';
 
   @override
-  String get privacyPolicy => '🔐 Privacy policy';
+  String get privacyPolicy => 'Privacy policy';
 
   @override
   String get legalNoticesItem => '⚖️ Legal notices';
@@ -2810,4 +2810,148 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get friendsLabel => 'Friends';
+
+  @override
+  String get kindleLoginTitle => 'Kindle Connection';
+
+  @override
+  String get kindleTrustBanner =>
+      'Direct connection to Amazon. Your credentials never pass through LexDay.';
+
+  @override
+  String kindleBooksFound(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'books found',
+      one: 'book found',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get kindleStepLibrary => 'Books';
+
+  @override
+  String get kindleStepInsights => 'Stats';
+
+  @override
+  String get kindleStepImport => 'Import';
+
+  @override
+  String get kindlePhaseLoginTitle => 'Sign in to Amazon';
+
+  @override
+  String get kindlePhaseLoginSubtitle =>
+      'Your credentials stay on Amazon.\nWe never have access to them.';
+
+  @override
+  String get kindlePhaseConnectingTitle => 'Connected!';
+
+  @override
+  String get kindlePhaseConnectingSubtitle => 'Redirecting to your library…';
+
+  @override
+  String get kindlePhaseLibraryTitle => 'Fetching your books…';
+
+  @override
+  String get kindlePhaseLibrarySubtitle => 'Browsing your Kindle library.';
+
+  @override
+  String get kindlePhaseInsightsTitle => 'Analyzing your reading…';
+
+  @override
+  String get kindlePhaseInsightsSubtitle =>
+      'Retrieving your reading statistics.';
+
+  @override
+  String get kindlePhaseImportingTitle => 'Importing…';
+
+  @override
+  String get kindlePhaseImportingSubtitle =>
+      'Your books are being added to your LexDay library.';
+
+  @override
+  String get kindlePhaseDoneTitle => 'All set!';
+
+  @override
+  String get kindlePhaseDoneSubtitle => 'Your Kindle library is synced.';
+
+  @override
+  String get kindleOnboardingTitle => 'Connect your Kindle';
+
+  @override
+  String get kindleOnboardingSubtitle =>
+      'Automatically import your Kindle library.\nYour credentials stay on Amazon,\nwe never have access to them.';
+
+  @override
+  String get kindleOnboardingButton => 'Connect my Kindle';
+
+  @override
+  String get kindleOnboardingSkip => 'Skip this step';
+
+  @override
+  String get kindlePhaseErrorTitle => 'Sync took too long';
+
+  @override
+  String get kindlePhaseErrorSubtitle =>
+      'Amazon didn\'t respond in time.\nYou can try again — it usually takes just a few seconds.';
+
+  @override
+  String get kindleRetryButton => 'Try again';
+
+  @override
+  String get premiumFeature => 'Premium Feature';
+
+  @override
+  String get unlockFeatureWith => 'Unlock with Premium';
+
+  @override
+  String get premiumUpsellCta => 'Discover Premium';
+
+  @override
+  String get billingIssueTitle => 'Billing issue';
+
+  @override
+  String get billingIssueSubtitle => 'Check your payment method to continue';
+
+  @override
+  String savingsPercent(int percent) {
+    return 'Save $percent%';
+  }
+
+  @override
+  String get trialBadge => '7 days free';
+
+  @override
+  String get perMonth => '/month';
+
+  @override
+  String thenPerYear(String price) {
+    return 'then $price/year';
+  }
+
+  @override
+  String get noCommitment => 'No commitment';
+
+  @override
+  String get recommended => '✦ Recommended';
+
+  @override
+  String get freeIncludedSessions => 'Unlimited sessions';
+
+  @override
+  String get freeIncludedLibrary => 'Unlimited library';
+
+  @override
+  String get freeIncludedFeed => 'Social feed';
+
+  @override
+  String get freeIncludedGoals => 'Goals & basic badges';
+
+  @override
+  String get freeIncludedWrapped => 'Monthly & yearly wrapped';
+
+  @override
+  String get freeIncludedWidget => 'iOS Widget';
 }

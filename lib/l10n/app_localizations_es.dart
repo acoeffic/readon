@@ -450,7 +450,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get termsOfService => '📜 Condiciones de uso';
 
   @override
-  String get privacyPolicy => '🔐 Política de privacidad';
+  String get privacyPolicy => 'Política de privacidad';
 
   @override
   String get legalNoticesItem => '⚖️ Avisos legales';
@@ -2836,4 +2836,150 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get friendsLabel => 'Amigos';
+
+  @override
+  String get kindleLoginTitle => 'Conexión Kindle';
+
+  @override
+  String get kindleTrustBanner =>
+      'Conexión directa con Amazon. Tus credenciales nunca pasan por LexDay.';
+
+  @override
+  String kindleBooksFound(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'libros encontrados',
+      one: 'libro encontrado',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get kindleStepLibrary => 'Libros';
+
+  @override
+  String get kindleStepInsights => 'Stats';
+
+  @override
+  String get kindleStepImport => 'Importar';
+
+  @override
+  String get kindlePhaseLoginTitle => 'Inicia sesión en Amazon';
+
+  @override
+  String get kindlePhaseLoginSubtitle =>
+      'Tus credenciales se quedan en Amazon.\nNunca tenemos acceso a ellas.';
+
+  @override
+  String get kindlePhaseConnectingTitle => '¡Conectado!';
+
+  @override
+  String get kindlePhaseConnectingSubtitle => 'Redirigiendo a tu biblioteca…';
+
+  @override
+  String get kindlePhaseLibraryTitle => 'Recuperando tus libros…';
+
+  @override
+  String get kindlePhaseLibrarySubtitle => 'Recorriendo tu biblioteca Kindle.';
+
+  @override
+  String get kindlePhaseInsightsTitle => 'Analizando tu lectura…';
+
+  @override
+  String get kindlePhaseInsightsSubtitle =>
+      'Recuperando tus estadísticas de lectura.';
+
+  @override
+  String get kindlePhaseImportingTitle => 'Importando…';
+
+  @override
+  String get kindlePhaseImportingSubtitle =>
+      'Tus libros se están añadiendo a tu biblioteca LexDay.';
+
+  @override
+  String get kindlePhaseDoneTitle => '¡Todo listo!';
+
+  @override
+  String get kindlePhaseDoneSubtitle =>
+      'Tu biblioteca Kindle está sincronizada.';
+
+  @override
+  String get kindleOnboardingTitle => 'Conecta tu Kindle';
+
+  @override
+  String get kindleOnboardingSubtitle =>
+      'Importa automáticamente tu biblioteca Kindle.\nTus credenciales se quedan en Amazon,\nnunca tenemos acceso a ellas.';
+
+  @override
+  String get kindleOnboardingButton => 'Conectar mi Kindle';
+
+  @override
+  String get kindleOnboardingSkip => 'Saltar este paso';
+
+  @override
+  String get kindlePhaseErrorTitle => 'La sincronización tardó demasiado';
+
+  @override
+  String get kindlePhaseErrorSubtitle =>
+      'Amazon no respondió a tiempo.\nPuedes intentar de nuevo, normalmente tarda unos segundos.';
+
+  @override
+  String get kindleRetryButton => 'Reintentar';
+
+  @override
+  String get premiumFeature => 'Función Premium';
+
+  @override
+  String get unlockFeatureWith => 'Desbloquear con Premium';
+
+  @override
+  String get premiumUpsellCta => 'Descubrir Premium';
+
+  @override
+  String get billingIssueTitle => 'Problema de pago';
+
+  @override
+  String get billingIssueSubtitle =>
+      'Verifica tu método de pago para continuar';
+
+  @override
+  String savingsPercent(int percent) {
+    return 'Ahorra $percent%';
+  }
+
+  @override
+  String get trialBadge => '7 días gratis';
+
+  @override
+  String get perMonth => '/mes';
+
+  @override
+  String thenPerYear(String price) {
+    return 'luego $price/año';
+  }
+
+  @override
+  String get noCommitment => 'Sin compromiso';
+
+  @override
+  String get recommended => '✦ Recomendado';
+
+  @override
+  String get freeIncludedSessions => 'Sesiones ilimitadas';
+
+  @override
+  String get freeIncludedLibrary => 'Biblioteca ilimitada';
+
+  @override
+  String get freeIncludedFeed => 'Feed social';
+
+  @override
+  String get freeIncludedGoals => 'Objetivos e insignias básicas';
+
+  @override
+  String get freeIncludedWrapped => 'Wrapped mensual y anual';
+
+  @override
+  String get freeIncludedWidget => 'Widget iOS';
 }

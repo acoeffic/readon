@@ -1,0 +1,20 @@
+{
+  "name": "readon-sync",
+  "version": "1.0.0",
+  "description": "LexDay video render backend — Remotion + Supabase",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "keywords": [],
+  "author": "acoeffic",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@remotion/bundler": "4.0.421",
+    "@remotion/renderer": "4.0.421",
+    "@supabase/supabase-js": "^2.84.0",
+    "express": "^5.1.0"
+  }
+}

@@ -73,6 +73,7 @@ export const MonthlyWrapped: React.FC<MonthlyWrappedInput> = (props) => {
     longestFlow,
     topBook,
     vsLastMonthPercent,
+    audioUrl,
   } = props;
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -82,6 +83,9 @@ export const MonthlyWrapped: React.FC<MonthlyWrappedInput> = (props) => {
   useEffect(() => {
     loadFonts().then(() => continueRender(fontHandle));
   }, [fontHandle]);
+
+  // Resolve audio source: remote URL (Supabase) or local fallback
+  const audioSrc = audioUrl || staticFile('audio/wrapped_melody.wav');
 
   const theme = getMonthTheme(month);
   const accent = theme.accent;
@@ -119,7 +123,7 @@ export const MonthlyWrapped: React.FC<MonthlyWrappedInput> = (props) => {
 
   return (
     <AbsoluteFill style={{ backgroundColor: '#000' }}>
-      <Audio src={staticFile('audio/wrapped_melody.wav')} volume={musicVolume} />
+      <Audio src={audioSrc} volume={musicVolume} />
       <div
         style={{
           position: 'absolute',

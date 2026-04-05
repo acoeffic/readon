@@ -518,7 +518,7 @@ class _FlowDetailPageState extends State<FlowDetailPage> {
             GestureDetector(
               onTap: () => Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const UpgradePage()),
+                MaterialPageRoute(builder: (_) => const UpgradePage(highlightedFeature: Feature.flowManualFreeze)),
               ),
               child: Container(
                 padding: const EdgeInsets.all(10),
@@ -739,7 +739,7 @@ class _FlowDetailPageState extends State<FlowDetailPage> {
         Positioned.fill(
           child: GestureDetector(
             onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const UpgradePage()),
+              MaterialPageRoute(builder: (_) => const UpgradePage(highlightedFeature: Feature.flowHistory)),
             ),
             child: Container(
               decoration: BoxDecoration(

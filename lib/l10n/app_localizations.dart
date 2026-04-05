@@ -907,7 +907,7 @@ abstract class AppLocalizations {
   /// No description provided for @privacyPolicy.
   ///
   /// In fr, this message translates to:
-  /// **'🔐 Politique de confidentialité'**
+  /// **'Politique de confidentialité'**
   String get privacyPolicy;
 
   /// No description provided for @legalNoticesItem.
@@ -5127,6 +5127,258 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Amis'**
   String get friendsLabel;
+
+  /// No description provided for @kindleLoginTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Connexion Kindle'**
+  String get kindleLoginTitle;
+
+  /// No description provided for @kindleTrustBanner.
+  ///
+  /// In fr, this message translates to:
+  /// **'Connexion directe à Amazon. Tes identifiants ne transitent jamais par LexDay.'**
+  String get kindleTrustBanner;
+
+  /// No description provided for @kindleBooksFound.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =1{livre trouvé} other{livres trouvés}}'**
+  String kindleBooksFound(int count);
+
+  /// No description provided for @kindleStepLibrary.
+  ///
+  /// In fr, this message translates to:
+  /// **'Livres'**
+  String get kindleStepLibrary;
+
+  /// No description provided for @kindleStepInsights.
+  ///
+  /// In fr, this message translates to:
+  /// **'Stats'**
+  String get kindleStepInsights;
+
+  /// No description provided for @kindleStepImport.
+  ///
+  /// In fr, this message translates to:
+  /// **'Import'**
+  String get kindleStepImport;
+
+  /// No description provided for @kindlePhaseLoginTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Connecte-toi à Amazon'**
+  String get kindlePhaseLoginTitle;
+
+  /// No description provided for @kindlePhaseLoginSubtitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tes identifiants restent sur Amazon,\nnous n\'y avons jamais accès.'**
+  String get kindlePhaseLoginSubtitle;
+
+  /// No description provided for @kindlePhaseConnectingTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Connexion réussie !'**
+  String get kindlePhaseConnectingTitle;
+
+  /// No description provided for @kindlePhaseConnectingSubtitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Redirection vers ta bibliothèque…'**
+  String get kindlePhaseConnectingSubtitle;
+
+  /// No description provided for @kindlePhaseLibraryTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Récupération de tes livres…'**
+  String get kindlePhaseLibraryTitle;
+
+  /// No description provided for @kindlePhaseLibrarySubtitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'On parcourt ta bibliothèque Kindle.'**
+  String get kindlePhaseLibrarySubtitle;
+
+  /// No description provided for @kindlePhaseInsightsTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Analyse de tes habitudes…'**
+  String get kindlePhaseInsightsTitle;
+
+  /// No description provided for @kindlePhaseInsightsSubtitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'On récupère tes statistiques de lecture.'**
+  String get kindlePhaseInsightsSubtitle;
+
+  /// No description provided for @kindlePhaseImportingTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Import en cours…'**
+  String get kindlePhaseImportingTitle;
+
+  /// No description provided for @kindlePhaseImportingSubtitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tes livres arrivent dans ta bibliothèque LexDay.'**
+  String get kindlePhaseImportingSubtitle;
+
+  /// No description provided for @kindlePhaseDoneTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'C\'est tout bon !'**
+  String get kindlePhaseDoneTitle;
+
+  /// No description provided for @kindlePhaseDoneSubtitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ta bibliothèque Kindle est synchronisée.'**
+  String get kindlePhaseDoneSubtitle;
+
+  /// No description provided for @kindleOnboardingTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Connecte ton Kindle'**
+  String get kindleOnboardingTitle;
+
+  /// No description provided for @kindleOnboardingSubtitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Importe automatiquement ta bibliothèque Kindle.\nTes identifiants restent sur Amazon,\nnous n\'y avons jamais accès.'**
+  String get kindleOnboardingSubtitle;
+
+  /// No description provided for @kindleOnboardingButton.
+  ///
+  /// In fr, this message translates to:
+  /// **'Connecter mon Kindle'**
+  String get kindleOnboardingButton;
+
+  /// No description provided for @kindleOnboardingSkip.
+  ///
+  /// In fr, this message translates to:
+  /// **'Passer cette étape'**
+  String get kindleOnboardingSkip;
+
+  /// No description provided for @kindlePhaseErrorTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'La synchronisation a pris trop de temps'**
+  String get kindlePhaseErrorTitle;
+
+  /// No description provided for @kindlePhaseErrorSubtitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Amazon n\'a pas répondu à temps.\nTu peux réessayer, ça prend généralement quelques secondes.'**
+  String get kindlePhaseErrorSubtitle;
+
+  /// No description provided for @kindleRetryButton.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réessayer'**
+  String get kindleRetryButton;
+
+  /// No description provided for @premiumFeature.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fonctionnalité Premium'**
+  String get premiumFeature;
+
+  /// No description provided for @unlockFeatureWith.
+  ///
+  /// In fr, this message translates to:
+  /// **'Débloquer avec Premium'**
+  String get unlockFeatureWith;
+
+  /// No description provided for @premiumUpsellCta.
+  ///
+  /// In fr, this message translates to:
+  /// **'Découvrir Premium'**
+  String get premiumUpsellCta;
+
+  /// No description provided for @billingIssueTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Problème de paiement'**
+  String get billingIssueTitle;
+
+  /// No description provided for @billingIssueSubtitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Vérifie ton moyen de paiement pour continuer'**
+  String get billingIssueSubtitle;
+
+  /// No description provided for @savingsPercent.
+  ///
+  /// In fr, this message translates to:
+  /// **'Économisez {percent}%'**
+  String savingsPercent(int percent);
+
+  /// No description provided for @trialBadge.
+  ///
+  /// In fr, this message translates to:
+  /// **'7 jours gratuits'**
+  String get trialBadge;
+
+  /// No description provided for @perMonth.
+  ///
+  /// In fr, this message translates to:
+  /// **'/mois'**
+  String get perMonth;
+
+  /// No description provided for @thenPerYear.
+  ///
+  /// In fr, this message translates to:
+  /// **'puis {price}/an'**
+  String thenPerYear(String price);
+
+  /// No description provided for @noCommitment.
+  ///
+  /// In fr, this message translates to:
+  /// **'Sans engagement'**
+  String get noCommitment;
+
+  /// No description provided for @recommended.
+  ///
+  /// In fr, this message translates to:
+  /// **'✦ Recommandé'**
+  String get recommended;
+
+  /// No description provided for @freeIncludedSessions.
+  ///
+  /// In fr, this message translates to:
+  /// **'Sessions illimitées'**
+  String get freeIncludedSessions;
+
+  /// No description provided for @freeIncludedLibrary.
+  ///
+  /// In fr, this message translates to:
+  /// **'Bibliothèque illimitée'**
+  String get freeIncludedLibrary;
+
+  /// No description provided for @freeIncludedFeed.
+  ///
+  /// In fr, this message translates to:
+  /// **'Feed social'**
+  String get freeIncludedFeed;
+
+  /// No description provided for @freeIncludedGoals.
+  ///
+  /// In fr, this message translates to:
+  /// **'Objectifs & badges de base'**
+  String get freeIncludedGoals;
+
+  /// No description provided for @freeIncludedWrapped.
+  ///
+  /// In fr, this message translates to:
+  /// **'Wrapped mensuel & annuel'**
+  String get freeIncludedWrapped;
+
+  /// No description provided for @freeIncludedWidget.
+  ///
+  /// In fr, this message translates to:
+  /// **'Widget iOS'**
+  String get freeIncludedWidget;
 }
 
 class _AppLocalizationsDelegate

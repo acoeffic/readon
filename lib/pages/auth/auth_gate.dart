@@ -3,6 +3,7 @@
   import 'package:supabase_flutter/supabase_flutter.dart';
   import '../../theme/app_theme.dart';
   import '../../navigation/main_navigation.dart';
+  import '../../services/monthly_notification_service.dart';
   import '../../services/push_notification_service.dart';
   import '../../services/subscription_service.dart';
   import '../onboarding/onboarding_page.dart';
@@ -87,7 +88,50 @@
       } finally {
         if (Supabase.instance.client.auth.currentUser != null) {
           await PushNotificationService().initialize();
+          // Schedule reading reminders from user profile settings
+          _scheduleReadingRemindersFromProfile();
         }
+      }
+    }
+
+    Future<void> _scheduleReadingRemindersFromProfile() async {
+      try {
+        final userId = Supabase.instance.client.auth.currentUser?.id;
+        if (userId == null) return;
+
+        final profile = await Supabase.instance.client
+            .from('profiles')
+            .select('notifications_enabled, notification_reminder_time, notification_days')
+            .eq('id', userId)
+            .maybeSingle();
+
+        if (profile == null) return;
+
+        final svc = MonthlyNotificationService();
+        final enabled = profile['notifications_enabled'] ?? true;
+
+        if (!enabled) {
+          await svc.cancelReadingReminders();
+          return;
+        }
+
+        // Parse reminder time
+        final timeStr = profile['notification_reminder_time'] as String? ?? '20:00';
+        final parts = timeStr.split(':');
+        final time = TimeOfDay(
+          hour: int.tryParse(parts[0]) ?? 20,
+          minute: int.tryParse(parts.length > 1 ? parts[1] : '0') ?? 0,
+        );
+
+        // Parse days (default: all days)
+        final daysRaw = profile['notification_days'] as List<dynamic>?;
+        final days = daysRaw != null && daysRaw.isNotEmpty
+            ? daysRaw.cast<int>()
+            : <int>[1, 2, 3, 4, 5, 6, 7];
+
+        await svc.scheduleReadingReminders(time: time, isoDays: days);
+      } catch (e) {
+        debugPrint('Reading reminders scheduling error: $e');
       }
     }
 

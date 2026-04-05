@@ -87,7 +87,7 @@ class _PickerSheet extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => const UpgradePage(),
+                          builder: (_) => const UpgradePage(highlightedFeature: Feature.advancedReactions),
                         ),
                       );
                     } else {

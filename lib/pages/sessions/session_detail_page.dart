@@ -1083,7 +1083,7 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
             const SizedBox(height: 4),
             GestureDetector(
               onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const UpgradePage()),
+                MaterialPageRoute(builder: (_) => const UpgradePage(highlightedFeature: Feature.advancedStats)),
               ),
               child: Container(
                 width: double.infinity,

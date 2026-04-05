@@ -158,7 +158,7 @@ class _StatsTabState extends State<StatsTab> {
   }) {
     return GestureDetector(
       onTap: () => Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => const UpgradePage()),
+        MaterialPageRoute(builder: (_) => const UpgradePage(highlightedFeature: Feature.advancedStats)),
       ),
       child: Container(
         padding: const EdgeInsets.all(AppSpace.l),

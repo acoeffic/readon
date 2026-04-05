@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../l10n/app_localizations.dart';
+import '../../services/monthly_notification_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/back_header.dart';
 
@@ -93,6 +94,8 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
 
           _isLoading = false;
         });
+        // Sync local notifications with loaded settings
+        _syncLocalReminders();
       }
     } catch (e) {
       debugPrint('Erreur chargement paramètres: $e');
@@ -131,11 +134,26 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
     }
   }
 
+  /// Sync local reading reminder notifications with current settings.
+  Future<void> _syncLocalReminders() async {
+    final svc = MonthlyNotificationService();
+    if (!_notificationsEnabled) {
+      await svc.cancelReadingReminders();
+      return;
+    }
+    final days = <int>[];
+    for (var i = 0; i < 7; i++) {
+      if (_selectedDays[i]) days.add(i + 1); // 1=Mon … 7=Sun
+    }
+    await svc.scheduleReadingReminders(time: _reminderTime, isoDays: days);
+  }
+
   Future<void> _toggleNotifications(bool value) async {
     setState(() => _notificationsEnabled = value);
     try {
       final tz = await _getTimezone();
       await _updateProfile({'notifications_enabled': value, 'timezone': tz});
+      await _syncLocalReminders();
     } catch (_) {
       setState(() => _notificationsEnabled = !value);
     }
@@ -190,6 +208,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
       'notification_reminder_time': timeString,
       'timezone': tz,
     });
+    await _syncLocalReminders();
   }
 
   Future<void> _toggleDay(int index) async {
@@ -207,6 +226,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
       }
       final tz = await _getTimezone();
       await _updateProfile({'notification_days': daysList, 'timezone': tz});
+      await _syncLocalReminders();
     } catch (e) {
       setState(() {
         _selectedDays[index] = !_selectedDays[index];

@@ -32,6 +32,13 @@ class MonthlyNotificationService {
   static const String _challengeChannelDescription =
       'Notification quand un défi de club commence';
 
+  // Reading reminders — IDs 3000–3006 (one per day of week, Mon=0 → Sun=6)
+  static const int _readingReminderBaseId = 3000;
+  static const String _readingReminderChannelId = 'reading_reminder';
+  static const String _readingReminderChannelName = 'Rappels de lecture';
+  static const String _readingReminderChannelDescription =
+      'Rappels quotidiens pour lire';
+
   bool _initialized = false;
 
   /// Initialize the plugin. Call once from main.dart.
@@ -200,6 +207,94 @@ class MonthlyNotificationService {
 
   int _challengeNotifId(String challengeId) =>
       challengeId.hashCode.abs() % 8000 + 2000;
+
+  // ── Reading reminders ──
+
+  /// Schedule weekly recurring local notifications for reading reminders.
+  ///
+  /// [time] — the user's chosen reminder time (e.g. 20:00).
+  /// [isoDays] — list of ISO day numbers (1=Mon … 7=Sun) on which to remind.
+  Future<void> scheduleReadingReminders({
+    required TimeOfDay time,
+    required List<int> isoDays,
+  }) async {
+    // Cancel all existing reading reminders first
+    await cancelReadingReminders();
+
+    if (isoDays.isEmpty) return;
+
+    await requestPermission();
+
+    final notificationDetails = NotificationDetails(
+      android: AndroidNotificationDetails(
+        _readingReminderChannelId,
+        _readingReminderChannelName,
+        channelDescription: _readingReminderChannelDescription,
+        importance: Importance.high,
+        priority: Priority.high,
+        icon: '@mipmap/ic_launcher',
+      ),
+      iOS: const DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+      ),
+    );
+
+    for (final isoDay in isoDays) {
+      // isoDay: 1=Mon … 7=Sun → DateTime weekday uses same convention
+      final scheduledDate = _nextDateForWeekday(isoDay, time);
+      final notifId = _readingReminderBaseId + (isoDay - 1);
+
+      await _plugin.zonedSchedule(
+        notifId,
+        '📚 C\'est l\'heure de lire !',
+        'Prends quelques minutes pour avancer dans ton livre',
+        scheduledDate,
+        notificationDetails,
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+        matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
+      );
+
+      debugPrint(
+        'ReadingReminder scheduled: day=$isoDay at ${time.hour}:${time.minute} → $scheduledDate (id=$notifId)',
+      );
+    }
+  }
+
+  /// Cancel all reading reminder notifications.
+  Future<void> cancelReadingReminders() async {
+    for (var i = 0; i < 7; i++) {
+      await _plugin.cancel(_readingReminderBaseId + i);
+    }
+  }
+
+  /// Returns the next [tz.TZDateTime] for the given ISO weekday and time.
+  tz.TZDateTime _nextDateForWeekday(int isoWeekday, TimeOfDay time) {
+    final now = tz.TZDateTime.now(tz.local);
+    var scheduled = tz.TZDateTime(
+      tz.local,
+      now.year,
+      now.month,
+      now.day,
+      time.hour,
+      time.minute,
+    );
+
+    // Advance to the target weekday
+    while (scheduled.weekday != isoWeekday) {
+      scheduled = scheduled.add(const Duration(days: 1));
+    }
+
+    // If the target time today has already passed, move to next week
+    if (scheduled.isBefore(now)) {
+      scheduled = scheduled.add(const Duration(days: 7));
+    }
+
+    return scheduled;
+  }
 
   /// Next 1st-of-month at 09:00 local time.
   tz.TZDateTime _nextFirstOfMonth(tz.TZDateTime now) {

@@ -288,7 +288,7 @@ class _AllBadgesPageState extends State<AllBadgesPage> {
                     _PremiumBanner(
                       onTap: () => Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (_) => const UpgradePage()),
+                        MaterialPageRoute(builder: (_) => const UpgradePage(highlightedFeature: Feature.premiumBadges)),
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -1681,7 +1681,7 @@ class _BadgeCard extends StatelessWidget {
                 Navigator.pop(context);
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const UpgradePage()),
+                  MaterialPageRoute(builder: (_) => const UpgradePage(highlightedFeature: Feature.premiumBadges)),
                 );
               },
               child: Text(

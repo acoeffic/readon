@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../../theme/app_theme.dart';
 import '../../../services/kindle_webview_service.dart';
 import '../../profile/kindle_login_page.dart';
@@ -15,6 +16,8 @@ class StepKindleConnect extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Padding(
       padding: const EdgeInsets.all(AppSpace.l),
       child: Column(
@@ -37,7 +40,7 @@ class StepKindleConnect extends StatelessWidget {
           ),
           const SizedBox(height: AppSpace.l),
           Text(
-            'Connecte ton Kindle',
+            l10n.kindleOnboardingTitle,
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                   fontSize: 24,
@@ -46,10 +49,8 @@ class StepKindleConnect extends StatelessWidget {
                 ),
           ),
           const SizedBox(height: AppSpace.m),
-          const Text(
-            'Importe automatiquement ta bibliothèque Kindle.\n'
-            'Tes identifiants restent sur Amazon,\n'
-            'nous n\'y avons jamais accès.',
+          Text(
+            l10n.kindleOnboardingSubtitle,
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 15,
@@ -71,8 +72,8 @@ class StepKindleConnect extends StatelessWidget {
               ),
               onPressed: () => _openKindleLogin(context),
               icon: const Icon(Icons.link, size: 20),
-              label: const Text(
-                'Connecter mon Kindle',
+              label: Text(
+                l10n.kindleOnboardingButton,
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
             ),
@@ -80,8 +81,8 @@ class StepKindleConnect extends StatelessWidget {
           const SizedBox(height: AppSpace.m),
           TextButton(
             onPressed: onSkip,
-            child: const Text(
-              'Passer cette étape',
+            child: Text(
+              l10n.kindleOnboardingSkip,
               style: TextStyle(
                 color: AppColors.textSecondary,
                 fontSize: 15,

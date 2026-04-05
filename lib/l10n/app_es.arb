@@ -1363,5 +1363,67 @@
     }
   },
   "coversUpToDate": "Todas las portadas están actualizadas",
-  "friendsLabel": "Amigos"
+  "friendsLabel": "Amigos",
+
+  "kindleLoginTitle": "Conexión Kindle",
+  "kindleTrustBanner": "Conexión directa con Amazon. Tus credenciales nunca pasan por LexDay.",
+  "kindleBooksFound": "{count, plural, =1{libro encontrado} other{libros encontrados}}",
+  "@kindleBooksFound": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "kindleStepLibrary": "Libros",
+  "kindleStepInsights": "Stats",
+  "kindleStepImport": "Importar",
+  "kindlePhaseLoginTitle": "Inicia sesión en Amazon",
+  "kindlePhaseLoginSubtitle": "Tus credenciales se quedan en Amazon.\nNunca tenemos acceso a ellas.",
+  "kindlePhaseConnectingTitle": "¡Conectado!",
+  "kindlePhaseConnectingSubtitle": "Redirigiendo a tu biblioteca…",
+  "kindlePhaseLibraryTitle": "Recuperando tus libros…",
+  "kindlePhaseLibrarySubtitle": "Recorriendo tu biblioteca Kindle.",
+  "kindlePhaseInsightsTitle": "Analizando tu lectura…",
+  "kindlePhaseInsightsSubtitle": "Recuperando tus estadísticas de lectura.",
+  "kindlePhaseImportingTitle": "Importando…",
+  "kindlePhaseImportingSubtitle": "Tus libros se están añadiendo a tu biblioteca LexDay.",
+  "kindlePhaseDoneTitle": "¡Todo listo!",
+  "kindlePhaseDoneSubtitle": "Tu biblioteca Kindle está sincronizada.",
+
+  "kindleOnboardingTitle": "Conecta tu Kindle",
+  "kindleOnboardingSubtitle": "Importa automáticamente tu biblioteca Kindle.\nTus credenciales se quedan en Amazon,\nnunca tenemos acceso a ellas.",
+  "kindleOnboardingButton": "Conectar mi Kindle",
+  "kindleOnboardingSkip": "Saltar este paso",
+
+  "kindlePhaseErrorTitle": "La sincronización tardó demasiado",
+  "kindlePhaseErrorSubtitle": "Amazon no respondió a tiempo.\nPuedes intentar de nuevo, normalmente tarda unos segundos.",
+  "kindleRetryButton": "Reintentar",
+
+  "premiumFeature": "Función Premium",
+  "unlockFeatureWith": "Desbloquear con Premium",
+  "premiumUpsellCta": "Descubrir Premium",
+  "billingIssueTitle": "Problema de pago",
+  "billingIssueSubtitle": "Verifica tu método de pago para continuar",
+  "savingsPercent": "Ahorra {percent}%",
+  "@savingsPercent": {
+    "placeholders": {
+      "percent": {"type": "int"}
+    }
+  },
+  "trialBadge": "7 días gratis",
+  "perMonth": "/mes",
+  "thenPerYear": "luego {price}/año",
+  "@thenPerYear": {
+    "placeholders": {
+      "price": {"type": "String"}
+    }
+  },
+  "noCommitment": "Sin compromiso",
+  "recommended": "✦ Recomendado",
+  "privacyPolicy": "Política de privacidad",
+  "freeIncludedSessions": "Sesiones ilimitadas",
+  "freeIncludedLibrary": "Biblioteca ilimitada",
+  "freeIncludedFeed": "Feed social",
+  "freeIncludedGoals": "Objetivos e insignias básicas",
+  "freeIncludedWrapped": "Wrapped mensual y anual",
+  "freeIncludedWidget": "Widget iOS"
 }

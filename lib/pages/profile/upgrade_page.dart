@@ -27,13 +27,13 @@ const _displayFeatures = [
   Feature.aiSummary,
 ];
 
-const _freeIncluded = [
-  'Sessions illimitées',
-  'Bibliothèque illimitée',
-  'Feed social',
-  'Objectifs & badges de base',
-  'Wrapped mensuel & annuel',
-  'Widget iOS',
+List<String> _freeIncluded(AppLocalizations l) => [
+  l.freeIncludedSessions,
+  l.freeIncludedLibrary,
+  l.freeIncludedFeed,
+  l.freeIncludedGoals,
+  l.freeIncludedWrapped,
+  l.freeIncludedWidget,
 ];
 
 class UpgradePage extends StatefulWidget {
@@ -468,7 +468,7 @@ class _UpgradePageState extends State<UpgradePage> {
                           mode: LaunchMode.externalApplication,
                         ),
                         child: Text(
-                          'Politique de confidentialité',
+                          l.privacyPolicy,
                           style: TextStyle(
                             fontSize: 10.5,
                             color: onSurface.withValues(alpha: 0.3),
@@ -669,7 +669,7 @@ class _UpgradePageState extends State<UpgradePage> {
           Wrap(
             spacing: 6,
             runSpacing: 6,
-            children: _freeIncluded
+            children: _freeIncluded(l)
                 .map((item) => Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 10,
@@ -714,7 +714,7 @@ class _UpgradePageState extends State<UpgradePage> {
           '${annualMonthly.toStringAsFixed(2).replaceAll('.', ',')} ${annual.storeProduct.currencyCode == 'EUR' ? '€' : annual.storeProduct.currencyCode}';
       final savings =
           ((1 - annualMonthly / monthlyAmount) * 100).round();
-      if (savings > 0) savingsPercent = 'Économisez $savings%';
+      if (savings > 0) savingsPercent = l.savingsPercent(savings);
     }
 
     return Column(
@@ -728,10 +728,10 @@ class _UpgradePageState extends State<UpgradePage> {
             isDark: isDark,
             onSurface: onSurface,
             isRecommended: true,
-            trialBadge: '7 jours gratuits',
+            trialBadge: l.trialBadge,
             mainPrice: annualMonthlyPrice ?? annual.storeProduct.priceString,
-            mainPeriod: '/mois',
-            subtitle: 'puis ${annual.storeProduct.priceString}/an',
+            mainPeriod: l.perMonth,
+            subtitle: l.thenPerYear(annual.storeProduct.priceString),
             savingsLabel: savingsPercent,
           ),
 
@@ -746,8 +746,8 @@ class _UpgradePageState extends State<UpgradePage> {
             isDark: isDark,
             onSurface: onSurface,
             mainPrice: monthly.storeProduct.priceString,
-            mainPeriod: '/mois',
-            subtitle: 'Sans engagement',
+            mainPeriod: l.perMonth,
+            subtitle: l.noCommitment,
           ),
       ],
     );

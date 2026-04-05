@@ -1395,5 +1395,67 @@
     }
   },
   "coversUpToDate": "Toutes les couvertures sont déjà à jour",
-  "friendsLabel": "Amis"
+  "friendsLabel": "Amis",
+
+  "kindleLoginTitle": "Connexion Kindle",
+  "kindleTrustBanner": "Connexion directe à Amazon. Tes identifiants ne transitent jamais par LexDay.",
+  "kindleBooksFound": "{count, plural, =1{livre trouvé} other{livres trouvés}}",
+  "@kindleBooksFound": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "kindleStepLibrary": "Livres",
+  "kindleStepInsights": "Stats",
+  "kindleStepImport": "Import",
+  "kindlePhaseLoginTitle": "Connecte-toi à Amazon",
+  "kindlePhaseLoginSubtitle": "Tes identifiants restent sur Amazon,\nnous n'y avons jamais accès.",
+  "kindlePhaseConnectingTitle": "Connexion réussie !",
+  "kindlePhaseConnectingSubtitle": "Redirection vers ta bibliothèque…",
+  "kindlePhaseLibraryTitle": "Récupération de tes livres…",
+  "kindlePhaseLibrarySubtitle": "On parcourt ta bibliothèque Kindle.",
+  "kindlePhaseInsightsTitle": "Analyse de tes habitudes…",
+  "kindlePhaseInsightsSubtitle": "On récupère tes statistiques de lecture.",
+  "kindlePhaseImportingTitle": "Import en cours…",
+  "kindlePhaseImportingSubtitle": "Tes livres arrivent dans ta bibliothèque LexDay.",
+  "kindlePhaseDoneTitle": "C'est tout bon !",
+  "kindlePhaseDoneSubtitle": "Ta bibliothèque Kindle est synchronisée.",
+
+  "kindleOnboardingTitle": "Connecte ton Kindle",
+  "kindleOnboardingSubtitle": "Importe automatiquement ta bibliothèque Kindle.\nTes identifiants restent sur Amazon,\nnous n'y avons jamais accès.",
+  "kindleOnboardingButton": "Connecter mon Kindle",
+  "kindleOnboardingSkip": "Passer cette étape",
+
+  "kindlePhaseErrorTitle": "La synchronisation a pris trop de temps",
+  "kindlePhaseErrorSubtitle": "Amazon n'a pas répondu à temps.\nTu peux réessayer, ça prend généralement quelques secondes.",
+  "kindleRetryButton": "Réessayer",
+
+  "premiumFeature": "Fonctionnalité Premium",
+  "unlockFeatureWith": "Débloquer avec Premium",
+  "premiumUpsellCta": "Découvrir Premium",
+  "billingIssueTitle": "Problème de paiement",
+  "billingIssueSubtitle": "Vérifie ton moyen de paiement pour continuer",
+  "savingsPercent": "Économisez {percent}%",
+  "@savingsPercent": {
+    "placeholders": {
+      "percent": {"type": "int"}
+    }
+  },
+  "trialBadge": "7 jours gratuits",
+  "perMonth": "/mois",
+  "thenPerYear": "puis {price}/an",
+  "@thenPerYear": {
+    "placeholders": {
+      "price": {"type": "String"}
+    }
+  },
+  "noCommitment": "Sans engagement",
+  "recommended": "✦ Recommandé",
+  "privacyPolicy": "Politique de confidentialité",
+  "freeIncludedSessions": "Sessions illimitées",
+  "freeIncludedLibrary": "Bibliothèque illimitée",
+  "freeIncludedFeed": "Feed social",
+  "freeIncludedGoals": "Objectifs & badges de base",
+  "freeIncludedWrapped": "Wrapped mensuel & annuel",
+  "freeIncludedWidget": "Widget iOS"
 }
