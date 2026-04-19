@@ -2969,4 +2969,24 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get imageSaved => 'Image saved';
+
+  @override
+  String get staleSessionModalTitle => 'Session in progress';
+
+  @override
+  String get staleSessionModalBody =>
+      'You have an active reading session. Are you done reading?';
+
+  @override
+  String get staleSessionFinishButton => 'Finish';
+
+  @override
+  String get staleSessionContinueButton => 'Continue';
+
+  @override
+  String get staleSessionNotifTitle => 'Reading session in progress';
+
+  @override
+  String get staleSessionNotifBody =>
+      'You left a reading session open. Are you done?';
 }

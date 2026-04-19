@@ -1463,5 +1463,12 @@
   "shareMySession": "Partager ma session",
   "saveImage": "Enregistrer l'image",
   "imageSaved": "Image enregistrée",
-  "buyOnAmazon": "Acheter sur Amazon"
+  "buyOnAmazon": "Acheter sur Amazon",
+
+  "staleSessionModalTitle": "Session en cours",
+  "staleSessionModalBody": "Tu as une session de lecture active. Tu as fini de lire ?",
+  "staleSessionFinishButton": "Terminer",
+  "staleSessionContinueButton": "Continuer",
+  "staleSessionNotifTitle": "Session de lecture en cours",
+  "staleSessionNotifBody": "Tu as laissé une session de lecture ouverte. Tu as fini ?"
 }

@@ -5409,6 +5409,42 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Image enregistrée'**
   String get imageSaved;
+
+  /// No description provided for @staleSessionModalTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Session en cours'**
+  String get staleSessionModalTitle;
+
+  /// No description provided for @staleSessionModalBody.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tu as une session de lecture active. Tu as fini de lire ?'**
+  String get staleSessionModalBody;
+
+  /// No description provided for @staleSessionFinishButton.
+  ///
+  /// In fr, this message translates to:
+  /// **'Terminer'**
+  String get staleSessionFinishButton;
+
+  /// No description provided for @staleSessionContinueButton.
+  ///
+  /// In fr, this message translates to:
+  /// **'Continuer'**
+  String get staleSessionContinueButton;
+
+  /// No description provided for @staleSessionNotifTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Session de lecture en cours'**
+  String get staleSessionNotifTitle;
+
+  /// No description provided for @staleSessionNotifBody.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tu as laissé une session de lecture ouverte. Tu as fini ?'**
+  String get staleSessionNotifBody;
 }
 
 class _AppLocalizationsDelegate

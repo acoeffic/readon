@@ -81,10 +81,10 @@ class ReadingSessionService {
         );
       }
 
-      // Vérifier qu'il n'y a pas déjà une session active pour ce livre
-      final activeSession = await getActiveSession(bookId);
-      if (activeSession != null) {
-        throw Exception('Une session de lecture est déjà en cours pour ce livre.');
+      // Vérifier qu'il n'y a pas déjà une session active (tous livres confondus)
+      final activeSessions = await getAllActiveSessions();
+      if (activeSessions.isNotEmpty) {
+        throw Exception('Une session de lecture est déjà en cours.');
       }
 
       // Créer la session dans Supabase

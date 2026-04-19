@@ -7,6 +7,7 @@ import '../../l10n/app_localizations.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../services/reading_session_service.dart';
 import '../../services/ocr_service.dart';
 import '../../models/book.dart';
@@ -51,6 +52,7 @@ class _StartReadingSessionPageUnifiedState extends State<StartReadingSessionPage
   final FocusNode _pageFocusNode = FocusNode();
 
   ReadingSession? _activeSession;
+  Book? _activeSessionBook; // the book tied to the active session (may differ from widget.book)
   int? _lastPage;
   String? _readingFor;
 
@@ -72,19 +74,38 @@ class _StartReadingSessionPageUnifiedState extends State<StartReadingSessionPage
 
   Future<void> _checkActiveSession() async {
     try {
-      final session = await _sessionService.getActiveSession(widget.book.id.toString());
-      if (mounted && session != null) {
-        setState(() => _activeSession = session);
+      // Global check — block even if the active session is for a different book.
+      final sessions = await _sessionService.getAllActiveSessions();
+      if (sessions.isEmpty || !mounted) return;
+
+      final session = sessions.first;
+      setState(() => _activeSession = session);
+
+      // Resolve the book for the active session so the "Reprendre" button can
+      // navigate to the correct ActiveReadingSessionPage.
+      if (session.bookId == widget.book.id.toString()) {
+        if (mounted) setState(() => _activeSessionBook = widget.book);
+      } else {
+        try {
+          final bookData = await Supabase.instance.client
+              .from('books')
+              .select()
+              .eq('id', int.parse(session.bookId))
+              .single();
+          if (mounted) setState(() => _activeSessionBook = Book.fromJson(bookData));
+        } catch (_) {}
       }
     } catch (_) {}
   }
 
   void _resumeActiveSession() {
+    // Use the resolved book; fall back to widget.book only for same-book sessions.
+    final sessionBook = _activeSessionBook ?? widget.book;
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
         builder: (context) => ActiveReadingSessionPage(
           activeSession: _activeSession!,
-          book: widget.book,
+          book: sessionBook,
         ),
       ),
     );
@@ -529,6 +550,16 @@ class _StartReadingSessionPageUnifiedState extends State<StartReadingSessionPage
                             ],
                           ),
                           const SizedBox(height: 4),
+                          if (_activeSessionBook != null &&
+                              _activeSessionBook!.id != widget.book.id)
+                            Text(
+                              _activeSessionBook!.title,
+                              style: GoogleFonts.dmSans(
+                                color: const Color(0xFF6A6A6A),
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                           Text(
                             l.startPagePrefix(_activeSession!.startPage),
                             style: GoogleFonts.dmSans(
@@ -1085,7 +1116,9 @@ class _StartReadingSessionPageUnifiedState extends State<StartReadingSessionPage
                 // ── CTA Button ──
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Container(
+                  child: Opacity(
+                    opacity: _activeSession != null ? 0.4 : 1.0,
+                    child: Container(
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(18),
                       gradient: const LinearGradient(
@@ -1102,7 +1135,7 @@ class _StartReadingSessionPageUnifiedState extends State<StartReadingSessionPage
                     child: Material(
                       color: Colors.transparent,
                       child: InkWell(
-                        onTap: _isProcessing ? null : _startSession,
+                        onTap: (_isProcessing || _activeSession != null) ? null : _startSession,
                         borderRadius: BorderRadius.circular(18),
                         child: Padding(
                           padding: const EdgeInsets.symmetric(vertical: 18),
@@ -1130,6 +1163,7 @@ class _StartReadingSessionPageUnifiedState extends State<StartReadingSessionPage
                       ),
                     ),
                   ),
+                  ),
                 ),
 
                 // "Continue from page X" link
@@ -1137,7 +1171,7 @@ class _StartReadingSessionPageUnifiedState extends State<StartReadingSessionPage
                   const SizedBox(height: 14),
                   Center(
                     child: GestureDetector(
-                      onTap: _isProcessing ? null : _startFromLastPage,
+                      onTap: (_isProcessing || _activeSession != null) ? null : _startFromLastPage,
                       child: Text(
                         l.continueFromPage(_lastPage!),
                         style: GoogleFonts.dmSans(

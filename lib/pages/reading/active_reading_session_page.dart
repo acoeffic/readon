@@ -16,6 +16,7 @@ import '../../models/annotation_model.dart';
 import '../../navigation/main_navigation.dart';
 import '../../services/flow_service.dart';
 import '../../services/annotation_service.dart';
+import '../../services/session_pause_service.dart';
 import '../../services/ai_service.dart';
 import '../../services/ocr_service.dart';
 import 'end_reading_session_page.dart';
@@ -49,14 +50,38 @@ class _ActiveReadingSessionPageState extends State<ActiveReadingSessionPage>
   int _streakDays = 0;
   List<Annotation> _sessionAnnotations = [];
 
+  final _pauseService = SessionPauseService();
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _elapsed = DateTime.now().difference(widget.activeSession.startTime);
-    _startTimer();
+    _restorePauseState().then((_) {
+      if (!_isPaused) {
+        _elapsed = DateTime.now().difference(widget.activeSession.startTime) -
+            _totalPauseDuration;
+      } else {
+        _elapsed = (_pauseStartTime ?? DateTime.now())
+                .difference(widget.activeSession.startTime) -
+            _totalPauseDuration;
+      }
+      _startTimer();
+    });
     _loadStreak();
     _loadAnnotations();
+  }
+
+  Future<void> _restorePauseState() async {
+    final pausedAt = await _pauseService.getPausedAt();
+    if (pausedAt == null) return;
+    final accumulated = await _pauseService.getAccumulatedPauseDuration();
+    if (mounted) {
+      setState(() {
+        _isPaused = true;
+        _pauseStartTime = pausedAt;
+        _totalPauseDuration = accumulated;
+      });
+    }
   }
 
   @override
@@ -68,7 +93,27 @@ class _ActiveReadingSessionPageState extends State<ActiveReadingSessionPage>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed && !_isPaused) {
+    if (state == AppLifecycleState.resumed) {
+      _syncPauseStateOnResume();
+    }
+  }
+
+  Future<void> _syncPauseStateOnResume() async {
+    final pausedAt = await _pauseService.getPausedAt();
+    if (!mounted) return;
+    if (pausedAt != null && !_isPaused) {
+      // Auto-pause was triggered by main_navigation — sync in-memory state.
+      final accumulated = await _pauseService.getAccumulatedPauseDuration();
+      if (!mounted) return;
+      setState(() {
+        _isPaused = true;
+        _pauseStartTime = pausedAt;
+        _totalPauseDuration = accumulated;
+        _elapsed = pausedAt.difference(widget.activeSession.startTime) -
+            accumulated;
+      });
+    } else if (!_isPaused) {
+      // No pause — recalculate elapsed to account for time spent in background.
       setState(() {
         _elapsed = DateTime.now().difference(widget.activeSession.startTime) -
             _totalPauseDuration;
@@ -120,9 +165,20 @@ class _ActiveReadingSessionPageState extends State<ActiveReadingSessionPage>
         _isPaused = true;
       }
     });
+    // Persist pause state so it survives background/foreground transitions.
+    if (_isPaused && _pauseStartTime != null) {
+      _pauseService.savePause(
+        pausedAt: _pauseStartTime!,
+        alreadyAccumulated: _totalPauseDuration,
+      );
+    } else {
+      _pauseService.clearPause();
+    }
   }
 
   Future<void> _endSession() async {
+    await _pauseService.clearPause();
+    if (!mounted) return;
     await Navigator.push(
       context,
       MaterialPageRoute(
@@ -154,6 +210,8 @@ class _ActiveReadingSessionPageState extends State<ActiveReadingSessionPage>
     );
 
     if (confirm == true && mounted) {
+      await _pauseService.clearPause();
+      if (!mounted) return;
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (context) => const MainNavigation()),
         (route) => false,

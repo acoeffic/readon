@@ -32,6 +32,14 @@ class MonthlyNotificationService {
   static const String _challengeChannelDescription =
       'Notification quand un défi de club commence';
 
+  // Stale session reminder — fired 4h after app goes to background with active session
+  static const int _staleSessionNotifId = 2001;
+  static const String _staleSessionChannelId = 'session_reminder';
+  static const String _staleSessionChannelName = 'Session en cours';
+  static const String _staleSessionChannelDescription =
+      'Rappel quand une session de lecture est oubliée en arrière-plan';
+  static const String _staleSessionPayload = 'stale_session';
+
   // Reading reminders — IDs 3000–3006 (one per day of week, Mon=0 → Sun=6)
   static const int _readingReminderBaseId = 3000;
   static const String _readingReminderChannelId = 'reading_reminder';
@@ -223,6 +231,54 @@ class MonthlyNotificationService {
   int _challengeNotifId(String challengeId) =>
       challengeId.hashCode.abs() % 8000 + 2000;
 
+  // ── Stale session reminder ──
+
+  /// Schedule a notification 4 hours from now to remind the user they left a
+  /// reading session running in the background.
+  Future<void> scheduleStaleSessionNotification({
+    required String notifTitle,
+    required String notifBody,
+  }) async {
+    await _plugin.cancel(_staleSessionNotifId);
+
+    final scheduledTime = tz.TZDateTime.now(tz.local).add(const Duration(hours: 4));
+
+    final notificationDetails = NotificationDetails(
+      android: AndroidNotificationDetails(
+        _staleSessionChannelId,
+        _staleSessionChannelName,
+        channelDescription: _staleSessionChannelDescription,
+        importance: Importance.high,
+        priority: Priority.high,
+        icon: '@mipmap/ic_launcher',
+      ),
+      iOS: const DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: false,
+        presentSound: true,
+      ),
+    );
+
+    await _plugin.zonedSchedule(
+      _staleSessionNotifId,
+      notifTitle,
+      notifBody,
+      scheduledTime,
+      notificationDetails,
+      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+      payload: _staleSessionPayload,
+    );
+
+    debugPrint('StaleSessionNotification scheduled for $scheduledTime');
+  }
+
+  /// Cancel the stale session reminder (call when app comes to the foreground).
+  Future<void> cancelStaleSessionNotification() async {
+    await _plugin.cancel(_staleSessionNotifId);
+  }
+
   // ── Reading reminders ──
 
   /// Schedule weekly recurring local notifications for reading reminders.
@@ -343,7 +399,13 @@ class MonthlyNotificationService {
   /// Called when user taps the notification.
   static void _onNotificationTapped(NotificationResponse response) {
     final payload = response.payload;
-    if (payload == null || !payload.contains(':')) return;
+    if (payload == null) return;
+
+    // Stale session tap: simply bring the app to foreground — the recovery
+    // modal will show automatically when MainNavigation resumes.
+    if (payload == _staleSessionPayload) return;
+
+    if (!payload.contains(':')) return;
 
     final parts = payload.split(':');
     final month = int.tryParse(parts[0]);

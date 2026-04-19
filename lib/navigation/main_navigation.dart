@@ -22,6 +22,8 @@ import '../services/books_service.dart';
 import '../services/kindle_auto_sync_service.dart';
 import '../services/monthly_notification_service.dart';
 import '../services/push_notification_service.dart';
+import '../services/session_pause_service.dart';
+import '../pages/reading/end_reading_session_page.dart';
 import '../features/wrapped/monthly/monthly_wrapped_screen.dart';
 import '../widgets/kindle_auto_sync_widget.dart';
 import '../widgets/offline_banner.dart';
@@ -50,6 +52,10 @@ class _MainNavigationState extends State<MainNavigation>
   Book? _activeSessionBook;
   Timer? _activeSessionTimer;
   Duration _activeSessionElapsed = Duration.zero;
+
+  // Stale session recovery: show modal once per foreground cycle
+  bool _staleModalShown = false;
+  final _pauseService = SessionPauseService();
 
   final List<Widget> _pages = const [
     FeedPage(),
@@ -101,14 +107,118 @@ class _MainNavigationState extends State<MainNavigation>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      _checkAnniversary();
-      _checkKindleAutoSync();
-      _checkActiveSession();
-      _refreshSubscription();
-      MonthlyNotificationService().scheduleNextMonthlyNotification();
-      _updateHomeWidget();
+    if (state == AppLifecycleState.paused) {
+      _onAppPaused();
+    } else if (state == AppLifecycleState.resumed) {
+      _onAppResumed();
     }
+  }
+
+  Future<void> _onAppPaused() async {
+    // Reset so the modal shows again next time the app comes to the foreground.
+    _staleModalShown = false;
+
+    if (_activeSession == null) return;
+
+    // Record when the app went to background so we can detect 4h+ absence.
+    await _pauseService.saveBackgroundedAt(DateTime.now());
+
+    // Schedule a reminder notification in 4 hours.
+    if (mounted) {
+      final l = AppLocalizations.of(context);
+      await MonthlyNotificationService().scheduleStaleSessionNotification(
+        notifTitle: l.staleSessionNotifTitle,
+        notifBody: l.staleSessionNotifBody,
+      );
+    }
+  }
+
+  Future<void> _onAppResumed() async {
+    // Cancel the stale-session notification — user is back in the app.
+    await MonthlyNotificationService().cancelStaleSessionNotification();
+
+    final backgroundedAt = await _pauseService.getBackgroundedAt();
+    await _pauseService.clearBackgroundedAt();
+
+    // Auto-pause if the session has been running unattended for >= 4 hours
+    // and was not already manually paused.
+    if (backgroundedAt != null && _activeSession != null) {
+      final absence = DateTime.now().difference(backgroundedAt);
+      if (absence >= const Duration(hours: 4)) {
+        final alreadyPaused = await _pauseService.getPausedAt();
+        if (alreadyPaused == null) {
+          await _pauseService.savePause(
+            pausedAt: backgroundedAt,
+            alreadyAccumulated: Duration.zero,
+          );
+        }
+      }
+    }
+
+    _checkAnniversary();
+    _checkKindleAutoSync();
+    // Refresh active session, then show recovery modal if needed.
+    await _checkActiveSession();
+    _maybeShowStaleSessionModal();
+    _refreshSubscription();
+    MonthlyNotificationService().scheduleNextMonthlyNotification();
+    _updateHomeWidget();
+  }
+
+  void _maybeShowStaleSessionModal() {
+    if (!mounted) return;
+    if (_staleModalShown) return;
+    if (_activeSession == null || _activeSessionBook == null) return;
+
+    _staleModalShown = true;
+
+    final session = _activeSession!;
+    final l = AppLocalizations.of(context);
+    final colors = context.appColors;
+
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: colors.cardBg,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          l.staleSessionModalTitle,
+          style: TextStyle(
+            color: colors.textPrimary,
+            fontWeight: FontWeight.bold,
+            fontSize: 17,
+          ),
+        ),
+        content: Text(
+          l.staleSessionModalBody,
+          style: TextStyle(color: colors.textSecondary, fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(
+              l.staleSessionContinueButton,
+              style: const TextStyle(color: AppColors.primary),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => EndReadingSessionPage(activeSession: session),
+                ),
+              ).then((_) => _checkActiveSession());
+            },
+            child: Text(
+              l.staleSessionFinishButton,
+              style: const TextStyle(color: AppColors.error),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _enrichMissingCovers() async {
