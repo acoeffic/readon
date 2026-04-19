@@ -84,7 +84,7 @@ class MonthlyNotificationService {
     await scheduleNextMonthlyNotification();
   }
 
-  /// Request notification permission (Android 13+).
+  /// Request notification permission (Android 13+ / iOS).
   Future<bool> requestPermission() async {
     if (Platform.isAndroid) {
       final androidPlugin = _plugin
@@ -92,6 +92,21 @@ class MonthlyNotificationService {
               AndroidFlutterLocalNotificationsPlugin>();
       if (androidPlugin != null) {
         return await androidPlugin.requestNotificationsPermission() ?? false;
+      }
+    } else if (Platform.isIOS) {
+      final iosPlugin = _plugin
+          .resolvePlatformSpecificImplementation<
+              IOSFlutterLocalNotificationsPlugin>();
+      if (iosPlugin != null) {
+        final granted = await iosPlugin.requestPermissions(
+          alert: true,
+          badge: true,
+          sound: true,
+        );
+        if (granted != true) {
+          debugPrint('iOS notification permission denied');
+          return false;
+        }
       }
     }
     return true;
@@ -218,6 +233,7 @@ class MonthlyNotificationService {
     required TimeOfDay time,
     required List<int> isoDays,
   }) async {
+    if (!_initialized) await initialize();
     // Cancel all existing reading reminders first
     await cancelReadingReminders();
 
@@ -246,21 +262,32 @@ class MonthlyNotificationService {
       final scheduledDate = _nextDateForWeekday(isoDay, time);
       final notifId = _readingReminderBaseId + (isoDay - 1);
 
-      await _plugin.zonedSchedule(
-        notifId,
-        '📚 C\'est l\'heure de lire !',
-        'Prends quelques minutes pour avancer dans ton livre',
-        scheduledDate,
-        notificationDetails,
-        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-        uiLocalNotificationDateInterpretation:
-            UILocalNotificationDateInterpretation.absoluteTime,
-        matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
-      );
+      try {
+        await _plugin.zonedSchedule(
+          notifId,
+          '📚 C\'est l\'heure de lire !',
+          'Prends quelques minutes pour avancer dans ton livre',
+          scheduledDate,
+          notificationDetails,
+          androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+          uiLocalNotificationDateInterpretation:
+              UILocalNotificationDateInterpretation.absoluteTime,
+          matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
+        );
 
-      debugPrint(
-        'ReadingReminder scheduled: day=$isoDay at ${time.hour}:${time.minute} → $scheduledDate (id=$notifId)',
-      );
+        debugPrint(
+          'ReadingReminder scheduled: day=$isoDay at ${time.hour}:${time.minute} → $scheduledDate (id=$notifId)',
+        );
+      } catch (e) {
+        debugPrint('ReadingReminder FAILED to schedule day=$isoDay: $e');
+      }
+    }
+
+    // Diagnostic: log all pending notifications
+    final pending = await _plugin.pendingNotificationRequests();
+    debugPrint('Pending notifications: ${pending.length}');
+    for (final p in pending) {
+      debugPrint('  → id=${p.id} title="${p.title}"');
     }
   }
 

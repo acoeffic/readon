@@ -13,6 +13,21 @@ class SuggestionsService {
   final GoogleBooksService _googleBooksService = GoogleBooksService();
   final BooksService _booksService = BooksService();
 
+  /// Exécute une liste de futures par lots de [batchSize] pour limiter la
+  /// concurrence et éviter de saturer l'API Google Books.
+  static Future<List<T>> _batchedWait<T>(
+    List<Future<T> Function()> factories, {
+    int batchSize = 2,
+  }) async {
+    final results = <T>[];
+    for (int i = 0; i < factories.length; i += batchSize) {
+      final end = (i + batchSize).clamp(0, factories.length);
+      final batch = factories.sublist(i, end).map((f) => f()).toList();
+      results.addAll(await Future.wait(batch));
+    }
+    return results;
+  }
+
   /// Générer des suggestions personnalisées (approche hybride)
   ///
   /// Combine plusieurs sources :
@@ -116,21 +131,23 @@ class SuggestionsService {
 
     if (needsEnrichment.isEmpty) return suggestions;
 
-    // Lancer les lookups en parallèle
+    // Lancer les lookups par lots de 2 pour limiter la pression sur l'API
     final entries = needsEnrichment.entries.toList();
-    final results = await Future.wait(
+    final results = await _batchedWait<GoogleBook?>(
       entries.map((entry) {
-        final book = entry.value.book;
-        if (book.isbn != null && book.isbn!.isNotEmpty) {
-          return _googleBooksService.searchByISBN(book.isbn!);
-        }
-        if (book.title.isNotEmpty) {
-          return _googleBooksService
-              .searchByTitleAuthor(book.title, book.author ?? '')
-              .then((list) => list.isNotEmpty ? list.first : null);
-        }
-        return Future.value(null);
-      }),
+        return () {
+          final book = entry.value.book;
+          if (book.isbn != null && book.isbn!.isNotEmpty) {
+            return _googleBooksService.searchByISBN(book.isbn!);
+          }
+          if (book.title.isNotEmpty) {
+            return _googleBooksService
+                .searchByTitleAuthor(book.title, book.author ?? '')
+                .then((list) => list.isNotEmpty ? list.first : null);
+          }
+          return Future.value(null);
+        };
+      }).toList(),
     );
 
     for (int i = 0; i < entries.length; i++) {
@@ -289,27 +306,27 @@ class SuggestionsService {
         return _getTrendingSuggestions(limit: limit);
       }
 
-      // Lancer toutes les recherches en parallèle
-      final List<Future<List<BookSuggestion>>> futures = [];
+      // Lancer les recherches par lots de 2 pour limiter la concurrence
+      final List<Future<List<BookSuggestion>> Function()> factories = [];
 
       for (final item in (finishedBooks as List).take(2)) {
         final book = Book.fromJson(item['books']);
 
         if (book.author != null && book.author!.isNotEmpty) {
-          futures.add(_getSuggestionsFromSameAuthor(
+          factories.add(() => _getSuggestionsFromSameAuthor(
             book.author!,
             excludeBookId: book.id,
             limit: 1,
           ));
         }
 
-        futures.add(_getGoogleBooksSuggestions(
+        factories.add(() => _getGoogleBooksSuggestions(
           basedOnBook: book,
           limit: 2,
         ));
       }
 
-      final results = await Future.wait(futures);
+      final results = await _batchedWait<List<BookSuggestion>>(factories);
       return results.expand((s) => s).take(limit).toList();
     } catch (e) {
       debugPrint('Erreur _getSuggestionsFromHistory: $e');
@@ -387,8 +404,10 @@ class SuggestionsService {
         }
       }
 
-      final googleResults = await Future.wait(
-        genreSubjects.map((e) => _googleBooksService.searchBooks('subject:${e.value}')),
+      final googleResults = await _batchedWait<List<GoogleBook>>(
+        genreSubjects
+            .map((e) => () => _googleBooksService.searchBooks('subject:${e.value}'))
+            .toList(),
       );
 
       List<BookSuggestion> suggestions = [];
@@ -444,11 +463,13 @@ class SuggestionsService {
           .where((item) => (item['title'] as String? ?? '').isNotEmpty)
           .toList();
 
-      final googleResults = await Future.wait(
-        validItems.map((item) => _googleBooksService.searchByTitleAuthor(
-          item['title'] as String? ?? '',
-          item['author'] as String? ?? '',
-        )),
+      final googleResults = await _batchedWait<List<GoogleBook>>(
+        validItems
+            .map((item) => () => _googleBooksService.searchByTitleAuthor(
+                  item['title'] as String? ?? '',
+                  item['author'] as String? ?? '',
+                ))
+            .toList(),
       );
 
       final List<BookSuggestion> results = [];

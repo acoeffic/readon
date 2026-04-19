@@ -2636,6 +2636,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get searchingBookstores => 'Recherche de librairies...';
 
   @override
+  String get loadMoreBookstores => 'Voir plus de librairies';
+
+  @override
   String get offlineBanner =>
       'Hors ligne — les sessions seront synchronisées automatiquement';
 
@@ -2724,7 +2727,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get noDescriptionAvailable => 'Aucun résumé disponible pour ce livre.';
 
   @override
-  String get buyOnAmazon => 'Commander sur Amazon';
+  String get buyOnAmazon => 'Acheter sur Amazon';
 
   @override
   String get requestToJoin => 'Demander à rejoindre';
@@ -2990,4 +2993,16 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get freeIncludedWidget => 'Widget iOS';
+
+  @override
+  String get fabTooltip => 'Démarrer une lecture';
+
+  @override
+  String get shareMySession => 'Partager ma session';
+
+  @override
+  String get saveImage => 'Enregistrer l\'image';
+
+  @override
+  String get imageSaved => 'Image enregistrée';
 }

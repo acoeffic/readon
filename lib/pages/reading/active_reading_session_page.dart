@@ -22,6 +22,7 @@ import 'end_reading_session_page.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/cached_book_cover.dart';
 import '../../l10n/app_localizations.dart';
+import '../../widgets/constrained_content.dart';
 
 class ActiveReadingSessionPage extends StatefulWidget {
   final ReadingSession activeSession;
@@ -353,9 +354,10 @@ class _ActiveReadingSessionPageState extends State<ActiveReadingSessionPage>
       child: Scaffold(
         backgroundColor: AppColors.bgLight,
         body: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Column(
+          child: ConstrainedContent(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Column(
               children: [
                 const SizedBox(height: 12),
 
@@ -741,6 +743,7 @@ class _ActiveReadingSessionPageState extends State<ActiveReadingSessionPage>
                 ),
               ],
             ),
+          ),
           ),
         ),
       ),

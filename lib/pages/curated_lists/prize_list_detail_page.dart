@@ -53,6 +53,7 @@ class _PrizeListDetailPageState extends State<PrizeListDetailPage> {
 
   void _showBookDetailSheet(PrizeListBook book) {
     final l = AppLocalizations.of(context)!;
+    final pageContext = context;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -65,7 +66,7 @@ class _PrizeListDetailPageState extends State<PrizeListDetailPage> {
         minChildSize: 0.3,
         maxChildSize: 0.85,
         expand: false,
-        builder: (context, scrollController) => SingleChildScrollView(
+        builder: (_, scrollController) => SingleChildScrollView(
           controller: scrollController,
           padding: const EdgeInsets.all(20),
           child: Column(
@@ -230,7 +231,7 @@ class _PrizeListDetailPageState extends State<PrizeListDetailPage> {
                 child: Column(
                   children: [
                     _buildBuyOption(
-                      context: context,
+                      context: pageContext,
                       emoji: '\u{1F4D6}',
                       label: l.inBookstore,
                       onTap: () {
@@ -251,14 +252,17 @@ class _PrizeListDetailPageState extends State<PrizeListDetailPage> {
                             .onSurface
                             .withValues(alpha: 0.08)),
                     _buildBuyOption(
-                      context: context,
+                      context: pageContext,
                       emoji: '\u{1F3EA}',
                       label: l.findNearMe,
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) => const NearbyBookstoresPage()),
-                      ),
+                      onTap: () {
+                        Navigator.pop(sheetContext);
+                        Navigator.push(
+                          pageContext,
+                          MaterialPageRoute(
+                              builder: (_) => const NearbyBookstoresPage()),
+                        );
+                      },
                     ),
                     Divider(
                         height: 1,
@@ -267,7 +271,7 @@ class _PrizeListDetailPageState extends State<PrizeListDetailPage> {
                             .onSurface
                             .withValues(alpha: 0.08)),
                     _buildBuyOption(
-                      context: context,
+                      context: pageContext,
                       emoji: '\u{1F4E6}',
                       label: l.amazon,
                       onTap: () {
@@ -600,7 +604,7 @@ class _PrizeBookListItem extends StatelessWidget {
             const SizedBox(width: 12),
 
             // Book cover
-            _PrizeBookCover(coverUrl: book.coverUrl, title: book.title, author: book.author),
+            _PrizeBookCover(coverUrl: book.coverUrl, title: book.title, author: book.author, isbn: book.isbn),
             const SizedBox(width: 12),
 
             // Book info
@@ -666,34 +670,20 @@ class _PrizeBookCover extends StatelessWidget {
   final String? coverUrl;
   final String? title;
   final String? author;
+  final String? isbn;
 
-  const _PrizeBookCover({required this.coverUrl, this.title, this.author});
+  const _PrizeBookCover({required this.coverUrl, this.title, this.author, this.isbn});
 
   @override
   Widget build(BuildContext context) {
-    if (coverUrl != null) {
-      return CachedBookCover(
-        imageUrl: coverUrl,
-        title: title,
-        author: author,
-        width: 44,
-        height: 64,
-        borderRadius: BorderRadius.circular(4),
-      );
-    }
-
-    return Container(
+    return CachedBookCover(
+      imageUrl: coverUrl,
+      isbn: isbn,
+      title: title,
+      author: author,
       width: 44,
       height: 64,
-      decoration: BoxDecoration(
-        color: const Color(0xFF6B988D).withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: Icon(
-        Icons.book,
-        size: 20,
-        color: const Color(0xFF6B988D).withValues(alpha: 0.4),
-      ),
+      borderRadius: BorderRadius.circular(4),
     );
   }
 }

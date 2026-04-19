@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:home_widget/home_widget.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
@@ -11,6 +10,7 @@ import '../../config/env.dart';
 import '../../services/subscription_service.dart';
 import '../../services/monthly_notification_service.dart';
 import '../../services/deep_link_service.dart';
+import '../../services/widget_service.dart';
 import '../auth/auth_gate.dart';
 
 const _logoAsset = 'assets/images/logo_lexday.svg';
@@ -132,7 +132,9 @@ class _SplashScreenState extends State<SplashScreen>
     }
 
     if (!kIsWeb) {
-      await _updateWidget();
+      await WidgetService().initialize();
+      // La mise à jour avec les vraies données se fera après l'auth
+      // (via AuthGate ou la page d'accueil)
     }
 
     // Initialize deep link handling (Notion OAuth + book links)
@@ -155,15 +157,6 @@ class _SplashScreenState extends State<SplashScreen>
     );
   }
 
-  Future<void> _updateWidget() async {
-    await HomeWidget.setAppGroupId('group.com.acoeffic.lexday');
-    await HomeWidget.saveWidgetData<String>('currentBook', 'Ton livre en cours');
-    await HomeWidget.saveWidgetData<String>('currentAuthor', 'Auteur');
-    await HomeWidget.saveWidgetData<int>('todayMinutes', 0);
-    await HomeWidget.saveWidgetData<int>('streak', 0);
-    await HomeWidget.saveWidgetData<double>('progressPercent', 0.0);
-    await HomeWidget.updateWidget(name: 'LexDayWidget');
-  }
 
   @override
   void dispose() {

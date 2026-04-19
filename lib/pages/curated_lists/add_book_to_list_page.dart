@@ -7,6 +7,7 @@ import '../../services/google_books_service.dart';
 import '../../services/user_custom_lists_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/cached_book_cover.dart';
+import '../../widgets/constrained_content.dart';
 
 class AddBookToListPage extends StatefulWidget {
   final int listId;
@@ -274,12 +275,14 @@ class _AddBookToListPageState extends State<AddBookToListPage>
           ],
         ),
       ),
-      body: TabBarView(
+      body: ConstrainedContent(
+        child: TabBarView(
         controller: _tabController,
         children: [
           _buildLibraryTab(),
           _buildSearchTab(),
         ],
+      ),
       ),
     );
   }

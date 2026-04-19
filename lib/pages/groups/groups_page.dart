@@ -135,13 +135,15 @@ class _GroupsPageState extends State<GroupsPage> {
     );
   }
 
-  void _navigateToGroupDetail(ReadingGroup group) {
-    Navigator.push(
+  Future<void> _navigateToGroupDetail(ReadingGroup group) async {
+    await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => GroupDetailPage(groupId: group.id),
       ),
     );
+    // Refresh the list when returning (cover image may have changed).
+    if (mounted) _loadMyGroups();
   }
 
   bool get _isDark => Theme.of(context).brightness == Brightness.dark;
@@ -411,7 +413,7 @@ class _GroupCard extends StatelessWidget {
             children: [
               // Cover image band
               SizedBox(
-                height: 80,
+                height: 100,
                 child: Stack(
                   fit: StackFit.expand,
                   children: [

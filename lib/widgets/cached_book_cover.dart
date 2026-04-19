@@ -17,8 +17,9 @@ import '../theme/app_theme.dart';
 ///   3. Google Books publisher-content via [googleId] (alternate endpoint)
 ///   4. iTunes/Apple Books lookup via [isbn]
 ///   5. Open Library cover via [isbn]
-///   6. Title+author search (iTunes then Google Books API)
-///   7. Placeholder widget
+///   6. BnF (Bibliothèque nationale de France) cover via [isbn]
+///   7. Title+author search (iTunes then Google Books API)
+///   8. Placeholder widget
 ///
 /// Google Books `content?id=` URLs are HEAD-checked to filter out the gray
 /// "no preview" placeholder (valid HTTP 200 image but < 8 KB). Validated
@@ -40,6 +41,19 @@ class CachedBookCover extends StatefulWidget {
   final BorderRadius? borderRadius;
   final Widget? placeholder;
   final Widget? errorWidget;
+
+  /// Static cache: resolved URL list per book (shared across all instances).
+  /// Key is "imageUrl|isbn|googleId", value is the validated URL list.
+  static final Map<String, List<String>> _resolvedCache = {};
+
+  /// Returns the first resolved cover URL for a given book, or null if not yet resolved.
+  /// This allows other parts of the app (e.g. share cards) to use the same cover
+  /// that CachedBookCover displays, instead of the raw database URL.
+  static String? resolvedUrl({String? imageUrl, String? isbn, String? googleId}) {
+    final key = '$imageUrl|$isbn|$googleId';
+    final urls = CachedBookCover._resolvedCache[key];
+    return (urls != null && urls.isNotEmpty) ? urls.first : null;
+  }
 
   const CachedBookCover({
     super.key,
@@ -75,25 +89,29 @@ class _CachedBookCoverState extends State<CachedBookCover> {
   /// Static cache: Google Books URL → true (real cover) / false (placeholder).
   static final Map<String, bool> _gbHeadCache = {};
 
+  /// Static cache: BnF ISBN → cover URL (null = no cover found).
+  static final Map<String, String?> _bnfCache = {};
+
+  /// BnF circuit breaker: skip all BnF calls after consecutive failures.
+  static int _bnfConsecutiveFailures = 0;
+  static DateTime? _bnfSkipUntil;
+
   /// Session cache: ISBN → iTunes cover URL (null = no cover found).
   /// Not static — clears on widget rebuild to avoid stale results.
   final Map<String, String?> _itunesCache = {};
 
-  /// Session cache: title|author → cover URL from search (null = not found).
-  /// Not static — clears on widget rebuild to avoid stale results.
-  final Map<String, String?> _titleSearchCache = {};
 
-  /// Google Books gray placeholder is typically 2–5 KB.
-  /// Real covers are almost always > 15 KB.
-  static const int _minGbCoverBytes = 8000;
+  /// Google Books gray placeholder is ~1.3 KB at zoom=1 and ~9.1 KB at
+  /// zoom=2/3. Real covers are almost always > 15 KB.
+  static const int _minGbCoverBytes = 10000;
 
   /// Publisher-content placeholder PNG is 3,522 bytes.
   /// Lower threshold since this endpoint may serve smaller valid images.
-  static const int _minPubCoverBytes = 5000;
+  static const int _minPubCoverBytes = 4000;
 
-  /// Open Library "image not available" placeholder is ~800 bytes.
-  /// Real covers are > 2 KB even at small sizes.
-  static const int _minOlCoverBytes = 1500;
+  /// Open Library "image not available" placeholder can be up to ~4 KB
+  /// at medium size. Real covers are almost always > 5 KB.
+  static const int _minOlCoverBytes = 5000;
 
   @override
   void initState() {
@@ -113,7 +131,22 @@ class _CachedBookCoverState extends State<CachedBookCover> {
     }
   }
 
+  String get _cacheKey =>
+      '${widget.imageUrl}|${widget.isbn}|${widget.googleId}';
+
   Future<void> _resolveChain() async {
+    // Return cached result if the same book was already resolved.
+    final cached = CachedBookCover._resolvedCache[_cacheKey];
+    if (cached != null) {
+      if (mounted) {
+        setState(() {
+          _urls = cached;
+          _resolving = false;
+        });
+      }
+      return;
+    }
+
     final candidates = _buildCandidateUrls();
     final validated = <String>[];
     final cleanIsbn = _cleanIsbn(widget.isbn) ??
@@ -167,15 +200,31 @@ class _CachedBookCoverState extends State<CachedBookCover> {
       if (itunesUrl != null) validated.add(itunesUrl);
     }
 
-    // Last resort: search by title + author (or ISBN if valid).
-    if (validated.isEmpty) {
-      final fallbackUrl = await _fetchCoverByTitleAuthor(
-        widget.title,
-        widget.author,
-        widget.isbn,
-      );
-      if (fallbackUrl != null) validated.add(fallbackUrl);
+    // BnF — excellent for French-published books.
+    if (hasValidIsbn) {
+      final bnfUrl = await _fetchBnfCover(cleanIsbn!);
+      if (bnfUrl != null) validated.add(bnfUrl);
     }
+
+    // Google Books API search is DISABLED here to save quota.
+    // But iTunes search by title+author is free (no Google quota) — use it
+    // as a last resort when we have fewer than 2 validated URLs.
+    if (validated.isEmpty && widget.title != null && widget.title!.isNotEmpty) {
+      final itunesUrl = await _fetchItunesCoverByTitle(
+        widget.title!,
+        widget.author,
+      );
+      if (itunesUrl != null) validated.add(itunesUrl);
+    }
+
+    debugPrint(
+      '📖 CachedBookCover [${widget.title}] '
+      'isbn=${widget.isbn} googleId=${widget.googleId} '
+      'resolved ${validated.length} URLs: $validated',
+    );
+
+    // Cache the result so other instances of the same book skip the chain.
+    CachedBookCover._resolvedCache[_cacheKey] = validated;
 
     if (mounted) {
       setState(() {
@@ -198,11 +247,15 @@ class _CachedBookCoverState extends State<CachedBookCover> {
   static bool _isValidIsbn(String? isbn) {
     if (isbn == null) return false;
     final clean = isbn.replaceAll(RegExp(r'[\s-]'), '');
-    return RegExp(r'^\d{10}$|^\d{13}$').hasMatch(clean);
+    // ISBN-10 can end with 'X' (check digit for 10), ISBN-13 is always digits.
+    return RegExp(r'^\d{9}[\dXx]$|^\d{13}$').hasMatch(clean);
   }
 
-  /// HEAD-check a Google Books URL; returns false if the response is the
+  /// Check a Google Books URL; returns false if the response is the
   /// gray "no preview" placeholder (< [minBytes] bytes).
+  ///
+  /// Uses HEAD first; falls back to GET when content-length is missing
+  /// to measure actual body size and avoid showing gray placeholders.
   static Future<bool> _isRealGoogleBooksCover(
     String url, {
     int minBytes = _minGbCoverBytes,
@@ -220,11 +273,43 @@ class _CachedBookCoverState extends State<CachedBookCover> {
       }
       final length =
           int.tryParse(response.headers['content-length'] ?? '') ?? 0;
-      // A content-length of 0 means the server didn't report it — accept it
-      // and let CachedNetworkImage handle errors at render time.
-      final valid = length == 0 || length >= minBytes;
-      _gbHeadCache[url] = valid;
-      return valid;
+
+      if (length >= minBytes) {
+        // Size looks good from HEAD — but near the threshold, do a GET
+        // to rule out grayscale PNG placeholders (which can be ~9 KB).
+        if (length < minBytes * 2) {
+          final getResp = await http
+              .get(Uri.parse(url), headers: _browserHeaders)
+              .timeout(const Duration(seconds: 4));
+          if (getResp.statusCode == 200 && _isGrayscalePng(getResp.bodyBytes)) {
+            _gbHeadCache[url] = false;
+            return false;
+          }
+        }
+        _gbHeadCache[url] = true;
+        return true;
+      }
+      if (length > 0 && length < minBytes) {
+        _gbHeadCache[url] = false;
+        return false;
+      }
+
+      // content-length missing — do a GET to check actual body size
+      // and detect grayscale PNG placeholders.
+      final getResp = await http
+          .get(Uri.parse(url), headers: _browserHeaders)
+          .timeout(const Duration(seconds: 4));
+      if (getResp.statusCode != 200) {
+        _gbHeadCache[url] = false;
+        return false;
+      }
+      final bytes = getResp.bodyBytes;
+      if (bytes.length < minBytes || _isGrayscalePng(bytes)) {
+        _gbHeadCache[url] = false;
+        return false;
+      }
+      _gbHeadCache[url] = true;
+      return true;
     } catch (_) {
       _gbHeadCache[url] = false;
       return false;
@@ -234,34 +319,205 @@ class _CachedBookCoverState extends State<CachedBookCover> {
   /// Static cache: Open Library URL → true (real cover) / false (placeholder).
   static final Map<String, bool> _olHeadCache = {};
 
-  /// HEAD-check an Open Library URL; returns false if the response is the
+  /// Check an Open Library URL; returns false if the response is the
   /// "image not available" placeholder (< [_minOlCoverBytes]) or a 404.
+  ///
+  /// Always does a GET to check actual body size AND detect the placeholder
+  /// by looking for known small image dimensions in the response bytes.
   static Future<bool> _isRealOpenLibraryCover(String url) async {
     final cached = _olHeadCache[url];
     if (cached != null) return cached;
 
     try {
-      final response = await http
+      // Try HEAD first to catch 404/302 quickly.
+      final headResp = await http
           .head(Uri.parse(url), headers: _browserHeaders)
           .timeout(const Duration(seconds: 3));
-      if (response.statusCode == 404) {
+      if (headResp.statusCode == 404 || headResp.statusCode == 302) {
         _olHeadCache[url] = false;
         return false;
       }
-      if (response.statusCode != 200) {
+      if (headResp.statusCode != 200) {
         _olHeadCache[url] = false;
         return false;
       }
+
       final length =
-          int.tryParse(response.headers['content-length'] ?? '') ?? 0;
-      final valid = length == 0 || length >= _minOlCoverBytes;
-      _olHeadCache[url] = valid;
-      return valid;
+          int.tryParse(headResp.headers['content-length'] ?? '') ?? 0;
+      if (length > 0 && length < _minOlCoverBytes) {
+        // Server reported a small size → placeholder.
+        _olHeadCache[url] = false;
+        return false;
+      }
+
+      // Always do a GET to verify — the OL "image not available" PNG can be
+      // larger than _minOlCoverBytes depending on encoding, so we also check
+      // image dimensions. A real book cover is almost always > 150px wide.
+      final getResp = await http
+          .get(Uri.parse(url), headers: _browserHeaders)
+          .timeout(const Duration(seconds: 4));
+      if (getResp.statusCode != 200) {
+        _olHeadCache[url] = false;
+        return false;
+      }
+
+      final bytes = getResp.bodyBytes;
+      if (bytes.length < _minOlCoverBytes) {
+        _olHeadCache[url] = false;
+        return false;
+      }
+
+      // Check for PNG dimensions — if the image is very small (< 130px wide),
+      // it's likely the "image not available" placeholder.
+      final width = _extractImageWidth(bytes);
+      if (width != null && width < 130) {
+        _olHeadCache[url] = false;
+        return false;
+      }
+
+      _olHeadCache[url] = true;
+      return true;
     } catch (_) {
       _olHeadCache[url] = false;
       return false;
     }
   }
+
+  /// Extract image width from PNG or JPEG header bytes.
+  /// Returns null if the format is unrecognized.
+  static int? _extractImageWidth(List<int> bytes) {
+    if (bytes.length < 24) return null;
+
+    // PNG: bytes 16-19 contain width as big-endian uint32
+    if (bytes[0] == 0x89 && bytes[1] == 0x50 && bytes[2] == 0x4E && bytes[3] == 0x47) {
+      return (bytes[16] << 24) | (bytes[17] << 16) | (bytes[18] << 8) | bytes[19];
+    }
+
+    // JPEG: scan for SOF0/SOF2 marker (0xFF 0xC0 or 0xFF 0xC2)
+    if (bytes[0] == 0xFF && bytes[1] == 0xD8) {
+      int i = 2;
+      while (i < bytes.length - 9) {
+        if (bytes[i] == 0xFF) {
+          final marker = bytes[i + 1];
+          if (marker == 0xC0 || marker == 0xC2) {
+            // Width is at offset +7 (big-endian uint16)
+            return (bytes[i + 7] << 8) | bytes[i + 8];
+          }
+          if (marker == 0xD9) break; // EOI
+          if (marker == 0xDA) break; // SOS — no more markers
+          // Skip to next marker
+          final segLen = (bytes[i + 2] << 8) | bytes[i + 3];
+          i += 2 + segLen;
+        } else {
+          i++;
+        }
+      }
+    }
+
+    // GIF: bytes 6-7 contain width as little-endian uint16
+    if (bytes[0] == 0x47 && bytes[1] == 0x49 && bytes[2] == 0x46) {
+      return bytes[6] | (bytes[7] << 8);
+    }
+
+    return null;
+  }
+
+  /// Detect Google Books grayscale PNG placeholder.
+  /// The "image not available" placeholder is a grayscale PNG (color type 0).
+  /// Real book covers are RGB (color type 2) or RGBA (color type 6).
+  /// PNG byte 25 is the color type in the IHDR chunk.
+  static bool _isGrayscalePng(List<int> bytes) {
+    if (bytes.length < 26) return false;
+    // Check PNG magic bytes
+    if (bytes[0] != 0x89 || bytes[1] != 0x50 || bytes[2] != 0x4E || bytes[3] != 0x47) {
+      return false;
+    }
+    // PNG IHDR color type is at byte 25: 0 = grayscale, 2 = RGB, 6 = RGBA
+    return bytes[25] == 0;
+  }
+
+  /// Look up a book cover via the BnF SRU API by ISBN.
+  /// Queries the public catalogue, extracts the ARK identifier from the
+  /// MARC-XML response, then returns the BnF cover URL (or null).
+  static Future<String?> _fetchBnfCover(String isbn) async {
+    if (_bnfCache.containsKey(isbn)) return _bnfCache[isbn];
+
+    // Circuit breaker: skip BnF when their service is down.
+    if (_bnfSkipUntil != null) {
+      if (DateTime.now().isBefore(_bnfSkipUntil!)) return null;
+      _bnfSkipUntil = null;
+      _bnfConsecutiveFailures = 0;
+    }
+
+    try {
+      final uri = Uri.parse(
+        'https://catalogue.bnf.fr/api/SRU?version=1.2'
+        '&operation=searchRetrieve'
+        '&query=bib.isbn%20adj%20%22$isbn%22'
+        '&maximumRecords=1',
+      );
+      final response = await http
+          .get(uri, headers: _browserHeaders)
+          .timeout(const Duration(seconds: 4));
+      if (response.statusCode != 200) {
+        _bnfCache[isbn] = null;
+        return null;
+      }
+
+      // Extract the ARK identifier (e.g. ark:/12148/cb37615865s) from the XML.
+      final arkMatch =
+          RegExp(r'ark:/12148/cb\d+[a-z]?').firstMatch(response.body);
+      if (arkMatch == null) {
+        _bnfCache[isbn] = null;
+        return null;
+      }
+      final ark = arkMatch.group(0)!;
+
+      // Build the cover URL and HEAD-check it.
+      final coverUrl =
+          'https://catalogue.bnf.fr/couverture'
+          '?appName=NE&idArk=$ark&couession=1';
+
+      final head = await http
+          .head(Uri.parse(coverUrl), headers: _browserHeaders)
+          .timeout(const Duration(seconds: 3));
+      // BnF returns 200 with a real JPEG when a cover exists,
+      // or a redirect / small placeholder otherwise.
+      if (head.statusCode != 200) {
+        // 500 = server error → count toward circuit breaker.
+        if (head.statusCode >= 500) _bnfRecordFailure();
+        _bnfCache[isbn] = null;
+        return null;
+      }
+      final length =
+          int.tryParse(head.headers['content-length'] ?? '') ?? 0;
+      if (length > 0 && length < 2000) {
+        // Tiny response — likely a placeholder or empty image.
+        _bnfCache[isbn] = null;
+        return null;
+      }
+
+      _bnfConsecutiveFailures = 0;
+      _bnfCache[isbn] = coverUrl;
+      return coverUrl;
+    } catch (_) {
+      _bnfRecordFailure();
+      _bnfCache[isbn] = null;
+      return null;
+    }
+  }
+
+  /// Record a BnF failure; after 3 consecutive failures, skip for 10 minutes.
+  static void _bnfRecordFailure() {
+    _bnfConsecutiveFailures++;
+    if (_bnfConsecutiveFailures >= 3) {
+      _bnfSkipUntil = DateTime.now().add(const Duration(minutes: 10));
+      debugPrint('BnF circuit breaker ouvert — pause de 10 min');
+    }
+  }
+
+  // Google Books API search methods removed from display layer to save quota.
+  // Cover enrichment is handled by BooksService.enrichMissingCovers().
 
   /// Follow redirects for a URL and return the final destination.
   /// Publisher-content URLs redirect to the actual image host; resolving
@@ -297,132 +553,121 @@ class _CachedBookCoverState extends State<CachedBookCover> {
   }
 
   /// Look up a book cover via the iTunes Search API by ISBN.
+  /// Tries FR store first, then US store as fallback.
   /// Returns a high-res artwork URL or null if not found.
   Future<String?> _fetchItunesCover(String isbn) async {
     final cached = _itunesCache[isbn];
     if (_itunesCache.containsKey(isbn)) return cached;
 
-    try {
-      final uri = Uri.parse(
-        'https://itunes.apple.com/search'
-        '?term=$isbn&media=ebook&limit=1&country=fr',
-      );
-      final response = await http
-          .get(uri, headers: _browserHeaders)
-          .timeout(const Duration(seconds: 3));
-      if (response.statusCode != 200) {
-        _itunesCache[isbn] = null;
-        return null;
-      }
-      final data = jsonDecode(response.body);
-      final results = data['results'] as List?;
-      if (results == null || results.isEmpty) {
-        _itunesCache[isbn] = null;
-        return null;
-      }
-      final artwork = results.first['artworkUrl100'] as String?;
-      if (artwork == null) {
-        _itunesCache[isbn] = null;
-        return null;
-      }
-      // Upgrade to high resolution.
-      final url = artwork.replaceAll('100x100bb', '600x600bb');
-      _itunesCache[isbn] = url;
-      return url;
-    } catch (_) {
-      _itunesCache[isbn] = null;
-      return null;
-    }
-  }
-
-  /// Last-resort: search for a cover by title and author.
-  ///
-  /// If [isbn] is valid, only tries ISBN-based iTunes lookup (precise).
-  /// Title+author search (iTunes then Google Books API) only fires when
-  /// ISBN is null or invalid to avoid false matches.
-  Future<String?> _fetchCoverByTitleAuthor(
-    String? title,
-    String? author,
-    String? isbn,
-  ) async {
-    if (title == null || title.isEmpty) return null;
-    final cacheKey = '$title|$author|$isbn';
-    if (_titleSearchCache.containsKey(cacheKey)) {
-      return _titleSearchCache[cacheKey];
-    }
-
-    final cleanIsbn = _cleanIsbn(isbn);
-
-    // If we have a valid ISBN, try ISBN-based iTunes lookup only.
-    // Title search is too imprecise when we know the ISBN — if the ISBN
-    // lookup already failed upstream, there's nothing more to do.
-    if (_isValidIsbn(cleanIsbn)) {
-      final isbnResult = await _fetchItunesCover(cleanIsbn!);
-      _titleSearchCache[cacheKey] = isbnResult;
-      return isbnResult;
-    }
-
-    // No valid ISBN — fall back to title+author search.
-
-    // Try iTunes
-    try {
-      final query = Uri.encodeComponent('$title ${author ?? ''}');
-      final uri = Uri.parse(
-        'https://itunes.apple.com/search'
-        '?term=$query&media=ebook&limit=1&country=fr',
-      );
-      final response = await http
-          .get(uri, headers: _browserHeaders)
-          .timeout(const Duration(seconds: 3));
-      if (response.statusCode == 200) {
+    for (final country in ['fr', 'us']) {
+      try {
+        final uri = Uri.parse(
+          'https://itunes.apple.com/search'
+          '?term=$isbn&media=ebook&limit=1&country=$country',
+        );
+        final response = await http
+            .get(uri, headers: _browserHeaders)
+            .timeout(const Duration(seconds: 3));
+        if (response.statusCode != 200) continue;
         final data = jsonDecode(response.body);
         final results = data['results'] as List?;
-        if (results != null && results.isNotEmpty) {
-          final artwork = results.first['artworkUrl100'] as String?;
+        if (results == null || results.isEmpty) continue;
+        final artwork = results.first['artworkUrl100'] as String?;
+        if (artwork == null) continue;
+        // Upgrade to high resolution.
+        final url = artwork.replaceAll('100x100bb', '600x600bb');
+        _itunesCache[isbn] = url;
+        return url;
+      } catch (_) {
+        // Try next country.
+      }
+    }
+
+    _itunesCache[isbn] = null;
+    return null;
+  }
+
+  /// Search iTunes by title + author (no Google Books quota used).
+  /// Uses Jaccard similarity to avoid returning covers for wrong books.
+  static final Map<String, String?> _itunesTitleCache = {};
+
+  Future<String?> _fetchItunesCoverByTitle(String title, String? author) async {
+    final cacheKey = '$title|$author';
+    if (_itunesTitleCache.containsKey(cacheKey)) return _itunesTitleCache[cacheKey];
+
+    for (final country in ['fr', 'us']) {
+      try {
+        final query = Uri.encodeComponent('$title ${author ?? ''}');
+        final uri = Uri.parse(
+          'https://itunes.apple.com/search'
+          '?term=$query&media=ebook&limit=5&country=$country',
+        );
+        final response = await http
+            .get(uri, headers: _browserHeaders)
+            .timeout(const Duration(seconds: 3));
+        if (response.statusCode != 200) continue;
+        final data = jsonDecode(response.body);
+        final results = data['results'] as List?;
+        if (results == null || results.isEmpty) continue;
+
+        // Find the best match by title similarity
+        final normTitle = _normalize(title);
+        final normAuthor = author != null ? _normalize(author) : null;
+        Map<String, dynamic>? best;
+        double bestScore = 0;
+
+        for (final r in results) {
+          final trackName = r['trackName'] as String? ?? '';
+          final artistName = r['artistName'] as String? ?? '';
+          var score = _jaccard(normTitle, _normalize(trackName));
+          if (normAuthor != null && normAuthor.isNotEmpty) {
+            final authorScore = _jaccard(normAuthor, _normalize(artistName));
+            if (authorScore > 0.5) {
+              score += 0.15;
+            } else if (authorScore < 0.15) {
+              score -= 0.20;
+            }
+          }
+          if (score > bestScore) {
+            bestScore = score;
+            best = r as Map<String, dynamic>;
+          }
+        }
+
+        if (best != null && bestScore > 0.4) {
+          final artwork = best['artworkUrl100'] as String?;
           if (artwork != null) {
             final url = artwork.replaceAll('100x100bb', '600x600bb');
-            _titleSearchCache[cacheKey] = url;
+            _itunesTitleCache[cacheKey] = url;
             return url;
           }
         }
-      }
-    } catch (_) {}
+      } catch (_) {}
+    }
 
-    // Try Google Books API search
-    try {
-      final query = Uri.encodeComponent(
-        'intitle:$title${author != null ? '+inauthor:$author' : ''}',
-      );
-      final uri = Uri.parse(
-        'https://www.googleapis.com/books/v1/volumes'
-        '?q=$query&fields=items/volumeInfo/imageLinks&maxResults=1',
-      );
-      final response = await http
-          .get(uri, headers: _browserHeaders)
-          .timeout(const Duration(seconds: 3));
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final items = data['items'] as List?;
-        if (items != null && items.isNotEmpty) {
-          final links = items.first['volumeInfo']?['imageLinks']
-              as Map<String, dynamic>?;
-          if (links != null) {
-            final url = (links['large'] ??
-                    links['medium'] ??
-                    links['small'] ??
-                    links['thumbnail']) as String?;
-            if (url != null) {
-              final finalUrl = url.replaceFirst('http://', 'https://');
-              _titleSearchCache[cacheKey] = finalUrl;
-              return finalUrl;
-            }
-          }
-        }
-      }
-    } catch (_) {}
-
-    _titleSearchCache[cacheKey] = null;
+    _itunesTitleCache[cacheKey] = null;
     return null;
+  }
+
+  static String _normalize(String s) {
+    return s
+        .toLowerCase()
+        .replaceAll(RegExp(r'[\s\-–—:,;.!?\x27\x22«»()]+'), ' ')
+        .replaceAll('é', 'e').replaceAll('è', 'e').replaceAll('ê', 'e').replaceAll('ë', 'e')
+        .replaceAll('à', 'a').replaceAll('â', 'a').replaceAll('ä', 'a')
+        .replaceAll('ù', 'u').replaceAll('û', 'u').replaceAll('ü', 'u')
+        .replaceAll('ô', 'o').replaceAll('ö', 'o')
+        .replaceAll('î', 'i').replaceAll('ï', 'i')
+        .replaceAll('ç', 'c').replaceAll('œ', 'oe').replaceAll('æ', 'ae')
+        .replaceAll(RegExp(r'\(.*?\)'), '') // Remove parenthetical (French Edition) etc.
+        .trim();
+  }
+
+  static double _jaccard(String a, String b) {
+    final wordsA = a.split(RegExp(r'\s+')).where((w) => w.length > 1).toSet();
+    final wordsB = b.split(RegExp(r'\s+')).where((w) => w.length > 1).toSet();
+    if (wordsA.isEmpty || wordsB.isEmpty) return a == b ? 1.0 : 0.0;
+    return wordsA.intersection(wordsB).length / wordsA.union(wordsB).length;
   }
 
   /// Extract ISBN from an Open Library cover URL.
@@ -590,6 +835,10 @@ class _CachedBookCoverState extends State<CachedBookCover> {
       errorWidget: (context, url, error) {
         // Advance to the next URL in the chain.
         if (_urlIndex + 1 < _urls.length) {
+          debugPrint(
+            '📖 CachedBookCover [${widget.title}] '
+            'URL #$_urlIndex failed ($error), trying #${_urlIndex + 1}: ${_urls[_urlIndex + 1]}',
+          );
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted) setState(() => _urlIndex++);
           });

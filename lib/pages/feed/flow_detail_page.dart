@@ -12,6 +12,7 @@ import '../../pages/profile/upgrade_page.dart';
 import '../../providers/subscription_provider.dart';
 import '../../services/flow_service.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/constrained_content.dart';
 
 class FlowDetailPage extends StatefulWidget {
   final ReadingFlow initialFlow;
@@ -130,7 +131,8 @@ class _FlowDetailPageState extends State<FlowDetailPage> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: _isLoading
+      body: ConstrainedContent(
+        child: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
               onRefresh: _loadData,
@@ -153,6 +155,7 @@ class _FlowDetailPageState extends State<FlowDetailPage> {
                 ),
               ),
             ),
+      ),
     );
   }
 

@@ -59,6 +59,7 @@ class ReadingFlow {
       'last_read_date': lastReadDate?.toIso8601String(),
       'read_dates': readDates.map((e) => e.toIso8601String()).toList(),
       'frozen_dates': frozenDates.map((e) => e.toIso8601String()).toList(),
+      'freeze_status': freezeStatus?.toJson(),
     };
   }
 

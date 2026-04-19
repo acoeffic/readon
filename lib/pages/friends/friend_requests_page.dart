@@ -4,6 +4,7 @@ import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/back_header.dart';
 import '../feed/feed_page.dart';
+import '../../widgets/constrained_content.dart';
 
 class FriendRequestsPage extends StatefulWidget {
   const FriendRequestsPage({super.key});
@@ -137,6 +138,7 @@ class _FriendRequestsPageState extends State<FriendRequestsPage> {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
+        child: ConstrainedContent(
         child: Padding(
           padding: const EdgeInsets.all(AppSpace.l),
           child: Column(
@@ -228,6 +230,7 @@ class _FriendRequestsPageState extends State<FriendRequestsPage> {
                 ),
             ],
           ),
+        ),
         ),
       ),
     );

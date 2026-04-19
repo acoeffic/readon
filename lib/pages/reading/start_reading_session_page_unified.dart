@@ -206,26 +206,159 @@ class _StartReadingSessionPageUnifiedState extends State<StartReadingSessionPage
     });
   }
 
-  List<DropdownMenuItem<String>> _buildReadingForItems(AppLocalizations l) {
-    final options = <String, String>{
-      'myself': l.readingForJustMe,
-      'daughter': l.readingForDaughter,
-      'son': l.readingForSon,
-      'friend': l.readingForFriend,
-      'grandmother': l.readingForGrandmother,
-      'grandfather': l.readingForGrandfather,
-      'father': l.readingForFather,
-      'mother': l.readingForMother,
-      'partner': l.readingForPartner,
-      'other': l.readingForOther,
-    };
+  static const List<String> _readingForKeys = [
+    'myself', 'daughter', 'son', 'partner', 'friend',
+    'mother', 'father', 'grandmother', 'grandfather', 'other',
+  ];
 
-    return options.entries.map((e) {
-      return DropdownMenuItem<String>(
-        value: e.key,
-        child: Text(e.value),
-      );
-    }).toList();
+  String _readingForEmoji(String key) {
+    switch (key) {
+      case 'myself': return '\uD83D\uDCD6';
+      case 'daughter': return '\uD83D\uDC67';
+      case 'son': return '\uD83D\uDC66';
+      case 'friend': return '\uD83E\uDDD1\u200D\uD83E\uDD1D\u200D\uD83E\uDDD1';
+      case 'grandmother': return '\uD83D\uDC75';
+      case 'grandfather': return '\uD83D\uDC74';
+      case 'father': return '\uD83D\uDC68';
+      case 'mother': return '\uD83D\uDC69';
+      case 'partner': return '\u2764\uFE0F';
+      default: return '\u2728';
+    }
+  }
+
+  String _readingForLabel(AppLocalizations l, String key) {
+    switch (key) {
+      case 'myself': return l.readingForJustMe;
+      case 'daughter': return l.readingForDaughter;
+      case 'son': return l.readingForSon;
+      case 'friend': return l.readingForFriend;
+      case 'grandmother': return l.readingForGrandmother;
+      case 'grandfather': return l.readingForGrandfather;
+      case 'father': return l.readingForFather;
+      case 'mother': return l.readingForMother;
+      case 'partner': return l.readingForPartner;
+      default: return l.readingForOther;
+    }
+  }
+
+  Future<void> _openReadingForPicker() async {
+    final l = AppLocalizations.of(context);
+    final selected = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) {
+        final current = _readingFor ?? 'myself';
+        return Container(
+          decoration: const BoxDecoration(
+            color: _kBgColor,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          padding: EdgeInsets.only(
+            top: 12,
+            left: 16,
+            right: 16,
+            bottom: MediaQuery.of(ctx).padding.bottom + 16,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 44,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFBDB5A8),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 18),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: Text(
+                  l.readingForLabel,
+                  style: GoogleFonts.dmSans(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 1.5,
+                    color: _kSageGreen,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              Flexible(
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: _readingForKeys.map((key) {
+                      final isSelected = key == current;
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(16),
+                            onTap: () => Navigator.of(ctx).pop(key),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 14,
+                              ),
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? _kSageGreen.withValues(alpha: 0.12)
+                                    : Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: isSelected
+                                      ? _kSageGreen
+                                      : const Color(0xFFE2DDD5),
+                                  width: isSelected ? 1.5 : 1,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Text(
+                                    _readingForEmoji(key),
+                                    style: const TextStyle(fontSize: 22),
+                                  ),
+                                  const SizedBox(width: 14),
+                                  Expanded(
+                                    child: Text(
+                                      _readingForLabel(l, key),
+                                      style: GoogleFonts.dmSans(
+                                        fontSize: 15,
+                                        fontWeight: isSelected
+                                            ? FontWeight.w600
+                                            : FontWeight.w500,
+                                        color: const Color(0xFF1A1A1A),
+                                      ),
+                                    ),
+                                  ),
+                                  if (isSelected)
+                                    Icon(
+                                      Icons.check_rounded,
+                                      color: _kSageGreen,
+                                      size: 20,
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+    if (selected != null && mounted) {
+      setState(() => _readingFor = selected);
+    }
   }
 
   Future<void> _startSession() async {
@@ -599,36 +732,46 @@ class _StartReadingSessionPageUnifiedState extends State<StartReadingSessionPage
                         ),
                       ),
                       const SizedBox(height: 8),
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
+                      Material(
+                        color: Colors.transparent,
+                        child: InkWell(
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: const Color(0xFFE2DDD5),
-                            width: 1.5,
-                          ),
-                        ),
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton<String>(
-                            value: _readingFor,
-                            isExpanded: true,
-                            icon: Icon(Icons.keyboard_arrow_down_rounded, color: _kSageGreen),
-                            hint: Text(
-                              l.readingForJustMe,
-                              style: GoogleFonts.dmSans(
-                                fontSize: 15,
-                                color: const Color(0xFF1A1A1A),
+                          onTap: _openReadingForPicker,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: const Color(0xFFE2DDD5),
+                                width: 1.5,
                               ),
                             ),
-                            style: GoogleFonts.dmSans(
-                              fontSize: 15,
-                              color: const Color(0xFF1A1A1A),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 14,
                             ),
-                            items: _buildReadingForItems(l),
-                            onChanged: (value) {
-                              setState(() => _readingFor = value);
-                            },
+                            child: Row(
+                              children: [
+                                Text(
+                                  _readingForEmoji(_readingFor ?? 'myself'),
+                                  style: const TextStyle(fontSize: 20),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    _readingForLabel(l, _readingFor ?? 'myself'),
+                                    style: GoogleFonts.dmSans(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w500,
+                                      color: const Color(0xFF1A1A1A),
+                                    ),
+                                  ),
+                                ),
+                                Icon(
+                                  Icons.keyboard_arrow_down_rounded,
+                                  color: _kSageGreen,
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
@@ -682,6 +825,7 @@ class _StartReadingSessionPageUnifiedState extends State<StartReadingSessionPage
                           focusNode: _pageFocusNode,
                           keyboardType: TextInputType.number,
                           textAlign: TextAlign.center,
+                          cursorColor: _kSageGreen,
                           style: GoogleFonts.cormorantGaramond(
                             fontSize: 36,
                             fontWeight: FontWeight.w700,
@@ -694,7 +838,11 @@ class _StartReadingSessionPageUnifiedState extends State<StartReadingSessionPage
                               fontWeight: FontWeight.w500,
                               color: const Color(0xFFBDB5A8),
                             ),
+                            filled: true,
+                            fillColor: Colors.transparent,
                             border: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
                             contentPadding: const EdgeInsets.symmetric(
                               horizontal: 20,
                               vertical: 16,
@@ -870,15 +1018,27 @@ class _StartReadingSessionPageUnifiedState extends State<StartReadingSessionPage
                               keyboardType: TextInputType.number,
                               autofocus: true,
                               textAlign: TextAlign.center,
+                              cursorColor: _kSageGreen,
                               style: GoogleFonts.cormorantGaramond(
                                 fontSize: 28,
                                 fontWeight: FontWeight.w700,
+                                color: const Color(0xFF1A1A1A),
                               ),
                               decoration: InputDecoration(
                                 labelText: l.pageNumberLabel,
-                                labelStyle: GoogleFonts.dmSans(fontSize: 13),
+                                labelStyle: GoogleFonts.dmSans(
+                                  fontSize: 13,
+                                  color: const Color(0xFF6A6A6A),
+                                ),
+                                filled: true,
+                                fillColor: Colors.white,
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
+                                  borderSide: const BorderSide(color: Color(0xFFE2DDD5)),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: const BorderSide(color: Color(0xFFE2DDD5)),
                                 ),
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),

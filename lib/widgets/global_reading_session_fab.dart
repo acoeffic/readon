@@ -2,6 +2,7 @@
 
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/books_service.dart';
 import '../services/reading_session_service.dart';
 import '../pages/reading/start_reading_session_page_unified.dart';
@@ -244,11 +245,17 @@ class _ExpandableFAB extends StatefulWidget {
   State<_ExpandableFAB> createState() => _ExpandableFABState();
 }
 
-class _ExpandableFABState extends State<_ExpandableFAB> with SingleTickerProviderStateMixin {
+class _ExpandableFABState extends State<_ExpandableFAB> with TickerProviderStateMixin {
   bool _isExpanded = false;
   OverlayEntry? _overlayEntry;
   late AnimationController _animationController;
   late Animation<double> _expandAnimation;
+
+  // Tooltip state
+  static const String _tooltipSeenKey = 'fab_tooltip_seen';
+  bool _showTooltip = false;
+  late AnimationController _tooltipController;
+  late Animation<double> _tooltipAnimation;
 
   @override
   void initState() {
@@ -264,12 +271,49 @@ class _ExpandableFABState extends State<_ExpandableFAB> with SingleTickerProvide
     _animationController.addListener(() {
       _overlayEntry?.markNeedsBuild();
     });
+
+    _tooltipController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
+    _tooltipAnimation = CurvedAnimation(
+      parent: _tooltipController,
+      curve: Curves.easeOutCubic,
+    );
+    _maybeShowTooltip();
+  }
+
+  Future<void> _maybeShowTooltip() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getBool(_tooltipSeenKey) == true) return;
+
+    // Wait for the screen to settle before showing
+    await Future.delayed(const Duration(milliseconds: 1500));
+    if (!mounted) return;
+
+    setState(() => _showTooltip = true);
+    _tooltipController.forward();
+
+    // Auto-dismiss after 4 seconds
+    await Future.delayed(const Duration(seconds: 4));
+    if (!mounted) return;
+    _dismissTooltip();
+  }
+
+  Future<void> _dismissTooltip() async {
+    if (!_showTooltip) return;
+    await _tooltipController.reverse();
+    if (!mounted) return;
+    setState(() => _showTooltip = false);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_tooltipSeenKey, true);
   }
 
   @override
   void dispose() {
     _removeOverlay();
     _animationController.dispose();
+    _tooltipController.dispose();
     super.dispose();
   }
 
@@ -287,6 +331,7 @@ class _ExpandableFABState extends State<_ExpandableFAB> with SingleTickerProvide
   }
 
   void _open() {
+    _dismissTooltip();
     setState(() => _isExpanded = true);
 
     final renderBox = context.findRenderObject() as RenderBox;
@@ -398,10 +443,52 @@ class _ExpandableFABState extends State<_ExpandableFAB> with SingleTickerProvide
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final l10n = AppLocalizations.of(context);
     // Le FAB reste toujours 60x60, pas de changement de taille
-    return GestureDetector(
-      onTap: _toggle,
-      child: _buildMainLiquidGlassButton(isDark),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Tooltip — shown once on first use
+        if (_showTooltip)
+          FadeTransition(
+            opacity: _tooltipAnimation,
+            child: SlideTransition(
+              position: _tooltipAnimation.drive(
+                Tween(begin: const Offset(0, 0.3), end: Offset.zero),
+              ),
+              child: GestureDetector(
+                onTap: _dismissTooltip,
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.grey[800] : Colors.grey[900],
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.15),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Text(
+                    l10n.fabTooltip,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        GestureDetector(
+          onTap: _toggle,
+          child: _buildMainLiquidGlassButton(isDark),
+        ),
+      ],
     );
   }
 

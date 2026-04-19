@@ -1,6 +1,9 @@
 // lib/services/books_service.dart
 
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/book.dart';
@@ -417,10 +420,10 @@ class BooksService {
           .map((item) => item['book_id'].toString())
           .toSet();
 
-      // Récupérer les dernières sessions terminées avec les infos du livre en un seul JOIN
+      // Récupérer les dernières sessions terminées (sans join vers books)
       final sessions = await _supabase
           .from('reading_sessions')
-          .select('book_id, end_page, books(id, title, author, cover_url, page_count, google_id, genre, isbn, description, publisher, published_date, language, source)')
+          .select('book_id, end_page')
           .eq('user_id', userId)
           .not('end_time', 'is', null)
           .order('created_at', ascending: false)
@@ -430,26 +433,41 @@ class BooksService {
 
       // Trouver la première session dont le livre n'est pas terminé
       for (final session in sessions) {
-        final bookIdStr = session['book_id'] as String?;
-        if (bookIdStr == null) continue;
+        final bookIdRaw = session['book_id'];
+        if (bookIdRaw == null) continue;
+        final bookIdStr = bookIdRaw.toString();
 
         // Vérifier si ce livre est terminé
         if (finishedBookIds.contains(bookIdStr)) continue;
 
-        final bookData = session['books'] as Map<String, dynamic>?;
-        if (bookData == null) {
-          debugPrint('Erreur: livre non trouvé pour book_id: $bookIdStr');
+        // Récupérer les infos du livre séparément
+        final bookIdInt = int.tryParse(bookIdStr);
+        if (bookIdInt == null) continue;
+
+        try {
+          final bookData = await _supabase
+              .from('books')
+              .select()
+              .eq('id', bookIdInt)
+              .maybeSingle();
+
+          if (bookData == null) {
+            debugPrint('Erreur: livre non trouvé pour book_id: $bookIdStr');
+            continue;
+          }
+
+          final currentPage = (session['end_page'] as num?)?.toInt() ?? 0;
+          final book = Book.fromJson(bookData);
+
+          return {
+            'book': book,
+            'current_page': currentPage,
+            'total_pages': book.pageCount,
+          };
+        } catch (e) {
+          debugPrint('Erreur récupération livre $bookIdStr: $e');
           continue;
         }
-
-        final currentPage = (session['end_page'] as num?)?.toInt() ?? 0;
-        final book = Book.fromJson(bookData);
-
-        return {
-          'book': book,
-          'current_page': currentPage,
-          'total_pages': book.pageCount,
-        };
       }
 
       // Aucun livre en cours trouvé
@@ -490,8 +508,11 @@ class BooksService {
           needsEnrichment = (existing['cover_url'] == null && !needsCoverUpdate) || existing['author'] == null;
         } else {
           // Chercher les métadonnées sur Google Books (titre nettoyé + auteur Kindle si disponible)
+          // Skip if circuit breaker is open — unreliable results would pollute the DB.
           final cleanTitle = _cleanBookTitle(kindleBook.title);
-          final metadata = await _fetchGoogleBooksMetadata(cleanTitle, kindleAuthor: kindleBook.author);
+          final metadata = GoogleBooksService.isCircuitOpen
+              ? null
+              : await _fetchGoogleBooksMetadata(cleanTitle, kindleAuthor: kindleBook.author);
 
           // Utiliser la couverture Kindle en priorité, sinon Google Books
           // Ignorer les URLs Kindle qui pointent vers des images promotionnelles
@@ -798,7 +819,7 @@ class BooksService {
   }
 
   /// Rafraîchir les couvertures de TOUS les livres de l'utilisateur
-  /// en re-cherchant via Google Books API.
+  /// en cherchant via Google Books, iTunes, Open Library et BnF.
   /// Retourne le nombre de livres mis à jour.
   Future<int> refreshAllCovers() async {
     final userId = _supabase.auth.currentUser?.id;
@@ -827,12 +848,32 @@ class BooksService {
         final currentUrl = book['cover_url'] as String?;
 
         try {
+          String? newCoverUrl;
+
+          // 1. Google Books API (by ISBN, then by title/author)
           final metadata = await _fetchGoogleBooksMetadata(
             _cleanBookTitle(title),
             kindleAuthor: author,
             isbn: isbn,
           );
-          final newCoverUrl = metadata?['cover_url'] as String?;
+          newCoverUrl = metadata?['cover_url'] as String?;
+
+          // 2. iTunes / Apple Books (by ISBN, then by title/author)
+          if (newCoverUrl == null || newCoverUrl.isEmpty) {
+            newCoverUrl = await _fetchItunesCover(isbn, title, author);
+          }
+
+          // 3. Open Library (by ISBN)
+          if ((newCoverUrl == null || newCoverUrl.isEmpty) &&
+              isbn != null && isbn.isNotEmpty) {
+            newCoverUrl = await _fetchOpenLibraryCover(isbn);
+          }
+
+          // 4. BnF — excellent for French-published books
+          if ((newCoverUrl == null || newCoverUrl.isEmpty) &&
+              isbn != null && isbn.isNotEmpty) {
+            newCoverUrl = await _fetchBnfCover(isbn);
+          }
 
           if (newCoverUrl != null &&
               newCoverUrl.isNotEmpty &&
@@ -855,33 +896,142 @@ class BooksService {
     }
   }
 
+  /// Fetch a book cover from iTunes / Apple Books by ISBN or title+author.
+  Future<String?> _fetchItunesCover(String? isbn, String title, String? author) async {
+    // Try by ISBN first
+    if (isbn != null && isbn.isNotEmpty) {
+      for (final country in ['fr', 'us']) {
+        try {
+          final uri = Uri.parse(
+            'https://itunes.apple.com/search'
+            '?term=${Uri.encodeComponent(isbn)}&media=ebook&limit=1&country=$country',
+          );
+          final response = await http.get(uri).timeout(const Duration(seconds: 4));
+          if (response.statusCode != 200) continue;
+          final data = jsonDecode(response.body);
+          final results = data['results'] as List?;
+          if (results != null && results.isNotEmpty) {
+            final artwork = results.first['artworkUrl100'] as String?;
+            if (artwork != null) {
+              return artwork.replaceAll('100x100bb', '600x600bb');
+            }
+          }
+        } catch (_) {}
+      }
+    }
+    // Try by title + author
+    final query = '$title ${author ?? ''}'.trim();
+    for (final country in ['fr', 'us']) {
+      try {
+        final uri = Uri.parse(
+          'https://itunes.apple.com/search'
+          '?term=${Uri.encodeComponent(query)}&media=ebook&limit=3&country=$country',
+        );
+        final response = await http.get(uri).timeout(const Duration(seconds: 4));
+        if (response.statusCode != 200) continue;
+        final data = jsonDecode(response.body);
+        final results = data['results'] as List?;
+        if (results == null || results.isEmpty) continue;
+        final normalizedTitle = _normalizeForComparison(title);
+        for (final r in results) {
+          final trackName = (r['trackName'] ?? r['collectionName'] ?? '') as String;
+          if (_titleSimilarity(normalizedTitle, _normalizeForComparison(trackName)) > 0.4) {
+            final artwork = r['artworkUrl100'] as String?;
+            if (artwork != null) {
+              return artwork.replaceAll('100x100bb', '600x600bb');
+            }
+          }
+        }
+      } catch (_) {}
+    }
+    return null;
+  }
+
+  /// Fetch a book cover from Open Library by ISBN (with placeholder detection).
+  Future<String?> _fetchOpenLibraryCover(String isbn) async {
+    try {
+      final cleanIsbn = isbn.replaceAll(RegExp(r'[\s-]'), '');
+      final url = 'https://covers.openlibrary.org/b/isbn/$cleanIsbn-L.jpg?default=false';
+      final headResp = await http.head(Uri.parse(url)).timeout(const Duration(seconds: 4));
+      if (headResp.statusCode != 200) return null;
+      final length = int.tryParse(headResp.headers['content-length'] ?? '') ?? 0;
+      if (length > 0 && length < 1500) return null; // Placeholder
+      if (length >= 1500) return url;
+      // content-length missing — do a GET
+      final getResp = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 4));
+      if (getResp.statusCode != 200) return null;
+      return getResp.bodyBytes.length >= 1500 ? url : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Fetch a book cover from BnF (Bibliothèque nationale de France) by ISBN.
+  Future<String?> _fetchBnfCover(String isbn) async {
+    try {
+      final cleanIsbn = isbn.replaceAll(RegExp(r'[\s-]'), '');
+      final sruUrl =
+          'https://catalogue.bnf.fr/api/SRU?version=1.2'
+          '&operation=searchRetrieve'
+          '&query=bib.isbn%20adj%20%22$cleanIsbn%22'
+          '&maximumRecords=1';
+      final resp = await http.get(Uri.parse(sruUrl)).timeout(const Duration(seconds: 5));
+      if (resp.statusCode != 200) return null;
+
+      final arkMatch = RegExp(r'ark:/12148/cb\d+[a-z]?').firstMatch(resp.body);
+      if (arkMatch == null) return null;
+
+      final coverUrl =
+          'https://catalogue.bnf.fr/couverture'
+          '?&appName=NE&idArk=${arkMatch.group(0)!}&couession=1';
+
+      final head = await http.head(Uri.parse(coverUrl)).timeout(const Duration(seconds: 4));
+      if (head.statusCode != 200) return null;
+      final length = int.tryParse(head.headers['content-length'] ?? '') ?? 0;
+      if (length > 0 && length < 2000) return null; // Placeholder
+      return coverUrl;
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// Enrichir les couvertures manquantes ou de mauvaise qualité (Open Library)
   /// pour tous les livres de l'utilisateur.
   /// Retourne le nombre de livres mis à jour.
-  Future<int> enrichMissingCovers() async {
+  /// Max books to enrich per call to avoid burning the API quota.
+  /// With up to 4 API calls per book, 5 books = max 20 API calls.
+  static const int _maxEnrichPerSession = 5;
+
+  Future<int> enrichMissingCovers({int maxBooks = _maxEnrichPerSession}) async {
     final userId = _supabase.auth.currentUser?.id;
     if (userId == null) return 0;
 
     try {
       final response = await _supabase
           .from('user_books')
-          .select('book_id, books(id, title, author, cover_url, isbn)')
+          .select('book_id, books(id, title, author, cover_url, isbn, google_id)')
           .eq('user_id', userId);
 
       final booksToUpdate = (response as List).where((item) {
         final book = item['books'] as Map<String, dynamic>?;
         if (book == null) return false;
         final coverUrl = book['cover_url'] as String?;
-        // Mettre à jour si pas de couverture OU couverture Open Library (basse qualité)
+        final googleId = book['google_id'] as String?;
+        // Mettre à jour si :
+        // - pas de couverture OU couverture Open Library (basse qualité)
+        // - OU pas de google_id (empêche le fallback déterministe)
         return coverUrl == null ||
             coverUrl.isEmpty ||
-            coverUrl.contains('covers.openlibrary.org');
+            coverUrl.contains('covers.openlibrary.org') ||
+            googleId == null ||
+            googleId.isEmpty;
       }).toList();
 
       if (booksToUpdate.isEmpty) return 0;
 
       int updated = 0;
-      for (final item in booksToUpdate) {
+      final capped = booksToUpdate.take(maxBooks);
+      for (final item in capped) {
         final book = item['books'] as Map<String, dynamic>;
         final bookId = book['id'] as int;
         final title = book['title'] as String;
@@ -896,25 +1046,44 @@ class BooksService {
             isbn: isbn,
           );
           final newCoverUrl = metadata?['cover_url'] as String?;
+          final newGoogleId = metadata?['google_id'] as String?;
+          final newIsbn = metadata?['isbn'] as String?;
 
-          // N'update que si on a trouvé une meilleure couverture (pas Open Library)
+          // Build update map with all available metadata
+          final updates = <String, dynamic>{};
+
+          // Always update google_id and isbn if found and currently missing
+          if (newGoogleId != null && newGoogleId.isNotEmpty) {
+            final currentGoogleId = book['google_id'] as String?;
+            if (currentGoogleId == null || currentGoogleId.isEmpty) {
+              updates['google_id'] = newGoogleId;
+            }
+          }
+          if (newIsbn != null && newIsbn.isNotEmpty) {
+            final currentIsbn = book['isbn'] as String?;
+            if (currentIsbn == null || currentIsbn.isEmpty) {
+              updates['isbn'] = newIsbn;
+            }
+          }
+
+          // N'update la couverture que si on a trouvé une meilleure (pas Open Library)
           if (newCoverUrl != null &&
               newCoverUrl.isNotEmpty &&
               !newCoverUrl.contains('covers.openlibrary.org')) {
+            updates['cover_url'] = newCoverUrl;
+          } else if ((currentUrl == null || currentUrl.isEmpty) &&
+              newCoverUrl != null &&
+              newCoverUrl.isNotEmpty) {
+            // Si toujours pas de couverture, on met au moins l'Open Library
+            updates['cover_url'] = newCoverUrl;
+          }
+
+          if (updates.isNotEmpty) {
             await _supabase
                 .from('books')
-                .update({'cover_url': newCoverUrl})
+                .update(updates)
                 .eq('id', bookId);
-            updated++;
-          } else if (currentUrl == null || currentUrl.isEmpty) {
-            // Si toujours pas de couverture, on met au moins l'Open Library
-            if (newCoverUrl != null && newCoverUrl.isNotEmpty) {
-              await _supabase
-                  .from('books')
-                  .update({'cover_url': newCoverUrl})
-                  .eq('id', bookId);
-              updated++;
-            }
+            if (updates.containsKey('cover_url')) updated++;
           }
         } catch (e) {
           debugPrint('Erreur enrichissement couverture pour "$title": $e');
@@ -935,10 +1104,10 @@ class BooksService {
   ///
   /// Utilise SharedPreferences pour ne lancer qu'une seule fois par version
   /// de l'algorithme (incrémentez [_reEnrichVersion] pour relancer).
-  static const int _reEnrichVersion = 1;
+  static const int _reEnrichVersion = 4;
   static const String _reEnrichKey = 'books_re_enrich_version';
 
-  Future<int> reEnrichSuspiciousBooks() async {
+  Future<int> reEnrichSuspiciousBooks({int maxBooks = _maxEnrichPerSession}) async {
     final userId = _supabase.auth.currentUser?.id;
     if (userId == null) return 0;
 
@@ -964,8 +1133,30 @@ class BooksService {
         final shortDescription = desc != null && desc.isNotEmpty && desc.length < 80;
         final missingCoverWithGoogleId = (coverUrl == null || coverUrl.isEmpty) && googleId != null;
         final missingIsbnWithGoogleId = (isbn == null || isbn.isEmpty) && googleId != null;
+        final missingGoogleId = googleId == null || googleId.isEmpty;
+        final olCover = coverUrl != null && coverUrl.contains('covers.openlibrary.org');
 
-        return shortDescription || missingCoverWithGoogleId || missingIsbnWithGoogleId;
+        // Detect garbage ISBNs (OCLC numbers, library catalog IDs like UCSC:...)
+        final garbageIsbn = isbn != null &&
+            isbn.isNotEmpty &&
+            !RegExp(r'^\d{9}[\dXx]$|^\d{13}$').hasMatch(isbn.replaceAll(RegExp(r'[\s-]'), ''));
+
+        // Detect mismatched cover: imageUrl points to a different Google Books
+        // volume than the stored googleId — one of them is wrong.
+        final coverGbId = coverUrl != null && coverUrl.contains('books.google.com')
+            ? RegExp(r'[?&]id=([^&]+)').firstMatch(coverUrl)?.group(1)
+            : null;
+        final mismatchedCover = coverGbId != null &&
+            googleId != null &&
+            coverGbId != googleId;
+
+        return shortDescription ||
+            missingCoverWithGoogleId ||
+            missingIsbnWithGoogleId ||
+            missingGoogleId ||
+            olCover ||
+            garbageIsbn ||
+            mismatchedCover;
       }).toList();
 
       if (suspicious.isEmpty) {
@@ -974,7 +1165,8 @@ class BooksService {
       }
 
       int updated = 0;
-      for (final item in suspicious) {
+      final capped = suspicious.take(maxBooks).toList();
+      for (final item in capped) {
         final book = item['books'] as Map<String, dynamic>;
         final bookId = book['id'] as int;
         final title = book['title'] as String;
@@ -992,6 +1184,20 @@ class BooksService {
           if (metadata == null) continue;
 
           final updates = <String, dynamic>{};
+          final currentGoogleId = book['google_id'] as String?;
+
+          // Check if ISBN is garbage (OCLC, library catalog, etc.)
+          final isGarbageIsbn = isbn != null &&
+              isbn.isNotEmpty &&
+              !RegExp(r'^\d{9}[\dXx]$|^\d{13}$').hasMatch(isbn.replaceAll(RegExp(r'[\s-]'), ''));
+
+          // Check if coverUrl and googleId point to different volumes
+          final coverGbId = currentCover != null && currentCover.contains('books.google.com')
+              ? RegExp(r'[?&]id=([^&]+)').firstMatch(currentCover)?.group(1)
+              : null;
+          final isMismatchedCover = coverGbId != null &&
+              currentGoogleId != null &&
+              coverGbId != currentGoogleId;
 
           // Remplacer la description si elle est trop courte et qu'on en a une meilleure
           final newDesc = metadata['description'] as String?;
@@ -1001,29 +1207,41 @@ class BooksService {
             updates['description'] = newDesc;
           }
 
-          // Ajouter la couverture si manquante
+          // Ajouter ou remplacer la couverture
           final newCover = metadata['cover_url'] as String?;
-          if (newCover != null &&
-              newCover.isNotEmpty &&
-              (currentCover == null || currentCover.isEmpty)) {
-            updates['cover_url'] = newCover;
+          if (newCover != null && newCover.isNotEmpty) {
+            final shouldReplaceCover = currentCover == null ||
+                currentCover.isEmpty ||
+                currentCover.contains('covers.openlibrary.org') ||
+                isMismatchedCover;
+            if (shouldReplaceCover) {
+              updates['cover_url'] = newCover;
+            }
           }
 
-          // Ajouter l'ISBN si manquant
+          // Ajouter ou remplacer l'ISBN si manquant ou invalide
           final newIsbn = metadata['isbn'] as String?;
-          if (newIsbn != null &&
-              newIsbn.isNotEmpty &&
-              (isbn == null || isbn.isEmpty)) {
-            updates['isbn'] = newIsbn;
+          if (newIsbn != null && newIsbn.isNotEmpty) {
+            if (isbn == null || isbn.isEmpty || isGarbageIsbn) {
+              updates['isbn'] = newIsbn;
+            }
+          }
+
+          // Ajouter ou remplacer le google_id
+          final newGoogleId = metadata['google_id'] as String?;
+          if (newGoogleId != null && newGoogleId.isNotEmpty) {
+            // Replace if missing, or if there's a cover/googleId mismatch
+            // (the new googleId from a fresh search is more trustworthy)
+            if (currentGoogleId == null || currentGoogleId.isEmpty || isMismatchedCover) {
+              updates['google_id'] = newGoogleId;
+            }
           }
 
           if (updates.isNotEmpty) {
-            await _supabase.rpc('update_book_metadata', params: {
-              'p_book_id': bookId,
-              if (updates.containsKey('cover_url')) 'p_cover_url': updates['cover_url'],
-              if (updates.containsKey('description')) 'p_description': updates['description'],
-              if (updates.containsKey('isbn')) 'p_isbn': updates['isbn'],
-            });
+            await _supabase
+                .from('books')
+                .update(updates)
+                .eq('id', bookId);
             updated++;
           }
         } catch (e) {
@@ -1031,7 +1249,10 @@ class BooksService {
         }
       }
 
-      await prefs.setInt(_reEnrichKey, _reEnrichVersion);
+      // Only mark as fully done when all suspicious books have been processed
+      if (capped.length >= suspicious.length) {
+        await prefs.setInt(_reEnrichKey, _reEnrichVersion);
+      }
       return updated;
     } catch (e) {
       debugPrint('Erreur reEnrichSuspiciousBooks: $e');
@@ -1149,18 +1370,18 @@ class BooksService {
       // Stratégie 1 : Si on a l'auteur Kindle, chercher avec titre + auteur
       if (kindleAuthor != null && kindleAuthor.isNotEmpty) {
         results = await _googleBooksService.searchByTitleAuthor(title, kindleAuthor);
-        final match = _bestMatch(results, title);
+        final match = _bestMatch(results, title, expectedAuthor: kindleAuthor);
         if (match != null) return _googleBookToMetadata(match);
       }
 
       // Stratégie 2 : Chercher avec intitle: pour un matching plus précis
       results = await _googleBooksService.searchBooks('intitle:$title');
-      final match2 = _bestMatch(results, title);
+      final match2 = _bestMatch(results, title, expectedAuthor: kindleAuthor);
       if (match2 != null) return _googleBookToMetadata(match2);
 
       // Stratégie 3 : Chercher avec le titre brut (plus large)
       results = await _googleBooksService.searchBooks(title);
-      final match3 = _bestMatch(results, title);
+      final match3 = _bestMatch(results, title, expectedAuthor: kindleAuthor);
       if (match3 != null) return _googleBookToMetadata(match3);
 
       return null;
@@ -1206,20 +1427,39 @@ class BooksService {
 
   /// Sélectionne le meilleur résultat Google Books dont le titre correspond
   /// suffisamment au titre recherché. Retourne null si aucun résultat n'est
-  /// assez proche (seuil de similarité > 0.4).
-  GoogleBook? _bestMatch(List<GoogleBook> results, String searchTitle) {
+  /// assez proche (seuil de similarité > 0.55).
+  ///
+  /// Quand [expectedAuthor] est fourni, un bonus est accordé aux résultats
+  /// dont l'auteur correspond, et une pénalité aux résultats dont l'auteur
+  /// ne correspond pas du tout, afin d'éviter les faux positifs.
+  GoogleBook? _bestMatch(List<GoogleBook> results, String searchTitle, {String? expectedAuthor}) {
     if (results.isEmpty) return null;
     final normalizedSearch = _normalizeForComparison(searchTitle);
+    final normalizedAuthor = expectedAuthor != null && expectedAuthor.isNotEmpty
+        ? _normalizeForComparison(expectedAuthor)
+        : null;
     GoogleBook? best;
     double bestScore = 0;
     for (final r in results) {
-      final score = _titleSimilarity(normalizedSearch, _normalizeForComparison(r.title));
+      var score = _titleSimilarity(normalizedSearch, _normalizeForComparison(r.title));
+
+      // Bonus/malus auteur : favoriser les bons auteurs, pénaliser les mauvais
+      if (normalizedAuthor != null) {
+        final resultAuthor = _normalizeForComparison(r.authorsString);
+        final authorScore = _titleSimilarity(normalizedAuthor, resultAuthor);
+        if (authorScore > 0.5) {
+          score += 0.15; // Bon auteur → bonus
+        } else if (authorScore < 0.2) {
+          score -= 0.20; // Auteur très différent → pénalité
+        }
+      }
+
       if (score > bestScore) {
         bestScore = score;
         best = r;
       }
     }
-    return bestScore > 0.4 ? best : null;
+    return bestScore > 0.55 ? best : null;
   }
 
   /// Normalise un titre pour la comparaison : minuscules, sans accents, sans ponctuation.
@@ -1238,7 +1478,8 @@ class BooksService {
   }
 
   /// Score de similarité entre deux titres normalisés (0.0 à 1.0).
-  /// Utilise la proportion de mots en commun.
+  /// Utilise l'indice de Jaccard (intersection / union) pour une mesure
+  /// bidirectionnelle — évite les faux positifs quand un titre est court.
   static double _titleSimilarity(String a, String b) {
     final wordsA = a.split(RegExp(r'\s+')).where((w) => w.length > 1).toSet();
     final wordsB = b.split(RegExp(r'\s+')).where((w) => w.length > 1).toSet();
@@ -1246,7 +1487,8 @@ class BooksService {
       return a == b ? 1.0 : 0.0;
     }
     final common = wordsA.intersection(wordsB).length;
-    return common / wordsA.length;
+    final union = wordsA.union(wordsB).length;
+    return common / union;
   }
 
   /// Enrichir un livre existant avec les métadonnées Google Books

@@ -12,6 +12,7 @@ import '../../services/badges_service.dart';
 import '../../widgets/premium_gate.dart';
 import '../../widgets/badge_unlocked_dialog.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../widgets/constrained_content.dart';
 
 class CreateGroupPage extends StatefulWidget {
   const CreateGroupPage({super.key});
@@ -72,8 +73,8 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
 
       final XFile? image = await _picker.pickImage(
         source: source,
-        maxWidth: 800,
-        maxHeight: 800,
+        maxWidth: 1200,
+        maxHeight: 600,
         imageQuality: 85,
       );
 
@@ -194,6 +195,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
+        child: ConstrainedContent(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(AppSpace.l),
           child: Form(
@@ -394,6 +396,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
               ],
             ),
           ),
+        ),
         ),
       ),
     );

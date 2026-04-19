@@ -13,6 +13,7 @@ import 'group_settings_page.dart';
 import 'create_challenge_page.dart';
 import 'challenge_detail_page.dart';
 import 'package:intl/intl.dart';
+import '../../widgets/constrained_content.dart';
 
 const _kBg = Color(0xFFFAF3E8);
 const _kCard = Color(0xFFF0E8D8);
@@ -281,7 +282,8 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
 
     return Scaffold(
       backgroundColor: bg,
-      body: CustomScrollView(
+      body: ConstrainedContent(
+        child: CustomScrollView(
         slivers: [
           // Hero with cover image — pinned so it stays at top when scrolling
           SliverAppBar(
@@ -505,6 +507,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
             ),
           ),
         ],
+      ),
       ),
     );
   }

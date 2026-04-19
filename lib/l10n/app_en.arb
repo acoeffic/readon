@@ -1261,6 +1261,7 @@
   "closed": "Closed",
   "navigate": "Navigate",
   "searchingBookstores": "Searching for bookstores...",
+  "loadMoreBookstores": "Show more bookstores",
 
   "offlineBanner": "Offline — sessions will sync automatically",
   "sessionSavedOffline": "Session saved offline. It will sync when you reconnect.",
@@ -1457,5 +1458,10 @@
   "freeIncludedFeed": "Social feed",
   "freeIncludedGoals": "Goals & basic badges",
   "freeIncludedWrapped": "Monthly & yearly wrapped",
-  "freeIncludedWidget": "iOS Widget"
+  "freeIncludedWidget": "iOS Widget",
+  "fabTooltip": "Start a reading session",
+  "shareMySession": "Share my session",
+  "saveImage": "Save image",
+  "imageSaved": "Image saved",
+  "buyOnAmazon": "Buy on Amazon"
 }

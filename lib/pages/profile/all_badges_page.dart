@@ -6,11 +6,13 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../services/badges_service.dart';
+import '../../models/feature_flags.dart';
 import '../../providers/subscription_provider.dart';
 import '../../pages/profile/upgrade_page.dart';
 import '../../theme/app_theme.dart';
 import '../../features/badges/widgets/first_book_badge_painter.dart';
 import '../badges/badge_share_service.dart';
+import '../../widgets/constrained_content.dart';
 
 class AllBadgesPage extends StatefulWidget {
   const AllBadgesPage({super.key});
@@ -266,7 +268,8 @@ class _AllBadgesPageState extends State<AllBadgesPage> {
           const SizedBox(width: 8),
         ],
       ),
-      body: _isLoading
+      body: ConstrainedContent(
+        child: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
               onRefresh: _loadBadges,
@@ -335,6 +338,7 @@ class _AllBadgesPageState extends State<AllBadgesPage> {
                 ],
               ),
             ),
+      ),
     );
   }
 }

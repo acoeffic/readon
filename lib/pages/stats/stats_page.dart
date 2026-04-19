@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/constrained_content.dart';
 
 class StatsPage extends StatelessWidget {
   const StatsPage({super.key});
@@ -10,19 +11,21 @@ class StatsPage extends StatelessWidget {
         automaticallyImplyLeading: false,
         title: const Text('Statistiques'),
       ),
-      body: const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.bar_chart, size: 64, color: Colors.grey),
-            SizedBox(height: 16),
-            Text('Statistiques de lecture'),
-            SizedBox(height: 8),
-            Text(
-              'Fonctionnalité à venir',
-              style: TextStyle(color: Colors.grey),
-            ),
-          ],
+      body: ConstrainedContent(
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: const [
+              Icon(Icons.bar_chart, size: 64, color: Colors.grey),
+              SizedBox(height: 16),
+              Text('Statistiques de lecture'),
+              SizedBox(height: 8),
+              Text(
+                'Fonctionnalité à venir',
+                style: TextStyle(color: Colors.grey),
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -26,6 +26,7 @@ import '../../models/book_suggestion.dart';
 import '../../widgets/suggestion_card.dart';
 import '../../services/trending_service.dart';
 import '../../services/feed_cache.dart';
+import '../../services/feed_cache_service.dart';
 import 'widgets/trending_welcome_card.dart';
 import 'widgets/trending_books_card.dart';
 import 'widgets/community_session_card.dart';
@@ -84,6 +85,7 @@ class _FeedPageState extends State<FeedPage> {
 
   bool _isLoadingMore = false;
   bool _hasMore = true;
+  bool _revalidating = false;
   static const int _pageSize = 15;
 
   // Contenu communautaire
@@ -128,6 +130,7 @@ class _FeedPageState extends State<FeedPage> {
 
   void _onFriendsChanged() {
     FeedCache.invalidate();
+    FeedCacheService.clear();
     loadFeed();
   }
 
@@ -135,47 +138,39 @@ class _FeedPageState extends State<FeedPage> {
     final user = supabase.auth.currentUser;
     if (user == null) return;
 
+    // Fan-out on write : écouter les insertions dans feed_items
+    // filtrées par owner_id = user courant (le feed pré-calculé)
     _feedChannel = supabase
         .channel('feed_realtime')
         .onPostgresChanges(
           event: PostgresChangeEvent.insert,
           schema: 'public',
-          table: 'activities',
+          table: 'feed_items',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'owner_id',
+            value: user.id,
+          ),
           callback: (payload) {
-            _onNewActivity(payload.newRecord);
+            _onNewFeedItem(payload.newRecord);
           },
         )
         .subscribe();
   }
 
-  Future<void> _onNewActivity(Map<String, dynamic> record) async {
-    // Ignorer ses propres activités (déjà dans "tes dernières lectures")
-    final user = supabase.auth.currentUser;
-    if (record['author_id'] == user?.id) return;
-
-    // Enrichir avec les infos auteur
-    final profile = await supabase
-        .from('user_profiles')
-        .select('display_name, avatar_url')
-        .eq('user_id', record['author_id'])
-        .maybeSingle();
-
-    final enriched = {
-      ...record,
-      'author_name': profile?['display_name'],
-      'author_avatar': profile?['avatar_url'],
-    };
-
+  void _onNewFeedItem(Map<String, dynamic> record) {
+    // feed_items contient déjà toutes les données dénormalisées
+    // Pas besoin de faire un fetch supplémentaire pour le profil auteur
     if (mounted) {
       setState(() {
-        friendActivities.insert(0, enriched);
+        friendActivities.insert(0, record);
       });
     }
   }
 
   void _onScroll() {
     if (_scrollController.position.pixels >=
-            _scrollController.position.maxScrollExtent - 300 &&
+            _scrollController.position.maxScrollExtent * 0.7 &&
         !_isLoadingMore &&
         _hasMore) {
       _loadMore();
@@ -191,96 +186,162 @@ class _FeedPageState extends State<FeedPage> {
       final user = supabase.auth.currentUser;
       if (user == null) return;
 
-      final more = await supabase
-          .from('friend_activity_view')
-          .select()
-          .order('created_at', ascending: false)
-          .range(friendActivities.length,
-              friendActivities.length + _pageSize - 1);
+      // Cursor-based pagination par created_at (tri chronologique correct,
+      // même pour les activités rétro-insérées lors de l'ajout d'ami).
+      final lastCreatedAt = friendActivities.isNotEmpty
+          ? friendActivities.last['created_at']
+          : null;
+
+      final more = await supabase.rpc('get_feed_v2', params: {
+        'p_limit': _pageSize,
+        if (lastCreatedAt != null) 'p_cursor': lastCreatedAt,
+      });
 
       setState(() {
-        friendActivities.addAll(more);
-        _hasMore = (more as List).length == _pageSize;
+        friendActivities.addAll(List<Map<String, dynamic>>.from(more ?? []));
+        _hasMore = (more as List?)?.length == _pageSize;
         _isLoadingMore = false;
       });
+
+      // Mettre à jour les caches avec la liste complète
+      final updatedCache = FeedCacheData(
+        friendActivities: friendActivities,
+        currentFlow: currentFlow,
+        currentReadingBook: currentReadingBook,
+        suggestions: suggestions,
+        friendCount: friendCount,
+        feedTier: feedTier,
+        trendingBooks: trendingBooks,
+        communitySessions: communitySessions,
+        activeReaders: activeReaders,
+        badgeUnlocks: badgeUnlocks,
+        curatedReaderCounts: curatedReaderCounts,
+        savedCuratedListIds: savedCuratedListIds,
+        prizeLists: prizeLists,
+        hasMore: _hasMore,
+      );
+      FeedCache.store(updatedCache);
+      FeedCacheService.saveFeed(updatedCache); // fire-and-forget
     } catch (e) {
       setState(() => _isLoadingMore = false);
     }
   }
 
-  /// Pull-to-refresh : invalide le cache et recharge
+  /// Pull-to-refresh : invalide les caches et recharge depuis le réseau
   Future<void> _refreshFeed() async {
     FeedCache.invalidate();
-    await loadFeed();
+    await FeedCacheService.clear();
+    await _fetchFromNetwork(showLoading: false);
+  }
+
+  /// Applique un FeedCacheData au state
+  void _applyCacheData(FeedCacheData c, {List<int>? sectionOrder}) {
+    friendActivities = c.friendActivities;
+    currentFlow = c.currentFlow;
+    currentReadingBook = c.currentReadingBook;
+    suggestions = c.suggestions;
+    friendCount = c.friendCount;
+    feedTier = c.feedTier;
+    trendingBooks = c.trendingBooks;
+    communitySessions = c.communitySessions;
+    activeReaders = c.activeReaders;
+    badgeUnlocks = c.badgeUnlocks;
+    curatedReaderCounts = c.curatedReaderCounts;
+    savedCuratedListIds = c.savedCuratedListIds;
+    prizeLists = c.prizeLists;
+    _hasMore = c.hasMore;
+    if (sectionOrder != null) _feedSectionOrder = sectionOrder;
+    loading = false;
   }
 
   Future<void> loadFeed() async {
-    // Utiliser le cache si valide
+    // 1️⃣ Cache mémoire (instantané, < 5 min)
     if (FeedCache.isValid) {
-      final c = FeedCache.data!;
-      setState(() {
-        friendActivities = c.friendActivities;
-        currentFlow = c.currentFlow;
-        currentReadingBook = c.currentReadingBook;
-        suggestions = c.suggestions;
-        friendCount = c.friendCount;
-        feedTier = c.feedTier;
-        trendingBooks = c.trendingBooks;
-        communitySessions = c.communitySessions;
-        activeReaders = c.activeReaders;
-        badgeUnlocks = c.badgeUnlocks;
-        curatedReaderCounts = c.curatedReaderCounts;
-        savedCuratedListIds = c.savedCuratedListIds;
-        prizeLists = c.prizeLists;
-        _hasMore = c.hasMore;
-        loading = false;
-      });
+      setState(() => _applyCacheData(FeedCache.data!));
       return;
     }
 
-    setState(() {
-      loading = true;
-      _hasMore = true;
-    });
+    // 2️⃣ Cache Hive persistant (stale-while-revalidate)
+    final hiveCached = await FeedCacheService.getLastFeed();
+    if (hiveCached != null && mounted) {
+      // Afficher les données cachées immédiatement
+      setState(() => _applyCacheData(hiveCached));
+      // Revalider en arrière-plan
+      _revalidateFromNetwork();
+      return;
+    }
+
+    // 3️⃣ Pas de cache → skeleton + fetch réseau
+    await _fetchFromNetwork(showLoading: true);
+  }
+
+  /// Revalide en arrière-plan (indicateur discret, pas de skeleton)
+  Future<void> _revalidateFromNetwork() async {
+    if (_revalidating) return;
+    setState(() => _revalidating = true);
+    try {
+      await _fetchFromNetwork(showLoading: false);
+    } finally {
+      if (mounted) setState(() => _revalidating = false);
+    }
+  }
+
+  /// Fetch réseau complet + mise à jour du state et des caches
+  Future<void> _fetchFromNetwork({required bool showLoading}) async {
+    if (showLoading) {
+      setState(() {
+        loading = true;
+        _hasMore = true;
+      });
+    }
 
     try {
       final user = supabase.auth.currentUser;
       if (user == null) {
-        setState(() => loading = false);
+        if (showLoading) setState(() => loading = false);
         return;
       }
 
-      // Charger TOUT en parallèle (on filtre après selon le tier)
+      // 4 appels parallèles au lieu de 12 :
+      // - get_feed_bundle : combine feed + trending + community + friends + curated + prizes
+      // - getUserFlow, getCurrentReadingBook, getPersonalizedSuggestions : logique Dart complexe
+      final curatedIds = kCuratedLists.map((l) => l.id).toList();
       final results = await Future.wait([
         flowService.getUserFlow(),                                        // 0
         booksService.getCurrentReadingBook(),                             // 1
-        trendingService.getAcceptedFriendCount(),                         // 2
-        suggestionsService.getPersonalizedSuggestions(limit: 5),          // 3
-        curatedListsService.getReaderCounts(
-            kCuratedLists.map((l) => l.id).toList()),                     // 4
-        curatedListsService.getSavedListIds(),                            // 5
-        prizeListService.fetchRecentPrizeLists(limit: 10),                // 6
-        supabase                                                            // 7
-            .from('friend_activity_view')
-            .select()
-            .order('created_at', ascending: false)
-            .limit(_pageSize),
-        trendingService.getTrendingBooks(limit: 5, forceRefresh: false),  // 8
-        trendingService.getCommunitySessions(limit: 10, forceRefresh: false), // 9
-        trendingService.getActiveReaders(limit: 10, forceRefresh: false), // 10
-        trendingService.getCommunityBadgeUnlocks(limit: 8, forceRefresh: false), // 11
+        suggestionsService.getPersonalizedSuggestions(limit: 5),          // 2
+        supabase.rpc('get_feed_bundle', params: {                         // 3
+          'p_feed_limit': _pageSize,
+          'p_trending_limit': 5,
+          'p_sessions_limit': 10,
+          'p_readers_limit': 10,
+          'p_badges_limit': 8,
+          'p_prizes_limit': 10,
+          'p_curated_ids': curatedIds,
+        }),
       ]);
 
       final flow = results[0] as ReadingFlow?;
       final currentBook = results[1] as Map<String, dynamic>?;
-      final fCount = results[2] as int;
-      final suggestionsRes = results[3] as List<BookSuggestion>;
-      final readerCountsRes = results[4] as Map<int, int>;
-      final savedListIdsRes = results[5] as Set<int>;
-      final prizeListsRes = results[6] as List<PrizeList>;
+      final suggestionsRes = results[2] as List<BookSuggestion>;
+      final bundle = Map<String, dynamic>.from(results[3] as Map);
+
+      final fCount = bundle['friend_count'] as int? ?? 0;
       final tier = trendingService.determineFeedTier(fCount);
 
-      // Utiliser les données selon le tier (déjà chargées en parallèle)
+      // Extraire les données du bundle
+      final readerCountsRaw = bundle['curated_reader_counts'] as Map<String, dynamic>? ?? {};
+      final readerCountsRes = readerCountsRaw.map(
+        (k, v) => MapEntry(int.parse(k), v as int),
+      );
+      final savedListIdsRes = (bundle['saved_curated_ids'] as List<dynamic>? ?? [])
+          .map((e) => e as int)
+          .toSet();
+      final prizeListsRes = (bundle['prize_lists'] as List<dynamic>? ?? [])
+          .map((e) => PrizeList.fromJson(Map<String, dynamic>.from(e as Map)))
+          .toList();
+
+      // Utiliser les données selon le tier
       List<Map<String, dynamic>> activities = [];
       List<Map<String, dynamic>> trending = [];
       List<Map<String, dynamic>> community = [];
@@ -288,15 +349,24 @@ class _FeedPageState extends State<FeedPage> {
       List<Map<String, dynamic>> unlocks = [];
 
       if (tier == FeedTier.friendsOnly || tier == FeedTier.mixed) {
-        final activitiesRaw = results[7];
-        activities = List<Map<String, dynamic>>.from(activitiesRaw is List ? activitiesRaw : []);
+        activities = List<Map<String, dynamic>>.from(
+          (bundle['feed'] as List<dynamic>? ?? []).map((e) => Map<String, dynamic>.from(e as Map)),
+        );
       }
 
       if (tier == FeedTier.mixed || tier == FeedTier.trending) {
-        trending = results[8] as List<Map<String, dynamic>>;
-        community = results[9] as List<Map<String, dynamic>>;
-        readers = results[10] as List<Map<String, dynamic>>;
-        unlocks = results[11] as List<Map<String, dynamic>>;
+        trending = List<Map<String, dynamic>>.from(
+          (bundle['trending_books'] as List<dynamic>? ?? []).map((e) => Map<String, dynamic>.from(e as Map)),
+        );
+        community = List<Map<String, dynamic>>.from(
+          (bundle['community_sessions'] as List<dynamic>? ?? []).map((e) => Map<String, dynamic>.from(e as Map)),
+        );
+        readers = List<Map<String, dynamic>>.from(
+          (bundle['active_readers'] as List<dynamic>? ?? []).map((e) => Map<String, dynamic>.from(e as Map)),
+        );
+        unlocks = List<Map<String, dynamic>>.from(
+          (bundle['badge_unlocks'] as List<dynamic>? ?? []).map((e) => Map<String, dynamic>.from(e as Map)),
+        );
       }
 
       if (!mounted) return;
@@ -308,8 +378,7 @@ class _FeedPageState extends State<FeedPage> {
 
       final hasMore = activities.length >= _pageSize;
 
-      // Stocker dans le cache mémoire
-      FeedCache.store(FeedCacheData(
+      final cacheData = FeedCacheData(
         friendActivities: activities,
         currentFlow: flow,
         currentReadingBook: currentBook,
@@ -324,32 +393,19 @@ class _FeedPageState extends State<FeedPage> {
         savedCuratedListIds: savedListIdsRes,
         prizeLists: prizeListsRes,
         hasMore: hasMore,
-      ));
+      );
 
-      setState(() {
-        currentFlow = flow;
-        currentReadingBook = currentBook;
-        friendCount = fCount;
-        feedTier = tier;
-        friendActivities = activities;
-        trendingBooks = trending;
-        communitySessions = community;
-        activeReaders = readers;
-        badgeUnlocks = unlocks;
-        suggestions = suggestionsRes;
-        curatedReaderCounts = readerCountsRes;
-        savedCuratedListIds = savedListIdsRes;
-        prizeLists = prizeListsRes;
-        _feedSectionOrder = newOrder;
-        loading = false;
-        _hasMore = hasMore;
-      });
+      // Stocker dans les deux caches (mémoire + Hive)
+      FeedCache.store(cacheData);
+      FeedCacheService.saveFeed(cacheData); // fire-and-forget
+
+      setState(() => _applyCacheData(cacheData, sectionOrder: newOrder));
     } catch (e) {
       debugPrint('Erreur loadFeed: $e');
       if (!mounted) return;
-      setState(() => loading = false);
+      if (showLoading) setState(() => loading = false);
 
-      if (mounted) {
+      if (mounted && showLoading) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(AppLocalizations.of(context).errorGeneric(e.toString()))),
         );
@@ -902,6 +958,12 @@ class _FeedPageState extends State<FeedPage> {
         child: Column(
           children: [
             const FeedHeader(),
+            if (_revalidating)
+              LinearProgressIndicator(
+                minHeight: 2,
+                backgroundColor: Colors.transparent,
+                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.4),
+              ),
             Expanded(
               child: RefreshIndicator(
                 onRefresh: _refreshFeed,

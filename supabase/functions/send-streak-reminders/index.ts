@@ -288,12 +288,18 @@ serve(async (req) => {
 
     const usersWhoReadToday = new Set(todayReadings?.map(r => r.user_id) || [])
 
-    const jsDay = now.getUTCDay()
-    const isoDay = jsDay === 0 ? 7 : jsDay
-
     // Filtrer : bon jour + pas encore lu + heure dans la fenêtre
     const usersToNotify = (profiles as Profile[]).filter((p) => {
       if (usersWhoReadToday.has(p.id)) return false
+
+      // Compute the day of week in the USER's timezone, not UTC.
+      // A user in Paris (UTC+2) setting a reminder for Wednesday 23:00
+      // should NOT be notified on Tuesday at 21:00 UTC.
+      const tz = p.timezone || 'Europe/Paris'
+      const userLocalDate = new Date(now.toLocaleString('en-US', { timeZone: tz }))
+      const jsDay = userLocalDate.getDay() // 0=Sun in user's local tz
+      const isoDay = jsDay === 0 ? 7 : jsDay
+
       const days = p.notification_days ?? [1, 2, 3, 4, 5, 6, 7]
       if (!days.includes(isoDay)) return false
       const reminderTime = p.notification_reminder_time ?? '20:00'

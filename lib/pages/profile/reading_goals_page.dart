@@ -4,6 +4,7 @@ import '../../theme/app_theme.dart';
 import '../../widgets/back_header.dart';
 import '../../models/reading_goal.dart';
 import '../../services/goals_service.dart';
+import '../../widgets/constrained_content.dart';
 
 class ReadingGoalsPage extends StatefulWidget {
   const ReadingGoalsPage({super.key});
@@ -145,6 +146,7 @@ class _ReadingGoalsPageState extends State<ReadingGoalsPage> {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
+        child: ConstrainedContent(
         child: _isLoading
             ? const Center(child: CircularProgressIndicator())
             : Column(
@@ -210,6 +212,7 @@ class _ReadingGoalsPageState extends State<ReadingGoalsPage> {
                   _buildSaveButton(),
                 ],
               ),
+      ),
       ),
     );
   }

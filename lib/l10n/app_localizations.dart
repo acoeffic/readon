@@ -4798,6 +4798,12 @@ abstract class AppLocalizations {
   /// **'Recherche de librairies...'**
   String get searchingBookstores;
 
+  /// No description provided for @loadMoreBookstores.
+  ///
+  /// In fr, this message translates to:
+  /// **'Voir plus de librairies'**
+  String get loadMoreBookstores;
+
   /// No description provided for @offlineBanner.
   ///
   /// In fr, this message translates to:
@@ -4939,7 +4945,7 @@ abstract class AppLocalizations {
   /// No description provided for @buyOnAmazon.
   ///
   /// In fr, this message translates to:
-  /// **'Commander sur Amazon'**
+  /// **'Acheter sur Amazon'**
   String get buyOnAmazon;
 
   /// No description provided for @requestToJoin.
@@ -5379,6 +5385,30 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Widget iOS'**
   String get freeIncludedWidget;
+
+  /// No description provided for @fabTooltip.
+  ///
+  /// In fr, this message translates to:
+  /// **'Démarrer une lecture'**
+  String get fabTooltip;
+
+  /// No description provided for @shareMySession.
+  ///
+  /// In fr, this message translates to:
+  /// **'Partager ma session'**
+  String get shareMySession;
+
+  /// No description provided for @saveImage.
+  ///
+  /// In fr, this message translates to:
+  /// **'Enregistrer l\'image'**
+  String get saveImage;
+
+  /// No description provided for @imageSaved.
+  ///
+  /// In fr, this message translates to:
+  /// **'Image enregistrée'**
+  String get imageSaved;
 }
 
 class _AppLocalizationsDelegate

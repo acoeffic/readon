@@ -47,6 +47,22 @@ class PrizeList {
     );
   }
 
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'title': title,
+      'description': description,
+      'prize_name': prizeName,
+      'prize_wikidata_id': prizeWikidataId,
+      'list_type': listType,
+      'year': year,
+      'cover_url': coverUrl,
+      'is_active': isActive,
+      'last_synced_at': lastSyncedAt?.toIso8601String(),
+      'created_at': createdAt.toIso8601String(),
+    };
+  }
+
   PrizeList copyWith({List<PrizeListBook>? books}) {
     return PrizeList(
       id: id,

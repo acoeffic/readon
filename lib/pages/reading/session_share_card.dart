@@ -1,7 +1,6 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
 import '../../models/reading_session.dart';
 import '../../features/wrapped/share/share_format.dart';
 
@@ -14,6 +13,7 @@ class SessionShareCard extends StatelessWidget {
   final int? totalPages;
   final int streak;
   final ShareFormat format;
+  final String? readingForLabel;
 
   const SessionShareCard({
     super.key,
@@ -24,6 +24,7 @@ class SessionShareCard extends StatelessWidget {
     this.totalPages,
     this.streak = 0,
     required this.format,
+    this.readingForLabel,
   });
 
   @override
@@ -36,6 +37,7 @@ class SessionShareCard extends StatelessWidget {
           coverBytes: coverBytes,
           totalPages: totalPages,
           streak: streak,
+          readingForLabel: readingForLabel,
         ),
       ShareFormat.square => _SquareCard(
           session: session,
@@ -44,6 +46,7 @@ class SessionShareCard extends StatelessWidget {
           coverBytes: coverBytes,
           totalPages: totalPages,
           streak: streak,
+          readingForLabel: readingForLabel,
         ),
     };
   }
@@ -54,11 +57,9 @@ class SessionShareCard extends StatelessWidget {
 // ==========================================================================
 
 const _bgColor = Color(0xFFF5F0E8); // Warm beige
-const _cardColor = Colors.white;
 const _textDark = Color(0xFF2D2D2D);
 const _textMuted = Color(0xFF9B9585);
 const _accent = Color(0xFF5B7B6D); // Muted green/teal
-const _accentLight = Color(0xFFD4E0DA);
 
 String _formatDuration(int minutes) {
   if (minutes < 60) return '$minutes';
@@ -67,10 +68,6 @@ String _formatDuration(int minutes) {
   return '${h}h${m > 0 ? '${m.toString().padLeft(2, '0')}' : ''}';
 }
 
-String _formatDate(DateTime date) {
-  final formatter = DateFormat("d MMM yyyy · HH:mm", 'fr_FR');
-  return formatter.format(date);
-}
 
 // ==========================================================================
 // Book cover placeholder (when no coverUrl)
@@ -153,6 +150,7 @@ class _StoryCard extends StatelessWidget {
   final Uint8List? coverBytes;
   final int? totalPages;
   final int streak;
+  final String? readingForLabel;
 
   const _StoryCard({
     required this.session,
@@ -161,14 +159,11 @@ class _StoryCard extends StatelessWidget {
     this.coverBytes,
     this.totalPages,
     this.streak = 0,
+    this.readingForLabel,
   });
 
   @override
   Widget build(BuildContext context) {
-    final progressPercent = totalPages != null && totalPages! > 0
-        ? ((session.endPage ?? 0) / totalPages! * 100).round()
-        : null;
-
     return SizedBox(
       width: 360,
       height: 640,
@@ -178,46 +173,96 @@ class _StoryCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(24),
         ),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 32),
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 40),
           child: Column(
             children: [
-              // ── Book cover ──
-              const SizedBox(height: 8),
-              _buildCover(100, 150),
-              const SizedBox(height: 24),
+              const Spacer(flex: 1),
 
-              // ── Title ──
+              // ── Book cover (hero) ──
+              _buildCover(140, 210),
+              const SizedBox(height: 28),
+
+              // ── Book title ──
               Text(
-                'Session terminée !',
+                bookTitle,
                 style: GoogleFonts.libreBaskerville(
-                  fontSize: 22,
+                  fontSize: 20,
                   fontWeight: FontWeight.w700,
                   color: _textDark,
+                  height: 1.3,
                 ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(height: 6),
-              Text(
-                _formatDate(session.endTime ?? session.startTime),
-                style: GoogleFonts.jetBrainsMono(
-                  fontSize: 11,
-                  color: _textMuted,
+              if (bookAuthor != null) ...[
+                const SizedBox(height: 6),
+                Text(
+                  bookAuthor!,
+                  style: GoogleFonts.libreBaskerville(
+                    fontSize: 13,
+                    fontStyle: FontStyle.italic,
+                    color: _textMuted,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
+              ],
+              if (readingForLabel != null) ...[
+                const SizedBox(height: 14),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: _accent.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Text(
+                    '\u{1F4D6} $readingForLabel',
+                    style: GoogleFonts.jetBrainsMono(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      color: _accent,
+                    ),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 32),
+
+              // ── Stats: pages + duration on one line ──
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    '${session.pagesRead} pages',
+                    style: GoogleFonts.jetBrainsMono(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: _accent,
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: Text(
+                      '·',
+                      style: TextStyle(
+                        fontSize: 18,
+                        color: _textMuted,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    '${_formatDuration(session.durationMinutes)} min',
+                    style: GoogleFonts.jetBrainsMono(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: _accent,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 24),
 
-              // ── Book info card ──
-              _BookInfoCard(
-                bookTitle: bookTitle,
-                bookAuthor: bookAuthor,
-                session: session,
-                progressPercent: progressPercent,
-              ),
-              const SizedBox(height: 12),
-
-              // ── Stats card ──
-              _StatsCard(session: session, streak: streak),
-
-              const Spacer(),
+              const Spacer(flex: 2),
 
               // ── Footer ──
               _LexDayFooter(),
@@ -234,17 +279,17 @@ class _StoryCard extends StatelessWidget {
         width: width,
         height: height,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(10),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.25),
-              blurRadius: 12,
-              offset: const Offset(0, 6),
+              color: Colors.black.withValues(alpha: 0.2),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
             ),
           ],
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(10),
           child: Image.memory(
             coverBytes!,
             width: width,
@@ -274,6 +319,7 @@ class _SquareCard extends StatelessWidget {
   final Uint8List? coverBytes;
   final int? totalPages;
   final int streak;
+  final String? readingForLabel;
 
   const _SquareCard({
     required this.session,
@@ -282,14 +328,11 @@ class _SquareCard extends StatelessWidget {
     this.coverBytes,
     this.totalPages,
     this.streak = 0,
+    this.readingForLabel,
   });
 
   @override
   Widget build(BuildContext context) {
-    final progressPercent = totalPages != null && totalPages! > 0
-        ? ((session.endPage ?? 0) / totalPages! * 100).round()
-        : null;
-
     return SizedBox(
       width: 360,
       height: 360,
@@ -299,72 +342,68 @@ class _SquareCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(24),
         ),
         child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
+          padding: const EdgeInsets.all(24),
+          child: Row(
             children: [
-              // ── Header row: cover + title ──
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildCover(60, 90),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: 4),
-                        Text(
-                          'Session terminée !',
-                          style: GoogleFonts.libreBaskerville(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                            color: _textDark,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          bookTitle,
-                          style: GoogleFonts.libreBaskerville(
-                            fontSize: 12,
-                            color: _textDark,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        if (bookAuthor != null) ...[
-                          const SizedBox(height: 2),
-                          Text(
-                            bookAuthor!,
-                            style: GoogleFonts.libreBaskerville(
-                              fontSize: 10,
-                              fontStyle: FontStyle.italic,
-                              color: _textMuted,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ],
+              // ── Cover ──
+              _buildCover(100, 150),
+              const SizedBox(width: 20),
+              // ── Text content ──
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      bookTitle,
+                      style: GoogleFonts.libreBaskerville(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: _textDark,
+                        height: 1.3,
+                      ),
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                ],
+                    if (bookAuthor != null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        bookAuthor!,
+                        style: GoogleFonts.libreBaskerville(
+                          fontSize: 11,
+                          fontStyle: FontStyle.italic,
+                          color: _textMuted,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                    if (readingForLabel != null) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        '\u{1F4D6} $readingForLabel',
+                        style: GoogleFonts.jetBrainsMono(
+                          fontSize: 10,
+                          color: _accent,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 20),
+                    // ── Stats ──
+                    Text(
+                      '${session.pagesRead} pages · ${_formatDuration(session.durationMinutes)} min',
+                      style: GoogleFonts.jetBrainsMono(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: _accent,
+                      ),
+                    ),
+                    const Spacer(),
+                    // ── Footer ──
+                    _LexDayFooter(compact: true),
+                  ],
+                ),
               ),
-              const SizedBox(height: 14),
-
-              // ── Progress bar ──
-              _ProgressSection(
-                session: session,
-                progressPercent: progressPercent,
-              ),
-              const SizedBox(height: 12),
-
-              // ── Stats ──
-              _StatsCard(session: session, streak: streak),
-
-              const Spacer(),
-
-              // ── Footer ──
-              _LexDayFooter(compact: true),
             ],
           ),
         ),
@@ -378,17 +417,17 @@ class _SquareCard extends StatelessWidget {
         width: width,
         height: height,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: BorderRadius.circular(8),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.2),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
+              blurRadius: 12,
+              offset: const Offset(0, 6),
             ),
           ],
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: BorderRadius.circular(8),
           child: Image.memory(
             coverBytes!,
             width: width,
@@ -410,241 +449,6 @@ class _SquareCard extends StatelessWidget {
 // ==========================================================================
 // Sub-widgets
 // ==========================================================================
-
-class _BookInfoCard extends StatelessWidget {
-  final String bookTitle;
-  final String? bookAuthor;
-  final ReadingSession session;
-  final int? progressPercent;
-
-  const _BookInfoCard({
-    required this.bookTitle,
-    this.bookAuthor,
-    required this.session,
-    this.progressPercent,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: _cardColor,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            bookTitle,
-            style: GoogleFonts.libreBaskerville(
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              color: _textDark,
-            ),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-          if (bookAuthor != null) ...[
-            const SizedBox(height: 3),
-            Text(
-              bookAuthor!,
-              style: GoogleFonts.libreBaskerville(
-                fontSize: 12,
-                fontStyle: FontStyle.italic,
-                color: _textMuted,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
-          const SizedBox(height: 12),
-
-          // Progress bar
-          _ProgressSection(
-            session: session,
-            progressPercent: progressPercent,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ProgressSection extends StatelessWidget {
-  final ReadingSession session;
-  final int? progressPercent;
-
-  const _ProgressSection({
-    required this.session,
-    this.progressPercent,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final fraction = progressPercent != null ? progressPercent! / 100.0 : 0.0;
-
-    return Column(
-      children: [
-        // Progress bar
-        ClipRRect(
-          borderRadius: BorderRadius.circular(4),
-          child: SizedBox(
-            height: 6,
-            child: Stack(
-              children: [
-                Container(
-                  decoration: BoxDecoration(
-                    color: _accentLight,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                ),
-                FractionallySizedBox(
-                  widthFactor: fraction.clamp(0.0, 1.0),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: _accent,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 8),
-
-        // Page range + percentage
-        Row(
-          children: [
-            Text(
-              'p. ${session.startPage} \u2192 ${session.endPage ?? session.startPage}',
-              style: GoogleFonts.jetBrainsMono(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: _accent,
-              ),
-            ),
-            const Spacer(),
-            if (progressPercent != null)
-              Text(
-                '$progressPercent %',
-                style: GoogleFonts.jetBrainsMono(
-                  fontSize: 12,
-                  color: _textMuted,
-                ),
-              ),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-class _StatsCard extends StatelessWidget {
-  final ReadingSession session;
-  final int streak;
-
-  const _StatsCard({required this.session, required this.streak});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 12),
-      decoration: BoxDecoration(
-        color: _cardColor,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        children: [
-          // Duration
-          Expanded(
-            child: _StatColumn(
-              emoji: '\u23F1\uFE0F',
-              value: _formatDuration(session.durationMinutes),
-              unit: session.durationMinutes < 60 ? ' min' : '',
-              label: 'durée',
-            ),
-          ),
-          // Pages
-          Expanded(
-            child: _StatColumn(
-              emoji: '\uD83D\uDCC4',
-              value: '${session.pagesRead}',
-              unit: '',
-              label: 'pages lues',
-            ),
-          ),
-          // Streak
-          if (streak > 0)
-            Expanded(
-              child: _StatColumn(
-                emoji: '\uD83D\uDD25',
-                value: '$streak',
-                unit: ' j.',
-                label: 'série',
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _StatColumn extends StatelessWidget {
-  final String emoji;
-  final String value;
-  final String unit;
-  final String label;
-
-  const _StatColumn({
-    required this.emoji,
-    required this.value,
-    required this.unit,
-    required this.label,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Text(emoji, style: const TextStyle(fontSize: 22)),
-        const SizedBox(height: 6),
-        RichText(
-          text: TextSpan(
-            children: [
-              TextSpan(
-                text: value,
-                style: GoogleFonts.libreBaskerville(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w700,
-                  color: _textDark,
-                ),
-              ),
-              TextSpan(
-                text: unit,
-                style: GoogleFonts.libreBaskerville(
-                  fontSize: 13,
-                  color: _textMuted,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          label,
-          style: GoogleFonts.jetBrainsMono(
-            fontSize: 10,
-            color: _textMuted,
-          ),
-        ),
-      ],
-    );
-  }
-}
 
 class _LexDayFooter extends StatelessWidget {
   final bool compact;

@@ -2604,6 +2604,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get searchingBookstores => 'Searching for bookstores...';
 
   @override
+  String get loadMoreBookstores => 'Show more bookstores';
+
+  @override
   String get offlineBanner => 'Offline — sessions will sync automatically';
 
   @override
@@ -2954,4 +2957,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get freeIncludedWidget => 'iOS Widget';
+
+  @override
+  String get fabTooltip => 'Start a reading session';
+
+  @override
+  String get shareMySession => 'Share my session';
+
+  @override
+  String get saveImage => 'Save image';
+
+  @override
+  String get imageSaved => 'Image saved';
 }

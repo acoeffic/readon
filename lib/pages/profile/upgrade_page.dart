@@ -283,30 +283,46 @@ class _UpgradePageState extends State<UpgradePage> {
                   GestureDetector(
                     onTap: () =>
                         setState(() => _showAllFeatures = !_showAllFeatures),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(vertical: 10),
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            const Color(0xFFD4A54A),
+                            const Color(0xFFE8C876),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(24),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFFD4A54A).withValues(alpha: 0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
+                      ),
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
                             _showAllFeatures
                                 ? l.seeLess
                                 : l.moreFeatures(_displayFeatures.length - 5),
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: onSurface.withValues(alpha: 0.5),
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
                             ),
                           ),
-                          const SizedBox(width: 4),
+                          const SizedBox(width: 6),
                           AnimatedRotation(
                             turns: _showAllFeatures ? 0.5 : 0,
                             duration: const Duration(milliseconds: 200),
-                            child: Icon(
+                            child: const Icon(
                               Icons.keyboard_arrow_down,
-                              size: 16,
-                              color: onSurface.withValues(alpha: 0.5),
+                              size: 20,
+                              color: Colors.white,
                             ),
                           ),
                         ],
@@ -728,6 +744,7 @@ class _UpgradePageState extends State<UpgradePage> {
             isDark: isDark,
             onSurface: onSurface,
             isRecommended: true,
+            recommendedLabel: l.recommended,
             trialBadge: l.trialBadge,
             mainPrice: annualMonthlyPrice ?? annual.storeProduct.priceString,
             mainPeriod: l.perMonth,
@@ -822,6 +839,7 @@ class _PlanCard extends StatelessWidget {
   final bool isDark;
   final Color onSurface;
   final bool isRecommended;
+  final String? recommendedLabel;
   final String? trialBadge;
   final String mainPrice;
   final String mainPeriod;
@@ -835,6 +853,7 @@ class _PlanCard extends StatelessWidget {
     required this.isDark,
     required this.onSurface,
     this.isRecommended = false,
+    this.recommendedLabel,
     this.trialBadge,
     required this.mainPrice,
     required this.mainPeriod,
@@ -1007,9 +1026,9 @@ class _PlanCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                child: const Text(
-                  '✦ Recommandé',
-                  style: TextStyle(
+                child: Text(
+                  recommendedLabel ?? '✦ Recommended',
+                  style: const TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w700,
                     color: Colors.white,

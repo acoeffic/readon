@@ -58,7 +58,7 @@ class _CuratedListsCarouselState extends State<CuratedListsCarousel> {
   }
 
   void _onScroll() {
-    const cardWidth = 200.0;
+    const cardWidth = 170.0;
     const cardSpacing = 12.0;
     final page =
         (_scrollController.offset / (cardWidth + cardSpacing)).round();
@@ -78,7 +78,7 @@ class _CuratedListsCarouselState extends State<CuratedListsCarousel> {
 
         // Carousel
         SizedBox(
-          height: 260,
+          height: 240,
           child: ListView.builder(
             controller: _scrollController,
             scrollDirection: Axis.horizontal,
@@ -124,13 +124,13 @@ class _CuratedListsCarouselState extends State<CuratedListsCarousel> {
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: const Color(0xFFFF6B35).withValues(alpha: 0.15),
+            color: AppColors.primary.withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(AppRadius.s),
           ),
           child: const Icon(
             LucideIcons.bookOpen,
             size: 20,
-            color: Color(0xFFFF6B35),
+            color: AppColors.primary,
           ),
         ),
         const SizedBox(width: AppSpace.s),
@@ -163,7 +163,7 @@ class _CuratedListsCarouselState extends State<CuratedListsCarousel> {
           child: const Text(
             'Voir tout →',
             style: TextStyle(
-              color: Color(0xFFFF6B35),
+              color: AppColors.primary,
               fontWeight: FontWeight.w600,
               fontSize: 13,
             ),
@@ -187,7 +187,7 @@ class _CuratedListsCarouselState extends State<CuratedListsCarousel> {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(3),
               color: isActive
-                  ? const Color(0xFFFF6B35)
+                  ? AppColors.primary
                   : Theme.of(context)
                       .colorScheme
                       .onSurface
@@ -220,7 +220,7 @@ class _CuratedListCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 200,
+        width: 170,
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
@@ -408,7 +408,7 @@ class _CtaCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 200,
+        width: 170,
         decoration: BoxDecoration(
           color: isDark
               ? Colors.white.withValues(alpha: 0.04)
@@ -428,12 +428,12 @@ class _CtaCard extends StatelessWidget {
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: const Color(0xFFFF6B35).withValues(alpha: 0.1),
+                  color: AppColors.primary.withValues(alpha: 0.1),
                 ),
                 child: const Icon(
                   LucideIcons.bookOpen,
                   size: 28,
-                  color: Color(0xFFFF6B35),
+                  color: AppColors.primary,
                 ),
               ),
               const SizedBox(height: 12),
@@ -441,7 +441,7 @@ class _CtaCard extends StatelessWidget {
                 'Voir toutes\nles listes →',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: Color(0xFFFF6B35),
+                  color: AppColors.primary,
                   fontWeight: FontWeight.w600,
                   fontSize: 14,
                 ),

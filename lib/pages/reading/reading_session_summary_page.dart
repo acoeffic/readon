@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import '../../models/book.dart';
 import '../../models/reading_session.dart';
 import '../../models/trophy.dart';
+import '../../models/feature_flags.dart';
 import '../../providers/subscription_provider.dart';
 import '../../pages/profile/upgrade_page.dart';
 import '../../services/books_service.dart';
@@ -15,6 +16,8 @@ import '../../services/flow_service.dart';
 import '../../services/reading_session_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/cached_book_cover.dart';
+import '../../widgets/constrained_content.dart';
+import '../../features/wrapped/share/share_format.dart';
 import 'session_share_service.dart';
 
 class ReadingSessionSummaryPage extends StatefulWidget {
@@ -97,30 +100,57 @@ class _ReadingSessionSummaryPageState
     return Scaffold(
       backgroundColor: bgColor,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        bottom: false,
+        child: ConstrainedContent(
           child: Column(
             children: [
-              _buildAppBar(isDark, l),
-              const SizedBox(height: 20),
-              _buildHeader(isDark, l),
-              if (widget.session.readingFor != null) ...[
-                const SizedBox(height: 12),
-                _buildReadingForBadge(isDark, l),
-              ],
-              const SizedBox(height: 24),
-              _buildBookCard(isDark, l),
-              const SizedBox(height: 16),
-              _buildFreeStatsCard(isDark, l),
-              const SizedBox(height: 20),
-              _buildInsightsSection(isDark),
-              const SizedBox(height: 28),
-              _buildShareButton(),
-              const SizedBox(height: 12),
-              _buildHideButton(isDark),
-              const SizedBox(height: 12),
-              _buildSkipButton(isDark),
-              const SizedBox(height: 16),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(24, 12, 24, 12),
+                  child: Column(
+                    children: [
+                      _buildAppBar(isDark, l),
+                      const SizedBox(height: 8),
+                      _buildHeader(isDark, l),
+                      if (widget.session.readingFor != null) ...[
+                        const SizedBox(height: 8),
+                        _buildReadingForBadge(isDark, l),
+                      ],
+                      const SizedBox(height: 14),
+                      _buildBookCard(isDark, l),
+                      const SizedBox(height: 10),
+                      _buildFreeStatsCard(isDark, l),
+                      const SizedBox(height: 12),
+                      _buildInsightsSection(isDark),
+                    ],
+                  ),
+                ),
+              ),
+              Container(
+                decoration: BoxDecoration(
+                  color: bgColor,
+                  border: Border(
+                    top: BorderSide(
+                      color: (isDark ? Colors.white : Colors.black)
+                          .withValues(alpha: 0.06),
+                    ),
+                  ),
+                ),
+                padding: EdgeInsets.fromLTRB(
+                  24,
+                  12,
+                  24,
+                  MediaQuery.of(context).padding.bottom + 12,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _buildShareButton(),
+                    const SizedBox(height: 4),
+                    _buildSecondaryActions(isDark),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
@@ -230,21 +260,21 @@ class _ReadingSessionSummaryPageState
   Widget _buildHeader(bool isDark, AppLocalizations l) {
     return Column(
       children: [
-        const Text('🎉', style: TextStyle(fontSize: 48)),
-        const SizedBox(height: 12),
+        const Text('🎉', style: TextStyle(fontSize: 32)),
+        const SizedBox(height: 6),
         Text(
           l.sessionCompletedTitle,
           style: TextStyle(
-            fontSize: 26,
+            fontSize: 22,
             fontWeight: FontWeight.bold,
             color: isDark ? AppColors.textPrimaryDark : Colors.black,
           ),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 4),
         Text(
           _formatDateTime(widget.session.endTime ?? widget.session.startTime),
           style: TextStyle(
-            fontSize: 14,
+            fontSize: 13,
             color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
           ),
         ),
@@ -298,8 +328,8 @@ class _ReadingSessionSummaryPageState
                   googleId: _book?.googleId,
                   title: _book?.title,
                   author: _book?.author,
-                  width: 80,
-                  height: 110,
+                  width: 65,
+                  height: 90,
                   borderRadius: BorderRadius.circular(10),
                 ),
               ),
@@ -398,7 +428,7 @@ class _ReadingSessionSummaryPageState
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
+      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
         borderRadius: BorderRadius.circular(AppRadius.l),
@@ -467,22 +497,22 @@ class _ReadingSessionSummaryPageState
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(emoji, style: const TextStyle(fontSize: 24)),
-        const SizedBox(height: 8),
+        Text(emoji, style: const TextStyle(fontSize: 20)),
+        const SizedBox(height: 4),
         Text(
           value,
           style: TextStyle(
-            fontSize: 22,
+            fontSize: 20,
             fontWeight: FontWeight.bold,
             color: isDark ? AppColors.textPrimaryDark : AppColors.primary,
           ),
           textAlign: TextAlign.center,
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 2),
         Text(
           label,
           style: TextStyle(
-            fontSize: 12,
+            fontSize: 11,
             color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
           ),
           textAlign: TextAlign.center,
@@ -739,27 +769,147 @@ class _ReadingSessionSummaryPageState
 
   // ── Buttons ───────────────────────────────────────────────────────
 
+  bool _isSharing = false;
+
+  final GlobalKey _shareButtonKey = GlobalKey();
+
+  Rect? _shareOrigin() {
+    final box = _shareButtonKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null) return null;
+    return box.localToGlobal(Offset.zero) & box.size;
+  }
+
+  Future<void> _shareDirectly() async {
+    if (_isSharing) return;
+    setState(() => _isSharing = true);
+
+    try {
+      final service = SessionShareService();
+      final l = AppLocalizations.of(context);
+      // Use the same cover URL that CachedBookCover resolved (fallback chain),
+      // not the raw database URL which may be wrong or a placeholder.
+      final resolvedCover = CachedBookCover.resolvedUrl(
+        imageUrl: _book?.coverUrl,
+        isbn: _book?.isbn,
+        googleId: _book?.googleId,
+      );
+      final coverBytes = await service.downloadCover(resolvedCover ?? _book?.coverUrl);
+      if (!mounted) return;
+
+      // Resolve "reading for" label for the share card
+      String? readingForLabel;
+      if (widget.session.readingFor != null) {
+        final person = _resolveReadingForLabel(widget.session.readingFor!, l);
+        readingForLabel = l.readingForDisplay(person);
+      }
+
+      final imageBytes = await service.captureCard(
+        session: widget.session,
+        bookTitle: _book?.title ?? l.noTitleDefault,
+        bookAuthor: _book?.author,
+        coverBytes: coverBytes,
+        totalPages: _book?.pageCount,
+        streak: _currentStreak,
+        format: ShareFormat.story,
+        readingForLabel: readingForLabel,
+      );
+      if (!mounted || imageBytes == null) return;
+
+      await service.shareToDestination(
+        imageBytes: imageBytes,
+        destination: ShareDestination.more,
+        session: widget.session,
+        sharePositionOrigin: _shareOrigin(),
+      );
+    } catch (e) {
+      debugPrint('Erreur partage: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur : $e'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSharing = false);
+    }
+  }
+
+  Future<void> _saveImage() async {
+    setState(() => _isSharing = true);
+    try {
+      final service = SessionShareService();
+      final l = AppLocalizations.of(context);
+      final resolvedCover = CachedBookCover.resolvedUrl(
+        imageUrl: _book?.coverUrl,
+        isbn: _book?.isbn,
+        googleId: _book?.googleId,
+      );
+      final coverBytes = await service.downloadCover(resolvedCover ?? _book?.coverUrl);
+      if (!mounted) return;
+
+      String? readingForLabel;
+      if (widget.session.readingFor != null) {
+        final person = _resolveReadingForLabel(widget.session.readingFor!, l);
+        readingForLabel = l.readingForDisplay(person);
+      }
+
+      final imageBytes = await service.captureCard(
+        session: widget.session,
+        bookTitle: _book?.title ?? l.noTitleDefault,
+        bookAuthor: _book?.author,
+        coverBytes: coverBytes,
+        totalPages: _book?.pageCount,
+        streak: _currentStreak,
+        format: ShareFormat.story,
+        readingForLabel: readingForLabel,
+      );
+      if (!mounted || imageBytes == null) return;
+
+      await service.saveToGallery(imageBytes, widget.session.id);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l.imageSaved),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Erreur lors de la sauvegarde'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSharing = false);
+    }
+  }
+
   Widget _buildShareButton() {
     final l = AppLocalizations.of(context);
     return SizedBox(
+      key: _shareButtonKey,
       width: double.infinity,
-      height: 54,
+      height: 56,
       child: ElevatedButton.icon(
-        onPressed: () {
-          showSessionShareSheet(
-            context: context,
-            session: widget.session,
-            bookTitle: _book?.title ?? l.noTitleDefault,
-            bookAuthor: _book?.author,
-            coverUrl: _book?.coverUrl,
-            totalPages: _book?.pageCount,
-            streak: _currentStreak,
-          );
-        },
-        icon: const Icon(Icons.share_outlined, size: 20),
+        onPressed: _isSharing ? null : _shareDirectly,
+        icon: _isSharing
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              )
+            : const Icon(Icons.share_rounded, size: 22),
         label: Text(
-          l.shareSession,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          l.shareMySession,
+          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
         ),
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primary,
@@ -773,90 +923,45 @@ class _ReadingSessionSummaryPageState
     );
   }
 
-  Widget _buildHideButton(bool isDark) {
+  Widget _buildSecondaryActions(bool isDark) {
     final l = AppLocalizations.of(context);
-    return SizedBox(
-      width: double.infinity,
-      height: 54,
-      child: OutlinedButton.icon(
-        onPressed: () async {
-          try {
-            await ReadingSessionService().toggleSessionHidden(
-              widget.session.id,
-              true,
-            );
-            if (!mounted) return;
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(l.sessionHiddenFromRankings),
-                action: SnackBarAction(
-                  label: l.cancel,
-                  onPressed: () async {
-                    try {
-                      await ReadingSessionService().toggleSessionHidden(
-                        widget.session.id,
-                        false,
-                      );
-                    } catch (_) {}
-                  },
-                ),
-              ),
-            );
-          } catch (e) {
-            if (!mounted) return;
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(l.errorHidingSession)),
-            );
-          }
-        },
-        icon: Icon(
-          Icons.visibility_off_outlined,
-          size: 18,
-          color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
-        ),
-        label: Text(
-          l.hideSession,
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
-          ),
-        ),
-        style: OutlinedButton.styleFrom(
-          foregroundColor: isDark ? AppColors.textPrimaryDark : Colors.black87,
-          side: BorderSide(
-            color: isDark ? AppColors.borderDark : AppColors.border,
-          ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppRadius.l),
-          ),
-        ),
-      ),
-    );
-  }
+    final secondaryColor = isDark ? AppColors.textSecondaryDark : AppColors.textSecondary;
 
-  Widget _buildSkipButton(bool isDark) {
-    return SizedBox(
-      width: double.infinity,
-      height: 54,
-      child: OutlinedButton(
-        onPressed: () => Navigator.of(context).pop(),
-        style: OutlinedButton.styleFrom(
-          foregroundColor: isDark ? AppColors.textPrimaryDark : Colors.black87,
-          side: BorderSide(
-            color: isDark
-                ? AppColors.borderDark
-                : AppColors.border,
-          ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppRadius.l),
+    return Row(
+      children: [
+        Expanded(
+          child: TextButton.icon(
+            onPressed: _isSharing ? null : _saveImage,
+            icon: Icon(Icons.download_rounded, size: 18, color: secondaryColor),
+            label: Text(
+              l.saveImage,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: secondaryColor,
+              ),
+            ),
           ),
         ),
-        child: Text(
-          AppLocalizations.of(context).skip,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+        Container(
+          width: 1,
+          height: 20,
+          color: isDark ? AppColors.borderDark : AppColors.border,
         ),
-      ),
+        Expanded(
+          child: TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(
+              l.later,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: secondaryColor,
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

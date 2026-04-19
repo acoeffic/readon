@@ -12,6 +12,7 @@ import '../../services/user_custom_lists_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/cached_book_cover.dart';
 import 'create_custom_list_dialog.dart';
+import '../../widgets/constrained_content.dart';
 
 class CuratedListDetailPage extends StatefulWidget {
   final CuratedList list;
@@ -100,55 +101,121 @@ class _CuratedListDetailPageState extends State<CuratedListDetailPage> {
         result = await _googleBooksService.searchByISBN(book.isbn);
 
         // 2) Fallback : titre + auteur (opérateurs intitle/inauthor)
+        //    IMPORTANT : valider que le résultat correspond bien au livre attendu
         if (result == null) {
           final results = await _googleBooksService.searchByTitleAuthor(
             book.title,
             book.author,
           );
-          if (results.isNotEmpty) result = results.first;
+          result = _bestMatchForCuratedBook(results, book.title, book.author);
         }
 
         // 3) Fallback : recherche libre simplifiée (sans opérateurs)
+        //    IMPORTANT : valider aussi pour éviter les faux positifs
         if (result == null) {
           final simplifiedTitle =
-              book.title.replaceAll("'", ' ').replaceAll("'", ' ');
+              book.title.replaceAll("'", ' ').replaceAll("\u2019", ' ');
           final results = await _googleBooksService
               .searchBooks('$simplifiedTitle ${book.author}');
-          if (results.isNotEmpty) result = results.first;
+          result = _bestMatchForCuratedBook(results, book.title, book.author);
         }
 
-        // 4) Dernier recours : objet minimal avec couverture Open Library
+        // 4) Dernier recours : objet minimal SANS couverture
+        //    Le widget CachedBookCover gèrera le fallback (iTunes, BnF, etc.)
         result ??= GoogleBook(
-          id: 'ol-${book.isbn}',
+          id: 'none-${book.isbn}',
           title: book.title,
           authors: [book.author],
-          coverUrl: 'https://covers.openlibrary.org/b/isbn/${book.isbn}-L.jpg',
+          coverUrl: null,
           isbns: [book.isbn],
         );
 
-        // Mettre en cache le résultat (y compris les fallbacks)
-        _googleBooksService.cacheBook(book.isbn, result);
+        // Mettre en cache le résultat (sauf les fallbacks sans couverture)
+        if (result.coverUrl != null) {
+          _googleBooksService.cacheBook(book.isbn, result);
+        }
 
         if (mounted) {
           setState(() => _googleBooks[book.isbn] = result!);
         }
       } catch (e) {
         debugPrint('Erreur chargement Google Book ${book.isbn}: $e');
-        // Même en cas d'erreur, on met la couverture Open Library
+        // En cas d'erreur, créer un objet minimal sans couverture
+        // Le widget CachedBookCover gèrera le fallback
         if (mounted && !_googleBooks.containsKey(book.isbn)) {
           final fallback = GoogleBook(
-            id: 'ol-${book.isbn}',
+            id: 'none-${book.isbn}',
             title: book.title,
             authors: [book.author],
-            coverUrl:
-                'https://covers.openlibrary.org/b/isbn/${book.isbn}-L.jpg',
+            coverUrl: null,
             isbns: [book.isbn],
           );
-          _googleBooksService.cacheBook(book.isbn, fallback);
           setState(() => _googleBooks[book.isbn] = fallback);
         }
       }
     }
+  }
+
+  /// Sélectionne le meilleur résultat Google Books correspondant au livre attendu.
+  /// Retourne null si aucun résultat ne correspond suffisamment (évite les
+  /// faux positifs comme Le Petit Prince → 1984).
+  GoogleBook? _bestMatchForCuratedBook(
+    List<GoogleBook> results,
+    String expectedTitle,
+    String expectedAuthor,
+  ) {
+    if (results.isEmpty) return null;
+
+    final normTitle = _normalizeForMatch(expectedTitle);
+    final normAuthor = _normalizeForMatch(expectedAuthor);
+    GoogleBook? best;
+    double bestScore = 0;
+
+    for (final r in results) {
+      var score = _jaccardSimilarity(normTitle, _normalizeForMatch(r.title));
+
+      // Bonus/pénalité auteur
+      final authorScore = _jaccardSimilarity(
+        normAuthor,
+        _normalizeForMatch(r.authorsString),
+      );
+      if (authorScore > 0.5) {
+        score += 0.15;
+      } else if (authorScore < 0.15) {
+        score -= 0.20;
+      }
+
+      if (score > bestScore) {
+        bestScore = score;
+        best = r;
+      }
+    }
+
+    // Seuil strict : 0.5 minimum pour accepter un résultat
+    return bestScore >= 0.5 ? best : null;
+  }
+
+  static String _normalizeForMatch(String s) {
+    return s
+        .toLowerCase()
+        .replaceAll(RegExp('[\\s\\-–—:,;.!?\x27\x22«»\u2019()]+'), ' ')
+        .replaceAll('é', 'e').replaceAll('è', 'e').replaceAll('ê', 'e').replaceAll('ë', 'e')
+        .replaceAll('à', 'a').replaceAll('â', 'a').replaceAll('ä', 'a')
+        .replaceAll('ù', 'u').replaceAll('û', 'u').replaceAll('ü', 'u')
+        .replaceAll('ô', 'o').replaceAll('ö', 'o')
+        .replaceAll('î', 'i').replaceAll('ï', 'i')
+        .replaceAll('ç', 'c')
+        .replaceAll('œ', 'oe').replaceAll('æ', 'ae')
+        .trim();
+  }
+
+  static double _jaccardSimilarity(String a, String b) {
+    final wordsA = a.split(RegExp(r'\s+')).where((w) => w.length > 1).toSet();
+    final wordsB = b.split(RegExp(r'\s+')).where((w) => w.length > 1).toSet();
+    if (wordsA.isEmpty || wordsB.isEmpty) return a == b ? 1.0 : 0.0;
+    final common = wordsA.intersection(wordsB).length;
+    final union = wordsA.union(wordsB).length;
+    return common / union;
   }
 
   void _toggleSave() async {
@@ -269,6 +336,7 @@ class _CuratedListDetailPageState extends State<CuratedListDetailPage> {
   }
 
   void _showBookDetailSheet(CuratedBookEntry entry, GoogleBook googleBook) {
+    final pageContext = context;
     final l = AppLocalizations.of(context)!;
     showModalBottomSheet(
       context: context,
@@ -302,11 +370,18 @@ class _CuratedListDetailPageState extends State<CuratedListDetailPage> {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Cover
+                  // Cover — passer title/author et un vrai googleId
+                  // pour que le widget puisse utiliser sa chaîne de fallback
                   CachedBookCover(
                     imageUrl: googleBook.coverUrl,
-                    isbn: googleBook.isbn13,
-                    googleId: googleBook.id,
+                    isbn: googleBook.isbn13 ?? entry.isbn,
+                    googleId: googleBook.id.startsWith('none-') ||
+                            googleBook.id.startsWith('ol-') ||
+                            googleBook.id.startsWith('cached-')
+                        ? null
+                        : googleBook.id,
+                    title: entry.title,
+                    author: entry.author,
                     width: 100,
                     height: 150,
                     borderRadius: BorderRadius.circular(8),
@@ -463,7 +538,10 @@ class _CuratedListDetailPageState extends State<CuratedListDetailPage> {
                       context: context,
                       emoji: '🏪',
                       label: l.findNearMe,
-                      onTap: () => _openNearbyBookstores(context),
+                      onTap: () {
+                        Navigator.pop(context);
+                        _openNearbyBookstores(pageContext);
+                      },
                     ),
                     Divider(height: 1, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.08)),
                     _buildBuyOption(
@@ -560,7 +638,8 @@ class _CuratedListDetailPageState extends State<CuratedListDetailPage> {
     final progress = totalBooks > 0 ? readCount / totalBooks : 0.0;
 
     return Scaffold(
-      body: NestedScrollView(
+      body: ConstrainedContent(
+        child: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) => [
           // Gradient header
           SliverAppBar(
@@ -768,6 +847,7 @@ class _CuratedListDetailPageState extends State<CuratedListDetailPage> {
             ),
           ],
         ),
+      ),
       ),
     );
   }

@@ -117,6 +117,17 @@ class _StatsTabState extends State<StatsTab> {
   ];
 
   Widget _buildReadingForFilter(AppLocalizations l) {
+    // Only show chips for reading_for values that have actual sessions
+    final usedKeys = _unfilteredStats?.readingForStats
+        .map((e) => e.key)
+        .toSet() ?? <String>{};
+    final visibleOptions = _readingForOptions
+        .where((key) => usedKeys.contains(key))
+        .toList();
+
+    // If no reading_for sessions exist, don't show the filter at all
+    if (visibleOptions.isEmpty) return const SizedBox.shrink();
+
     return SizedBox(
       height: 40,
       child: ListView(
@@ -133,7 +144,7 @@ class _StatsTabState extends State<StatsTab> {
               },
             ),
           ),
-          ..._readingForOptions.map((key) => Padding(
+          ...visibleOptions.map((key) => Padding(
             padding: const EdgeInsets.only(right: AppSpace.xs),
             child: FilterChip(
               avatar: Text(_resolveReadingForEmoji(key), style: const TextStyle(fontSize: 14)),

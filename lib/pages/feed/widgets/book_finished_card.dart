@@ -179,14 +179,14 @@ class _BookFinishedCardState extends State<BookFinishedCard>
   }
 
   Future<void> _loadCommentCount() async {
-    final activityId = widget.activity['id'] as int;
+    final activityId = (widget.activity['activity_id'] ?? widget.activity['id']) as int;
     final count = await commentsService.getCommentCount(activityId);
     if (!mounted) return;
     setState(() => _commentCount = count);
   }
 
   void _showCommentsSheet() {
-    final activityId = widget.activity['id'] as int;
+    final activityId = (widget.activity['activity_id'] ?? widget.activity['id']) as int;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -276,7 +276,7 @@ class _BookFinishedCardState extends State<BookFinishedCard>
 
   Future<void> _loadReactions() async {
     try {
-      final activityId = widget.activity['id'] as int;
+      final activityId = (widget.activity['activity_id'] ?? widget.activity['id']) as int;
       final data = await reactionService.getReactions(activityId);
       if (!mounted) return;
       setState(() {
@@ -305,7 +305,7 @@ class _BookFinishedCardState extends State<BookFinishedCard>
   }
 
   Future<void> _toggleReaction(String emoji) async {
-    final activityId = widget.activity['id'] as int;
+    final activityId = (widget.activity['activity_id'] ?? widget.activity['id']) as int;
     final previousCounts = Map<String, int>.from(_reactionCounts);
     final previousUserEmoji = _userEmoji;
 

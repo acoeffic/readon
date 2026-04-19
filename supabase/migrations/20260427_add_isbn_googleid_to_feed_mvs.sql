@@ -54,8 +54,9 @@ WITH DATA;
 
 CREATE UNIQUE INDEX idx_mv_community_sessions_id ON mv_community_sessions(session_id);
 
--- 3. Update RPCs to include new columns
+-- 3. Update RPCs to include new columns (DROP first — return type changed)
 
+DROP FUNCTION IF EXISTS get_trending_books_by_sessions(INTEGER);
 CREATE OR REPLACE FUNCTION get_trending_books_by_sessions(
   p_limit INTEGER DEFAULT 5
 )
@@ -90,6 +91,7 @@ BEGIN
 END;
 $$;
 
+DROP FUNCTION IF EXISTS get_community_sessions(INTEGER);
 CREATE OR REPLACE FUNCTION get_community_sessions(
   p_limit INTEGER DEFAULT 10
 )

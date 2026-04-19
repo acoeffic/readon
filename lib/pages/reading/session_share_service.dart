@@ -39,6 +39,7 @@ class SessionShareService {
     int? totalPages,
     int streak = 0,
     required ShareFormat format,
+    String? readingForLabel,
   }) async {
     final card = SessionShareCard(
       session: session,
@@ -48,6 +49,7 @@ class SessionShareService {
       totalPages: totalPages,
       streak: streak,
       format: format,
+      readingForLabel: readingForLabel,
     );
     return _screenshotController.captureFromWidget(
       card,
@@ -106,6 +108,18 @@ class SessionShareService {
       text: text,
       sharePositionOrigin: sharePositionOrigin,
     );
+  }
+
+  /// Save the share card image to the device gallery.
+  Future<void> saveToGallery(Uint8List bytes, String sessionId) async {
+    final file = await _saveTempFile(bytes, sessionId);
+    // Use share_plus to save — opens the share sheet but user can tap "Save Image"
+    // For direct gallery save, we write to a persistent location.
+    final dir = await getApplicationDocumentsDirectory();
+    final savedFile = File('${dir.path}/lexday_session_$sessionId.png');
+    await savedFile.writeAsBytes(bytes);
+    // Trigger native share with save option
+    await Share.shareXFiles([XFile(file.path)]);
   }
 
   Future<File> _saveTempFile(Uint8List bytes, String sessionId) async {

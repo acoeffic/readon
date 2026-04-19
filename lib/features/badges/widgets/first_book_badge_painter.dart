@@ -824,8 +824,8 @@ class ClubFounderBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget badge = SvgPicture.network(
-      '${Env.supabaseStorageUrl}/asset/Image/badge/Club/badge_fondateur_club.svg',
+    Widget badge = Image.network(
+      '${Env.supabaseStorageUrl}/asset/Image/badge/Club/ChatGPT%20Image%2011%20avr.%202026,%2014_17_59.png',
       width: size,
       height: size,
     );
@@ -1264,8 +1264,8 @@ class OccasionChristmasBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget badge = SvgPicture.network(
-      '${Env.supabaseStorageUrl}/asset/Image/badge/Occasion/badge_christmas_read.svg',
+    Widget badge = Image.network(
+      '${Env.supabaseStorageUrl}/asset/Image/badge/Occasion/ChatGPT%20Image%203%20avr.%202026,%2014_15_52.png',
       width: size,
       height: size,
     );
@@ -1310,8 +1310,8 @@ class OccasionFeteMusiqueBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget badge = SvgPicture.network(
-      '${Env.supabaseStorageUrl}/asset/Image/badge/Occasion/badge_fete_musique.svg',
+    Widget badge = Image.network(
+      '${Env.supabaseStorageUrl}/asset/Image/badge/Occasion/ChatGPT%20Image%207%20avr.%202026,%2012_25_10.png',
       width: size,
       height: size,
     );
@@ -1448,8 +1448,8 @@ class OccasionValentineBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget badge = SvgPicture.network(
-      '${Env.supabaseStorageUrl}/asset/Image/badge/Occasion/badge_valentine_read.svg',
+    Widget badge = Image.network(
+      '${Env.supabaseStorageUrl}/asset/Image/badge/Occasion/ChatGPT%20Image%207%20avr.%202026,%2012_12_31.png',
       width: size,
       height: size,
     );
@@ -1494,8 +1494,8 @@ class OccasionNyeBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget badge = SvgPicture.network(
-      '${Env.supabaseStorageUrl}/asset/Image/badge/Occasion/badge_nye_read.svg',
+    Widget badge = Image.network(
+      '${Env.supabaseStorageUrl}/asset/Image/badge/Occasion/ChatGPT%20Image%207%20avr.%202026,%2012_20_09.png',
       width: size,
       height: size,
     );
@@ -1630,8 +1630,8 @@ class OccasionNewYearBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget badge = SvgPicture.network(
-      '${Env.supabaseStorageUrl}/asset/Image/badge/Occasion/badge_evt_new_year.svg',
+    Widget badge = Image.network(
+      '${Env.supabaseStorageUrl}/asset/Image/badge/Occasion/ChatGPT%20Image%207%20avr.%202026,%2014_54_12.png',
       width: size,
       height: size,
     );
@@ -1675,8 +1675,8 @@ class OccasionEasterBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget badge = SvgPicture.network(
-      '${Env.supabaseStorageUrl}/asset/Image/badge/Occasion/badge_evt_paques.svg',
+    Widget badge = Image.network(
+      '${Env.supabaseStorageUrl}/asset/Image/badge/Occasion/ChatGPT%20Image%207%20avr.%202026,%2015_03_59.png',
       width: size,
       height: size,
     );
@@ -3106,8 +3106,8 @@ class Streak7DaysBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget badge = SvgPicture.network(
-      '${Env.supabaseStorageUrl}/asset/Image/badge/Flow/badge_flow_7j%20(1).svg',
+    Widget badge = Image.network(
+      '${Env.supabaseStorageUrl}/asset/Image/badge/Flow/ChatGPT%20Image%2015%20avr.%202026,%2022_07_50.png',
       width: size,
       height: size,
     );
@@ -3146,8 +3146,8 @@ class Streak14DaysBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget badge = SvgPicture.network(
-      '${Env.supabaseStorageUrl}/asset/Image/badge/Flow/badge_flow_14j.svg',
+    Widget badge = Image.network(
+      '${Env.supabaseStorageUrl}/asset/Image/badge/Flow/ChatGPT%20Image%2015%20avr.%202026,%2022_14_46.png',
       width: size,
       height: size,
     );

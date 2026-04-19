@@ -28,6 +28,8 @@ import '../widgets/offline_banner.dart';
 import '../utils/responsive.dart';
 import '../l10n/app_localizations.dart';
 import '../providers/connectivity_provider.dart';
+import '../services/widget_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
@@ -67,6 +69,7 @@ class _MainNavigationState extends State<MainNavigation>
       _setupSyncListener();
       _enrichMissingCovers();
       _consumePendingNotification();
+      _updateHomeWidget();
     });
   }
 
@@ -104,14 +107,23 @@ class _MainNavigationState extends State<MainNavigation>
       _checkActiveSession();
       _refreshSubscription();
       MonthlyNotificationService().scheduleNextMonthlyNotification();
+      _updateHomeWidget();
     }
   }
 
   Future<void> _enrichMissingCovers() async {
     try {
+      // Only run reEnrichSuspiciousBooks (version-gated, runs once per version).
+      // enrichMissingCovers is no longer automatic — it runs after Kindle import
+      // or manual refresh to avoid burning the shared Google Books API quota.
       final service = BooksService();
-      await service.enrichMissingCovers();
       await service.reEnrichSuspiciousBooks();
+    } catch (_) {}
+  }
+
+  Future<void> _updateHomeWidget() async {
+    try {
+      await WidgetService().updateWidget();
     } catch (_) {}
   }
 

@@ -4,6 +4,7 @@ import '../../theme/app_theme.dart';
 import '../../widgets/back_header.dart';
 import '../../models/group_challenge.dart';
 import '../../services/challenge_service.dart';
+import '../../widgets/constrained_content.dart';
 
 class ChallengeDetailPage extends StatefulWidget {
   final GroupChallenge challenge;
@@ -177,6 +178,7 @@ class _ChallengeDetailPageState extends State<ChallengeDetailPage> {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
+        child: ConstrainedContent(
         child: Column(
           children: [
             Padding(
@@ -404,6 +406,7 @@ class _ChallengeDetailPageState extends State<ChallengeDetailPage> {
               ),
             ),
           ],
+        ),
         ),
       ),
     );

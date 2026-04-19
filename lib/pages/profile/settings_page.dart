@@ -28,6 +28,7 @@ import '../../services/notion_service.dart';
 import '../../services/avatar_cache_service.dart';
 import '../../services/push_notification_service.dart';
 import '../../services/books_service.dart';
+import '../../services/feed_cache_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -727,7 +728,8 @@ if (!allowedExtensions.contains(fileExtension)) {
       await AvatarCacheService.instance.clear();
       subscriptionProvider.detachRevenueCatListener();
 
-      // Nettoyer le token FCM AVANT la déconnexion
+      // Nettoyer les caches et le token FCM AVANT la déconnexion
+      await FeedCacheService.clear();
       await PushNotificationService().clearToken();
 
       // Déconnexion Supabase AVANT la navigation pour que
@@ -1366,6 +1368,7 @@ if (!allowedExtensions.contains(fileExtension)) {
                       TrendingService.clearCache();
                       GoogleBooksService.clearCache();
                       await AvatarCacheService.instance.clear();
+                      await FeedCacheService.clear();
                       await PushNotificationService().clearToken();
                       await SubscriptionService().logoutUser();
                       await Supabase.instance.client.auth.signOut();

@@ -1261,6 +1261,7 @@
   "closed": "Fermé",
   "navigate": "Itinéraire",
   "searchingBookstores": "Recherche de librairies...",
+  "loadMoreBookstores": "Voir plus de librairies",
 
   "offlineBanner": "Hors ligne — les sessions seront synchronisées automatiquement",
   "sessionSavedOffline": "Session enregistrée hors ligne. Elle sera synchronisée à la reconnexion.",
@@ -1457,5 +1458,10 @@
   "freeIncludedFeed": "Feed social",
   "freeIncludedGoals": "Objectifs & badges de base",
   "freeIncludedWrapped": "Wrapped mensuel & annuel",
-  "freeIncludedWidget": "Widget iOS"
+  "freeIncludedWidget": "Widget iOS",
+  "fabTooltip": "Démarrer une lecture",
+  "shareMySession": "Partager ma session",
+  "saveImage": "Enregistrer l'image",
+  "imageSaved": "Image enregistrée",
+  "buyOnAmazon": "Acheter sur Amazon"
 }

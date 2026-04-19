@@ -1,6 +1,8 @@
 // lib/services/google_books_service.dart
 
+import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -12,13 +14,119 @@ class GoogleBooksService {
   static String get _apiKey => Env.googleBooksApiKey;
 
   /// Clé SharedPreferences pour le cache persistant ISBN → coverUrl
-  static const String _coverCacheKey = 'google_books_cover_cache';
+  /// Bumped to v2 to invalidate stale/incorrect cover URLs from previous versions.
+  static const String _coverCacheKey = 'google_books_cover_cache_v2';
 
   /// Cache en mémoire : ISBN → GoogleBook (évite les appels API répétés)
   static final Map<String, GoogleBook> _isbnCache = {};
 
   /// Cache persistant : ISBN → coverUrl (survit au redémarrage)
   static Map<String, String>? _persistentCoverCache;
+
+  /// --- Rate limiting (serial queue + circuit breaker) ---
+  /// Minimum delay between consecutive API calls.
+  static const Duration _minCallInterval = Duration(milliseconds: 800);
+
+  /// Maximum number of retries on 5xx errors (with exponential backoff + jitter).
+  static const int _maxRetries = 2;
+
+  /// Serial queue: each call waits for the previous one to finish + delay.
+  static Future<void> _queue = Future.value();
+
+  /// Random generator for jitter in exponential backoff.
+  static final Random _random = Random();
+
+  /// --- Circuit breaker ---
+  /// After [_circuitBreakerThreshold] consecutive 5xx errors, the circuit
+  /// "opens" and all subsequent calls immediately return a synthetic 503
+  /// for [_circuitBreakerCooldown] duration. This prevents hammering a
+  /// rate-limited or down API.
+  static const int _circuitBreakerThreshold = 5;
+  static const Duration _circuitBreakerCooldown = Duration(minutes: 2);
+  static int _consecutive5xxCount = 0;
+  static DateTime? _circuitOpenUntil;
+
+  /// Public getter to check if the API is currently unavailable.
+  static bool get isCircuitOpen => _isCircuitOpen;
+
+  /// Returns true if the circuit breaker is currently open (API calls blocked).
+  static bool get _isCircuitOpen {
+    if (_circuitOpenUntil == null) return false;
+    if (DateTime.now().isAfter(_circuitOpenUntil!)) {
+      // Cooldown expired — close the circuit, reset counter
+      _circuitOpenUntil = null;
+      _consecutive5xxCount = 0;
+      debugPrint('Google Books API: circuit breaker fermé, reprise des appels');
+      return false;
+    }
+    return true;
+  }
+
+  /// Waits if needed to respect rate limiting, then executes an HTTP GET
+  /// with retry + exponential backoff on 5xx errors.
+  /// Also exposed publicly for use by CachedBookCover widget.
+  static Future<http.Response> throttledGet(Uri uri, {Map<String, String>? headers}) {
+    // If circuit breaker is open, return immediately without queuing
+    if (_isCircuitOpen) {
+      return Future.value(http.Response('Service Unavailable', 503));
+    }
+
+    final completer = Completer<http.Response>();
+
+    // Chain onto the queue — each call runs only after the previous completes
+    _queue = _queue.then((_) async {
+      try {
+        // Re-check circuit breaker (may have opened while waiting in queue)
+        if (_isCircuitOpen) {
+          completer.complete(http.Response('Service Unavailable', 503));
+          return;
+        }
+        final response = await _executeWithRetry(uri, headers: headers);
+        completer.complete(response);
+      } catch (e) {
+        completer.completeError(e);
+      }
+      // Enforce minimum interval before the next queued call can start
+      await Future.delayed(_minCallInterval);
+    });
+
+    return completer.future;
+  }
+
+  /// Execute a GET request with retry + exponential backoff on 5xx errors.
+  static Future<http.Response> _executeWithRetry(Uri uri, {Map<String, String>? headers}) async {
+    for (int attempt = 0; attempt <= _maxRetries; attempt++) {
+      final response = await http.get(uri, headers: headers);
+      if (response.statusCode < 500) {
+        // Success — reset circuit breaker counter
+        _consecutive5xxCount = 0;
+        return response;
+      }
+      if (attempt == _maxRetries) {
+        // All retries exhausted — increment circuit breaker counter
+        _consecutive5xxCount++;
+        if (_consecutive5xxCount >= _circuitBreakerThreshold) {
+          _circuitOpenUntil = DateTime.now().add(_circuitBreakerCooldown);
+          debugPrint(
+            'Google Books API: circuit breaker OUVERT — '
+            '$_consecutive5xxCount erreurs consécutives, '
+            'pause de ${_circuitBreakerCooldown.inSeconds}s',
+          );
+        }
+        return response;
+      }
+      // Exponential backoff with jitter: base 1s/2s + random 0-500ms
+      final baseMs = 1000 * (1 << attempt);
+      final jitterMs = _random.nextInt(500);
+      final delay = Duration(milliseconds: baseMs + jitterMs);
+      debugPrint(
+        'Google Books API ${response.statusCode} — retry ${attempt + 1}/$_maxRetries in ${delay.inMilliseconds}ms',
+      );
+      await Future.delayed(delay);
+    }
+    // Should never reach here, but just in case:
+    return http.get(uri, headers: headers);
+  }
 
   /// Charge le cache persistant depuis SharedPreferences
   static Future<void> loadPersistentCache() async {
@@ -66,7 +174,7 @@ class GoogleBooksService {
     try {
       final langParam = langRestrict ? '&langRestrict=fr' : '';
       final uri = Uri.parse('$_baseUrl?q=${Uri.encodeComponent(query)}&maxResults=10$langParam&key=$_apiKey');
-      final response = await http.get(uri);
+      final response = await throttledGet(uri);
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -94,7 +202,7 @@ class GoogleBooksService {
 
     try {
       final uri = Uri.parse('$_baseUrl?q=isbn:${Uri.encodeComponent(isbn)}&maxResults=1&key=$_apiKey');
-      final response = await http.get(uri);
+      final response = await throttledGet(uri);
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -162,9 +270,19 @@ class GoogleBook {
   factory GoogleBook.fromJson(Map<String, dynamic> json) {
     final volumeInfo = json['volumeInfo'] as Map<String, dynamic>? ?? {};
     
-    // Extract ISBNs
+    // Extract ISBNs — only keep ISBN_10 and ISBN_13 types.
+    // Google Books also returns OTHER identifiers (OCLC, library catalog
+    // numbers like "UCSC:32106009590941") which are NOT valid ISBNs and
+    // break cover lookups downstream.
     final identifiers = volumeInfo['industryIdentifiers'] as List<dynamic>?;
-    final isbns = identifiers?.map((id) => id['identifier'] as String).toList() ?? [];
+    final isbns = identifiers
+            ?.where((id) {
+              final type = id['type'] as String? ?? '';
+              return type == 'ISBN_10' || type == 'ISBN_13';
+            })
+            .map((id) => id['identifier'] as String)
+            .toList() ??
+        [];
     
     // Extract cover image
     final imageLinks = volumeInfo['imageLinks'] as Map<String, dynamic>?;
@@ -221,11 +339,18 @@ class GoogleBook {
 
   String? get isbn13 {
     if (isbns.isEmpty) return null;
-    final match = isbns.cast<String?>().firstWhere(
-      (isbn) => isbn != null && isbn.length == 13,
+    // Prefer ISBN-13 (13 digits).
+    final isbn13Match = isbns.cast<String?>().firstWhere(
+      (isbn) => isbn != null && isbn.length == 13 && RegExp(r'^\d{13}$').hasMatch(isbn),
       orElse: () => null,
     );
-    return match ?? isbns.first;
+    if (isbn13Match != null) return isbn13Match;
+    // Fall back to ISBN-10 (9 digits + check digit which may be X).
+    final isbn10Match = isbns.cast<String?>().firstWhere(
+      (isbn) => isbn != null && isbn.length == 10 && RegExp(r'^\d{9}[\dXx]$').hasMatch(isbn),
+      orElse: () => null,
+    );
+    return isbn10Match;
   }
 }
 

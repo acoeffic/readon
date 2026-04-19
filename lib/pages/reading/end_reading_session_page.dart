@@ -27,6 +27,8 @@ import '../../services/contacts_service.dart';
 import '../../providers/connectivity_provider.dart';
 import '../friends/contacts_suggestion_page.dart';
 import '../chat/ai_chat_page.dart';
+import '../../services/widget_service.dart';
+import '../../widgets/constrained_content.dart';
 
 class EndReadingSessionPage extends StatefulWidget {
   final ReadingSession activeSession;
@@ -236,6 +238,10 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
         return;
       }
 
+      // L'activité reading_session est créée automatiquement par le trigger
+      // DB create_activity_on_session_end (sur UPDATE de reading_sessions
+      // quand end_time passe de NULL à non-NULL). Pas besoin de le faire ici.
+
       // Sélectionner le trophée contextuel
       final trophy = _trophyService.selectTrophy(completedSession);
 
@@ -257,6 +263,9 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
       } catch (e) {
         debugPrint('Erreur checkSecretBadges (non bloquante): $e');
       }
+
+      // Mettre à jour le widget iOS (non bloquant)
+      WidgetService().updateWidget().catchError((_) {});
 
       // Vérifier et attribuer les badges de flow (non bloquant)
       List<FlowBadgeLevel> newFlowBadges = [];
@@ -473,6 +482,9 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
           debugPrint('Erreur checkSecretBadges (non bloquante): $e');
         }
 
+        // Mettre à jour le widget iOS (non bloquant)
+        WidgetService().updateWidget().catchError((_) {});
+
         // Vérifier et attribuer les badges de flow (non bloquant)
         List<dynamic> newFlowBadges = [];
         try {
@@ -657,7 +669,7 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
       }
       final bookResponse = await Supabase.instance.client
           .from('books')
-          .select('title, author, cover_url')
+          .select('title, author, cover_url, isbn, google_id')
           .eq('id', bookIdInt)
           .maybeSingle();
 
@@ -672,6 +684,8 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
           'book_title': bookResponse['title'],
           'book_author': bookResponse['author'],
           'book_cover': bookResponse['cover_url'],
+          'book_isbn': bookResponse['isbn'],
+          'book_google_id': bookResponse['google_id'],
           'pages_read': session.pagesRead,
           'duration_minutes': session.durationMinutes,
           'start_page': session.startPage,
@@ -747,7 +761,8 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
       resizeToAvoidBottomInset: true,
       body: Stack(
         children: [
-          Column(
+          ConstrainedContent(
+          child: Column(
             children: [
           Expanded(
             child: SingleChildScrollView(
@@ -1072,6 +1087,7 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
               ),
             ),
             ],
+          ),
           ),
           // Animation de confetti
           if (_showFinishBookAnimation)

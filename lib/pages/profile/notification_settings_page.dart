@@ -5,6 +5,7 @@ import '../../l10n/app_localizations.dart';
 import '../../services/monthly_notification_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/back_header.dart';
+import '../../widgets/constrained_content.dart';
 
 class NotificationSettingsPage extends StatefulWidget {
   const NotificationSettingsPage({super.key});
@@ -255,6 +256,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
+        child: ConstrainedContent(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(AppSpace.l),
           child: Column(
@@ -529,6 +531,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
               ),
             ],
           ),
+        ),
         ),
       ),
     );

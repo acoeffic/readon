@@ -6,6 +6,7 @@ import 'find_contacts_friends_page.dart';
 import 'friend_profile_page.dart';
 import 'friend_requests_page.dart';
 import 'search_users_page.dart';
+import '../../widgets/constrained_content.dart';
 
 class FriendsPage extends StatefulWidget {
   const FriendsPage({super.key});
@@ -132,7 +133,8 @@ class _FriendsPageState extends State<FriendsPage> {
           ),
         ],
       ),
-      body: Padding(
+      body: ConstrainedContent(
+        child: Padding(
         padding: const EdgeInsets.all(AppSpace.l),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -263,6 +265,7 @@ class _FriendsPageState extends State<FriendsPage> {
               ),
           ],
         ),
+      ),
       ),
     );
   }

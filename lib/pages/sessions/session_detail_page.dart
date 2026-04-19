@@ -5,6 +5,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/reading_session.dart';
 import '../../models/book.dart';
+import '../../models/feature_flags.dart';
 import '../../providers/subscription_provider.dart';
 import '../../pages/profile/upgrade_page.dart';
 import '../../services/reading_session_service.dart';

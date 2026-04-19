@@ -4,11 +4,14 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../l10n/app_localizations.dart';
+import '../../models/book.dart';
+import '../../models/reading_session.dart';
 import '../../services/groups_service.dart';
 import '../../services/notifications_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/constrained_content.dart';
 import '../feed/feed_page.dart';
+import '../sessions/session_detail_page.dart';
 
 class NotificationsPage extends StatefulWidget {
   const NotificationsPage({super.key});
@@ -168,6 +171,68 @@ class _NotificationsPageState extends State<NotificationsPage> {
     }
   }
 
+  void _onNotificationTap(AppNotification notification) {
+    // Only navigate for like/comment notifications that have an activity
+    if ((notification.type == NotificationType.like ||
+            notification.type == NotificationType.comment) &&
+        notification.activityId > 0) {
+      final payload = notification.activityPayload;
+      if (payload == null) return;
+
+      final sessionId =
+          (payload['session_id'] ?? notification.activityId).toString();
+      final bookId = (payload['book_id'] ?? '').toString();
+      final authorId = (payload['author_id'] ?? '').toString();
+      final startPage = (payload['start_page'] as num?)?.toInt() ?? 0;
+      final endPage = (payload['end_page'] as num?)?.toInt();
+      final durationMin = (payload['duration_minutes'] as num?)?.toInt() ?? 0;
+
+      final now = DateTime.now();
+      final endTime = now;
+      final startTime = endTime.subtract(Duration(minutes: durationMin));
+
+      final session = ReadingSession(
+        id: sessionId,
+        userId: authorId,
+        bookId: bookId,
+        startPage: startPage,
+        endPage: endPage,
+        startTime: startTime,
+        endTime: endTime,
+        createdAt: notification.createdAt,
+        updatedAt: notification.createdAt,
+      );
+
+      final bookTitle = payload['book_title']?.toString();
+      final bookAuthor = payload['book_author']?.toString();
+      final bookCoverUrl = payload['book_cover_url']?.toString();
+      final bookIdInt =
+          int.tryParse(bookId) ?? 0;
+
+      final book = bookTitle != null
+          ? Book(
+              id: bookIdInt,
+              title: bookTitle,
+              author: bookAuthor,
+              coverUrl: bookCoverUrl,
+            )
+          : null;
+
+      final currentUserId = Supabase.instance.client.auth.currentUser?.id;
+      final isOwn = authorId == currentUserId;
+
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => SessionDetailPage(
+            session: session,
+            book: book,
+            isOwn: isOwn,
+          ),
+        ),
+      );
+    }
+  }
+
   List<AppNotification> get _newNotifications =>
       _notifications.where((n) => !n.isRead).toList();
 
@@ -282,6 +347,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                                             .contains(n.id),
                                         onAccept: () => _handleAccept(n),
                                         onIgnore: () => _handleIgnore(n),
+                                        onTap: () => _onNotificationTap(n),
                                       )),
                                   const SizedBox(height: 16),
                                 ],
@@ -295,6 +361,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                                             .contains(n.id),
                                         onAccept: () => _handleAccept(n),
                                         onIgnore: () => _handleIgnore(n),
+                                        onTap: () => _onNotificationTap(n),
                                       )),
                                 ],
                                 const SizedBox(height: 24),
@@ -379,12 +446,14 @@ class _NotificationCard extends StatelessWidget {
   final bool isProcessing;
   final VoidCallback onAccept;
   final VoidCallback onIgnore;
+  final VoidCallback? onTap;
 
   const _NotificationCard({
     required this.notification,
     required this.isProcessing,
     required this.onAccept,
     required this.onIgnore,
+    this.onTap,
   });
 
   Color _avatarColor(BuildContext context) {
@@ -443,7 +512,13 @@ class _NotificationCard extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final avatarBg = _avatarColor(context);
 
-    return Container(
+    final bool isTappable = onTap != null &&
+        (notification.type == NotificationType.like ||
+            notification.type == NotificationType.comment);
+
+    return GestureDetector(
+      onTap: isTappable ? onTap : null,
+      child: Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
         color: isDark ? AppColors.surfaceDark : Colors.white,
@@ -670,6 +745,7 @@ class _NotificationCard extends StatelessWidget {
           ],
         ),
       ),
+    ),
     );
   }
 }

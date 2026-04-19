@@ -8,6 +8,7 @@ import '../../services/challenge_service.dart';
 import '../../services/books_service.dart';
 import '../../services/google_books_service.dart';
 import '../../services/monthly_notification_service.dart';
+import '../../widgets/constrained_content.dart';
 
 class CreateChallengePage extends StatefulWidget {
   final String groupId;
@@ -177,6 +178,7 @@ class _CreateChallengePageState extends State<CreateChallengePage> {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
+        child: ConstrainedContent(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(AppSpace.l),
           child: Form(
@@ -273,6 +275,7 @@ class _CreateChallengePageState extends State<CreateChallengePage> {
               ],
             ),
           ),
+        ),
         ),
       ),
     );

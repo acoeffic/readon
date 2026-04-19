@@ -23,14 +23,20 @@ function jsonResponse(body: Record<string, unknown>, status = 200) {
   });
 }
 
-const SYSTEM_PROMPT = `Tu es un moteur de recommandation de livres. On te donne l'historique de lecture d'un utilisateur avec les genres, auteurs et titres.
+const SYSTEM_PROMPT = `Tu es un moteur de recommandation de livres ultra-pertinent. On te donne le profil de lecture complet d'un utilisateur avec des signaux d'engagement.
+
+STRATÉGIE :
+1. Identifie le PROFIL : fiction vs non-fiction, thèmes dominants, complexité, langue préférée.
+2. Respecte le profil : si le lecteur est principalement non-fiction/business, recommande dans cette catégorie. Ne propose pas de romans à un lecteur 100% non-fiction.
+3. Priorise la RÉCENCE : les 5 derniers livres terminés pèsent 3x plus. Recommande dans la continuité thématique des lectures récentes.
+4. Utilise les SIGNAUX D'ENGAGEMENT : livres annotés ou lus rapidement = forte appréciation → recommande dans la même veine. Livres abandonnés = signal négatif → évite ce style.
+5. Adapte la longueur : respecte la longueur moyenne des livres lus par l'utilisateur.
+6. Analyse les DESCRIPTIONS des livres lus pour comprendre les thèmes précis, pas juste le genre.
 
 RÈGLES :
 - Recommande exactement le nombre de livres demandé.
 - Ne recommande JAMAIS un livre déjà dans l'historique de l'utilisateur (lu, en cours, ou à lire).
 - Ne recommande QUE des livres qui existent réellement. N'invente rien.
-- Base-toi sur les patterns de lecture : genres dominants, auteurs favoris, thèmes récurrents.
-- Si l'utilisateur lit beaucoup d'un genre spécifique (ex: jeunesse, SF, policier), la majorité des suggestions doivent être de ce genre.
 - Varie les auteurs dans tes suggestions.
 - Réponds UNIQUEMENT avec un JSON valide, sans texte autour.
 
@@ -39,7 +45,7 @@ FORMAT DE RÉPONSE (JSON uniquement) :
   {
     "title": "Titre exact du livre",
     "author": "Auteur exact",
-    "reason": "Courte explication en français (1 phrase) du lien avec les lectures de l'utilisateur"
+    "reason": "Courte explication en français (1 phrase) du lien PRÉCIS avec les lectures récentes de l'utilisateur"
   }
 ]`;
 
@@ -81,29 +87,105 @@ serve(async (req) => {
     const body = await req.json();
     const limit = Math.min(body.limit ?? 5, 10);
 
-    // Récupérer l'historique de lecture
-    const { data: finished } = await supabase
-      .from("user_books")
-      .select("books(title, author, genre)")
-      .eq("user_id", user.id)
-      .eq("status", "finished")
-      .order("updated_at", { ascending: false })
-      .limit(30);
+    // Fetch all data in parallel
+    const [
+      { data: finished },
+      { data: reading },
+      { data: toRead },
+      { data: sessions },
+      { data: annotationCounts },
+    ] = await Promise.all([
+      supabase
+        .from("user_books")
+        .select("book_id, updated_at, books(title, author, genre, description, page_count, language)")
+        .eq("user_id", user.id)
+        .eq("status", "finished")
+        .order("updated_at", { ascending: false })
+        .limit(30),
+      supabase
+        .from("user_books")
+        .select("book_id, created_at, books(title, author, genre)")
+        .eq("user_id", user.id)
+        .eq("status", "reading"),
+      supabase
+        .from("user_books")
+        .select("books(title, author, genre)")
+        .eq("user_id", user.id)
+        .eq("status", "to_read")
+        .limit(20),
+      supabase
+        .from("reading_sessions")
+        .select("book_id, start_page, end_page, start_time, end_time")
+        .eq("user_id", user.id)
+        .not("end_time", "is", null)
+        .gte("start_time", new Date(Date.now() - 180 * 86400000).toISOString())
+        .limit(200),
+      supabase
+        .from("annotations")
+        .select("book_id")
+        .eq("user_id", user.id),
+    ]);
 
-    const { data: reading } = await supabase
-      .from("user_books")
-      .select("books(title, author, genre)")
-      .eq("user_id", user.id)
-      .eq("status", "reading");
+    // Build annotation count map
+    const annotationMap: Record<string, number> = {};
+    for (const a of annotationCounts ?? []) {
+      annotationMap[a.book_id] = (annotationMap[a.book_id] || 0) + 1;
+    }
 
-    const { data: toRead } = await supabase
-      .from("user_books")
-      .select("books(title, author, genre)")
-      .eq("user_id", user.id)
-      .eq("status", "to_read")
-      .limit(20);
+    // Build reading pace map
+    const bookPace: Record<string, { totalPages: number; totalDays: number }> = {};
+    for (const s of sessions ?? []) {
+      if (!s.end_page || !s.start_page || !s.end_time || !s.start_time) continue;
+      const pages = s.end_page - s.start_page;
+      const hours = (new Date(s.end_time).getTime() - new Date(s.start_time).getTime()) / 3600000;
+      if (pages <= 0 || hours <= 0) continue;
+      if (!bookPace[s.book_id]) bookPace[s.book_id] = { totalPages: 0, totalDays: 0 };
+      bookPace[s.book_id].totalPages += pages;
+      bookPace[s.book_id].totalDays += hours / 24;
+    }
 
-    const formatBooks = (books: any[]) =>
+    // Detect abandoned books
+    const thirtyDaysAgo = Date.now() - 30 * 86400000;
+    const lastSessionByBook: Record<string, number> = {};
+    for (const s of sessions ?? []) {
+      if (!s.end_time) continue;
+      const t = new Date(s.end_time).getTime();
+      if (!lastSessionByBook[s.book_id] || t > lastSessionByBook[s.book_id]) {
+        lastSessionByBook[s.book_id] = t;
+      }
+    }
+
+    const truncate = (text: string | null, maxLen: number): string => {
+      if (!text) return "";
+      return text.length > maxLen ? text.substring(0, maxLen) + "…" : text;
+    };
+
+    const formatFinishedBooks = (books: any[]) =>
+      (books ?? [])
+        .map((b: any) => {
+          const book = b.books;
+          if (!book) return null;
+          const parts = [`- ${book.title}`];
+          if (book.author) parts[0] += ` de ${book.author}`;
+          if (book.genre) parts[0] += ` (${book.genre})`;
+          if (book.page_count) parts[0] += ` [${book.page_count}p]`;
+          const annotations = annotationMap[b.book_id] || 0;
+          const pace = bookPace[b.book_id];
+          const signals: string[] = [];
+          if (annotations > 0) signals.push(`${annotations} annotations`);
+          if (pace && pace.totalDays > 0) {
+            const pagesPerDay = Math.round(pace.totalPages / pace.totalDays);
+            if (pagesPerDay > 100) signals.push("lu rapidement");
+            else if (pagesPerDay < 20 && pace.totalDays > 14) signals.push("lu lentement");
+          }
+          if (signals.length) parts[0] += ` → ${signals.join(", ")}`;
+          if (book.description) parts.push(`  ${truncate(book.description, 120)}`);
+          return parts.join("\n");
+        })
+        .filter(Boolean)
+        .join("\n");
+
+    const formatSimpleBooks = (books: any[]) =>
       (books ?? [])
         .map((b: any) => {
           const book = b.books;
@@ -113,12 +195,18 @@ serve(async (req) => {
         .filter(Boolean)
         .join("\n");
 
-    // Analyse des genres
+    // Analyse des patterns
     const allBooks = [...(finished ?? []), ...(reading ?? [])];
     const genreCounts: Record<string, number> = {};
+    const fictionGenres = new Set(["fiction", "roman", "fantasy", "science-fiction", "sf", "thriller", "policier", "romance", "horreur", "aventure", "literary fiction", "mystery", "comics", "manga", "bd", "poésie", "jeunesse", "young adult"]);
+    let fictionCount = 0, nonFictionCount = 0;
     for (const b of allBooks) {
       const book = b.books;
-      if (book?.genre) genreCounts[book.genre] = (genreCounts[book.genre] || 0) + 1;
+      if (book?.genre) {
+        genreCounts[book.genre] = (genreCounts[book.genre] || 0) + 1;
+        if (fictionGenres.has(book.genre.toLowerCase())) fictionCount++;
+        else nonFictionCount++;
+      }
     }
 
     const topGenres = Object.entries(genreCounts)
@@ -126,11 +214,35 @@ serve(async (req) => {
       .slice(0, 5)
       .map(([genre, count]) => `${genre} (${count} livres)`);
 
+    // Average page count
+    const pageCounts = allBooks.map((b: any) => b.books?.page_count).filter((p: any) => p && p > 0);
+    const avgPages = pageCounts.length
+      ? Math.round(pageCounts.reduce((a: number, b: number) => a + b, 0) / pageCounts.length)
+      : null;
+
+    const abandoned = (reading ?? []).filter((b: any) => {
+      const lastSession = lastSessionByBook[b.book_id];
+      if (!lastSession) return b.created_at && new Date(b.created_at).getTime() < thirtyDaysAgo;
+      return lastSession < thirtyDaysAgo;
+    });
+
+    // Build context
     let userContext = "";
-    if (topGenres.length) userContext += `Genres préférés: ${topGenres.join(", ")}\n\n`;
-    if (finished?.length) userContext += `Livres terminés (${finished.length}):\n${formatBooks(finished)}\n\n`;
-    if (reading?.length) userContext += `En cours de lecture:\n${formatBooks(reading)}\n\n`;
-    if (toRead?.length) userContext += `Liste à lire (NE PAS recommander):\n${formatBooks(toRead)}\n`;
+    const profileParts: string[] = [];
+    if (fictionCount + nonFictionCount > 0) {
+      const fictionPct = Math.round((fictionCount / (fictionCount + nonFictionCount)) * 100);
+      if (fictionPct > 70) profileParts.push("Profil : lecteur majoritairement FICTION");
+      else if (fictionPct < 30) profileParts.push("Profil : lecteur majoritairement NON-FICTION");
+      else profileParts.push(`Profil : lecteur mixte (${fictionPct}% fiction, ${100 - fictionPct}% non-fiction)`);
+    }
+    if (avgPages) profileParts.push(`Longueur moyenne : ${avgPages} pages`);
+    if (profileParts.length) userContext += profileParts.join("\n") + "\n\n";
+
+    if (topGenres.length) userContext += `Genres préférés : ${topGenres.join(", ")}\n\n`;
+    if (finished?.length) userContext += `Livres terminés (${finished.length}):\n${formatFinishedBooks(finished)}\n\n`;
+    if (reading?.length) userContext += `En cours de lecture :\n${formatSimpleBooks(reading)}\n\n`;
+    if (abandoned.length) userContext += `Livres probablement abandonnés :\n${formatSimpleBooks(abandoned)}\n\n`;
+    if (toRead?.length) userContext += `Liste à lire (NE PAS recommander) :\n${formatSimpleBooks(toRead)}\n`;
 
     if (!userContext.trim()) {
       return jsonResponse({ suggestions: [] });
@@ -145,7 +257,7 @@ serve(async (req) => {
           Authorization: `Bearer ${OPENAI_API_KEY}`,
         },
         body: JSON.stringify({
-          model: "gpt-4o-mini",
+          model: "gpt-4o",
           messages: [
             { role: "system", content: SYSTEM_PROMPT },
             {
@@ -154,7 +266,7 @@ serve(async (req) => {
             },
           ],
           max_tokens: 800,
-          temperature: 0.7,
+          temperature: 0.5,
         }),
       }
     );

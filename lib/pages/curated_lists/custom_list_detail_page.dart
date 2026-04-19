@@ -8,6 +8,7 @@ import '../../theme/app_theme.dart';
 import '../../widgets/cached_book_cover.dart';
 import 'add_book_to_list_page.dart';
 import 'create_custom_list_dialog.dart';
+import '../../widgets/constrained_content.dart';
 
 class CustomListDetailPage extends StatefulWidget {
   final UserCustomList list;
@@ -340,7 +341,8 @@ class _CustomListDetailPageState extends State<CustomListDetailPage> {
     final gradientColors = _list.gradientColors;
 
     return Scaffold(
-      body: CustomScrollView(
+      body: ConstrainedContent(
+        child: CustomScrollView(
         slivers: [
           // Header gradient
           SliverAppBar(
@@ -468,6 +470,7 @@ class _CustomListDetailPageState extends State<CustomListDetailPage> {
 
           const SliverToBoxAdapter(child: SizedBox(height: 80)),
         ],
+      ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _addBooks,

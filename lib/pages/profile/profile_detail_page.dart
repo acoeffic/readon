@@ -162,19 +162,6 @@ class _ProfileDetailPageState extends State<ProfileDetailPage> {
               ),
             ),
 
-            const SizedBox(height: AppSpace.m),
-
-            _navButton(
-              context,
-              label: 'Yearly Wrapped 2025',
-              icon: Icons.auto_awesome_outlined,
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const YearlyWrappedScreen(year: 2025),
-                ),
-              ),
-            ),
-
             // ── Debug-only buttons (tree-shaked en release grâce à kDebugMode) ──
             if (kDebugMode) ...[
               const SizedBox(height: AppSpace.m),

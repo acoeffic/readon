@@ -23,6 +23,7 @@ import '../curated_lists/add_book_to_list_page.dart';
 import '../../widgets/cached_book_cover.dart';
 import '../../widgets/constrained_content.dart';
 import '../../theme/app_theme.dart';
+import '../bookstores/nearby_bookstores_page.dart';
 import '../../models/annotation_model.dart';
 import '../../models/feature_flags.dart';
 import '../../models/reading_sheet.dart';
@@ -50,7 +51,7 @@ class _UserBooksPageState extends State<UserBooksPage> {
   Map<String, double> _readingProgress = {};
   bool _isLoading = true;
   String _activeFilter = 'all';
-  bool _luGridView = true;
+  bool _isGridView = true;
   bool _showSearch = false;
   String _searchQuery = '';
 
@@ -124,9 +125,8 @@ class _UserBooksPageState extends State<UserBooksPage> {
       }
 
       _loadReadingProgress();
-      _autoEnrichCovers();
-      _autoEnrichDescriptions();
-      _autoEnrichGenres();
+      // Enrichment is handled once per day by main_navigation.dart
+      // to avoid burning the Google Books API quota.
     } catch (e) {
       debugPrint('Erreur _loadBooks: $e');
     }
@@ -330,10 +330,10 @@ class _UserBooksPageState extends State<UserBooksPage> {
           ),
           IconButton(
             icon: Icon(
-              _luGridView ? LucideIcons.layoutGrid : LucideIcons.list,
+              _isGridView ? LucideIcons.layoutGrid : LucideIcons.list,
               color: AppColors.sageGreen,
             ),
-            onPressed: () => setState(() => _luGridView = !_luGridView),
+            onPressed: () => setState(() => _isGridView = !_isGridView),
           ),
         ],
       ),
@@ -517,22 +517,10 @@ class _UserBooksPageState extends State<UserBooksPage> {
         onSeeAll: () => _pushSeeAll(
             l10n.allReadingBooks, _readingBooksData, false),
       ),
-      SliverToBoxAdapter(
-        child: SizedBox(
-          height: 280,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: _readingBooksData.length,
-            itemBuilder: (context, i) {
-              final book = _readingBooksData[i]['book'] as Book;
-              final progress =
-                  _readingProgress[book.id.toString()] ?? 0.0;
-              return _buildReadingCard(book, progress);
-            },
-          ),
-        ),
-      ),
+      if (_isGridView)
+        _buildReadingGrid(_readingBooksData)
+      else
+        _buildReadingList(_readingBooksData),
     ];
   }
 
@@ -558,74 +546,122 @@ class _UserBooksPageState extends State<UserBooksPage> {
       _sectionHeader(
           title: l10n.currentlyReading,
           count: _readingBooksData.length),
-      SliverToBoxAdapter(
-        child: SizedBox(
-          height: 280,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: _readingBooksData.length,
-            itemBuilder: (context, i) {
-              final book = _readingBooksData[i]['book'] as Book;
-              final progress =
-                  _readingProgress[book.id.toString()] ?? 0.0;
-              return _buildReadingCard(book, progress);
-            },
-          ),
-        ),
-      ),
+      if (_isGridView)
+        _buildReadingGrid(_readingBooksData)
+      else
+        _buildReadingList(_readingBooksData),
     ];
   }
 
-  Widget _buildReadingCard(Book book, double progress) {
-    return GestureDetector(
-      onTap: () => _navigateToBook(book),
-      child: Container(
-        width: 140,
-        margin: const EdgeInsets.only(right: 12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildBookCover(book, 140, 200),
-            const SizedBox(height: 6),
-            Text(book.title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontFamily: 'Inter',
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: _isDark ? AppColors.textPrimaryDark : Colors.black87,
-                )),
-            if (book.author != null && book.author!.isNotEmpty)
-              Text(book.author!,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 11,
-                    color: _isDark
-                        ? AppColors.textSecondaryDark
-                        : AppColors.textSecondary,
-                  )),
-            const SizedBox(height: 4),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(2),
-              child: LinearProgressIndicator(
-                value: progress,
-                minHeight: 4,
-                backgroundColor: _isDark
-                    ? AppColors.borderDark
-                    : Colors.grey.shade200,
-                valueColor: const AlwaysStoppedAnimation<Color>(
-                    AppColors.sageGreen),
+  Widget _buildReadingGrid(List<Map<String, dynamic>> books) {
+    return SliverPadding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      sliver: SliverGrid(
+        delegate: SliverChildBuilderDelegate(
+          (context, i) {
+            final book = books[i]['book'] as Book;
+            final progress = _readingProgress[book.id.toString()] ?? 0.0;
+            return GestureDetector(
+              onTap: () => _navigateToBook(book),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: _buildBookCover(book, double.infinity, double.infinity)),
+                  const SizedBox(height: 4),
+                  Text(book.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: _isDark ? AppColors.textPrimaryDark : Colors.black87,
+                      )),
+                  const SizedBox(height: 2),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(2),
+                    child: LinearProgressIndicator(
+                      value: progress,
+                      minHeight: 3,
+                      backgroundColor: _isDark ? AppColors.borderDark : Colors.grey.shade200,
+                      valueColor: const AlwaysStoppedAnimation<Color>(AppColors.sageGreen),
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ],
+            );
+          },
+          childCount: books.length,
+        ),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 3,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+          childAspectRatio: 0.55,
         ),
       ),
     );
   }
+
+  Widget _buildReadingList(List<Map<String, dynamic>> books) {
+    return SliverList(
+      delegate: SliverChildBuilderDelegate(
+        (context, i) {
+          final book = books[i]['book'] as Book;
+          final progress = _readingProgress[book.id.toString()] ?? 0.0;
+          return ListTile(
+            leading: CachedBookCover(
+              imageUrl: book.coverUrl,
+              isbn: book.isbn,
+              googleId: book.googleId,
+              title: book.title,
+              author: book.author,
+              width: 45,
+              height: 65,
+              borderRadius: BorderRadius.circular(6),
+            ),
+            title: Text(book.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                    fontFamily: 'Inter', fontSize: 14, fontWeight: FontWeight.w500)),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (book.author != null && book.author!.isNotEmpty)
+                  Text(book.author!,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 12,
+                        color: _isDark
+                            ? AppColors.textSecondaryDark
+                            : AppColors.textSecondary,
+                      )),
+                const SizedBox(height: 4),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(2),
+                  child: LinearProgressIndicator(
+                    value: progress,
+                    minHeight: 3,
+                    backgroundColor: _isDark ? AppColors.borderDark : Colors.grey.shade200,
+                    valueColor: const AlwaysStoppedAnimation<Color>(AppColors.sageGreen),
+                  ),
+                ),
+              ],
+            ),
+            trailing: const Icon(LucideIcons.chevronRight,
+                size: 16, color: AppColors.sageGreen),
+            onTap: () => _navigateToBook(book),
+          );
+        },
+        childCount: books.length,
+      ),
+    );
+  }
+
+
 
   // "Lu" section
   List<Widget> _buildFinishedSection(AppLocalizations l10n) {
@@ -636,17 +672,8 @@ class _UserBooksPageState extends State<UserBooksPage> {
         count: _finishedBooksData.length,
         onSeeAll: () => _pushSeeAll(
             l10n.allFinishedBooks, _finishedBooksData, true),
-        trailing: IconButton(
-          icon: Icon(
-            _luGridView ? LucideIcons.layoutGrid : LucideIcons.list,
-            size: 18,
-            color: AppColors.sageGreen,
-          ),
-          onPressed: () => setState(() => _luGridView = !_luGridView),
-          visualDensity: VisualDensity.compact,
-        ),
       ),
-      if (_luGridView)
+      if (_isGridView)
         _buildFinishedGrid(books)
       else
         _buildFinishedList(books),
@@ -675,17 +702,8 @@ class _UserBooksPageState extends State<UserBooksPage> {
       _sectionHeader(
         title: l10n.readBooks,
         count: _finishedBooksData.length,
-        trailing: IconButton(
-          icon: Icon(
-            _luGridView ? LucideIcons.layoutGrid : LucideIcons.list,
-            size: 18,
-            color: AppColors.sageGreen,
-          ),
-          onPressed: () => setState(() => _luGridView = !_luGridView),
-          visualDensity: VisualDensity.compact,
-        ),
       ),
-      if (_luGridView)
+      if (_isGridView)
         _buildFinishedGrid(_finishedBooksData)
       else
         _buildFinishedList(_finishedBooksData),
@@ -1072,6 +1090,7 @@ class BookDetailPage extends StatefulWidget {
 }
 
 class _BookDetailPageState extends State<BookDetailPage> {
+  bool get _isDark => Theme.of(context).brightness == Brightness.dark;
   final ReadingSessionService _sessionService = ReadingSessionService();
   final BooksService _booksService = BooksService();
   final UserCustomListsService _customListsService = UserCustomListsService();
@@ -1434,6 +1453,14 @@ class _BookDetailPageState extends State<BookDetailPage> {
     return icons[genre] ?? Icons.bookmark;
   }
 
+  Future<void> _openBookstoreLink() async {
+    final query = Uri.encodeComponent(
+      '${widget.book.title} ${widget.book.author ?? ''}'.trim(),
+    );
+    final url = Uri.parse('https://www.leslibraires.fr/recherche?q=$query');
+    await launchUrl(url, mode: LaunchMode.externalApplication);
+  }
+
   Future<void> _openAmazonLink() async {
     final query = Uri.encodeComponent(
       '${widget.book.title} ${widget.book.author ?? ''}'.trim(),
@@ -1554,25 +1581,26 @@ class _BookDetailPageState extends State<BookDetailPage> {
       appBar: AppBar(
         title: Text(widget.book.title),
         actions: [
-          IconButton(
-            icon: Icon(
-              _isHidden ? Icons.visibility_off : Icons.visibility,
-              color: _isHidden ? Colors.orange : null,
+          if (widget.sharedByUserId == null) ...[
+            IconButton(
+              icon: Icon(
+                _isHidden ? Icons.visibility_off : Icons.visibility,
+                color: _isHidden ? Colors.orange : null,
+              ),
+              tooltip: _isHidden ? 'Livre masqué aux autres' : 'Masquer ce livre',
+              onPressed: _toggleHidden,
             ),
-            tooltip: _isHidden ? 'Livre masqué aux autres' : 'Masquer ce livre',
-            onPressed: _toggleHidden,
-          ),
-          IconButton(
-            icon: const Icon(Icons.delete_outline),
-            tooltip: AppLocalizations.of(context).removeFromLibraryTitle,
-            onPressed: _removeFromLibrary,
-          ),
+            IconButton(
+              icon: const Icon(Icons.delete_outline),
+              tooltip: AppLocalizations.of(context).removeFromLibraryTitle,
+              onPressed: _removeFromLibrary,
+            ),
+          ],
         ],
       ),
       body: SingleChildScrollView(
         child: Column(
           children: [
-            if (_sharerName != null) _buildSharedByBanner(),
             _buildBookHeader(),
             if (!_isLoading && _bookStatus != null) _buildReadingSessionSection(),
             if (_stats != null && _stats!.sessionsCount > 0) _buildStatsSection(),
@@ -1676,12 +1704,12 @@ class _BookDetailPageState extends State<BookDetailPage> {
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
                       color: _currentGenre != null
-                          ? Theme.of(context).primaryColor.withValues(alpha: 0.2)
+                          ? AppColors.primary.withValues(alpha: _isDark ? 0.35 : 0.2)
                           : Theme.of(context).colorScheme.surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
                         color: _currentGenre != null
-                            ? Theme.of(context).primaryColor.withValues(alpha: 0.3)
+                            ? AppColors.primary.withValues(alpha: _isDark ? 0.6 : 0.3)
                             : Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
                       ),
                     ),
@@ -1694,7 +1722,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
                               : Icons.add,
                           size: 14,
                           color: _currentGenre != null
-                              ? Theme.of(context).primaryColor
+                              ? (_isDark ? AppColors.primary : Theme.of(context).primaryColor)
                               : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                         ),
                         const SizedBox(width: 4),
@@ -1703,7 +1731,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
                           style: TextStyle(
                             fontSize: 12,
                             color: _currentGenre != null
-                                ? Theme.of(context).primaryColor
+                                ? (_isDark ? AppColors.primary : Theme.of(context).primaryColor)
                                 : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                           ),
                         ),
@@ -1747,28 +1775,88 @@ class _BookDetailPageState extends State<BookDetailPage> {
                 GestureDetector(
                   onTap: _openAmazonLink,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFF9900).withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(16),
+                      color: const Color(0xFFFF9900).withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(18),
                       border: Border.all(
-                        color: const Color(0xFFFF9900).withValues(alpha: 0.3),
+                        color: const Color(0xFFFF9900).withValues(alpha: 0.4),
                       ),
                     ),
-                    child: const Row(
+                    child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(
+                        const Icon(
                           LucideIcons.shoppingCart,
-                          size: 14,
+                          size: 16,
                           color: Color(0xFFFF9900),
                         ),
-                        SizedBox(width: 4),
+                        const SizedBox(width: 6),
                         Text(
-                          'Acheter sur Amazon',
-                          style: TextStyle(
-                            fontSize: 12,
+                          AppLocalizations.of(context)!.buyOnAmazon,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
                             color: Color(0xFFFF9900),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                GestureDetector(
+                  onTap: _openBookstoreLink,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF6B988D).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: const Color(0xFF6B988D).withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text('\u{1F4D6}', style: TextStyle(fontSize: 12)),
+                        const SizedBox(width: 4),
+                        Text(
+                          AppLocalizations.of(context)!.inBookstore,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF6B988D),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                GestureDetector(
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const NearbyBookstoresPage()),
+                  ),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF6B988D).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: const Color(0xFF6B988D).withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text('\u{1F3EA}', style: TextStyle(fontSize: 12)),
+                        const SizedBox(width: 4),
+                        Text(
+                          AppLocalizations.of(context)!.findNearMe,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF6B988D),
                           ),
                         ),
                       ],

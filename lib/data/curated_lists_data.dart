@@ -11,7 +11,7 @@ const List<CuratedList> kCuratedLists = [
     description:
         'Une sélection des chefs-d\'œuvre littéraires que tout lecteur devrait découvrir au moins une fois.',
     icon: LucideIcons.landmark,
-    gradientColors: [Color(0xFFF5E6C8), Color(0xFFD4A853), Color(0xFF8B6914)],
+    gradientColors: [Color(0xFFE8D5B7), Color(0xFFBFA57A), Color(0xFF9C8256)],
     books: [
       CuratedBookEntry(
         isbn: '9782070360024',
@@ -74,7 +74,7 @@ const List<CuratedList> kCuratedLists = [
     description:
         'Les romans de science-fiction qui repoussent les frontières de l\'imagination et questionnent notre humanité.',
     icon: LucideIcons.rocket,
-    gradientColors: [Color(0xFF1A1A2E), Color(0xFF4A2D8B), Color(0xFF7B68EE)],
+    gradientColors: [Color(0xFFB8C5E2), Color(0xFF8A9DC7), Color(0xFF6B7FAA)],
     books: [
       CuratedBookEntry(
         isbn: '9782070368228',
@@ -127,7 +127,7 @@ const List<CuratedList> kCuratedLists = [
     description:
         'Les plumes françaises qui ont rayonné à travers le monde et continuent d\'inspirer des générations de lecteurs.',
     icon: LucideIcons.penTool,
-    gradientColors: [Color(0xFFE8F0FE), Color(0xFF4A90D9), Color(0xFF1B4D7A)],
+    gradientColors: [Color(0xFFD0DEF0), Color(0xFF8AACC8), Color(0xFF6B8EAD)],
     books: [
       CuratedBookEntry(
         isbn: '9782070360024',
@@ -190,7 +190,7 @@ const List<CuratedList> kCuratedLists = [
     description:
         'Des intrigues haletantes, des rebondissements inattendus et des nuits blanches garanties.',
     icon: LucideIcons.search,
-    gradientColors: [Color(0xFF1A1A1A), Color(0xFF8B1A1A), Color(0xFFDC3545)],
+    gradientColors: [Color(0xFFE8CACA), Color(0xFFC49090), Color(0xFFA67272)],
     books: [
       CuratedBookEntry(
         isbn: '9782253176787',
@@ -253,7 +253,7 @@ const List<CuratedList> kCuratedLists = [
     description:
         'Les livres qui changent les perspectives, développent la résilience et inspirent à devenir la meilleure version de soi.',
     icon: LucideIcons.brain,
-    gradientColors: [Color(0xFFD8F3DC), Color(0xFF52B788), Color(0xFF2D6A4F)],
+    gradientColors: [Color(0xFFD2E4D8), Color(0xFF8FB9A0), Color(0xFF6D9A80)],
     books: [
       CuratedBookEntry(
         isbn: '9782266289160',
@@ -316,7 +316,7 @@ const List<CuratedList> kCuratedLists = [
     description:
         'Des romans du monde entier qui ouvrent des fenêtres sur des cultures et des réalités différentes.',
     icon: LucideIcons.globe2,
-    gradientColors: [Color(0xFFE0F7FA), Color(0xFF26A69A), Color(0xFF004D40)],
+    gradientColors: [Color(0xFFD4E8E4), Color(0xFF89B8AD), Color(0xFF6A9B8F)],
     books: [
       CuratedBookEntry(
         isbn: '9782070360536',
@@ -379,7 +379,7 @@ const List<CuratedList> kCuratedLists = [
     description:
         'Parfait pour une lecture rapide sans compromis sur la qualité. Des romans courts qui frappent fort.',
     icon: LucideIcons.zap,
-    gradientColors: [Color(0xFFF3E5F5), Color(0xFFAB47BC), Color(0xFF6A1B9A)],
+    gradientColors: [Color(0xFFE0D4E8), Color(0xFFA68CB8), Color(0xFF8B7099)],
     books: [
       CuratedBookEntry(
         isbn: '9782070360024',
@@ -442,7 +442,7 @@ const List<CuratedList> kCuratedLists = [
     description:
         'Des romans doux et enveloppants, parfaits pour se blottir sous un plaid quand la pluie tambourine aux carreaux.',
     icon: LucideIcons.cloudRain,
-    gradientColors: [Color(0xFFE0E8F0), Color(0xFF7B9CB5), Color(0xFF3D5A73)],
+    gradientColors: [Color(0xFFD8E2EC), Color(0xFF9BB3C7), Color(0xFF7A96AC)],
     books: [
       CuratedBookEntry(
         isbn: '9782070440252',
@@ -506,7 +506,7 @@ const List<CuratedList> kCuratedLists = [
     description:
         'Des histoires bouleversantes qui touchent en plein cœur. Préparez les mouchoirs.',
     icon: LucideIcons.heartCrack,
-    gradientColors: [Color(0xFFF5E6F0), Color(0xFFD4789B), Color(0xFF8B2252)],
+    gradientColors: [Color(0xFFEDD8E4), Color(0xFFC499AE), Color(0xFFA67B90)],
     books: [
       CuratedBookEntry(
         isbn: '9782811215576',
@@ -569,7 +569,7 @@ const List<CuratedList> kCuratedLists = [
     description:
         'Des livres hilarants qui donnent le sourire dès la première page. Idéal pour décompresser.',
     icon: LucideIcons.laugh,
-    gradientColors: [Color(0xFFFFF9C4), Color(0xFFFFD54F), Color(0xFFF57F17)],
+    gradientColors: [Color(0xFFF0E6C8), Color(0xFFD4C08A), Color(0xFFB8A46E)],
     books: [
       CuratedBookEntry(
         isbn: '9782070437436',
@@ -632,7 +632,7 @@ const List<CuratedList> kCuratedLists = [
     description:
         'Des page-turners parfaits pour la plage, le hamac ou le bord de la piscine. Impossible de les lâcher.',
     icon: LucideIcons.palmtree,
-    gradientColors: [Color(0xFFFFF3E0), Color(0xFFFF8A65), Color(0xFFD84315)],
+    gradientColors: [Color(0xFFEDE0D0), Color(0xFFCAAE8E), Color(0xFFAD9272)],
     books: [
       CuratedBookEntry(
         isbn: '9782253004011',
@@ -695,7 +695,7 @@ const List<CuratedList> kCuratedLists = [
     description:
         'Des livres impossibles à poser. Suspense, rebondissements et nuits blanches au programme.',
     icon: LucideIcons.flame,
-    gradientColors: [Color(0xFF2D2D2D), Color(0xFFB33A00), Color(0xFFFF5722)],
+    gradientColors: [Color(0xFFDED0C4), Color(0xFFBDA48C), Color(0xFFA08A72)],
     books: [
       CuratedBookEntry(
         isbn: '9782266233934',
@@ -758,7 +758,7 @@ const List<CuratedList> kCuratedLists = [
     description:
         '10 lauréats incontournables du prix Nobel de littérature, chacun d\'une époque et d\'un horizon différents.',
     icon: LucideIcons.award,
-    gradientColors: [Color(0xFFFFF8E1), Color(0xFFD4AF37), Color(0xFF8B6914)],
+    gradientColors: [Color(0xFFE8DCC8), Color(0xFFC4AE86), Color(0xFFA69368)],
     books: [
       CuratedBookEntry(
         isbn: '9782070360024',
@@ -821,7 +821,7 @@ const List<CuratedList> kCuratedLists = [
     description:
         'Un livre par discipline pour explorer la science sans prise de tête. Du Big Bang aux maths en passant par l\'évolution.',
     icon: LucideIcons.atom,
-    gradientColors: [Color(0xFFE3F2FD), Color(0xFF42A5F5), Color(0xFF0D47A1)],
+    gradientColors: [Color(0xFFD0DFEE), Color(0xFF8AADC8), Color(0xFF6D90AA)],
     books: [
       CuratedBookEntry(
         isbn: '9782080297136',

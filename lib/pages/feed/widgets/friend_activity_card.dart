@@ -59,14 +59,14 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
   }
 
   Future<void> _loadCommentCount() async {
-    final activityId = widget.activity['id'] as int;
+    final activityId = (widget.activity['activity_id'] ?? widget.activity['id']) as int;
     final count = await commentsService.getCommentCount(activityId);
     if (!mounted) return;
     setState(() => _commentCount = count);
   }
 
   void _showCommentsSheet() {
-    final activityId = widget.activity['id'] as int;
+    final activityId = (widget.activity['activity_id'] ?? widget.activity['id']) as int;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -81,26 +81,31 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
     final payload = widget.activity['payload'] as Map<String, dynamic>?;
     if (payload == null) return;
 
-    final bookId = payload['book_id'];
-    if (bookId == null) {
-      final existingTitle = payload['book_title'] as String?;
-      if (existingTitle != null && mounted) {
-        setState(() {
-          _bookTitle = existingTitle;
-          _bookAuthor = payload['book_author'] as String?;
-          _bookCover = payload['book_cover'] as String?;
-          _bookIsbn = payload['book_isbn'] as String?;
-          _bookGoogleId = payload['book_google_id'] as String?;
-        });
-      }
-      return;
+    // D'abord utiliser les données dénormalisées du payload si disponibles
+    final existingTitle = payload['book_title'] as String?;
+    if (existingTitle != null && mounted) {
+      setState(() {
+        _bookTitle = existingTitle;
+        _bookAuthor = payload['book_author'] as String?;
+        _bookCover = payload['book_cover'] as String?;
+        _bookIsbn = payload['book_isbn'] as String?;
+        _bookGoogleId = payload['book_google_id'] as String?;
+      });
     }
+
+    final rawBookId = payload['book_id'];
+    if (rawBookId == null) return;
+    final bookIdInt = rawBookId is int ? rawBookId : int.tryParse(rawBookId.toString());
+    if (bookIdInt == null) return;
+
+    // Fallback sur la table books si des infos manquent
+    if (_bookTitle != null && _bookCover != null && _bookIsbn != null) return;
 
     try {
       final book = await supabase
           .from('books')
           .select('title, author, cover_url, page_count, isbn, google_id')
-          .eq('id', bookId)
+          .eq('id', bookIdInt)
           .maybeSingle();
       if (!mounted || book == null) return;
       setState(() {
@@ -118,7 +123,7 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
 
   Future<void> _loadReactions() async {
     try {
-      final activityId = widget.activity['id'] as int;
+      final activityId = (widget.activity['activity_id'] ?? widget.activity['id']) as int;
       final data = await reactionService.getReactions(activityId);
       if (!mounted) return;
       setState(() {
@@ -143,7 +148,7 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
   }
 
   Future<void> _toggleReaction(String emoji) async {
-    final activityId = widget.activity['id'] as int;
+    final activityId = (widget.activity['activity_id'] ?? widget.activity['id']) as int;
     final previousCounts = Map<String, int>.from(_reactionCounts);
     final previousUserEmoji = _userEmoji;
 

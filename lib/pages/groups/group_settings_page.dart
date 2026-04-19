@@ -9,6 +9,7 @@ import '../../theme/app_theme.dart';
 import '../../models/reading_group.dart';
 import '../../services/groups_service.dart';
 import 'group_members_page.dart';
+import '../../widgets/constrained_content.dart';
 
 const _kBg = Color(0xFFFAF3E8);
 const _kCard = Color(0xFFF0E8D8);
@@ -103,8 +104,8 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
 
       final XFile? image = await _picker.pickImage(
         source: source,
-        maxWidth: 800,
-        maxHeight: 800,
+        maxWidth: 1200,
+        maxHeight: 600,
         imageQuality: 85,
       );
 
@@ -290,6 +291,7 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
     return Scaffold(
       backgroundColor: bg,
       body: SafeArea(
+        child: ConstrainedContent(
         child: Column(
           children: [
             // Header
@@ -586,6 +588,7 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
               ),
             ),
           ],
+        ),
         ),
       ),
     );

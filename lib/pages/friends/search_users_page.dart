@@ -11,6 +11,7 @@ import '../../models/reading_group.dart';
 import '../../models/user_search_result.dart';
 import '../groups/group_detail_page.dart';
 import 'friend_profile_page.dart';
+import '../../widgets/constrained_content.dart';
 
 class SearchUsersPage extends StatefulWidget {
   const SearchUsersPage({super.key});
@@ -303,6 +304,7 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
+        child: ConstrainedContent(
         child: Padding(
           padding: const EdgeInsets.all(AppSpace.l),
           child: Column(
@@ -465,6 +467,7 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
               ),
             ],
           ),
+        ),
         ),
       ),
     );

@@ -61,6 +61,21 @@ class FlowFreezeStatus {
     );
   }
 
+  Map<String, dynamic> toJson() {
+    return {
+      'is_premium': isPremium,
+      'can_freeze': canFreeze,
+      'can_manual_freeze': canManualFreeze,
+      'auto_freezes_this_month': autoFreezesThisMonth,
+      'auto_freeze_limit': autoFreezeLimit,
+      'auto_freezes_remaining': autoFreezesRemaining,
+      'consecutive_frozen_days': consecutiveFrozenDays,
+      'max_consecutive': maxConsecutive,
+      'last_freeze_date': lastFreezeDate?.toIso8601String(),
+      'month_start': monthStart.toIso8601String(),
+    };
+  }
+
   /// Auto-freezes illimités ?
   bool get isUnlimited => autoFreezeLimit == -1;
 

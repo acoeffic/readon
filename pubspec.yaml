@@ -78,6 +78,8 @@ dependencies:
   firebase_core: ^3.12.1                     # Firebase core SDK
   firebase_messaging: ^15.2.4                # Firebase Cloud Messaging (push notifications)
   shimmer: ^3.0.0                              # Skeleton loading animations
+  hive: ^2.2.3                                  # Local NoSQL database
+  hive_flutter: ^1.1.0                          # Hive Flutter integration
 
 dev_dependencies:
   flutter_test:

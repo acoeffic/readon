@@ -7,6 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/book.dart';
 import '../pages/books/user_books_page.dart';
 import '../pages/groups/groups_page.dart';
+import '../pages/reading/start_reading_session_page_unified.dart';
 import 'books_service.dart';
 import 'notion_service.dart';
 import 'monthly_notification_service.dart';
@@ -45,6 +46,12 @@ class DeepLinkService {
       return;
     }
 
+    // lexday://start-session (from iOS widget)
+    if (uri.host == 'start-session') {
+      _navigateToCurrentBook();
+      return;
+    }
+
     // lexday://book/{bookId}?from={userId}
     if (uri.host == 'book') {
       final bookIdStr = uri.pathSegments.isNotEmpty ? uri.pathSegments.first : null;
@@ -66,6 +73,25 @@ class DeepLinkService {
         MaterialPageRoute(builder: (_) => const GroupsPage()),
       );
       return;
+    }
+  }
+
+  Future<void> _navigateToCurrentBook() async {
+    final nav = navigatorKey.currentState;
+    if (nav == null) return;
+
+    try {
+      final currentBookData = await BooksService().getCurrentReadingBook();
+      if (currentBookData == null) return;
+
+      final book = currentBookData['book'] as Book;
+      nav.push(
+        MaterialPageRoute(
+          builder: (_) => StartReadingSessionPageUnified(book: book),
+        ),
+      );
+    } catch (e) {
+      debugPrint('DeepLinkService: cannot navigate to current book — $e');
     }
   }
 

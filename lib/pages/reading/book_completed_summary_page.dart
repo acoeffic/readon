@@ -8,12 +8,16 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/book.dart';
 import '../../models/reading_session.dart';
+import '../../models/feature_flags.dart';
 import '../../providers/subscription_provider.dart';
 import '../../pages/profile/upgrade_page.dart';
 import '../../services/reading_session_service.dart';
+import '../../services/books_service.dart';
 import '../../services/badges_service.dart';
+import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/cached_book_cover.dart';
+import '../../widgets/constrained_content.dart';
 import 'book_finished_share_service.dart';
 
 class BookCompletedSummaryPage extends StatefulWidget {
@@ -34,6 +38,7 @@ class BookCompletedSummaryPage extends StatefulWidget {
 class _BookCompletedSummaryPageState extends State<BookCompletedSummaryPage>
     with TickerProviderStateMixin {
   final ReadingSessionService _sessionService = ReadingSessionService();
+  final BooksService _booksService = BooksService();
   final BadgesService _badgesService = BadgesService();
   BookReadingStats? _stats;
   List<ReadingSession> _sessions = [];
@@ -93,6 +98,44 @@ class _BookCompletedSummaryPageState extends State<BookCompletedSummaryPage>
     } catch (e) {
       debugPrint('Erreur loadData: $e');
       if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _removeFromLibrary() async {
+    final l10n = AppLocalizations.of(context);
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.removeFromLibraryTitle),
+        content: Text(l10n.removeFromLibraryMessage(widget.book.title)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(l10n.removeFromLibraryAction),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+    try {
+      await _booksService.removeBookFromLibrary(widget.book.id);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.bookRemovedFromLibrary)),
+        );
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red),
+        );
+      }
     }
   }
 
@@ -192,8 +235,9 @@ class _BookCompletedSummaryPageState extends State<BookCompletedSummaryPage>
 
           // ── Main content ──
           SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            child: ConstrainedContent(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               child: _isLoading
                   ? const Padding(
                       padding: EdgeInsets.only(top: 100),
@@ -223,6 +267,7 @@ class _BookCompletedSummaryPageState extends State<BookCompletedSummaryPage>
                         const SizedBox(height: 24),
                       ],
                     ),
+              ),
             ),
           ),
         ],
@@ -318,7 +363,31 @@ class _BookCompletedSummaryPageState extends State<BookCompletedSummaryPage>
           ),
         ),
         const Spacer(),
-        const SizedBox(width: 40),
+        GestureDetector(
+          onTap: _removeFromLibrary,
+          child: Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.white,
+              shape: BoxShape.circle,
+              boxShadow: isDark
+                  ? null
+                  : [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.06),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+            ),
+            child: Icon(
+              Icons.delete_outline,
+              size: 20,
+              color: isDark ? Colors.white : Colors.black87,
+            ),
+          ),
+        ),
       ],
     );
   }

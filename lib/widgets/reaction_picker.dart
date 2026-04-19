@@ -2,6 +2,7 @@
 // Bottom sheet de sélection de réaction emoji
 
 import 'package:flutter/material.dart';
+import '../models/feature_flags.dart';
 import '../services/reaction_service.dart';
 import '../pages/profile/upgrade_page.dart';
 import '../theme/app_theme.dart';

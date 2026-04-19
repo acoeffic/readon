@@ -7,6 +7,7 @@ import '../../models/feature_flags.dart';
 import '../../services/chat_service.dart';
 import '../../providers/subscription_provider.dart';
 import 'ai_chat_page.dart';
+import '../../widgets/constrained_content.dart';
 
 class AiConversationsPage extends StatefulWidget {
   const AiConversationsPage({super.key});
@@ -94,6 +95,7 @@ class _AiConversationsPageState extends State<AiConversationsPage> {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
+        child: ConstrainedContent(
         child: Column(
           children: [
             _buildHeader(context),
@@ -121,6 +123,7 @@ class _AiConversationsPageState extends State<AiConversationsPage> {
                         ),
             ),
           ],
+        ),
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(

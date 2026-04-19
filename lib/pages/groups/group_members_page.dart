@@ -5,6 +5,7 @@ import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../models/reading_group.dart';
 import '../../services/groups_service.dart';
+import '../../widgets/constrained_content.dart';
 
 const _kSageGreen = Color(0xFF6B988D);
 
@@ -406,6 +407,7 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
+        child: ConstrainedContent(
         child: Column(
           children: [
             Padding(
@@ -559,6 +561,7 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
                         ),
             ),
           ],
+        ),
         ),
       ),
     );

@@ -4,6 +4,7 @@
   import '../../theme/app_theme.dart';
   import '../../navigation/main_navigation.dart';
   import '../../services/monthly_notification_service.dart';
+  import '../../services/feed_prefetcher.dart';
   import '../../services/push_notification_service.dart';
   import '../../services/subscription_service.dart';
   import '../onboarding/onboarding_page.dart';
@@ -73,6 +74,7 @@
         final completed = profile['onboarding_completed'] == true;
 
         if (!mounted) return;
+        if (completed) FeedPrefetcher.start();
         setState(() {
           _destination =
               completed ? const MainNavigation() : const OnboardingPage();
@@ -89,7 +91,7 @@
         if (Supabase.instance.client.auth.currentUser != null) {
           await PushNotificationService().initialize();
           // Schedule reading reminders from user profile settings
-          _scheduleReadingRemindersFromProfile();
+          await _scheduleReadingRemindersFromProfile();
         }
       }
     }

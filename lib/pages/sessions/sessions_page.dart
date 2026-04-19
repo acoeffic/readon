@@ -4,6 +4,7 @@ import '../../models/reading_session.dart';
 import '../../models/book.dart';
 import '../../services/reading_session_service.dart';
 import '../../widgets/cached_book_cover.dart';
+import '../../widgets/constrained_content.dart';
 import 'session_detail_page.dart';
 
 class SessionsPage extends StatefulWidget {
@@ -90,14 +91,16 @@ class _SessionsPageState extends State<SessionsPage> {
       appBar: AppBar(
         title: Text(AppLocalizations.of(context).mySessions),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _sessionsData.isEmpty
-              ? _buildEmptyState()
-              : RefreshIndicator(
-                  onRefresh: _loadSessions,
-                  child: _buildSessionsList(),
-                ),
+      body: ConstrainedContent(
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : _sessionsData.isEmpty
+                ? _buildEmptyState()
+                : RefreshIndicator(
+                    onRefresh: _loadSessions,
+                    child: _buildSessionsList(),
+                  ),
+      ),
     );
   }
 

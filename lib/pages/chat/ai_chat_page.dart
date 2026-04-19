@@ -16,6 +16,7 @@ import '../../services/user_custom_lists_service.dart';
 import '../../models/user_custom_list.dart';
 import '../profile/upgrade_page.dart';
 import '../curated_lists/create_custom_list_dialog.dart';
+import '../../widgets/constrained_content.dart';
 
 class AiChatPage extends StatefulWidget {
   final int? conversationId;
@@ -183,6 +184,7 @@ class _AiChatPageState extends State<AiChatPage> {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
+        child: ConstrainedContent(
         child: Column(
           children: [
             _buildHeader(context),
@@ -210,6 +212,7 @@ class _AiChatPageState extends State<AiChatPage> {
             if (_error != null) _buildErrorBanner(),
             if (!_limitReached) _buildInputBar(isDark),
           ],
+        ),
         ),
       ),
     );
