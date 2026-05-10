@@ -46,7 +46,7 @@
     <a class="back" href="index.html">&larr; Retour</a>
 
     <h1>Politique de confidentialité</h1>
-    <p class="subtitle">Dernière mise à jour : 05/03/2026</p>
+    <p class="subtitle">Dernière mise à jour : 10/05/2026</p>
 
     <h2>1. Responsable du traitement</h2>
     <p>Les données personnelles collectées via l'application <strong>LexDay</strong> sont traitées par :</p>
@@ -65,80 +65,107 @@
       <li>Adresse email</li>
       <li>Nom d'utilisateur / pseudonyme</li>
       <li>Photo de profil (facultative)</li>
-      <li>Contenus publiés (lectures, commentaires, avis, interactions)</li>
+      <li>Contenus publiés (lectures, annotations textuelles ou vocales, commentaires, avis, interactions)</li>
     </ul>
 
     <h3>2.2 Données liées à l'usage de l'Application</h3>
     <ul>
-      <li>Livres suivis ou enregistrés</li>
-      <li>Activité de lecture (progression, historique)</li>
+      <li>Livres suivis ou enregistrés (titre, auteur, ISBN, couverture)</li>
+      <li>Activité de lecture (sessions, durées, progression, historique)</li>
       <li>Participation à des défis, badges ou classements</li>
+      <li>Préférences utilisateur (rappels, notifications, langue)</li>
     </ul>
 
-    <h3>2.3 Données techniques</h3>
+    <h3>2.3 Données collectées via les autorisations de l'appareil</h3>
+    <p>Avec votre accord explicite donné lors de la première utilisation de la fonctionnalité concernée, l'Application peut accéder à :</p>
     <ul>
-      <li>Type d'appareil</li>
-      <li>Système d'exploitation</li>
-      <li>Adresse IP (de manière indirecte)</li>
-      <li>Logs techniques nécessaires au fonctionnement et à la sécurité</li>
+      <li><strong>Caméra</strong> — pour photographier les couvertures de livres et scanner les codes-barres ISBN. Les images sont traitées localement (reconnaissance de texte via Google ML Kit on-device) et seule la couverture enregistrée par l'Utilisateur est sauvegardée.</li>
+      <li><strong>Microphone</strong> — pour enregistrer des annotations vocales associées à vos lectures. Les enregistrements sont stockés sur votre compte LexDay et ne sont jamais analysés automatiquement.</li>
+      <li><strong>Localisation</strong> — uniquement pour la fonctionnalité « librairies à proximité ». La position GPS n'est jamais enregistrée sur nos serveurs.</li>
+      <li><strong>Contacts</strong> — uniquement si vous demandez à inviter ou retrouver des amis sur LexDay. Aucune donnée de contact n'est transmise sans votre action explicite.</li>
+      <li><strong>Photos / médias</strong> — pour vous permettre de choisir une image dans votre galerie ou d'enregistrer une carte de partage générée par l'Application.</li>
+      <li><strong>Notifications</strong> — pour vous envoyer rappels de lecture et notifications de l'Application.</li>
     </ul>
+
+    <h3>2.4 Données techniques</h3>
+    <ul>
+      <li>Type d'appareil et système d'exploitation</li>
+      <li>Adresse IP (collectée indirectement)</li>
+      <li>Identifiants techniques nécessaires au service (token de notification push, identifiant anonyme d'installation)</li>
+      <li>Logs techniques nécessaires au fonctionnement et à la sécurité</li>
+      <li>Événements d'usage agrégés et pseudonymisés (écrans visités, fonctionnalités utilisées) à des fins d'amélioration produit</li>
+    </ul>
+
+    <h3>2.5 Données de paiement</h3>
+    <p>L'Application propose des abonnements payants. Les transactions sont gérées exclusivement par Apple (App Store) et Google (Google Play Billing). LexDay ne reçoit ni vos coordonnées bancaires, ni le détail de votre paiement. Notre prestataire RevenueCat reçoit uniquement un identifiant pseudonyme d'abonnement et son statut (actif, expiré, etc.) pour gérer vos droits d'accès aux fonctionnalités premium.</p>
 
     <h2>3. Finalités du traitement</h2>
     <p>Les données personnelles sont collectées pour les finalités suivantes :</p>
     <ul>
-      <li>Création et gestion du compte utilisateur</li>
-      <li>Fonctionnement des fonctionnalités sociales de LexDay</li>
-      <li>Affichage de l'activité de lecture et des interactions</li>
-      <li>Amélioration de l'expérience utilisateur</li>
+      <li>Création et gestion du compte utilisateur, y compris via Sign in with Apple ou Connexion Google</li>
+      <li>Fonctionnement des fonctionnalités de lecture, annotation et statistiques</li>
+      <li>Fonctionnement des fonctionnalités sociales (interactions, défis, classements)</li>
+      <li>Gestion des abonnements et des droits d'accès premium</li>
+      <li>Envoi de notifications push (rappels de lecture, communications liées au service)</li>
+      <li>Amélioration de l'expérience utilisateur via des analytics pseudonymisés</li>
       <li>Sécurité et prévention des abus</li>
-      <li>Communication liée au service (notifications, informations importantes)</li>
+      <li>Communication liée au service</li>
     </ul>
 
     <h2>4. Base légale du traitement</h2>
     <p>Les traitements sont fondés sur :</p>
     <ul>
-      <li><strong>L'exécution du contrat</strong> (utilisation de l'Application)</li>
-      <li><strong>Le consentement de l'Utilisateur</strong> (contenus publiés, communications facultatives)</li>
-      <li><strong>L'intérêt légitime</strong> du Responsable du traitement (sécurité, amélioration du service)</li>
+      <li><strong>L'exécution du contrat</strong> (création de compte, fonctionnement de l'Application, gestion des abonnements)</li>
+      <li><strong>Le consentement de l'Utilisateur</strong> (accès caméra, micro, localisation, contacts ; envoi de notifications ; partage de contenus publics ; communications marketing facultatives)</li>
+      <li><strong>L'intérêt légitime</strong> du Responsable du traitement (sécurité, prévention des abus, amélioration du service via analytics pseudonymisés)</li>
     </ul>
 
     <h2>5. Caractère obligatoire ou facultatif des données</h2>
     <ul>
       <li>Les données nécessaires à la création du compte sont obligatoires</li>
-      <li>Les données de profil et de publication sont facultatives</li>
-      <li>L'absence de certaines données peut limiter l'accès à certaines fonctionnalités</li>
+      <li>Les autres données (profil, contenus, autorisations système) sont facultatives</li>
+      <li>Le refus d'une autorisation système n'empêche pas l'usage de l'Application mais peut désactiver la fonctionnalité concernée</li>
     </ul>
 
-    <h2>6. Destinataires des données</h2>
-    <p>Les données personnelles sont destinées :</p>
+    <h2>6. Destinataires des données et sous-traitants</h2>
+    <p>Les données sont accessibles aux équipes internes de LexDay SAS dûment habilitées. Pour fournir le service, nous faisons appel aux sous-traitants techniques suivants, qui agissent conformément à des contrats de sous-traitance respectant l'article 28 du RGPD :</p>
     <ul>
-      <li>Aux équipes internes du Responsable du traitement</li>
-      <li>Aux prestataires techniques strictement nécessaires (hébergement, maintenance)</li>
+      <li><strong>Supabase</strong> (Supabase Inc., Etats-Unis) — base de données, authentification, stockage des contenus utilisateurs. Données hébergées en Union européenne (région Frankfurt).</li>
+      <li><strong>Google Firebase</strong> (Google LLC, Etats-Unis) — envoi de notifications push (Firebase Cloud Messaging) et services Google associés.</li>
+      <li><strong>RevenueCat</strong> (RevenueCat Inc., Etats-Unis) — gestion des abonnements et de l'éligibilité premium.</li>
+      <li><strong>PostHog</strong> (PostHog Inc., Etats-Unis) — analytics produit pseudonymisées. Instance hébergée en Union européenne.</li>
+      <li><strong>Google Sign-In</strong> et <strong>Sign in with Apple</strong> — fournisseurs d'authentification optionnels.</li>
+      <li><strong>Resend</strong> (Resend Inc., Etats-Unis) — envoi des emails transactionnels (confirmation, réinitialisation de mot de passe).</li>
+      <li><strong>Google Books API</strong> et <strong>Google Places API</strong> — recherche bibliographique et géolocalisation des librairies.</li>
+      <li><strong>Notion</strong> (Notion Labs Inc., Etats-Unis) — uniquement si l'Utilisateur active explicitement l'intégration Notion (export d'annotations).</li>
     </ul>
-    <p>Aucune donnée personnelle n'est vendue à des tiers.</p>
+    <p>Aucune donnée personnelle n'est vendue à des tiers, ni utilisée à des fins publicitaires.</p>
 
-    <h2>7. Hébergement et sécurité</h2>
-    <p>Les données sont hébergées par un prestataire situé :</p>
+    <h2>7. Transferts hors Union européenne</h2>
+    <p>Certains sous-traitants (Firebase, RevenueCat, PostHog, Resend, Notion) sont situés aux Etats-Unis. Ces transferts sont encadrés par :</p>
     <ul>
-      <li>Dans l'Union européenne</li>
-      <li>Ou dans un pays offrant un niveau de protection adéquat au sens du RGPD</li>
+      <li>Les <strong>Clauses Contractuelles Types</strong> de la Commission européenne (CCT/SCC) ;</li>
+      <li>Et/ou la certification au <strong>Data Privacy Framework UE-Etats-Unis</strong> lorsque le sous-traitant y est inscrit.</li>
     </ul>
+    <p>Lorsque possible, l'hébergement est configuré sur des régions européennes (Supabase Frankfurt, PostHog EU).</p>
+
+    <h2>8. Hébergement et sécurité</h2>
     <p>Des mesures techniques et organisationnelles sont mises en œuvre pour assurer :</p>
     <ul>
-      <li>La confidentialité</li>
-      <li>L'intégrité</li>
-      <li>La sécurité des données</li>
+      <li>La confidentialité (chiffrement en transit via TLS, contrôle d'accès)</li>
+      <li>L'intégrité des données</li>
+      <li>La sécurité des données (sauvegardes régulières, isolation par compte)</li>
     </ul>
 
-    <h2>8. Durée de conservation</h2>
+    <h2>9. Durée de conservation</h2>
     <p>Les données sont conservées :</p>
     <ul>
       <li>Tant que le compte utilisateur est actif</li>
       <li>Puis supprimées ou anonymisées dans un délai de 12 mois après suppression du compte</li>
     </ul>
-    <p>Les données techniques peuvent être conservées pour une durée plus courte à des fins de sécurité.</p>
+    <p>Les logs techniques et données analytiques pseudonymisées peuvent être conservés pour une durée plus courte (typiquement 13 mois) à des fins de sécurité et d'amélioration produit.</p>
 
-    <h2>9. Droits des Utilisateurs</h2>
+    <h2>10. Droits des Utilisateurs</h2>
     <p>Conformément au <strong>RGPD</strong>, l'Utilisateur dispose des droits suivants :</p>
     <ul>
       <li>Droit d'accès</li>
@@ -147,27 +174,34 @@
       <li>Droit à la limitation du traitement</li>
       <li>Droit d'opposition</li>
       <li>Droit à la portabilité des données</li>
+      <li>Droit de retirer son consentement à tout moment</li>
     </ul>
-    <p>Ces droits peuvent être exercés à tout moment en écrivant à : <a href="mailto:hello@lexday.fr">hello@lexday.fr</a></p>
+    <p>Ces droits peuvent être exercés à tout moment en écrivant à : <a href="mailto:hello@lexday.fr">hello@lexday.fr</a>. Une réponse vous sera apportée dans un délai maximum d'un mois.</p>
 
-    <h2>10. Suppression du compte</h2>
-    <p>L'Utilisateur peut supprimer son compte à tout moment depuis l'Application ou en contactant le Responsable du traitement.</p>
+    <h2>11. Suppression du compte</h2>
+    <p>L'Utilisateur peut supprimer son compte à tout moment depuis l'Application (Paramètres → Compte → Supprimer mon compte) ou en contactant le Responsable du traitement.</p>
     <p>La suppression entraîne la suppression ou l'anonymisation des données associées, sauf obligation légale contraire.</p>
 
-    <h2>11. Cookies et traceurs</h2>
-    <p>LexDay peut utiliser :</p>
+    <h2>12. Identifiants techniques et traceurs</h2>
+    <p>L'Application utilise les identifiants techniques suivants, strictement nécessaires à son fonctionnement ou aux finalités d'analyse pseudonymisée mentionnées plus haut :</p>
     <ul>
-      <li>Des cookies ou traceurs strictement nécessaires au fonctionnement</li>
-      <li>Des outils de mesure d'audience anonymisés</li>
+      <li>Token de notification push (Firebase Cloud Messaging)</li>
+      <li>Identifiant anonyme d'installation pour les analytics produit (PostHog)</li>
+      <li>Identifiant de session sécurisé pour l'authentification</li>
     </ul>
-    <p>Aucun cookie publicitaire n'est utilisé sans consentement explicite.</p>
+    <p>L'Application ne contient aucun cookie ou traceur publicitaire. Aucune donnée n'est partagée avec des tiers à des fins publicitaires.</p>
 
-    <h2>12. Modification de la politique de confidentialité</h2>
-    <p>La présente politique peut être modifiée à tout moment.</p>
-    <p>Les Utilisateurs seront informés de toute modification substantielle.</p>
+    <h2>13. Public visé</h2>
+    <p>LexDay n'est pas destiné aux enfants de moins de 13 ans. Nous ne collectons pas sciemment de données personnelles relatives aux mineurs de moins de 13 ans. Si vous pensez qu'un enfant nous a fourni des données personnelles, contactez-nous à <a href="mailto:hello@lexday.fr">hello@lexday.fr</a> pour suppression.</p>
 
-    <h2>13. Réclamation</h2>
-    <p>En cas de difficulté non résolue, l'Utilisateur peut introduire une réclamation auprès de l'autorité de contrôle compétente (CNIL).</p>
+    <h2>14. Modification de la politique de confidentialité</h2>
+    <p>La présente politique peut être modifiée à tout moment. Les Utilisateurs seront informés de toute modification substantielle via l'Application ou par email.</p>
+
+    <h2>15. Réclamation</h2>
+    <p>En cas de difficulté non résolue, l'Utilisateur peut introduire une réclamation auprès de l'autorité de contrôle compétente :</p>
+    <ul>
+      <li><strong>CNIL</strong> — Commission Nationale de l'Informatique et des Libertés — <a href="https://www.cnil.fr">www.cnil.fr</a></li>
+    </ul>
 
     <footer>
       <div>&copy; <span id="y"></span> LexDay</div>
