@@ -2,14 +2,16 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/reading_session.dart';
 import '../../models/book.dart';
 import '../../models/feature_flags.dart';
 import '../../providers/subscription_provider.dart';
-import '../../pages/profile/upgrade_page.dart';
+import '../../services/native_paywall_service.dart';
 import '../../services/reading_session_service.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/app_constants.dart';
 import '../../widgets/constrained_content.dart';
 import '../../widgets/cached_book_cover.dart';
 
@@ -32,12 +34,17 @@ class SessionDetailPage extends StatefulWidget {
 class _SessionDetailPageState extends State<SessionDetailPage> {
   late bool _isHidden;
   Map<String, double> _userAverages = {};
+  // null = pas encore chargé. Renseigné seulement quand on regarde la session
+  // de quelqu'un d'autre, pour décider si on a le droit d'afficher le bloc
+  // « Insights » (feature premium qui appartient au propriétaire).
+  bool? _ownerIsPremium;
 
   @override
   void initState() {
     super.initState();
     _isHidden = widget.session.isHidden;
     _loadAverages();
+    if (!widget.isOwn) _loadOwnerPremiumStatus();
   }
 
   Future<void> _loadAverages() async {
@@ -46,6 +53,22 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
       if (!mounted) return;
       setState(() => _userAverages = averages);
     } catch (_) {}
+  }
+
+  Future<void> _loadOwnerPremiumStatus() async {
+    try {
+      final res = await Supabase.instance.client
+          .from('profiles')
+          .select('is_premium')
+          .eq('id', widget.session.userId)
+          .maybeSingle();
+      if (!mounted) return;
+      setState(() => _ownerIsPremium = (res?['is_premium'] as bool?) ?? false);
+    } catch (_) {
+      if (!mounted) return;
+      // En cas d'échec, on reste prudent : on ne révèle pas la feature.
+      setState(() => _ownerIsPremium = false);
+    }
   }
 
   Future<void> _toggleHidden() async {
@@ -132,7 +155,7 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
     final duration = _formatDuration(widget.session.durationMinutes);
 
     final text =
-        "Je viens de lire $pages pages de \"$bookTitle\"${author.isNotEmpty ? ' de $author' : ''} en $duration ! \u{1F4DA}\n\n#LexDay #Lecture";
+        "Je viens de lire $pages pages de \"$bookTitle\"${author.isNotEmpty ? ' de $author' : ''} en $duration ! \u{1F4DA}\n\n#LexDay #Lecture\n$kAppStoreUrl";
     final box = context.findRenderObject() as RenderBox?;
     final origin = box != null
         ? box.localToGlobal(Offset.zero) & box.size
@@ -918,8 +941,20 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
   // ── Insights card ──────────────────────────────────────────────────
 
   Widget _buildInsightsCard(bool isDark, Color cardColor) {
+    // Sur la session d'un autre utilisateur, les Insights n'existent que si
+    // ce propriétaire est lui-même premium. On masque tant qu'on ne sait pas
+    // (évite un flash) et on masque définitivement s'il ne l'est pas.
+    if (!widget.isOwn && _ownerIsPremium != true) {
+      return const SizedBox.shrink();
+    }
+
     final l = AppLocalizations.of(context);
-    final isPremium = context.watch<SubscriptionProvider>().isPremium;
+    final viewerIsPremium = context.watch<SubscriptionProvider>().isPremium;
+    // Valeurs en clair : sur ma session si je suis premium, sur celle d'un
+    // autre toujours en clair (puisqu'on a vérifié plus haut qu'il est premium).
+    final showInClear = widget.isOwn ? viewerIsPremium : true;
+    // Le call-to-action paywall n'a de sens que sur ma propre session.
+    final showPaywall = widget.isOwn && !viewerIsPremium;
     final session = widget.session;
 
     final pagesPerMin = session.durationMinutes > 0
@@ -967,9 +1002,11 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
     final insights = [
       _InsightData(emoji: '\u{1F4C8}', label: 'Rythme de lecture', value: paceValue),
       _InsightData(emoji: '\u{23F3}', label: 'Temps moyen par page', value: timePerPageValue),
-      if (estimatedFinish != null)
+      // Estimation et comparatif s'appuient sur _userAverages (= MES moyennes) :
+      // ils n'ont aucun sens sur la session d'un autre utilisateur.
+      if (estimatedFinish != null && widget.isOwn)
         _InsightData(emoji: '\u{1F4C5}', label: 'Fin estimée du livre', value: estimatedFinish),
-      if (vsAverage != null)
+      if (vsAverage != null && widget.isOwn)
         _InsightData(emoji: '\u{1F4CA}', label: 'vs. ta moyenne', value: vsAverage),
     ];
 
@@ -1050,7 +1087,7 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
                           ),
                         ),
                       ),
-                      if (isPremium)
+                      if (showInClear)
                         Text(
                           insights[i].value,
                           style: const TextStyle(
@@ -1080,11 +1117,12 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
               ],
             );
           }),
-          if (!isPremium) ...[
+          if (showPaywall) ...[
             const SizedBox(height: 4),
             GestureDetector(
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const UpgradePage(highlightedFeature: Feature.advancedStats)),
+              onTap: () => NativePaywallService.present(
+                context,
+                highlightedFeature: Feature.advancedStats,
               ),
               child: Container(
                 width: double.infinity,
