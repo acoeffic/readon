@@ -207,3 +207,87 @@ class GroupActivity {
 
   String get displayName => userName ?? 'Unknown';
 }
+
+// ───────────────────────────────────────────────────────────────────────
+// Group reading lists (bibliothèque du club)
+// ───────────────────────────────────────────────────────────────────────
+
+class GroupReadingList {
+  final int id;
+  final String groupId;
+  final String createdBy;
+  final String? creatorName;
+  final String title;
+  final String? description;
+  final String iconName;
+  final String gradientColor;
+  final int bookCount;
+  final List<String> coverUrls;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+
+  GroupReadingList({
+    required this.id,
+    required this.groupId,
+    required this.createdBy,
+    this.creatorName,
+    required this.title,
+    this.description,
+    required this.iconName,
+    required this.gradientColor,
+    required this.bookCount,
+    required this.coverUrls,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+
+  factory GroupReadingList.fromJson(Map<String, dynamic> json) {
+    final rawCovers = json['cover_urls'];
+    final covers = rawCovers is List
+        ? rawCovers.whereType<String>().toList()
+        : <String>[];
+    return GroupReadingList(
+      id: (json['id'] as num).toInt(),
+      groupId: json['group_id'] as String,
+      createdBy: json['created_by'] as String,
+      creatorName: json['creator_name'] as String?,
+      title: json['title'] as String,
+      description: json['description'] as String?,
+      iconName: json['icon_name'] as String? ?? 'book-open',
+      gradientColor: json['gradient_color'] as String? ?? '#7FA497',
+      bookCount: (json['book_count'] as num?)?.toInt() ?? 0,
+      coverUrls: covers,
+      createdAt: DateTime.parse(json['created_at'] as String),
+      updatedAt: DateTime.parse(json['updated_at'] as String),
+    );
+  }
+}
+
+class GroupReadingListBook {
+  final int id;
+  final int listId;
+  final int bookId;
+  final String addedBy;
+  final int position;
+  final DateTime addedAt;
+
+  GroupReadingListBook({
+    required this.id,
+    required this.listId,
+    required this.bookId,
+    required this.addedBy,
+    required this.position,
+    required this.addedAt,
+  });
+
+  factory GroupReadingListBook.fromJson(Map<String, dynamic> json) {
+    return GroupReadingListBook(
+      id: (json['id'] as num).toInt(),
+      listId: (json['list_id'] as num).toInt(),
+      bookId: (json['book_id'] as num).toInt(),
+      addedBy: json['added_by'] as String,
+      position: (json['position'] as num?)?.toInt() ?? 0,
+      addedAt: DateTime.parse(json['added_at'] as String),
+    );
+  }
+}

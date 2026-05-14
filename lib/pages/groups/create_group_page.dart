@@ -1,7 +1,6 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
-import 'dart:io';
 import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/back_header.dart';
@@ -11,8 +10,8 @@ import '../../models/feature_flags.dart';
 import '../../services/badges_service.dart';
 import '../../widgets/premium_gate.dart';
 import '../../widgets/badge_unlocked_dialog.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../widgets/constrained_content.dart';
+import 'select_club_cover_page.dart';
 
 class CreateGroupPage extends StatefulWidget {
   const CreateGroupPage({super.key});
@@ -26,12 +25,10 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
   final GroupsService _groupsService = GroupsService();
-  final ImagePicker _picker = ImagePicker();
-  final supabase = Supabase.instance.client;
 
   bool _isPrivate = false;
   bool _isCreating = false;
-  File? _coverImage;
+  String? _selectedCoverUrl;
 
   @override
   void dispose() {
@@ -40,77 +37,16 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
     super.dispose();
   }
 
-  Future<void> _pickImage() async {
-    final l = AppLocalizations.of(context);
-    try {
-      final source = await showModalBottomSheet<ImageSource>(
-        context: context,
-        builder: (context) => SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: const Icon(Icons.camera_alt),
-                title: Text(l.takePhoto),
-                onTap: () => Navigator.pop(context, ImageSource.camera),
-              ),
-              ListTile(
-                leading: const Icon(Icons.photo_library),
-                title: Text(l.chooseFromGallery),
-                onTap: () => Navigator.pop(context, ImageSource.gallery),
-              ),
-              ListTile(
-                leading: const Icon(Icons.cancel),
-                title: Text(l.cancel),
-                onTap: () => Navigator.pop(context),
-              ),
-            ],
-          ),
+  Future<void> _pickCover() async {
+    final url = await Navigator.of(context).push<String>(
+      MaterialPageRoute(
+        builder: (_) => SelectClubCoverPage(
+          currentCoverUrl: _selectedCoverUrl,
         ),
-      );
-
-      if (source == null) return;
-
-      final XFile? image = await _picker.pickImage(
-        source: source,
-        maxWidth: 1200,
-        maxHeight: 600,
-        imageQuality: 85,
-      );
-
-      if (image == null) return;
-
-      setState(() => _coverImage = File(image.path));
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur: $e')),
-        );
-      }
-    }
-  }
-
-  Future<String?> _uploadCoverImage() async {
-    if (_coverImage == null) return null;
-
-    try {
-      final user = supabase.auth.currentUser;
-      if (user == null) throw Exception('Non connecté');
-
-      final extension = _coverImage!.path.split('.').last.toLowerCase();
-      final fileName = 'group_${DateTime.now().millisecondsSinceEpoch}.$extension';
-      final filePath = 'group_covers/$fileName';
-
-      await supabase.storage
-          .from('groups')
-          .upload(filePath, _coverImage!);
-
-      return supabase.storage
-          .from('groups')
-          .getPublicUrl(filePath);
-    } catch (e) {
-      debugPrint('Erreur upload image: $e');
-      return null;
+      ),
+    );
+    if (url != null && mounted) {
+      setState(() => _selectedCoverUrl = url);
     }
   }
 
@@ -120,19 +56,12 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
     setState(() => _isCreating = true);
 
     try {
-      // Upload cover image if exists
-      String? coverUrl;
-      if (_coverImage != null) {
-        coverUrl = await _uploadCoverImage();
-      }
-
-      // Create group
       await _groupsService.createGroup(
         name: _nameController.text.trim(),
         description: _descriptionController.text.trim().isEmpty
             ? null
             : _descriptionController.text.trim(),
-        coverUrl: coverUrl,
+        coverUrl: _selectedCoverUrl,
         isPrivate: _isPrivate,
       );
 
@@ -206,43 +135,73 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                 BackHeader(title: l.createGroupTitle),
                 const SizedBox(height: AppSpace.l),
 
-                // Cover image
+                // Cover image — picker depuis la bibliothèque curée
                 Center(
                   child: GestureDetector(
-                    onTap: _pickImage,
+                    onTap: _pickCover,
                     child: Container(
-                      width: 120,
+                      width: double.infinity,
                       height: 120,
                       decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha:0.1),
+                        color: AppColors.primary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(AppRadius.l),
-                        image: _coverImage != null
-                            ? DecorationImage(
-                                image: FileImage(_coverImage!),
-                                fit: BoxFit.cover,
-                              )
-                            : null,
                       ),
-                      child: _coverImage == null
-                          ? Column(
+                      clipBehavior: Clip.antiAlias,
+                      child: _selectedCoverUrl != null
+                          ? Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                CachedNetworkImage(
+                                  imageUrl: _selectedCoverUrl!,
+                                  fit: BoxFit.cover,
+                                  memCacheHeight: 240,
+                                ),
+                                Positioned(
+                                  right: 8,
+                                  bottom: 8,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 5,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.black.withValues(alpha: 0.5),
+                                      borderRadius: BorderRadius.circular(
+                                        AppRadius.pill,
+                                      ),
+                                    ),
+                                    child: const Text(
+                                      'Changer',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            )
+                          : Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 const Icon(
-                                  Icons.add_photo_alternate,
+                                  Icons.image_outlined,
                                   color: AppColors.primary,
                                   size: 40,
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  l.addPhoto,
+                                  'Choisir une couverture',
                                   style: TextStyle(
-                                    fontSize: 12,
-                                    color: AppColors.primary.withValues(alpha:0.8),
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.primary
+                                        .withValues(alpha: 0.85),
                                   ),
                                 ),
                               ],
-                            )
-                          : null,
+                            ),
                     ),
                   ),
                 ),

@@ -1,13 +1,17 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../../widgets/generated_club_cover.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../l10n/app_localizations.dart';
+import '../../widgets/require_account_sheet.dart';
 import '../../theme/app_theme.dart';
 import '../../models/reading_group.dart';
 import '../../models/group_challenge.dart';
 import '../../services/groups_service.dart';
 import '../../services/challenge_service.dart';
+import 'group_library_page.dart';
 import 'group_members_page.dart';
 import 'group_settings_page.dart';
 import 'create_challenge_page.dart';
@@ -81,6 +85,10 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
   }
 
   Future<void> _requestToJoin() async {
+    if (Supabase.instance.client.auth.currentUser == null) {
+      await showRequireAccountSheet(context);
+      return;
+    }
     final l = AppLocalizations.of(context);
     setState(() => _isRequestingJoin = true);
     try {
@@ -282,7 +290,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
 
     return Scaffold(
       backgroundColor: bg,
-      body: ConstrainedContent(
+      body: ConstrainedContent.wide(
         child: CustomScrollView(
         slivers: [
           // Hero with cover image — pinned so it stays at top when scrolling
@@ -359,6 +367,16 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
 
                   // Current reading card
                   _buildCurrentReadingCard(context),
+                  const SizedBox(height: AppSpace.xl),
+
+                  // Library section (compact preview)
+                  _LibrarySection(
+                    groupId: widget.groupId,
+                    groupName: _group!.name,
+                    isAdmin: _group!.isAdmin,
+                    isMember: _group!.isGroupMember,
+                    isDark: _isDark,
+                  ),
                   const SizedBox(height: AppSpace.xl),
 
                   // Challenges section
@@ -634,28 +652,11 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
               color: _kSageGreen.withValues(alpha: 0.3),
               child: const Center(child: CircularProgressIndicator(color: Colors.white)),
             ),
-            errorWidget: (context, url, error) => Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [_kSageGreen, _kSageGreen.withValues(alpha: 0.6)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-              ),
-              child: const Icon(Icons.menu_book, size: 60, color: Colors.white38),
-            ),
+            errorWidget: (context, url, error) =>
+                GeneratedClubCover(name: _group!.name, initialsFontSize: 64),
           )
         else
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [_kSageGreen, _kSageGreen.withValues(alpha: 0.6)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-            child: const Icon(Icons.menu_book, size: 60, color: Colors.white38),
-          ),
+          GeneratedClubCover(name: _group!.name, initialsFontSize: 64),
 
         // Gradient overlay: transparent top → dark bottom
         Container(
@@ -1149,6 +1150,270 @@ class _ChallengeCard extends StatelessWidget {
             ),
             Icon(Icons.chevron_right,
                 color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.3), size: 20),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Library section (compact preview, opens GroupLibraryPage)
+// ─────────────────────────────────────────────────────────────────────
+
+class _LibrarySection extends StatefulWidget {
+  final String groupId;
+  final String groupName;
+  final bool isAdmin;
+  final bool isMember;
+  final bool isDark;
+
+  const _LibrarySection({
+    required this.groupId,
+    required this.groupName,
+    required this.isAdmin,
+    required this.isMember,
+    required this.isDark,
+  });
+
+  @override
+  State<_LibrarySection> createState() => _LibrarySectionState();
+}
+
+class _LibrarySectionState extends State<_LibrarySection> {
+  final GroupsService _service = GroupsService();
+  bool _loading = true;
+  List<GroupReadingList> _lists = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final lists = await _service.getGroupReadingLists(widget.groupId);
+      if (!mounted) return;
+      setState(() {
+        _lists = lists;
+        _loading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _loading = false);
+    }
+  }
+
+  void _openLibrary() {
+    Navigator.of(context)
+        .push(
+          MaterialPageRoute(
+            builder: (_) => GroupLibraryPage(
+              groupId: widget.groupId,
+              groupName: widget.groupName,
+              isAdmin: widget.isAdmin,
+              isMember: widget.isMember,
+            ),
+          ),
+        )
+        .then((_) => _load());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              l.groupLibrary,
+              style: GoogleFonts.cormorantGaramond(
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+                color: widget.isDark ? Colors.white : Colors.black,
+              ),
+            ),
+            if (_lists.isNotEmpty)
+              GestureDetector(
+                onTap: _openLibrary,
+                child: Text(
+                  l.groupLibraryViewAll,
+                  style: GoogleFonts.dmSans(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: _kSageGreen,
+                  ),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: AppSpace.m),
+        if (_loading)
+          const SizedBox(
+            height: 90,
+            child: Center(child: CircularProgressIndicator()),
+          )
+        else if (_lists.isEmpty)
+          _LibraryEmptyTile(
+            isDark: widget.isDark,
+            canCreate: widget.isMember,
+            onTap: _openLibrary,
+          )
+        else
+          SizedBox(
+            height: 110,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: _lists.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 12),
+              itemBuilder: (_, i) => _LibraryListTile(
+                list: _lists[i],
+                isDark: widget.isDark,
+                onTap: _openLibrary,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _LibraryEmptyTile extends StatelessWidget {
+  final bool isDark;
+  final bool canCreate;
+  final VoidCallback onTap;
+
+  const _LibraryEmptyTile({
+    required this.isDark,
+    required this.canCreate,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(AppSpace.l),
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.surfaceDark : _kCard,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Column(
+          children: [
+            Icon(Icons.library_books_outlined,
+                size: 36,
+                color: (isDark ? Colors.white : Colors.black)
+                    .withValues(alpha: 0.3)),
+            const SizedBox(height: AppSpace.s),
+            Text(
+              l.groupLibraryEmpty,
+              style: GoogleFonts.dmSans(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: (isDark ? Colors.white : Colors.black)
+                    .withValues(alpha: 0.7),
+              ),
+            ),
+            if (canCreate) ...[
+              const SizedBox(height: 4),
+              Text(
+                l.groupLibraryEmptyHint,
+                textAlign: TextAlign.center,
+                style: GoogleFonts.dmSans(
+                  fontSize: 11,
+                  color: (isDark ? Colors.white : Colors.black)
+                      .withValues(alpha: 0.5),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LibraryListTile extends StatelessWidget {
+  final GroupReadingList list;
+  final bool isDark;
+  final VoidCallback onTap;
+
+  const _LibraryListTile({
+    required this.list,
+    required this.isDark,
+    required this.onTap,
+  });
+
+  Color _accent() {
+    try {
+      final hex = list.gradientColor.replaceAll('#', '');
+      return Color(int.parse('FF$hex', radix: 16));
+    } catch (_) {
+      return _kSageGreen;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final accent = _accent();
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 200,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.surfaceDark : _kCard,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: accent.withValues(alpha: 0.25)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: accent.withValues(alpha: 0.18),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(Icons.menu_book_outlined,
+                  color: accent, size: 22),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    list.title,
+                    style: GoogleFonts.cormorantGaramond(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: isDark ? Colors.white : Colors.black87,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    l.groupLibraryBookCount(list.bookCount),
+                    style: GoogleFonts.dmSans(
+                      fontSize: 11,
+                      color: (isDark ? Colors.white : Colors.black)
+                          .withValues(alpha: 0.55),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),

@@ -507,4 +507,144 @@ class GroupsService {
                 invitation['status'] == 'pending')
             .length);
   }
+
+  // ─────────────────────────────────────────────────────────────────────
+  // Reading lists (bibliothèque du club)
+  // ─────────────────────────────────────────────────────────────────────
+
+  /// Liste les bibliothèques d'un club avec un aperçu (count + couvertures).
+  Future<List<GroupReadingList>> getGroupReadingLists(String groupId) async {
+    final result = await _supabase.rpc(
+      'get_group_reading_lists',
+      params: {'p_group_id': groupId},
+    );
+    if (result == null) return [];
+    final list = result is List ? result : [];
+    return list
+        .map((row) => GroupReadingList.fromJson(
+              row is Map<String, dynamic>
+                  ? row
+                  : Map<String, dynamic>.from(row as Map),
+            ))
+        .toList();
+  }
+
+  /// Crée une nouvelle bibliothèque pour le club.
+  /// L'appelant doit être membre.
+  Future<GroupReadingList> createGroupReadingList({
+    required String groupId,
+    required String title,
+    String? description,
+    String iconName = 'book-open',
+    String gradientColor = '#7FA497',
+  }) async {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) throw Exception('Non authentifié');
+
+    final inserted = await _supabase
+        .from('group_reading_lists')
+        .insert({
+          'group_id': groupId,
+          'created_by': userId,
+          'title': title,
+          'description': description,
+          'icon_name': iconName,
+          'gradient_color': gradientColor,
+        })
+        .select()
+        .single();
+
+    return GroupReadingList.fromJson({
+      ...inserted,
+      'book_count': 0,
+      'cover_urls': <String>[],
+    });
+  }
+
+  /// Renomme / met à jour les métadonnées d'une bibliothèque.
+  /// Réservé au créateur de la liste ou à un admin du club (RLS).
+  Future<void> updateGroupReadingList({
+    required int listId,
+    String? title,
+    String? description,
+    String? iconName,
+    String? gradientColor,
+  }) async {
+    final patch = <String, dynamic>{};
+    if (title != null) patch['title'] = title;
+    if (description != null) patch['description'] = description;
+    if (iconName != null) patch['icon_name'] = iconName;
+    if (gradientColor != null) patch['gradient_color'] = gradientColor;
+    if (patch.isEmpty) return;
+    await _supabase.from('group_reading_lists').update(patch).eq('id', listId);
+  }
+
+  /// Supprime une bibliothèque (cascade sur les livres référencés).
+  /// Réservé au créateur ou à un admin du club (RLS).
+  Future<void> deleteGroupReadingList(int listId) async {
+    await _supabase.from('group_reading_lists').delete().eq('id', listId);
+  }
+
+  /// Récupère les livres d'une liste, joints à la table `books`.
+  /// Renvoie une liste de Map prêtes pour l'UI : chaque entrée contient les
+  /// champs du livre + `added_by`, `added_at`, `list_book_id`.
+  Future<List<Map<String, dynamic>>> getGroupListBooks(int listId) async {
+    final rows = await _supabase
+        .from('group_reading_list_books')
+        .select(
+          'id, list_id, book_id, added_by, position, added_at, '
+          'books(id, title, author, cover_url, page_count, isbn, google_id, genre)',
+        )
+        .eq('list_id', listId)
+        .order('position', ascending: true)
+        .order('added_at', ascending: true);
+
+    return (rows as List).map((row) {
+      final map = Map<String, dynamic>.from(row as Map);
+      final book = map['books'] is Map
+          ? Map<String, dynamic>.from(map['books'] as Map)
+          : <String, dynamic>{};
+      return {
+        ...book,
+        'list_book_id': map['id'],
+        'added_by': map['added_by'],
+        'added_at': map['added_at'],
+        'position': map['position'],
+      };
+    }).toList();
+  }
+
+  /// Ajoute un livre à une liste de club.
+  /// `bookId` doit déjà exister dans la table `books` (utilise
+  /// `BooksService` pour insérer un nouveau livre depuis Google Books au
+  /// préalable). Idempotent : ne fait rien si le livre est déjà dans la liste.
+  Future<void> addBookToGroupList({
+    required int listId,
+    required int bookId,
+  }) async {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) throw Exception('Non authentifié');
+
+    await _supabase.from('group_reading_list_books').upsert(
+      {
+        'list_id': listId,
+        'book_id': bookId,
+        'added_by': userId,
+      },
+      onConflict: 'list_id,book_id',
+    );
+  }
+
+  /// Retire un livre d'une liste. La RLS s'occupe de vérifier que
+  /// l'appelant est bien `added_by` ou un admin du club.
+  Future<void> removeBookFromGroupList({
+    required int listId,
+    required int bookId,
+  }) async {
+    await _supabase
+        .from('group_reading_list_books')
+        .delete()
+        .eq('list_id', listId)
+        .eq('book_id', bookId);
+  }
 }

@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'dart:io';
+import '../../widgets/generated_club_cover.dart';
 import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../models/reading_group.dart';
 import '../../services/groups_service.dart';
 import 'group_members_page.dart';
+import 'select_club_cover_page.dart';
 import '../../widgets/constrained_content.dart';
 
 const _kBg = Color(0xFFFAF3E8);
@@ -28,7 +28,6 @@ class GroupSettingsPage extends StatefulWidget {
 class _GroupSettingsPageState extends State<GroupSettingsPage> {
   final _formKey = GlobalKey<FormState>();
   final GroupsService _groupsService = GroupsService();
-  final ImagePicker _picker = ImagePicker();
   final supabase = Supabase.instance.client;
 
   late TextEditingController _nameController;
@@ -72,76 +71,38 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
   bool get _isDark => Theme.of(context).brightness == Brightness.dark;
 
   Future<void> _pickAndUploadCover() async {
-    final l = AppLocalizations.of(context);
     try {
-      final source = await showModalBottomSheet<ImageSource>(
-        context: context,
-        builder: (context) => SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: const Icon(Icons.camera_alt),
-                title: Text(l.takePhoto),
-                onTap: () => Navigator.pop(context, ImageSource.camera),
-              ),
-              ListTile(
-                leading: const Icon(Icons.photo_library),
-                title: Text(l.chooseFromGallery),
-                onTap: () => Navigator.pop(context, ImageSource.gallery),
-              ),
-              ListTile(
-                leading: const Icon(Icons.cancel),
-                title: Text(l.cancel),
-                onTap: () => Navigator.pop(context),
-              ),
-            ],
+      final url = await Navigator.of(context).push<String>(
+        MaterialPageRoute(
+          builder: (_) => SelectClubCoverPage(
+            currentCoverUrl: _currentCoverUrl,
           ),
         ),
       );
-
-      if (source == null) return;
-
-      final XFile? image = await _picker.pickImage(
-        source: source,
-        maxWidth: 1200,
-        maxHeight: 600,
-        imageQuality: 85,
-      );
-
-      if (image == null) return;
+      if (url == null || url == _currentCoverUrl) return;
 
       setState(() => _isUploadingCover = true);
 
-      final file = File(image.path);
-      final extension = image.path.split('.').last.toLowerCase();
-      final fileName = 'group_${widget.group.id}_${DateTime.now().millisecondsSinceEpoch}.$extension';
-      final filePath = 'group_covers/$fileName';
-
-      await supabase.storage.from('groups').upload(filePath, file);
-      final publicUrl = supabase.storage.from('groups').getPublicUrl(filePath);
-
       await _groupsService.updateGroup(
         groupId: widget.group.id,
-        coverUrl: publicUrl,
+        coverUrl: url,
       );
 
+      if (!mounted) return;
       setState(() {
-        _currentCoverUrl = publicUrl;
+        _currentCoverUrl = url;
         _isUploadingCover = false;
       });
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppLocalizations.of(context).photoUpdated),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context).photoUpdated),
+          backgroundColor: Colors.green,
+        ),
+      );
     } catch (e) {
-      setState(() => _isUploadingCover = false);
       if (mounted) {
+        setState(() => _isUploadingCover = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Erreur: $e')),
         );
@@ -345,29 +306,20 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                           child: Stack(
                             fit: StackFit.expand,
                             children: [
-                              // Current image or placeholder
+                              // Current image or generated cover
                               if (_currentCoverUrl != null)
                                 CachedNetworkImage(
                                   imageUrl: _currentCoverUrl!,
                                   fit: BoxFit.cover,
                                   memCacheWidth: 600,
                                   memCacheHeight: 336,
-                                  errorWidget: (_, __, ___) => Container(
-                                    color: _kSageGreen.withValues(alpha: 0.2),
-                                    child: const Icon(Icons.image, color: _kSageGreen, size: 40),
-                                  ),
+                                  errorWidget: (_, __, ___) =>
+                                      GeneratedClubCover(name: widget.group.name),
                                 )
                               else
-                                Container(
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      colors: [
-                                        _kSageGreen.withValues(alpha: 0.3),
-                                        _kSageGreen.withValues(alpha: 0.1),
-                                      ],
-                                    ),
-                                  ),
-                                  child: const Icon(Icons.image_outlined, color: _kSageGreen, size: 40),
+                                GeneratedClubCover(
+                                  name: widget.group.name,
+                                  initialsFontSize: 56,
                                 ),
 
                               // Overlay

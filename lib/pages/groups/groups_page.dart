@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/require_account_sheet.dart';
 import '../../widgets/constrained_content.dart';
 import '../../models/reading_group.dart';
 import '../../models/feature_flags.dart';
 import '../../services/groups_service.dart';
 import '../../providers/subscription_provider.dart';
-import '../../pages/profile/upgrade_page.dart';
+import '../../services/native_paywall_service.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../../widgets/generated_club_cover.dart';
 import 'create_group_page.dart';
 import 'group_detail_page.dart';
 
@@ -83,6 +86,10 @@ class _GroupsPageState extends State<GroupsPage> {
   }
 
   void _navigateToCreateGroup() async {
+    if (Supabase.instance.client.auth.currentUser == null) {
+      await showRequireAccountSheet(context);
+      return;
+    }
     final isPremium = context.read<SubscriptionProvider>().isPremium;
     if (!isPremium && _myGroups.length >= FeatureFlags.maxFreeGroups) {
       _showGroupLimitDialog();
@@ -119,10 +126,7 @@ class _GroupsPageState extends State<GroupsPage> {
           ElevatedButton(
             onPressed: () {
               Navigator.of(context).pop();
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const UpgradePage()),
-              );
+              NativePaywallService.present(context);
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
@@ -417,39 +421,20 @@ class _GroupCard extends StatelessWidget {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    // Background image or gradient
+                    // Background image or generated cover
                     if (group.coverUrl != null)
                       CachedNetworkImage(
                         imageUrl: group.coverUrl!,
                         fit: BoxFit.cover,
                         memCacheWidth: 600,
                         memCacheHeight: 240,
-                        errorWidget: (_, __, ___) => Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                _kSageGreen,
-                                _kSageGreen.withValues(alpha: 0.7),
-                              ],
-                            ),
-                          ),
-                        ),
+                        errorWidget: (_, __, ___) =>
+                            GeneratedClubCover(name: group.name),
                       )
                     else
-                      Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              _kSageGreen,
-                              _kSageGreen.withValues(alpha: 0.7),
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                        ),
-                        child: const Center(
-                          child: Icon(Icons.menu_book, color: Colors.white38, size: 32),
-                        ),
+                      GeneratedClubCover(
+                        name: group.name,
+                        initialsFontSize: 42,
                       ),
 
                     // Dark gradient overlay
