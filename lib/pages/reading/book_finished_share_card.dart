@@ -11,17 +11,24 @@ class BookFinishedShareCard extends StatelessWidget {
   final Book book;
   final BookReadingStats stats;
   final Uint8List? coverBytes;
+  final String? readingForLabel;
 
   const BookFinishedShareCard({
     super.key,
     required this.book,
     required this.stats,
     this.coverBytes,
+    this.readingForLabel,
   });
 
   @override
   Widget build(BuildContext context) {
-    return _StoryCard(book: book, stats: stats, coverBytes: coverBytes);
+    return _StoryCard(
+      book: book,
+      stats: stats,
+      coverBytes: coverBytes,
+      readingForLabel: readingForLabel,
+    );
   }
 }
 
@@ -50,11 +57,13 @@ class _StoryCard extends StatelessWidget {
   final Book book;
   final BookReadingStats stats;
   final Uint8List? coverBytes;
+  final String? readingForLabel;
 
   const _StoryCard({
     required this.book,
     required this.stats,
     this.coverBytes,
+    this.readingForLabel,
   });
 
   @override
@@ -89,6 +98,27 @@ class _StoryCard extends StatelessWidget {
 
               // ── Book info card ──
               _BookInfoCard(book: book),
+
+              // ── Reading-for chip ──
+              if (readingForLabel != null) ...[
+                const SizedBox(height: 10),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: _accent.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Text(
+                    '\u{1F4D6} $readingForLabel',
+                    style: GoogleFonts.jetBrainsMono(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      color: _accent,
+                    ),
+                  ),
+                ),
+              ],
               const SizedBox(height: 12),
 
               // ── Stats card ──
@@ -420,7 +450,7 @@ class _LexDayFooter extends StatelessWidget {
         ),
         const SizedBox(height: 2),
         Text(
-          'YOUR READING LIFE, TRACKED',
+          'UNE PAGE. CHAQUE JOUR.',
           style: GoogleFonts.jetBrainsMono(
             fontSize: 8,
             letterSpacing: 2,

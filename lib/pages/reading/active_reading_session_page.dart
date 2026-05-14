@@ -16,6 +16,7 @@ import '../../models/annotation_model.dart';
 import '../../navigation/main_navigation.dart';
 import '../../services/flow_service.dart';
 import '../../services/annotation_service.dart';
+import '../../services/reading_session_service.dart';
 import '../../services/session_pause_service.dart';
 import '../../services/ai_service.dart';
 import '../../services/ocr_service.dart';
@@ -184,6 +185,7 @@ class _ActiveReadingSessionPageState extends State<ActiveReadingSessionPage>
       MaterialPageRoute(
         builder: (context) => EndReadingSessionPage(
           activeSession: widget.activeSession,
+          book: widget.book,
         ),
       ),
     );
@@ -210,6 +212,11 @@ class _ActiveReadingSessionPageState extends State<ActiveReadingSessionPage>
     );
 
     if (confirm == true && mounted) {
+      try {
+        await ReadingSessionService().cancelSession(widget.activeSession.id);
+      } catch (e) {
+        debugPrint('cancelSession failed: $e');
+      }
       await _pauseService.clearPause();
       if (!mounted) return;
       Navigator.of(context).pushAndRemoveUntil(
@@ -432,27 +439,25 @@ class _ActiveReadingSessionPageState extends State<ActiveReadingSessionPage>
                       ),
                     ),
                     const Spacer(),
-                    PopupMenuButton<String>(
-                      icon: Icon(Icons.more_horiz,
-                          color: Colors.grey.shade600, size: 24),
-                      onSelected: (value) {
-                        if (value == 'abandon') _cancelSession();
-                      },
-                      itemBuilder: (context) => [
-                        PopupMenuItem(
-                          value: 'abandon',
-                          child: Row(
-                            children: [
-                              Icon(Icons.close,
-                                  color: Colors.red.shade400, size: 20),
-                              const SizedBox(width: 8),
-                              Text(l.abandonButton,
-                                  style:
-                                      TextStyle(color: Colors.red.shade400)),
-                            ],
-                          ),
+                    TextButton.icon(
+                      onPressed: _cancelSession,
+                      icon: Icon(Icons.close_rounded,
+                          color: Colors.red.shade400, size: 18),
+                      label: Text(
+                        l.abandonButton,
+                        style: TextStyle(
+                          color: Colors.red.shade400,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
                         ),
-                      ],
+                      ),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 6,
+                        ),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
                     ),
                   ],
                 ),

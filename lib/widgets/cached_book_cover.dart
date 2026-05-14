@@ -15,11 +15,12 @@ import '../theme/app_theme.dart';
 ///   1. [imageUrl] — the stored cover URL (may be Google Books, OL, etc.)
 ///   2. Google Books thumbnail via [googleId] (deterministic URL pattern)
 ///   3. Google Books publisher-content via [googleId] (alternate endpoint)
-///   4. iTunes/Apple Books lookup via [isbn]
-///   5. Open Library cover via [isbn]
-///   6. BnF (Bibliothèque nationale de France) cover via [isbn]
-///   7. Title+author search (iTunes then Google Books API)
-///   8. Placeholder widget
+///   4. Amazon cover via ISBN-10 (converted from ISBN-13 with 978 prefix)
+///   5. iTunes/Apple Books lookup via [isbn]
+///   6. Open Library cover via [isbn]
+///   7. BnF (Bibliothèque nationale de France) cover via [isbn]
+///   8. Title+author search (iTunes then Google Books API)
+///   9. Placeholder widget
 ///
 /// Google Books `content?id=` URLs are HEAD-checked to filter out the gray
 /// "no preview" placeholder (valid HTTP 200 image but < 8 KB). Validated
@@ -54,6 +55,15 @@ class CachedBookCover extends StatefulWidget {
     final urls = CachedBookCover._resolvedCache[key];
     return (urls != null && urls.isNotEmpty) ? urls.first : null;
   }
+
+  /// Public wrapper — fetch an Amazon book cover URL by ISBN (10 or 13).
+  /// Returns null when Amazon has no cover or the ISBN can't be resolved.
+  static Future<String?> fetchAmazonCover(String isbn) =>
+      _CachedBookCoverState.fetchAmazonCover(isbn);
+
+  /// Public wrapper — convert ISBN-13 (978 prefix) to ISBN-10.
+  static String? isbn13ToIsbn10(String isbn13) =>
+      _CachedBookCoverState.isbn13ToIsbn10(isbn13);
 
   const CachedBookCover({
     super.key,
@@ -100,6 +110,9 @@ class _CachedBookCoverState extends State<CachedBookCover> {
   /// Not static — clears on widget rebuild to avoid stale results.
   final Map<String, String?> _itunesCache = {};
 
+  /// Static cache: ISBN-10 → Amazon cover URL (null = no cover found).
+  static final Map<String, String?> _amazonCache = {};
+
 
   /// Google Books gray placeholder is ~1.3 KB at zoom=1 and ~9.1 KB at
   /// zoom=2/3. Real covers are almost always > 15 KB.
@@ -112,6 +125,10 @@ class _CachedBookCoverState extends State<CachedBookCover> {
   /// Open Library "image not available" placeholder can be up to ~4 KB
   /// at medium size. Real covers are almost always > 5 KB.
   static const int _minOlCoverBytes = 5000;
+
+  /// Amazon returns a ~43-byte 1x1 transparent GIF when ISBN-10 is unknown.
+  /// Real covers are always > 3 KB.
+  static const int _minAmazonCoverBytes = 3000;
 
   @override
   void initState() {
@@ -177,10 +194,12 @@ class _CachedBookCoverState extends State<CachedBookCover> {
           }
         }
       } else {
-        // Insert iTunes cover before the first non-Google-Books URL (i.e. OL).
+        // Insert Amazon + iTunes before the first non-Google-Books URL (OL).
         if (!itunesInserted && hasValidIsbn) {
           itunesInserted = true;
-          final itunesUrl = await _fetchItunesCover(cleanIsbn!);
+          final amazonUrl = await fetchAmazonCover(cleanIsbn!);
+          if (amazonUrl != null) validated.add(amazonUrl);
+          final itunesUrl = await _fetchItunesCover(cleanIsbn);
           if (itunesUrl != null) validated.add(itunesUrl);
         }
         // HEAD-check Open Library URLs to filter out "image not available" placeholders.
@@ -194,9 +213,11 @@ class _CachedBookCoverState extends State<CachedBookCover> {
       }
     }
 
-    // If all candidates were Google Books (no OL), still try iTunes by ISBN.
+    // If all candidates were Google Books (no OL), still try Amazon + iTunes.
     if (!itunesInserted && hasValidIsbn) {
-      final itunesUrl = await _fetchItunesCover(cleanIsbn!);
+      final amazonUrl = await fetchAmazonCover(cleanIsbn!);
+      if (amazonUrl != null) validated.add(amazonUrl);
+      final itunesUrl = await _fetchItunesCover(cleanIsbn);
       if (itunesUrl != null) validated.add(itunesUrl);
     }
 
@@ -549,6 +570,80 @@ class _CachedBookCoverState extends State<CachedBookCover> {
       }
     } catch (_) {
       return url;
+    }
+  }
+
+  /// Convert an ISBN-13 (with 978 prefix) to ISBN-10.
+  /// Returns null for ISBN-13 with other prefixes (e.g. 979) — they have no
+  /// ISBN-10 equivalent. Also returns null for malformed input.
+  static String? isbn13ToIsbn10(String isbn13) {
+    if (isbn13.length != 13 || !isbn13.startsWith('978')) return null;
+    final base = isbn13.substring(3, 12);
+    int sum = 0;
+    for (int i = 0; i < 9; i++) {
+      final d = int.tryParse(base[i]);
+      if (d == null) return null;
+      sum += d * (10 - i);
+    }
+    final remainder = sum % 11;
+    final check = (11 - remainder) % 11;
+    final checkChar = check == 10 ? 'X' : check.toString();
+    return '$base$checkChar';
+  }
+
+  /// Look up a book cover via Amazon's (undocumented but stable) image endpoint
+  /// by ISBN-10. Returns null when the ISBN can't be converted or when Amazon
+  /// serves the 1×1 transparent GIF placeholder.
+  static Future<String?> fetchAmazonCover(String isbn) async {
+    final isbn10 = isbn.length == 10 ? isbn : isbn13ToIsbn10(isbn);
+    if (isbn10 == null) return null;
+
+    if (_amazonCache.containsKey(isbn10)) return _amazonCache[isbn10];
+
+    final url =
+        'https://images-na.ssl-images-amazon.com/images/P/$isbn10.01.L.jpg';
+
+    try {
+      final headResp = await http
+          .head(Uri.parse(url), headers: _browserHeaders)
+          .timeout(const Duration(seconds: 3));
+      if (headResp.statusCode != 200) {
+        _amazonCache[isbn10] = null;
+        return null;
+      }
+      final length =
+          int.tryParse(headResp.headers['content-length'] ?? '') ?? 0;
+      if (length > 0 && length < _minAmazonCoverBytes) {
+        _amazonCache[isbn10] = null;
+        return null;
+      }
+
+      // content-length missing or borderline → GET and verify body + width.
+      if (length == 0 || length < _minAmazonCoverBytes * 2) {
+        final getResp = await http
+            .get(Uri.parse(url), headers: _browserHeaders)
+            .timeout(const Duration(seconds: 4));
+        if (getResp.statusCode != 200) {
+          _amazonCache[isbn10] = null;
+          return null;
+        }
+        final bytes = getResp.bodyBytes;
+        if (bytes.length < _minAmazonCoverBytes) {
+          _amazonCache[isbn10] = null;
+          return null;
+        }
+        final width = _extractImageWidth(bytes);
+        if (width != null && width < 100) {
+          _amazonCache[isbn10] = null;
+          return null;
+        }
+      }
+
+      _amazonCache[isbn10] = url;
+      return url;
+    } catch (_) {
+      _amazonCache[isbn10] = null;
+      return null;
     }
   }
 

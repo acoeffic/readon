@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/book.dart';
+import '../widgets/cached_book_cover.dart';
 import 'google_books_service.dart';
 import 'kindle_webview_service.dart';
 
@@ -16,7 +17,7 @@ class BooksService {
 
   /// Insérer un livre via la RPC sécurisée (gère doublons et validation).
   /// Retourne l'ID du livre (existant ou nouveau).
-  Future<int> _insertBookRpc({
+  Future<int> insertBookIfNotExists({
     required String title,
     String? author,
     String? isbn,
@@ -82,7 +83,7 @@ class BooksService {
 
       // Créer le nouveau livre via RPC sécurisée
       final gb = Book.fromGoogleBook(googleBook);
-      final bookId = await _insertBookRpc(
+      final bookId = await insertBookIfNotExists(
         title: gb.title,
         author: gb.author,
         isbn: gb.isbn,
@@ -134,7 +135,7 @@ class BooksService {
       }
 
       // Créer le livre via RPC sécurisée
-      final bookId = await _insertBookRpc(
+      final bookId = await insertBookIfNotExists(
         title: title,
         author: author,
         isbn: isbn,
@@ -210,7 +211,7 @@ class BooksService {
 
       // Créer le livre via RPC sécurisée
       final gb = Book.fromGoogleBook(googleBook);
-      final bookId = await _insertBookRpc(
+      final bookId = await insertBookIfNotExists(
         title: gb.title,
         author: gb.author,
         isbn: gb.isbn,
@@ -534,7 +535,7 @@ class BooksService {
               needsCoverUpdate = kindleBook.coverUrl != null && !_isPromotionalImageUrl(kindleBook.coverUrl!);
             } else {
               // Créer le livre avec métadonnées et google_id via RPC
-              bookId = await _insertBookRpc(
+              bookId = await insertBookIfNotExists(
                 title: kindleBook.title,
                 author: metadata?['author'] as String? ?? kindleBook.author,
                 source: 'kindle',
@@ -548,7 +549,7 @@ class BooksService {
             }
           } else {
             // Pas de google_id, créer via RPC
-            bookId = await _insertBookRpc(
+            bookId = await insertBookIfNotExists(
               title: kindleBook.title,
               author: metadata?['author'] as String? ?? kindleBook.author,
               source: 'kindle',
@@ -1256,6 +1257,85 @@ class BooksService {
       return updated;
     } catch (e) {
       debugPrint('Erreur reEnrichSuspiciousBooks: $e');
+      return 0;
+    }
+  }
+
+  /// One-time migration: try Amazon covers (via ISBN-10) for the user's books
+  /// that currently lack a cover or rely on Open Library's low-quality one.
+  /// Version-gated via SharedPreferences so it runs at most once per user.
+  ///
+  /// Amazon is quota-free (no API key), but each lookup costs 1 HEAD (+ maybe
+  /// 1 GET) so we cap the batch size to keep startup snappy.
+  static const int _amazonEnrichVersion = 1;
+  static const String _amazonEnrichKey = 'books_amazon_enrich_version';
+  static const int _amazonEnrichMaxBooks = 60;
+
+  Future<int> enrichCoversWithAmazon({
+    int maxBooks = _amazonEnrichMaxBooks,
+  }) async {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) return 0;
+
+    final prefs = await SharedPreferences.getInstance();
+    final doneVersion = prefs.getInt(_amazonEnrichKey) ?? 0;
+    if (doneVersion >= _amazonEnrichVersion) return 0;
+
+    try {
+      final response = await _supabase
+          .from('user_books')
+          .select('book_id, books(id, cover_url, isbn)')
+          .eq('user_id', userId);
+
+      // Candidates = missing or Open Library cover, AND a valid-looking ISBN.
+      final isbnRegex = RegExp(r'^\d{9}[\dXx]$|^\d{13}$');
+      final candidates = (response as List).where((item) {
+        final book = item['books'] as Map<String, dynamic>?;
+        if (book == null) return false;
+        final coverUrl = book['cover_url'] as String?;
+        final isbn = book['isbn'] as String?;
+        if (isbn == null || isbn.isEmpty) return false;
+        final cleanIsbn = isbn.replaceAll(RegExp(r'[\s-]'), '');
+        if (!isbnRegex.hasMatch(cleanIsbn)) return false;
+        return coverUrl == null ||
+            coverUrl.isEmpty ||
+            coverUrl.contains('covers.openlibrary.org');
+      }).toList();
+
+      if (candidates.isEmpty) {
+        await prefs.setInt(_amazonEnrichKey, _amazonEnrichVersion);
+        return 0;
+      }
+
+      int updated = 0;
+      final capped = candidates.take(maxBooks).toList();
+      for (final item in capped) {
+        final book = item['books'] as Map<String, dynamic>;
+        final bookId = book['id'] as int;
+        final rawIsbn = book['isbn'] as String;
+        final cleanIsbn = rawIsbn.replaceAll(RegExp(r'[\s-]'), '');
+
+        try {
+          final amazonUrl = await CachedBookCover.fetchAmazonCover(cleanIsbn);
+          if (amazonUrl == null) continue;
+
+          await _supabase
+              .from('books')
+              .update({'cover_url': amazonUrl})
+              .eq('id', bookId);
+          updated++;
+        } catch (e) {
+          debugPrint('Amazon enrichment failed for book $bookId: $e');
+        }
+      }
+
+      // Mark done only if we processed every candidate.
+      if (capped.length >= candidates.length) {
+        await prefs.setInt(_amazonEnrichKey, _amazonEnrichVersion);
+      }
+      return updated;
+    } catch (e) {
+      debugPrint('Erreur enrichCoversWithAmazon: $e');
       return 0;
     }
   }

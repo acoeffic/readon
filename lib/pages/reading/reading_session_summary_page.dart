@@ -10,7 +10,7 @@ import '../../models/reading_session.dart';
 import '../../models/trophy.dart';
 import '../../models/feature_flags.dart';
 import '../../providers/subscription_provider.dart';
-import '../../pages/profile/upgrade_page.dart';
+import '../../services/native_paywall_service.dart';
 import '../../services/books_service.dart';
 import '../../services/flow_service.dart';
 import '../../services/reading_session_service.dart';
@@ -18,6 +18,7 @@ import '../../theme/app_theme.dart';
 import '../../widgets/cached_book_cover.dart';
 import '../../widgets/constrained_content.dart';
 import '../../features/wrapped/share/share_format.dart';
+import '../../navigation/main_navigation.dart';
 import 'session_share_service.dart';
 
 class ReadingSessionSummaryPage extends StatefulWidget {
@@ -653,8 +654,9 @@ class _ReadingSessionSummaryPageState
           if (!isPremium) ...[
             const SizedBox(height: 4),
             GestureDetector(
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const UpgradePage(highlightedFeature: Feature.advancedStats)),
+              onTap: () => NativePaywallService.present(
+                context,
+                highlightedFeature: Feature.advancedStats,
               ),
               child: Container(
                 width: double.infinity,
@@ -820,6 +822,11 @@ class _ReadingSessionSummaryPageState
         destination: ShareDestination.more,
         session: widget.session,
         sharePositionOrigin: _shareOrigin(),
+      );
+      if (!mounted) return;
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const MainNavigation()),
+        (route) => false,
       );
     } catch (e) {
       debugPrint('Erreur partage: $e');

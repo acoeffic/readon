@@ -68,6 +68,37 @@ String _formatDuration(int minutes) {
   return '${h}h${m > 0 ? '${m.toString().padLeft(2, '0')}' : ''}';
 }
 
+String _formatPace(int pagesRead, int durationMinutes) {
+  if (durationMinutes <= 0 || pagesRead <= 0) return '';
+  final perMin = pagesRead / durationMinutes;
+  if (perMin >= 1) return '${perMin.toStringAsFixed(1)} p/min';
+  // Switch to pages per hour for slow paces, more readable
+  final perHour = perMin * 60;
+  return '${perHour.round()} p/h';
+}
+
+const _frenchMonthsAbbrev = [
+  '', 'jan.', 'fév.', 'mars', 'avr.', 'mai', 'juin',
+  'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.',
+];
+
+String _formatSessionDate(DateTime date) {
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  final sessionDay = DateTime(date.year, date.month, date.day);
+  final hh = date.hour.toString().padLeft(2, '0');
+  final mm = date.minute.toString().padLeft(2, '0');
+  if (sessionDay == today) {
+    return 'Aujourd’hui · $hh:$mm';
+  }
+  final yesterday = today.subtract(const Duration(days: 1));
+  if (sessionDay == yesterday) {
+    return 'Hier · $hh:$mm';
+  }
+  final monthLabel = _frenchMonthsAbbrev[date.month];
+  return '${date.day} $monthLabel · $hh:$mm';
+}
+
 
 // ==========================================================================
 // Book cover placeholder (when no coverUrl)
@@ -164,6 +195,15 @@ class _StoryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final pace = _formatPace(session.pagesRead, session.durationMinutes);
+    final dateLabel = _formatSessionDate(session.startTime);
+    final hasProgress = totalPages != null &&
+        totalPages! > 0 &&
+        session.endPage != null;
+    final progressPct = hasProgress
+        ? ((session.endPage! / totalPages!) * 100).clamp(0, 100).round()
+        : 0;
+
     return SizedBox(
       width: 360,
       height: 640,
@@ -173,23 +213,32 @@ class _StoryCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(24),
         ),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 40),
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 32),
           child: Column(
             children: [
-              const Spacer(flex: 1),
+              // ── Date timestamp ──
+              Text(
+                dateLabel,
+                style: GoogleFonts.jetBrainsMono(
+                  fontSize: 11,
+                  letterSpacing: 0.5,
+                  color: _textMuted,
+                ),
+              ),
+              const SizedBox(height: 18),
 
               // ── Book cover (hero) ──
-              _buildCover(140, 210),
-              const SizedBox(height: 28),
+              _buildCover(130, 195),
+              const SizedBox(height: 22),
 
               // ── Book title ──
               Text(
                 bookTitle,
                 style: GoogleFonts.libreBaskerville(
-                  fontSize: 20,
+                  fontSize: 19,
                   fontWeight: FontWeight.w700,
                   color: _textDark,
-                  height: 1.3,
+                  height: 1.25,
                 ),
                 textAlign: TextAlign.center,
                 maxLines: 2,
@@ -210,7 +259,7 @@ class _StoryCard extends StatelessWidget {
                 ),
               ],
               if (readingForLabel != null) ...[
-                const SizedBox(height: 14),
+                const SizedBox(height: 12),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
                   decoration: BoxDecoration(
@@ -227,42 +276,72 @@ class _StoryCard extends StatelessWidget {
                   ),
                 ),
               ],
-              const SizedBox(height: 32),
 
-              // ── Stats: pages + duration on one line ──
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+              const SizedBox(height: 22),
+
+              // ── Stats principal: pages · min · (pace) ──
+              Wrap(
+                alignment: WrapAlignment.center,
+                spacing: 10,
+                runSpacing: 6,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   Text(
                     '${session.pagesRead} pages',
                     style: GoogleFonts.jetBrainsMono(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
                       color: _accent,
                     ),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: Text(
-                      '·',
-                      style: TextStyle(
-                        fontSize: 18,
-                        color: _textMuted,
-                      ),
-                    ),
-                  ),
+                  Text('·',
+                      style: TextStyle(fontSize: 16, color: _textMuted)),
                   Text(
                     '${_formatDuration(session.durationMinutes)} min',
                     style: GoogleFonts.jetBrainsMono(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
                       color: _accent,
                     ),
                   ),
+                  if (pace.isNotEmpty) ...[
+                    Text('·',
+                        style: TextStyle(fontSize: 16, color: _textMuted)),
+                    Text(
+                      pace,
+                      style: GoogleFonts.jetBrainsMono(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: _accent,
+                      ),
+                    ),
+                  ],
                 ],
               ),
 
-              const Spacer(flex: 2),
+              const SizedBox(height: 14),
+
+              // ── Streak + progress chips ──
+              Wrap(
+                alignment: WrapAlignment.center,
+                spacing: 8,
+                runSpacing: 6,
+                children: [
+                  if (streak > 0)
+                    _MetaChip(
+                      icon: '\u{1F525}',
+                      label: streak == 1 ? '1 jour' : '$streak jours',
+                    ),
+                  if (hasProgress)
+                    _MetaChip(
+                      icon: '\u{1F4D6}',
+                      label:
+                          '${session.endPage}/$totalPages · $progressPct%',
+                    ),
+                ],
+              ),
+
+              const Spacer(),
 
               // ── Footer ──
               _LexDayFooter(),
@@ -450,6 +529,39 @@ class _SquareCard extends StatelessWidget {
 // Sub-widgets
 // ==========================================================================
 
+class _MetaChip extends StatelessWidget {
+  final String icon;
+  final String label;
+
+  const _MetaChip({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: _accent.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(icon, style: const TextStyle(fontSize: 11)),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: GoogleFonts.jetBrainsMono(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: _accent,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _LexDayFooter extends StatelessWidget {
   final bool compact;
   const _LexDayFooter({this.compact = false});
@@ -474,7 +586,7 @@ class _LexDayFooter extends StatelessWidget {
         ),
         const SizedBox(height: 2),
         Text(
-          'YOUR READING LIFE, TRACKED',
+          'UNE PAGE. CHAQUE JOUR.',
           style: GoogleFonts.jetBrainsMono(
             fontSize: compact ? 7 : 8,
             letterSpacing: 2,

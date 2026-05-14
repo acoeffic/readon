@@ -5,12 +5,13 @@ import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../models/book.dart';
 import '../../models/reading_session.dart';
 import '../../models/feature_flags.dart';
 import '../../providers/subscription_provider.dart';
-import '../../pages/profile/upgrade_page.dart';
+import '../../services/native_paywall_service.dart';
 import '../../services/reading_session_service.dart';
 import '../../services/books_service.dart';
 import '../../services/badges_service.dart';
@@ -155,6 +156,36 @@ class _BookCompletedSummaryPageState extends State<BookCompletedSummaryPage>
 
   String _formatShortDate(DateTime d) => '${d.day} ${_months[d.month - 1]}';
 
+  /// Most common non-null reading_for value across this book's sessions.
+  String? _dominantReadingForKey() {
+    final counts = <String, int>{};
+    for (final s in _sessions) {
+      final v = s.readingFor;
+      if (v != null && v.isNotEmpty) {
+        counts[v] = (counts[v] ?? 0) + 1;
+      }
+    }
+    if (counts.isEmpty) return null;
+    return counts.entries
+        .reduce((a, b) => a.value >= b.value ? a : b)
+        .key;
+  }
+
+  String _resolveReadingForLabel(String key, AppLocalizations l) {
+    switch (key) {
+      case 'daughter': return l.readingForDaughter;
+      case 'son': return l.readingForSon;
+      case 'friend': return l.readingForFriend;
+      case 'grandmother': return l.readingForGrandmother;
+      case 'grandfather': return l.readingForGrandfather;
+      case 'father': return l.readingForFather;
+      case 'mother': return l.readingForMother;
+      case 'partner': return l.readingForPartner;
+      case 'other': return l.readingForOther;
+      default: return key;
+    }
+  }
+
   /// Compute reading period info from sessions.
   _ReadingPeriod? _computeReadingPeriod() {
     if (_sessions.isEmpty) return null;
@@ -235,9 +266,8 @@ class _BookCompletedSummaryPageState extends State<BookCompletedSummaryPage>
 
           // ── Main content ──
           SafeArea(
+            bottom: false,
             child: ConstrainedContent(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               child: _isLoading
                   ? const Padding(
                       padding: EdgeInsets.only(top: 100),
@@ -245,29 +275,59 @@ class _BookCompletedSummaryPageState extends State<BookCompletedSummaryPage>
                     )
                   : Column(
                       children: [
-                        _buildAppBar(isDark),
-                        const SizedBox(height: 20),
-                        _buildTrophyHeader(isDark),
-                        const SizedBox(height: 24),
-                        _buildBookCard(isDark),
-                        const SizedBox(height: 16),
-                        _buildFreeStatsCard(isDark),
-                        const SizedBox(height: 12),
-                        _buildReadingPeriodCard(isDark),
-                        const SizedBox(height: 20),
-                        _buildPremiumBilanSection(isDark),
-                        const SizedBox(height: 20),
-                        if (_unlockedBadges.isNotEmpty) ...[
-                          _buildBadgesSection(isDark),
-                          const SizedBox(height: 24),
-                        ],
-                        _buildShareButton(),
-                        const SizedBox(height: 12),
-                        _buildReturnButton(isDark),
-                        const SizedBox(height: 24),
+                        Expanded(
+                          child: SingleChildScrollView(
+                            padding: const EdgeInsets.fromLTRB(24, 12, 24, 12),
+                            child: Column(
+                              children: [
+                                _buildAppBar(isDark),
+                                const SizedBox(height: 20),
+                                _buildTrophyHeader(isDark),
+                                const SizedBox(height: 24),
+                                _buildBookCard(isDark),
+                                const SizedBox(height: 16),
+                                _buildFreeStatsCard(isDark),
+                                const SizedBox(height: 12),
+                                _buildReadingPeriodCard(isDark),
+                                const SizedBox(height: 20),
+                                _buildPremiumBilanSection(isDark),
+                                const SizedBox(height: 20),
+                                if (_unlockedBadges.isNotEmpty) ...[
+                                  _buildBadgesSection(isDark),
+                                  const SizedBox(height: 24),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ),
+                        // ── Sticky bottom action bar ──
+                        Container(
+                          decoration: BoxDecoration(
+                            color: bgColor,
+                            border: Border(
+                              top: BorderSide(
+                                color: (isDark ? Colors.white : Colors.black)
+                                    .withValues(alpha: 0.06),
+                              ),
+                            ),
+                          ),
+                          padding: EdgeInsets.fromLTRB(
+                            24,
+                            12,
+                            24,
+                            MediaQuery.of(context).padding.bottom + 12,
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              _buildShareButton(),
+                              const SizedBox(height: 8),
+                              _buildReturnButton(isDark),
+                            ],
+                          ),
+                        ),
                       ],
                     ),
-              ),
             ),
           ),
         ],
@@ -825,8 +885,9 @@ class _BookCompletedSummaryPageState extends State<BookCompletedSummaryPage>
           if (!isPremium) ...[
             const SizedBox(height: 4),
             GestureDetector(
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const UpgradePage(highlightedFeature: Feature.advancedStats)),
+              onTap: () => NativePaywallService.present(
+                context,
+                highlightedFeature: Feature.advancedStats,
               ),
               child: Container(
                 width: double.infinity,
@@ -1065,10 +1126,17 @@ class _BookCompletedSummaryPageState extends State<BookCompletedSummaryPage>
       child: ElevatedButton.icon(
         onPressed: () {
           if (_stats != null) {
+            HapticFeedback.mediumImpact();
+            final l = AppLocalizations.of(context);
+            final readingForKey = _dominantReadingForKey();
+            final readingForLabel = readingForKey != null
+                ? l.readWithDisplay(_resolveReadingForLabel(readingForKey, l))
+                : null;
             showBookFinishedShareSheet(
               context: context,
               book: widget.book,
               stats: _stats!,
+              readingForLabel: readingForLabel,
             );
           }
         },

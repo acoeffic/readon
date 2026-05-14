@@ -1,6 +1,8 @@
 // lib/pages/reading/end_reading_session_page.dart
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../l10n/app_localizations.dart';
 import 'package:image_picker/image_picker.dart';
@@ -18,6 +20,7 @@ import '../../models/reading_session.dart';
 import '../../models/reading_flow.dart';
 import '../../models/trophy.dart';
 import '../../widgets/badge_unlocked_dialog.dart';
+import '../../widgets/cached_book_cover.dart';
 import '../../widgets/trophy_card.dart';
 import '../../models/book.dart';
 import 'reading_session_summary_page.dart';
@@ -29,6 +32,12 @@ import '../friends/contacts_suggestion_page.dart';
 import '../chat/ai_chat_page.dart';
 import '../../services/widget_service.dart';
 import '../../widgets/constrained_content.dart';
+
+const _kBgColor = Color(0xFFFAF3E8);
+const _kSageGreen = Color(0xFF6B988D);
+const _kGold = Color(0xFFC6A85A);
+const _kFallbackHeroColor = Color(0xFF2a3a5a);
+const _kBackBtnColor = Color(0xFFF0E8D8);
 
 class EndReadingSessionPage extends StatefulWidget {
   final ReadingSession activeSession;
@@ -58,15 +67,41 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
   String? _errorMessage;
   int? _manualPageNumber;
   bool _showFinishBookAnimation = false;
-  bool _isEditingPageNumber = false;
-  final TextEditingController _pageNumberController = TextEditingController();
   final TextEditingController _manualPageController = TextEditingController();
+  final FocusNode _pageFocusNode = FocusNode();
+  Book? _book;
+
+  @override
+  void initState() {
+    super.initState();
+    _book = widget.book;
+    if (_book == null) {
+      _loadBook();
+    }
+    _pageFocusNode.addListener(() {
+      if (mounted) setState(() {});
+    });
+  }
+
+  Future<void> _loadBook() async {
+    try {
+      final bookId = int.tryParse(widget.activeSession.bookId);
+      if (bookId == null) return;
+      final bookData = await Supabase.instance.client
+          .from('books')
+          .select()
+          .eq('id', bookId)
+          .maybeSingle();
+      if (!mounted || bookData == null) return;
+      setState(() => _book = Book.fromJson(bookData));
+    } catch (_) {}
+  }
 
   @override
   void dispose() {
     _sessionService.dispose();
-    _pageNumberController.dispose();
     _manualPageController.dispose();
+    _pageFocusNode.dispose();
     super.dispose();
   }
 
@@ -128,6 +163,10 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
       setState(() {
         _detectedPageNumber = pageNumber;
         _isProcessing = false;
+        if (pageNumber != null) {
+          _manualPageController.text = pageNumber.toString();
+          _manualPageNumber = pageNumber;
+        }
       });
 
       if (pageNumber == null) {
@@ -138,6 +177,8 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
         setState(() {
           _errorMessage = AppLocalizations.of(context)!.endPageBeforeStartDetailed(pageNumber, widget.activeSession.startPage);
           _detectedPageNumber = null;
+          _manualPageNumber = null;
+          _manualPageController.clear();
         });
       }
     } catch (e) {
@@ -146,42 +187,6 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
         _errorMessage = AppLocalizations.of(context)!.ocrError(e.toString());
       });
     }
-  }
-
-  void _enableEditMode() {
-    setState(() {
-      _isEditingPageNumber = true;
-      _pageNumberController.text = (_detectedPageNumber ?? _manualPageNumber ?? '').toString();
-    });
-  }
-
-  void _saveEditedPageNumber() {
-    final newValue = int.tryParse(_pageNumberController.text);
-    if (newValue != null && newValue > 0) {
-      if (newValue < widget.activeSession.startPage) {
-        setState(() {
-          _errorMessage = AppLocalizations.of(context)!.endPageBeforeStartDetailed(newValue, widget.activeSession.startPage);
-        });
-        return;
-      }
-      setState(() {
-        _manualPageNumber = newValue;
-        _detectedPageNumber = null; // Utiliser le numéro manuel au lieu du détecté
-        _isEditingPageNumber = false;
-        _errorMessage = null;
-      });
-    } else {
-      setState(() {
-        _errorMessage = AppLocalizations.of(context)!.invalidPageNumber;
-      });
-    }
-  }
-
-  void _cancelEdit() {
-    setState(() {
-      _isEditingPageNumber = false;
-      _pageNumberController.clear();
-    });
   }
 
   Future<void> _endSession() async {
@@ -430,8 +435,14 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
       setState(() => _isProcessing = true);
 
       try {
-        // Utiliser le pageCount du livre si aucune page n'a été saisie
-        final pageNumber = _detectedPageNumber ?? _manualPageNumber ?? widget.book?.pageCount;
+        // Utiliser le pageCount du livre si aucune page n'a été saisie.
+        // _book est chargé async par _loadBook() ; widget.book n'est passé
+        // que dans certains call sites — on retombe sur _book sinon.
+        final pageNumber = _detectedPageNumber
+            ?? _manualPageNumber
+            ?? _book?.pageCount
+            ?? widget.book?.pageCount
+            ?? widget.activeSession.startPage;
 
         // Terminer la session avec le livre marqué comme terminé
         final completedSession = await _sessionService.endSession(
@@ -699,40 +710,6 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
     }
   }
 
-  Future<void> _cancelSession() async {
-    final l = AppLocalizations.of(context)!;
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l.cancel),
-        content: const Text('Êtes-vous sûr de vouloir annuler cette session de lecture ?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(l.no),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: Text(l.yes, style: const TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm == true) {
-      try {
-        await _sessionService.cancelSession(widget.activeSession.id);
-        if (!mounted) return;
-        Navigator.of(context).pop();
-      } catch (e) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red),
-        );
-      }
-    }
-  }
-
   String _formatDuration(DateTime startTime) {
     final duration = DateTime.now().difference(startTime);
     final hours = duration.inHours;
@@ -744,352 +721,477 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
     return '${minutes}min';
   }
 
+  int? get _effectivePage => _manualPageNumber ?? _detectedPageNumber;
+  bool get _canEndSession =>
+      _effectivePage != null &&
+      _effectivePage! >= widget.activeSession.startPage;
+
   @override
   Widget build(BuildContext context) {
+    final book = _book;
+    final totalPages = book?.pageCount;
+    final currentPage = widget.activeSession.startPage;
+    final progress = (totalPages != null && totalPages > 0)
+        ? (currentPage / totalPages).clamp(0.0, 1.0)
+        : 0.0;
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Terminer la lecture'),
-        backgroundColor: AppColors.primary,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.cancel),
-            onPressed: _cancelSession,
-            tooltip: 'Annuler la session',
-          ),
-        ],
-      ),
+      backgroundColor: _kBgColor,
       resizeToAvoidBottomInset: true,
       body: Stack(
         children: [
-          ConstrainedContent(
-          child: Column(
-            children: [
-          Expanded(
-            child: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Infos session en cours
-            Card(
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? Colors.blue.shade900.withValues(alpha: 0.3)
-                  : Colors.blue.shade50,
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(Icons.schedule, color: Theme.of(context).brightness == Brightness.dark ? Colors.blue.shade300 : Colors.blue),
-                        const SizedBox(width: 8),
-                        Text('Session en cours', style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).brightness == Brightness.dark ? Colors.blue.shade200 : null,
-                        )),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Text('Commencée à la page ${widget.activeSession.startPage}',
-                      style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : null)),
-                    Text('Durée: ${_formatDuration(widget.activeSession.startTime)}',
-                      style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : null)),
-                  ],
-                ),
-              ),
-            ),
-            
-            const SizedBox(height: 24),
-            
-            // Instructions
-            Card(
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? Colors.green.shade900.withValues(alpha: 0.3)
-                  : Colors.green.shade50,
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(Icons.info_outline, color: Theme.of(context).brightness == Brightness.dark ? Colors.green.shade300 : Colors.green),
-                        const SizedBox(width: 8),
-                        Text('Instructions', style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).brightness == Brightness.dark ? Colors.green.shade200 : null,
-                        )),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Text('1. Photographiez votre dernière page lue',
-                      style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : null)),
-                    Text('2. Assurez-vous que le numéro est visible',
-                      style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : null)),
-                    Text('3. Validez pour enregistrer votre progression',
-                      style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : null)),
-                  ],
-                ),
-              ),
-            ),
-            
-            const SizedBox(height: 20),
-            
-            // Boutons de capture
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: _isProcessing ? null : _takePicture,
-                    icon: const Icon(Icons.camera_alt),
-                    label: const Text('Prendre Photo'),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.all(16),
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: _isProcessing ? null : _pickFromGallery,
-                    icon: const Icon(Icons.photo_library),
-                    label: const Text('Galerie'),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.all(16),
-                      backgroundColor: AppColors.primary.withValues(alpha: 0.6),
-                      foregroundColor: Colors.white,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            
-            const SizedBox(height: 20),
-            
-            // Processing
-            if (_isProcessing)
-              const Card(
-                child: Padding(
-                  padding: EdgeInsets.all(20),
-                  child: Column(
-                    children: [
-                      CircularProgressIndicator(),
-                      SizedBox(height: 12),
-                      Text('Analyse en cours...'),
-                    ],
-                  ),
-                ),
-              ),
-            
-            // Error
-            if (_errorMessage != null && !_isProcessing)
-              Card(
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? Colors.orange.shade900.withValues(alpha: 0.3)
-                    : Colors.orange.shade50,
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    children: [
-                      Icon(Icons.warning_amber, color: Colors.orange.shade700),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(_errorMessage!, style: TextStyle(color: Colors.orange.shade900)),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            
-            // Image preview
-            if (_imageFile != null && !_isProcessing) ...[
-              const SizedBox(height: 20),
-              const Text('Photo capturée:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-              const SizedBox(height: 8),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: kIsWeb
-                    ? Image.network(_imageFile!.path, height: 200, fit: BoxFit.cover)
-                    : Image.file(File(_imageFile!.path), height: 200, fit: BoxFit.cover),
-              ),
-            ],
-            
-            // Résultat
-            if (_detectedPageNumber != null || _manualPageNumber != null) ...[
-              const SizedBox(height: 20),
-              Card(
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? (_manualPageNumber != null
-                        ? Colors.blue.shade900.withValues(alpha: 0.3)
-                        : Colors.green.shade900.withValues(alpha: 0.3))
-                    : (_manualPageNumber != null ? Colors.blue.shade50 : Colors.green.shade50),
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    children: [
-                      Icon(
-                        _manualPageNumber != null ? Icons.edit : Icons.check_circle,
-                        color: _manualPageNumber != null ? Colors.blue.shade700 : Colors.green.shade700,
-                        size: 48,
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        _manualPageNumber != null ? 'Page corrigée:' : 'Page détectée:',
-                        style: const TextStyle(fontSize: 16),
-                      ),
-                      const SizedBox(height: 8),
-                      if (!_isEditingPageNumber)
-                        Column(
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  'Page ${_detectedPageNumber ?? _manualPageNumber}',
-                                  style: TextStyle(
-                                    fontSize: 36,
-                                    fontWeight: FontWeight.bold,
-                                    color: _manualPageNumber != null ? Colors.blue.shade700 : Colors.green.shade700,
-                                  ),
+          SafeArea(
+            bottom: false,
+            child: ConstrainedContent(
+              child: Column(
+                children: [
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          // ── Header ──
+                          Row(
+                            children: [
+                              _BackButton(onTap: () => Navigator.of(context).pop()),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'FIN DE SESSION',
+                                      style: GoogleFonts.dmSans(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        letterSpacing: 1.5,
+                                        color: _kSageGreen,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      'Terminer la lecture',
+                                      style: GoogleFonts.cormorantGaramond(
+                                        fontSize: 28,
+                                        fontWeight: FontWeight.w700,
+                                        color: const Color(0xFF1A1A1A),
+                                        height: 1.1,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                const SizedBox(width: 12),
-                                IconButton(
-                                  onPressed: _enableEditMode,
-                                  icon: const Icon(Icons.edit),
-                                  color: AppColors.primary,
-                                  tooltip: 'Corriger le numéro',
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 20),
+
+                          // ── Hero card (book + start page + duration) ──
+                          Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(24),
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  _kFallbackHeroColor,
+                                  _kFallbackHeroColor.withValues(alpha: 0.85),
+                                ],
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: _kFallbackHeroColor.withValues(alpha: 0.35),
+                                  blurRadius: 24,
+                                  offset: const Offset(0, 8),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Pages lues: ${(_detectedPageNumber ?? _manualPageNumber)! - widget.activeSession.startPage}',
-                              style: const TextStyle(fontSize: 16, color: Colors.grey),
-                            ),
-                          ],
-                        ),
-                      if (_isEditingPageNumber) ...[
-                        SizedBox(
-                          width: 200,
-                          child: TextField(
-                            controller: _pageNumberController,
-                            keyboardType: TextInputType.number,
-                            autofocus: true,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            decoration: InputDecoration(
-                              labelText: 'Numéro de page',
-                              border: const OutlineInputBorder(),
-                              prefixIcon: const Icon(Icons.numbers),
-                              helperText: 'Page de début: ${widget.activeSession.startPage}',
+                            padding: const EdgeInsets.all(20),
+                            child: Column(
+                              children: [
+                                Row(
+                                  children: [
+                                    Container(
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(12),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withValues(alpha: 0.3),
+                                            blurRadius: 12,
+                                            offset: const Offset(0, 4),
+                                          ),
+                                        ],
+                                      ),
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(12),
+                                        child: book?.coverUrl != null
+                                            ? CachedBookCover(
+                                                imageUrl: book!.coverUrl,
+                                                isbn: book.isbn,
+                                                googleId: book.googleId,
+                                                title: book.title,
+                                                author: book.author,
+                                                width: 72,
+                                                height: 108,
+                                                borderRadius: BorderRadius.circular(12),
+                                              )
+                                            : Container(
+                                                width: 72,
+                                                height: 108,
+                                                decoration: BoxDecoration(
+                                                  color: Colors.white.withValues(alpha: 0.15),
+                                                  borderRadius: BorderRadius.circular(12),
+                                                ),
+                                                child: const Center(
+                                                  child: Text('📖',
+                                                      style: TextStyle(fontSize: 32)),
+                                                ),
+                                              ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 16),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            book?.title ?? 'Livre',
+                                            style: GoogleFonts.cormorantGaramond(
+                                              fontSize: 20,
+                                              fontWeight: FontWeight.w700,
+                                              color: Colors.white,
+                                              height: 1.2,
+                                            ),
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          if (book?.author != null) ...[
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              book!.author!,
+                                              style: GoogleFonts.dmSans(
+                                                fontSize: 13,
+                                                color: Colors.white.withValues(alpha: 0.7),
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ],
+                                          if (totalPages != null && totalPages > 0) ...[
+                                            const SizedBox(height: 12),
+                                            ClipRRect(
+                                              borderRadius: BorderRadius.circular(4),
+                                              child: LinearProgressIndicator(
+                                                value: progress,
+                                                backgroundColor: Colors.white.withValues(alpha: 0.15),
+                                                valueColor: const AlwaysStoppedAnimation<Color>(_kGold),
+                                                minHeight: 5,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 6),
+                                            Text(
+                                              '$currentPage / $totalPages pages',
+                                              style: GoogleFonts.dmSans(
+                                                fontSize: 12,
+                                                color: _kGold.withValues(alpha: 0.9),
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                          ],
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 14),
+                                Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 14, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.12),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Text(
+                                    'Démarrée page $currentPage · ${_formatDuration(widget.activeSession.startTime)}',
+                                    textAlign: TextAlign.center,
+                                    style: GoogleFonts.dmSans(
+                                      fontSize: 13,
+                                      color: Colors.white.withValues(alpha: 0.85),
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                        ),
-                        const SizedBox(height: 12),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            TextButton(
-                              onPressed: _cancelEdit,
-                              child: const Text('Annuler'),
+
+                          const SizedBox(height: 20),
+
+                          // ── Page input ──
+                          Text(
+                            'À QUELLE PAGE AS-TU FINI ?',
+                            style: GoogleFonts.dmSans(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 1.5,
+                              color: _kSageGreen,
                             ),
-                            const SizedBox(width: 12),
-                            ElevatedButton.icon(
-                              onPressed: _saveEditedPageNumber,
-                              icon: const Icon(Icons.check),
-                              label: const Text('Valider'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.green,
-                                foregroundColor: Colors.white,
+                          ),
+                          const SizedBox(height: 10),
+
+                          Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: _pageFocusNode.hasFocus
+                                    ? _kSageGreen
+                                    : const Color(0xFFE2DDD5),
+                                width: _pageFocusNode.hasFocus ? 2 : 1.5,
+                              ),
+                              boxShadow: _pageFocusNode.hasFocus
+                                  ? [
+                                      BoxShadow(
+                                        color: _kSageGreen.withValues(alpha: 0.15),
+                                        blurRadius: 12,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ]
+                                  : [],
+                            ),
+                            child: TextField(
+                              key: const ValueKey('manual_page_input'),
+                              controller: _manualPageController,
+                              focusNode: _pageFocusNode,
+                              keyboardType: TextInputType.number,
+                              textAlign: TextAlign.center,
+                              cursorColor: _kSageGreen,
+                              style: GoogleFonts.cormorantGaramond(
+                                fontSize: 36,
+                                fontWeight: FontWeight.w700,
+                                color: const Color(0xFF1A1A1A),
+                              ),
+                              decoration: InputDecoration(
+                                hintText: currentPage.toString(),
+                                hintStyle: GoogleFonts.cormorantGaramond(
+                                  fontSize: 36,
+                                  fontWeight: FontWeight.w500,
+                                  color: const Color(0xFFBDB5A8),
+                                ),
+                                filled: true,
+                                fillColor: Colors.transparent,
+                                border: InputBorder.none,
+                                enabledBorder: InputBorder.none,
+                                focusedBorder: InputBorder.none,
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                  vertical: 16,
+                                ),
+                              ),
+                              onChanged: (value) {
+                                setState(() {
+                                  _manualPageNumber = int.tryParse(value);
+                                  _detectedPageNumber = null;
+                                  _errorMessage = null;
+                                });
+                              },
+                              onTap: () => setState(() {}),
+                            ),
+                          ),
+
+                          if (_effectivePage != null &&
+                              _effectivePage! >= widget.activeSession.startPage) ...[
+                            const SizedBox(height: 8),
+                            Text(
+                              '${_effectivePage! - widget.activeSession.startPage} pages lues',
+                              textAlign: TextAlign.center,
+                              style: GoogleFonts.dmSans(
+                                fontSize: 12,
+                                color: _kSageGreen,
+                                fontWeight: FontWeight.w500,
                               ),
                             ),
                           ],
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ),
-            ],
-            
-            // Saisie manuelle (toujours visible si pas de numéro détecté)
-            if (_detectedPageNumber == null) ...[
-              const SizedBox(height: 20),
-              const Text('Ou saisissez le numéro directement:', style: TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              TextField(
-                key: const ValueKey('manual_page_input'),
-                controller: _manualPageController,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  labelText: 'Numéro de page',
-                  border: const OutlineInputBorder(),
-                  prefixIcon: const Icon(Icons.numbers),
-                  helperText: 'Page de début: ${widget.activeSession.startPage}',
-                ),
-                onChanged: (value) {
-                  setState(() {
-                    _manualPageNumber = int.tryParse(value);
-                  });
-                },
-              ),
-            ],
 
-          ],
-        ),
-          ),
-            ),
-          // Boutons fixes en bas
-          if (_detectedPageNumber != null || _manualPageNumber != null || widget.book?.pageCount != null)
-            SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    if (_detectedPageNumber != null || _manualPageNumber != null)
-                      ElevatedButton(
-                        onPressed: _isProcessing ? null : _endSession,
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.all(16),
-                          backgroundColor: Colors.green,
-                          foregroundColor: Colors.white,
-                        ),
-                        child: const Text(
-                          'Terminer la session',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                    if (_detectedPageNumber != null || _manualPageNumber != null)
-                      const SizedBox(height: 8),
-                    ElevatedButton.icon(
-                      onPressed: _isProcessing ? null : _finishBook,
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.all(16),
-                        backgroundColor: Colors.amber,
-                        foregroundColor: Colors.white,
-                      ),
-                      icon: const Icon(Icons.auto_awesome),
-                      label: const Text(
-                        'Terminer le livre',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          const SizedBox(height: 14),
+
+                          // ── Scan buttons ──
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _DashedButton(
+                                  label: '📷  Scanner la page',
+                                  onTap: _isProcessing ? null : _takePicture,
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: _DashedButton(
+                                  label: '🖼️  Galerie',
+                                  onTap: _isProcessing ? null : _pickFromGallery,
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          // ── Processing indicator ──
+                          if (_isProcessing) ...[
+                            const SizedBox(height: 16),
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: Row(
+                                children: [
+                                  SizedBox(
+                                    width: 22,
+                                    height: 22,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2.5,
+                                      valueColor:
+                                          AlwaysStoppedAnimation<Color>(_kSageGreen),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 14),
+                                  Text(
+                                    'Analyse en cours…',
+                                    style: GoogleFonts.dmSans(
+                                      fontSize: 14,
+                                      color: const Color(0xFF1A1A1A),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+
+                          // ── Image preview ──
+                          if (_imageFile != null && !_isProcessing) ...[
+                            const SizedBox(height: 16),
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(16),
+                              child: kIsWeb
+                                  ? Image.network(_imageFile!.path,
+                                      height: 160, fit: BoxFit.cover)
+                                  : Image.file(File(_imageFile!.path),
+                                      height: 160, fit: BoxFit.cover),
+                            ),
+                          ],
+
+                          // ── Error ──
+                          if (_errorMessage != null && !_isProcessing) ...[
+                            const SizedBox(height: 14),
+                            Container(
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: Colors.orange.shade50,
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(
+                                  color: Colors.orange.shade200,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.warning_amber_rounded,
+                                      color: Colors.orange.shade700, size: 20),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      _errorMessage!,
+                                      style: GoogleFonts.dmSans(
+                                        fontSize: 13,
+                                        color: Colors.orange.shade900,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                     ),
-                  ],
-                ),
+                  ),
+
+                  // ── Bottom action bar ──
+                  Container(
+                    decoration: const BoxDecoration(
+                      color: _kBgColor,
+                      border: Border(
+                        top: BorderSide(color: Color(0x11000000)),
+                      ),
+                    ),
+                    padding: EdgeInsets.fromLTRB(
+                      16,
+                      12,
+                      16,
+                      MediaQuery.of(context).padding.bottom + 12,
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: (_canEndSession && !_isProcessing)
+                                ? () {
+                                    HapticFeedback.mediumImpact();
+                                    _endSession();
+                                  }
+                                : null,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: _kSageGreen,
+                              foregroundColor: Colors.white,
+                              disabledBackgroundColor:
+                                  _kSageGreen.withValues(alpha: 0.35),
+                              disabledForegroundColor:
+                                  Colors.white.withValues(alpha: 0.7),
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              elevation: 0,
+                            ),
+                            child: Text(
+                              'Terminer la session 📖',
+                              style: GoogleFonts.dmSans(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        TextButton.icon(
+                          onPressed: _isProcessing
+                              ? null
+                              : () {
+                                  HapticFeedback.mediumImpact();
+                                  _finishBook();
+                                },
+                          icon: const Text('✨', style: TextStyle(fontSize: 16)),
+                          label: Text(
+                            'J\'ai terminé le livre',
+                            style: GoogleFonts.dmSans(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: _kGold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
-            ],
           ),
-          ),
-          // Animation de confetti
+
+          // ── Confetti overlay ──
           if (_showFinishBookAnimation)
             Positioned.fill(
               child: IgnorePointer(
@@ -1114,9 +1216,9 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
                             const SizedBox(height: 20),
                             Opacity(
                               opacity: value,
-                              child: const Text(
-                                'Félicitations!',
-                                style: TextStyle(
+                              child: Text(
+                                'Félicitations !',
+                                style: GoogleFonts.cormorantGaramond(
                                   fontSize: 32,
                                   fontWeight: FontWeight.bold,
                                   color: Colors.white,
@@ -1126,10 +1228,10 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
                             const SizedBox(height: 10),
                             Opacity(
                               opacity: value,
-                              child: const Text(
-                                'Livre terminé!',
-                                style: TextStyle(
-                                  fontSize: 24,
+                              child: Text(
+                                'Livre terminé !',
+                                style: GoogleFonts.dmSans(
+                                  fontSize: 22,
                                   color: Colors.white,
                                 ),
                               ),
@@ -1373,6 +1475,67 @@ class _FlowBadgeDialogState extends State<_FlowBadgeDialog>
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _BackButton extends StatelessWidget {
+  final VoidCallback onTap;
+
+  const _BackButton({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 42,
+        height: 42,
+        decoration: BoxDecoration(
+          color: _kBackBtnColor,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: const Icon(
+          Icons.arrow_back_ios_new_rounded,
+          size: 18,
+          color: Color(0xFF3A3A3A),
+        ),
+      ),
+    );
+  }
+}
+
+class _DashedButton extends StatelessWidget {
+  final String label;
+  final VoidCallback? onTap;
+
+  const _DashedButton({required this.label, this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: const Color(0xFFCBC4B8),
+            width: 1.5,
+          ),
+          color: Colors.white.withValues(alpha: 0.5),
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: GoogleFonts.dmSans(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: const Color(0xFF6A6A6A),
+            ),
+          ),
+        ),
       ),
     );
   }

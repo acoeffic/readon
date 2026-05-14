@@ -1,18 +1,19 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:screenshot/screenshot.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../models/book.dart';
 import '../../models/reading_session.dart';
 import '../../features/wrapped/share/share_format.dart';
 import '../../services/lexday_sync_service.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/app_constants.dart';
 import 'book_finished_share_card.dart';
 
 // ==========================================================================
@@ -27,11 +28,13 @@ class BookFinishedShareService {
     required Book book,
     required BookReadingStats stats,
     Uint8List? coverBytes,
+    String? readingForLabel,
   }) async {
     final card = BookFinishedShareCard(
       book: book,
       stats: stats,
       coverBytes: coverBytes,
+      readingForLabel: readingForLabel,
     );
     return _screenshotController.captureFromWidget(
       card,
@@ -50,27 +53,17 @@ class BookFinishedShareService {
     return null;
   }
 
-  /// Build a deep link URL for sharing a book.
-  static String buildShareLink(int bookId, String userId) {
-    return 'lexday://book/$bookId?from=$userId';
-  }
-
   /// Build the share text for book completion.
   String buildShareText(Book book, BookReadingStats stats) {
     final author = book.author;
     final titlePart =
         author != null ? '${book.title} de $author' : book.title;
 
-    final userId = Supabase.instance.client.auth.currentUser?.id;
-    final link = userId != null
-        ? buildShareLink(book.id, userId)
-        : 'lexday.app';
-
     return '\u{1F4D6} Je viens de terminer $titlePart '
         '\u2014 ${stats.totalPagesRead} pages en '
         '${stats.sessionsCount} sessions de lecture !\n\n'
         'Tu lis quoi en ce moment ? \u{1F440}\n'
-        '$link';
+        '$kAppStoreUrl';
   }
 
   /// Execute the share action for a specific [destination].
@@ -143,22 +136,29 @@ Future<void> showBookFinishedShareSheet({
   required BuildContext context,
   required Book book,
   required BookReadingStats stats,
+  String? readingForLabel,
 }) {
   return showModalBottomSheet(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
-    builder: (_) => _BookFinishedShareSheet(book: book, stats: stats),
+    builder: (_) => _BookFinishedShareSheet(
+      book: book,
+      stats: stats,
+      readingForLabel: readingForLabel,
+    ),
   );
 }
 
 class _BookFinishedShareSheet extends StatefulWidget {
   final Book book;
   final BookReadingStats stats;
+  final String? readingForLabel;
 
   const _BookFinishedShareSheet({
     required this.book,
     required this.stats,
+    this.readingForLabel,
   });
 
   @override
@@ -197,17 +197,11 @@ class _BookFinishedShareSheetState extends State<_BookFinishedShareSheet> {
         }
       }
 
-      if (assets.hasImage) {
-        // Use pre-rendered PNG from server
-        final imgResponse = await http.get(Uri.parse(assets.imageUrl!));
-        if (imgResponse.statusCode == 200 && mounted) {
-          setState(() {
-            _capturedImage = imgResponse.bodyBytes;
-            _isCapturing = false;
-          });
-          return;
-        }
-      }
+      // NOTE: image pré-rendue serveur désactivée — le rendu lexday-sync
+      // renvoie une card avec des placeholders ("Livre inconnu", 5min, 20p)
+      // au lieu des vraies infos du livre. On force le fallback local tant
+      // que la route GET /api/books/:bookId/share n'est pas corrigée côté
+      // lexday-sync.
     } catch (e) {
       debugPrint('lexday-sync getShareAssets fallback: $e');
     }
@@ -225,6 +219,7 @@ class _BookFinishedShareSheetState extends State<_BookFinishedShareSheet> {
       book: widget.book,
       stats: widget.stats,
       coverBytes: coverBytes,
+      readingForLabel: widget.readingForLabel,
     );
     if (!mounted) return;
     setState(() {
@@ -240,6 +235,7 @@ class _BookFinishedShareSheetState extends State<_BookFinishedShareSheet> {
   }
 
   Future<void> _onDestinationTap(ShareDestination destination) async {
+    HapticFeedback.selectionClick();
     if (_loadingDestination != null || _capturedImage == null) return;
     setState(() => _loadingDestination = destination);
 

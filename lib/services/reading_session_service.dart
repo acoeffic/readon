@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/book.dart';
 import '../models/reading_session.dart';
+import '../widgets/cached_book_cover.dart';
 import 'books_service.dart';
 import 'challenge_service.dart';
 import 'live_activity_service.dart';
@@ -140,7 +141,16 @@ class ReadingSessionService {
         final Book book = await _booksService.getBookById(bookIdInt);
         title = book.title;
         author = book.author ?? '';
-        coverUrl = book.coverUrl;
+        // Utilise la même URL que celle effectivement affichée par l'app
+        // (CachedBookCover a pu la résoudre via sa chaîne de fallback :
+        //  Google Books / Amazon / OpenLibrary / BnF...). Fallback sur l'URL
+        //  brute de la DB si rien n'a encore été résolu.
+        coverUrl = CachedBookCover.resolvedUrl(
+              imageUrl: book.coverUrl,
+              isbn: book.isbn,
+              googleId: book.googleId,
+            ) ??
+            book.coverUrl;
       }
     } catch (_) {}
 

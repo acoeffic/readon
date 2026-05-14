@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
@@ -10,6 +11,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../models/reading_session.dart';
 import '../../features/wrapped/share/share_format.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/app_constants.dart';
 import 'session_share_card.dart';
 
 // ==========================================================================
@@ -66,7 +68,7 @@ class SessionShareService {
     Rect? sharePositionOrigin,
   }) async {
     final text =
-        'Je viens de lire ${session.pagesRead} pages \uD83D\uDCDA #LexDay';
+        'Je viens de lire ${session.pagesRead} pages \uD83D\uDCDA #LexDay\n$kAppStoreUrl';
 
     // Destinations that go directly to the native share sheet
     if (destination == ShareDestination.whatsapp ||
@@ -220,6 +222,7 @@ class _SessionShareSheetState extends State<_SessionShareSheet> {
   }
 
   Future<void> _onDestinationTap(ShareDestination destination) async {
+    HapticFeedback.selectionClick();
     if (_loadingDestination != null || _capturedImage == null) return;
     setState(() => _loadingDestination = destination);
 

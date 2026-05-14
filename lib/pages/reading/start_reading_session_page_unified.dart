@@ -474,12 +474,17 @@ class _StartReadingSessionPageUnifiedState extends State<StartReadingSessionPage
 
     return Scaffold(
       backgroundColor: _kBgColor,
+      resizeToAvoidBottomInset: true,
       body: SafeArea(
+        bottom: false,
         child: ConstrainedContent(
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
+          child: Column(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
                 // ── Header ──
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
@@ -1111,84 +1116,102 @@ class _StartReadingSessionPageUnifiedState extends State<StartReadingSessionPage
                   ),
                 ],
 
-                const SizedBox(height: 28),
+                const SizedBox(height: 20),
+                    ],
+                  ),
+                ),
+              ),
 
-                // ── CTA Button ──
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Opacity(
-                    opacity: _activeSession != null ? 0.4 : 1.0,
-                    child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(18),
-                      gradient: const LinearGradient(
-                        colors: [_kSageGreen, Color(0xFF5A8A7E)],
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: _kSageGreen.withValues(alpha: 0.35),
-                          blurRadius: 16,
-                          offset: const Offset(0, 6),
+              // ── Bottom action bar (always visible) ──
+              Container(
+                decoration: const BoxDecoration(
+                  color: _kBgColor,
+                  border: Border(
+                    top: BorderSide(color: Color(0x11000000)),
+                  ),
+                ),
+                padding: EdgeInsets.fromLTRB(
+                  16,
+                  12,
+                  16,
+                  MediaQuery.of(context).padding.bottom + 12,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Opacity(
+                      opacity: _activeSession != null ? 0.4 : 1.0,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(18),
+                          gradient: const LinearGradient(
+                            colors: [_kSageGreen, Color(0xFF5A8A7E)],
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: _kSageGreen.withValues(alpha: 0.35),
+                              blurRadius: 16,
+                              offset: const Offset(0, 6),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                    child: Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        onTap: (_isProcessing || _activeSession != null) ? null : _startSession,
-                        borderRadius: BorderRadius.circular(18),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 18),
-                          child: Center(
-                            child: _isProcessing
-                                ? const SizedBox(
-                                    width: 22,
-                                    height: 22,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2.5,
-                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                    ),
-                                  )
-                                : Text(
-                                    '${l.launchSessionBtn} 📖',
-                                    style: GoogleFonts.dmSans(
-                                      fontSize: 17,
-                                      fontWeight: FontWeight.w700,
-                                      color: Colors.white,
-                                      letterSpacing: 0.3,
-                                    ),
-                                  ),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: (_isProcessing || _activeSession != null)
+                                ? null
+                                : _startSession,
+                            borderRadius: BorderRadius.circular(18),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 18),
+                              child: Center(
+                                child: _isProcessing
+                                    ? const SizedBox(
+                                        width: 22,
+                                        height: 22,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2.5,
+                                          valueColor:
+                                              AlwaysStoppedAnimation<Color>(Colors.white),
+                                        ),
+                                      )
+                                    : Text(
+                                        '${l.launchSessionBtn} 📖',
+                                        style: GoogleFonts.dmSans(
+                                          fontSize: 17,
+                                          fontWeight: FontWeight.w700,
+                                          color: Colors.white,
+                                          letterSpacing: 0.3,
+                                        ),
+                                      ),
+                              ),
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                  ),
-                ),
-
-                // "Continue from page X" link
-                if (_lastPage != null) ...[
-                  const SizedBox(height: 14),
-                  Center(
-                    child: GestureDetector(
-                      onTap: (_isProcessing || _activeSession != null) ? null : _startFromLastPage,
-                      child: Text(
-                        l.continueFromPage(_lastPage!),
-                        style: GoogleFonts.dmSans(
-                          fontSize: 14,
-                          color: _kSageGreen,
-                          fontWeight: FontWeight.w500,
-                          decoration: TextDecoration.underline,
-                          decorationColor: _kSageGreen.withValues(alpha: 0.4),
+                    if (_lastPage != null) ...[
+                      const SizedBox(height: 10),
+                      GestureDetector(
+                        onTap: (_isProcessing || _activeSession != null)
+                            ? null
+                            : _startFromLastPage,
+                        child: Text(
+                          l.continueFromPage(_lastPage!),
+                          style: GoogleFonts.dmSans(
+                            fontSize: 14,
+                            color: _kSageGreen,
+                            fontWeight: FontWeight.w500,
+                            decoration: TextDecoration.underline,
+                            decorationColor: _kSageGreen.withValues(alpha: 0.4),
+                          ),
                         ),
                       ),
-                    ),
-                  ),
-                ],
-
-                const SizedBox(height: 32),
-              ],
-            ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
       ),

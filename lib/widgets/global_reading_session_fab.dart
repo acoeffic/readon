@@ -8,10 +8,12 @@ import '../services/reading_session_service.dart';
 import '../pages/reading/start_reading_session_page_unified.dart';
 import '../pages/reading/active_reading_session_page.dart';
 import '../pages/books/scan_book_cover_page.dart';
+import '../pages/books/user_books_page.dart';
 import '../services/google_books_service.dart';
 import '../models/book.dart';
 import 'active_session_dialog.dart';
 import 'cached_book_cover.dart';
+import 'require_account_sheet.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../theme/app_theme.dart';
 import '../pages/chat/ai_conversations_page.dart';
@@ -208,18 +210,30 @@ class GlobalReadingSessionFAB extends StatelessWidget {
   }
 
   Future<void> _handleScan(BuildContext context) async {
+    if (Supabase.instance.client.auth.currentUser == null) {
+      await showRequireAccountSheet(context);
+      return;
+    }
     if (await _checkActiveSession(context)) return;
     if (!context.mounted) return;
     await _scanAndStartSession(context);
   }
 
   Future<void> _handleLibrary(BuildContext context) async {
+    if (Supabase.instance.client.auth.currentUser == null) {
+      await showRequireAccountSheet(context);
+      return;
+    }
     if (await _checkActiveSession(context)) return;
     if (!context.mounted) return;
     await _selectFromLibraryAndStart(context);
   }
 
   void _handleAiChat(BuildContext context) {
+    if (Supabase.instance.client.auth.currentUser == null) {
+      showRequireAccountSheet(context);
+      return;
+    }
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const AiConversationsPage()),
@@ -395,18 +409,6 @@ class _ExpandableFABState extends State<_ExpandableFAB> with TickerProviderState
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    _buildLiquidGlassOption(
-                      index: 2,
-                      label: l10n.muse,
-                      icon: Icons.auto_awesome,
-                      accentColor: const Color(0xFFE49B0F),
-                      onTap: () {
-                        _close();
-                        widget.onAiChatPressed();
-                      },
-                      isDark: isDark,
-                    ),
-                    const SizedBox(height: 12),
                     _buildLiquidGlassOption(
                       index: 1,
                       label: l10n.newBook,
@@ -753,6 +755,21 @@ class _UnifiedBookSelectorSheetState extends State<_UnifiedBookSelectorSheet> {
             children: [
               Text(AppLocalizations.of(context).myLibraryFab, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
               const Spacer(),
+              TextButton.icon(
+                onPressed: () {
+                  Navigator.pop(context);
+                  Navigator.of(context, rootNavigator: true).push(
+                    MaterialPageRoute(builder: (_) => const UserBooksPage()),
+                  );
+                },
+                icon: const Icon(Icons.arrow_outward_rounded, size: 16),
+                label: Text(AppLocalizations.of(context).seeAll),
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+              ),
               IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
             ],
           ),

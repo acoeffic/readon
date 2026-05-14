@@ -1,11 +1,11 @@
 // lib/widgets/badge_unlocked_dialog.dart
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'dart:math' as math;
 import '../services/badges_service.dart';
 import '../theme/app_theme.dart';
-import '../features/badges/widgets/first_book_badge_painter.dart';
-import '../features/badges/data/comeback_phrases.dart';
+import 'badge_unlock_card.dart';
 import '../pages/badges/badge_share_service.dart';
 
 class BadgeUnlockedDialog extends StatefulWidget {
@@ -22,494 +22,189 @@ class BadgeUnlockedDialog extends StatefulWidget {
 
 class _BadgeUnlockedDialogState extends State<BadgeUnlockedDialog>
     with TickerProviderStateMixin {
-  late AnimationController _scaleController;
-  late AnimationController _rotationController;
+  // Phase 1 : confetti d'intro (1s)
   late AnimationController _confettiController;
-  late AnimationController? _shimmerController;
-  late Animation<double> _scaleAnimation;
-  late Animation<double> _rotationAnimation;
-  late final String _comebackPhrase;
-
-  bool get _isComeback => widget.badge.category == 'comeback';
+  // Phase 2 : card éditorial qui fade-in
+  late AnimationController _cardController;
+  late Animation<double> _cardFade;
+  late Animation<double> _cardScale;
+  bool _showCard = false;
 
   @override
   void initState() {
     super.initState();
 
-    // Phrase de bienvenue pour les badges comeback (fixée à l'init pour éviter de changer au rebuild)
-    _comebackPhrase = _isComeback ? getRandomComebackPhrase(widget.badge.id) : '';
-
-    // Animation d'échelle pour le badge
-    _scaleController = AnimationController(
-      duration: const Duration(milliseconds: 800),
-      vsync: this,
-    );
-
-    _scaleAnimation = CurvedAnimation(
-      parent: _scaleController,
-      curve: Curves.elasticOut,
-    );
-
-    // Animation de rotation
-    _rotationController = AnimationController(
+    _confettiController = AnimationController(
       duration: const Duration(milliseconds: 1000),
       vsync: this,
     );
 
-    _rotationAnimation = Tween<double>(
-      begin: 0,
-      end: 2 * math.pi,
-    ).animate(CurvedAnimation(
-      parent: _rotationController,
-      curve: Curves.easeInOut,
-    ));
-
-    // Animation de confetti
-    _confettiController = AnimationController(
-      duration: const Duration(milliseconds: 2000),
+    _cardController = AnimationController(
+      duration: const Duration(milliseconds: 700),
       vsync: this,
     );
+    _cardFade = CurvedAnimation(
+      parent: _cardController,
+      curve: Curves.easeOutCubic,
+    );
+    _cardScale = Tween<double>(begin: 0.94, end: 1.0).animate(
+      CurvedAnimation(parent: _cardController, curve: Curves.easeOutCubic),
+    );
 
-    // Shimmer pour badges secrets
-    if (widget.badge.isSecret) {
-      _shimmerController = AnimationController(
-        duration: const Duration(milliseconds: 1500),
-        vsync: this,
-      )..repeat();
-    } else {
-      _shimmerController = null;
-    }
-
-    // Démarrer les animations
-    _scaleController.forward();
-    _rotationController.forward();
+    HapticFeedback.mediumImpact();
     _confettiController.forward();
+
+    // Transition vers le card à la fin du confetti
+    Future.delayed(const Duration(milliseconds: 900), () {
+      if (!mounted) return;
+      setState(() => _showCard = true);
+      _cardController.forward();
+    });
   }
 
   @override
   void dispose() {
-    _scaleController.dispose();
-    _rotationController.dispose();
     _confettiController.dispose();
-    _shimmerController?.dispose();
+    _cardController.dispose();
     super.dispose();
   }
 
-  Color _getBadgeColor() {
-    try {
-      final colorStr = widget.badge.color.replaceAll('#', '');
-      return Color(int.parse('FF$colorStr', radix: 16));
-    } catch (e) {
-      return Colors.amber;
-    }
-  }
-
-  String get _dialogTitle {
-    if (_isComeback) return 'Bon Retour !';
-    if (widget.badge.isSecret) return 'Badge Secret Révélé!';
-    if (widget.badge.isPremium) return 'Badge Premium!';
-    return 'Nouveau Badge!';
+  Color _confettiColor(int index) {
+    if (widget.badge.isSecret) return Colors.purple.shade300;
+    return const [
+      Color(0xFFD4B570),
+      AppColors.primary,
+      AppColors.sageGreen,
+      Color(0xFFF5EFD9),
+    ][index % 4];
   }
 
   @override
   Widget build(BuildContext context) {
-    final color = _getBadgeColor();
-    final isSecret = widget.badge.isSecret;
-
-    return Dialog(
-      backgroundColor: Colors.transparent,
+    final size = MediaQuery.of(context).size;
+    return Dialog.fullscreen(
+      backgroundColor: Colors.black,
       child: Stack(
         children: [
-          // Confetti en arrière-plan
-          ...List.generate(20, (index) {
-            return AnimatedBuilder(
-              animation: _confettiController,
-              builder: (context, child) {
-                final startX = 0.5 + (math.Random(index).nextDouble() - 0.5) * 0.4;
-                final endX = startX + (math.Random(index + 100).nextDouble() - 0.5) * 0.6;
-                final endY = 0.8 + math.Random(index + 200).nextDouble() * 0.2;
-                final rotation = math.Random(index + 300).nextDouble() * 4 * math.pi;
+          // ── Phase 2 : le card édito en fond, fade-in ──
+          if (_showCard)
+            Positioned.fill(
+              child: FadeTransition(
+                opacity: _cardFade,
+                child: ScaleTransition(
+                  scale: _cardScale,
+                  child: BadgeUnlockCard(
+                    badge: widget.badge,
+                    date: DateTime.now(),
+                  ),
+                ),
+              ),
+            ),
 
-                return Positioned(
-                  left: MediaQuery.of(context).size.width *
-                      (startX + (endX - startX) * _confettiController.value),
-                  top: MediaQuery.of(context).size.height *
-                      (-0.1 + endY * _confettiController.value),
-                  child: Transform.rotate(
-                    angle: rotation * _confettiController.value,
-                    child: Opacity(
-                      opacity: 1.0 - _confettiController.value,
-                      child: isSecret
-                          ? Text(
-                              ['🕵️', '✨', '🔮', '⭐', '💫'][index % 5],
-                              style: const TextStyle(fontSize: 16),
-                            )
-                          : _isComeback
-                          ? Text(
-                              ['👋', '📖', '🌟', '🎉', '💫'][index % 5],
-                              style: const TextStyle(fontSize: 16),
-                            )
-                          : Container(
+          // ── Phase 1 : confetti d'intro pendant ~1s ──
+          if (!_cardController.isCompleted)
+            IgnorePointer(
+              child: AnimatedBuilder(
+                animation: _confettiController,
+                builder: (context, _) {
+                  return Stack(
+                    children: List.generate(24, (index) {
+                      final rng = math.Random(index);
+                      final startX = 0.5 + (rng.nextDouble() - 0.5) * 0.4;
+                      final endX = startX +
+                          (math.Random(index + 100).nextDouble() - 0.5) * 0.7;
+                      final endY = 0.85 +
+                          math.Random(index + 200).nextDouble() * 0.15;
+                      final rotation =
+                          math.Random(index + 300).nextDouble() * 4 * math.pi;
+                      final progress = _confettiController.value;
+                      return Positioned(
+                        left: size.width *
+                            (startX + (endX - startX) * progress),
+                        top: size.height * (-0.1 + endY * progress),
+                        child: Transform.rotate(
+                          angle: rotation * progress,
+                          child: Opacity(
+                            opacity: 1.0 - progress,
+                            child: Container(
                               width: 8,
                               height: 8,
                               decoration: BoxDecoration(
-                                color: [
-                                  Colors.amber,
-                                  Colors.orange,
-                                  Colors.pink,
-                                  AppColors.primary,
-                                  Colors.blue,
-                                ][index % 5],
+                                color: _confettiColor(index),
                                 shape: BoxShape.circle,
                               ),
                             ),
-                    ),
-                  ),
-                );
-              },
-            );
-          }),
-
-          // Contenu principal
-          Center(
-            child: Container(
-              padding: const EdgeInsets.all(32),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: _isComeback
-                        ? const Color(0xFF4CAF50).withValues(alpha: 0.3)
-                        : isSecret
-                            ? Colors.purple.withValues(alpha: 0.3)
-                            : Colors.black.withValues(alpha: 0.2),
-                    blurRadius: 20,
-                    spreadRadius: 5,
-                  ),
-                ],
+                          ),
+                        ),
+                      );
+                    }),
+                  );
+                },
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Premium crown
-                  if (widget.badge.isPremium) ...[
-                    const Text('👑', style: TextStyle(fontSize: 24)),
-                    const SizedBox(height: 8),
-                  ],
+            ),
 
-                  // Titre
-                  Text(
-                    _dialogTitle,
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: _isComeback
-                          ? const Color(0xFF388E3C)
-                          : isSecret
-                              ? Colors.purple
-                              : AppColors.primary,
-                    ),
+          // ── Close button (toujours visible) ──
+          Positioned(
+            top: 0,
+            right: 0,
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(8),
+                child: IconButton(
+                  icon: Icon(
+                    Icons.close,
+                    color: const Color(0xFFD4B570).withValues(alpha: 0.85),
+                    size: 24,
                   ),
-                  const SizedBox(height: 24),
-
-                  // Badge animé
-                  ScaleTransition(
-                    scale: _scaleAnimation,
-                    child: AnimatedBuilder(
-                      animation: _rotationAnimation,
-                      builder: (context, child) {
-                        return Transform.rotate(
-                          angle: _rotationAnimation.value,
-                          child: isFirstBookBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const FirstBookBadge(size: 150)
-                              : isApprenticeReaderBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const ApprenticeReaderBadge(size: 150)
-                              : isConfirmedReaderBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const ConfirmedReaderBadge(size: 150, animate: true, showUnlockBurst: true)
-                              : isBibliophileBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const BibliophileBadge(size: 150)
-                              : isDevoreurBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const DevoreurBadge(size: 150)
-                              : isCentenaireLivresBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const CentenaireLivresBadge(size: 150)
-                              : isLegendeLitteraireBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const LegendeLitteraireBadge(size: 150)
-                              : isBibliothequeVivanteBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const BibliothequeVivanteBadge(size: 150)
-                              : isFirstSessionBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const FirstSessionBadge(size: 150)
-                              : isOneHourMagicBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const OneHourMagicBadge(size: 150)
-                              : isSundayReaderBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const SundayReaderBadge(size: 150)
-                              : isPassionateBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const PassionateBadge(size: 150)
-                              : isCenturionBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const CenturionBadge(size: 150)
-                              : isMarathonBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const MarathonBadge(size: 150)
-                              : isHalfMillenniumBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const HalfMillenniumBadge(size: 150)
-                              : isMillenniumBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const MillenniumBadge(size: 150)
-                              : isClubFounderBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const ClubFounderBadge(size: 150)
-                              : isClubLeaderBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const ClubLeaderBadge(size: 150)
-                              : isResidentBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const ResidentBadge(size: 150)
-                              : isHabitueBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const HabitueBadge(size: 150)
-                              : isPilierBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const PilierBadge(size: 150)
-                              : isMonumentBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const MonumentBadge(size: 150)
-                              : isAnnualOnePerMonthBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const AnnualOnePerMonthBadge(size: 150)
-                              : isAnnualTwoPerMonthBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const AnnualTwoPerMonthBadge(size: 150)
-                              : isAnnualOnePerWeekBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const AnnualOnePerWeekBadge(size: 150)
-                              : isAnnualCentenaireBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const AnnualCentenaireBadge(size: 150)
-                              : isOccasionBastilleDayBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const OccasionBastilleDayBadge(size: 150)
-                              : isOccasionChristmasBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const OccasionChristmasBadge(size: 150)
-                              : isOccasionFeteMusiqueBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const OccasionFeteMusiqueBadge(size: 150)
-                              : isOccasionHalloweenBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const OccasionHalloweenBadge(size: 150)
-                              : isOccasionSummerReadBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const OccasionSummerReadBadge(size: 150)
-                              : isOccasionValentineBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const OccasionValentineBadge(size: 150)
-                              : isOccasionNyeBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const OccasionNyeBadge(size: 150)
-                              : isOccasionLabourDayBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const OccasionLabourDayBadge(size: 150)
-                              : isOccasionWorldBookDayBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const OccasionWorldBookDayBadge(size: 150)
-                              : isOccasionNewYearBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const OccasionNewYearBadge(size: 150)
-                              : isOccasionEasterBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const OccasionEasterBadge(size: 150)
-                              : isOccasionAprilFoolsBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const OccasionAprilFoolsBadge(size: 150)
-                              : isGenreSfApprentiBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const GenreSfApprentiBadge(size: 150)
-                              : isGenrePolarApprentiBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const GenrePolarApprentiBadge(size: 150)
-                              : isGenrePolarAdepteBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const GenrePolarAdepteBadge(size: 150)
-                              : isGenrePolarMaitreBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const GenrePolarMaitreBadge(size: 150)
-                              : isGenrePolarLegendeBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const GenrePolarLegendeBadge(size: 150)
-                              : isGenreSfApprentiBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const GenreSfApprentiBadge(size: 150)
-                              : isGenreSfAdepteBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const GenreSfAdepteBadge(size: 150)
-                              : isGenreSfMaitreBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const GenreSfMaitreBadge(size: 150)
-                              : isGenreSfLegendeBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const GenreSfLegendeBadge(size: 150)
-                              : isGenreRomanceApprentiBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const GenreRomanceApprentiBadge(size: 150)
-                              : isGenreRomanceAdepteBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const GenreRomanceAdepteBadge(size: 150)
-                              : isGenreRomanceMaitreBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const GenreRomanceMaitreBadge(size: 150)
-                              : isGenreRomanceLegendeBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const GenreRomanceLegendeBadge(size: 150)
-                              : isGenreHorreurApprentiBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const GenreHorreurApprentiBadge(size: 150)
-                              : isGenreHorreurAdepteBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const GenreHorreurAdepteBadge(size: 150)
-                              : isGenreHorreurMaitreBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const GenreHorreurMaitreBadge(size: 150)
-                              : isGenreHorreurLegendeBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const GenreHorreurLegendeBadge(size: 150)
-                              : isGenreBioApprentiBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const GenreBioApprentiBadge(size: 150)
-                              : isGenreBioAdepteBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const GenreBioAdepteBadge(size: 150)
-                              : isGenreBioMaitreBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const GenreBioMaitreBadge(size: 150)
-                              : isGenreBioLegendeBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const GenreBioLegendeBadge(size: 150)
-                              : isGenreHistoireApprentiBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const GenreHistoireApprentiBadge(size: 150)
-                              : isGenreHistoireAdepteBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const GenreHistoireAdepteBadge(size: 150)
-                              : isGenreHistoireMaitreBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const GenreHistoireMaitreBadge(size: 150)
-                              : isGenreHistoireLegendeBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const GenreHistoireLegendeBadge(size: 150)
-                              : isGenreDevpersoApprentiBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const GenreDevpersoApprentiBadge(size: 150)
-                              : isGenreDevpersoAdepteBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const GenreDevpersoAdepteBadge(size: 150)
-                              : isGenreDevpersoMaitreBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const GenreDevpersoMaitreBadge(size: 150)
-                              : isGenreDevpersoLegendeBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const GenreDevpersoLegendeBadge(size: 150)
-                              : isStreak7DaysBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const Streak7DaysBadge(size: 150)
-                              : isStreak14DaysBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const Streak14DaysBadge(size: 150)
-                              : isStreak30DaysBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const Streak30DaysBadge(size: 150)
-                              : isStreak60DaysBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const Streak60DaysBadge(size: 150)
-                              : isStreak90DaysBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const Streak90DaysBadge(size: 150)
-                              : isStreak180DaysBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const Streak180DaysBadge(size: 150)
-                              : isStreak365DaysBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? const Streak365DaysBadge(size: 150)
-                              : isComebackBadge(id: widget.badge.id, category: widget.badge.category, requirement: widget.badge.requirement)
-                              ? ComebackBadge(badgeId: widget.badge.id, size: 150)
-                              : Container(
-                                  width: 150,
-                                  height: 150,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: _getBadgeColor().withValues(alpha: 0.2),
-                                    border: Border.all(
-                                      color: _getBadgeColor(),
-                                      width: 4,
-                                    ),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: _getBadgeColor().withValues(alpha: 0.3),
-                                        blurRadius: 20,
-                                        spreadRadius: 5,
-                                      ),
-                                      if (isSecret)
-                                        BoxShadow(
-                                          color: Colors.purple.withValues(alpha: 0.2),
-                                          blurRadius: 30,
-                                          spreadRadius: 10,
-                                        ),
-                                    ],
-                                  ),
-                                  child: Center(
-                                    child: Text(
-                                      widget.badge.icon,
-                                      style: const TextStyle(fontSize: 75),
-                                    ),
-                                  ),
-                                ),
-                        );
-                      },
-                    ),
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // Nom du badge
-                  Text(
-                    widget.badge.name,
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  // Phrase de bienvenue pour les badges comeback
-                  if (_isComeback && _comebackPhrase.isNotEmpty) ...[
-                    Text(
-                      _comebackPhrase,
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontStyle: FontStyle.italic,
-                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.8),
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 8),
-                  ],
-
-                  // Description
-                  if (widget.badge.description.isNotEmpty)
-                    Text(
-                      widget.badge.description,
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-
-                  const SizedBox(height: 24),
-
-                  // Boutons
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      // Partager
-                      ElevatedButton.icon(
-                        onPressed: () {
-                          Navigator.of(context).pop();
-                          showBadgeShareSheet(
-                            context: context,
-                            badge: widget.badge,
-                          );
-                        },
-                        icon: const Icon(Icons.share, size: 18),
-                        label: const Text(
-                          'Partager',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: _getBadgeColor(),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 14,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      // Fermer
-                      OutlinedButton(
-                        onPressed: () => Navigator.of(context).pop(),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: _getBadgeColor(),
-                          side: BorderSide(color: _getBadgeColor()),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 14,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                        ),
-                        child: const Text(
-                          'Super!',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
               ),
             ),
           ),
+
+          // ── Share button — apparaît avec le card ──
+          if (_showCard)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: SafeArea(
+                child: FadeTransition(
+                  opacity: _cardFade,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(28, 0, 28, 24),
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        HapticFeedback.mediumImpact();
+                        Navigator.of(context).pop();
+                        showBadgeShareSheet(
+                          context: context,
+                          badge: widget.badge,
+                        );
+                      },
+                      icon: const Icon(Icons.ios_share_rounded, size: 18),
+                      label: const Text(
+                        'Partager',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor:
+                            const Color(0xFFD4B570).withValues(alpha: 0.95),
+                        foregroundColor: const Color(0xFF34493F),
+                        minimumSize: const Size.fromHeight(50),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(28),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );

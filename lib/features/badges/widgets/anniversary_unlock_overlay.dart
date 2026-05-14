@@ -9,6 +9,7 @@ import 'package:screenshot/screenshot.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../models/anniversary_badge.dart';
+import '../../../utils/app_constants.dart';
 import 'anniversary_badge_painter.dart';
 import 'particle_painter.dart';
 
@@ -633,7 +634,7 @@ class _AnniversaryUnlockOverlayState extends State<AnniversaryUnlockOverlay>
       await Share.shareXFiles(
         [XFile(file.path)],
         text:
-            '$yearsText sur LexDay ! ${widget.badge.icon} #LexDay',
+            '$yearsText sur LexDay ! ${widget.badge.icon} #LexDay\n$kAppStoreUrl',
         sharePositionOrigin: origin,
       );
     } catch (e) {
