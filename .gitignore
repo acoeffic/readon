@@ -35,3 +35,7 @@ env.json
 .DS_Store
 *.log
 flutter/
+.claude/worktrees/
+.claude/settings.local.json
+supabase/.temp/
+commit_and_push.sh
