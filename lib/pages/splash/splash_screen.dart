@@ -7,6 +7,7 @@ import 'package:webview_flutter_android/webview_flutter_android.dart';
 import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
 
 import '../../config/env.dart';
+import '../../services/analytics_service.dart';
 import '../../services/subscription_service.dart';
 import '../../services/monthly_notification_service.dart';
 import '../../services/deep_link_service.dart';
@@ -122,6 +123,9 @@ class _SplashScreenState extends State<SplashScreen>
       url: Env.supabaseUrl,
       anonKey: Env.supabaseAnonKey,
     );
+
+    // Initialize PostHog (no-op si POSTHOG_API_KEY est vide)
+    await AnalyticsService().init();
 
     // Initialize RevenueCat
     await SubscriptionService().initialize();

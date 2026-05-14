@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.0+2
+version: 1.0.1+1
 
 environment:
   sdk: ^3.9.2
@@ -59,7 +59,7 @@ dependencies:
   just_audio: ^0.9.43                   # Audio playback for yearly wrapped
   google_fonts: ^6.2.1                  # Google Fonts for yearly wrapped
   screenshot: ^3.0.0                     # Widget-to-image capture for wrapped share
-  image_gallery_saver_plus: ^3.0.5       # Save images to device gallery
+  image_gallery_saver_plus: ^4.0.1       # Save images to device gallery (v4 = nouvelle API plugin Android)
   font_awesome_flutter: ^10.12.0
   lucide_icons: ^0.257.0
   flutter_svg: ^2.0.10+1                # SVG rendering for badges
@@ -80,6 +80,8 @@ dependencies:
   shimmer: ^3.0.0                              # Skeleton loading animations
   hive: ^2.2.3                                  # Local NoSQL database
   hive_flutter: ^1.1.0                          # Hive Flutter integration
+  showcaseview: ^4.0.1                          # First-launch onboarding tutorial
+  posthog_flutter: ^5.24.2                      # Product analytics (events, funnels, replays)
 
 dev_dependencies:
   flutter_test:

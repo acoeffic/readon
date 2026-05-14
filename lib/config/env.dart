@@ -30,6 +30,16 @@ abstract final class Env {
   // ── Readon Sync ───────────────────────────────────────────
   static const lexdaySyncUrl = String.fromEnvironment('LEXDAY_SYNC_URL');
 
+  // ── PostHog ──────────────────────────────────────────────
+  /// Project API key (preferable: project key public, pas le personal token).
+  static const posthogApiKey = String.fromEnvironment('POSTHOG_API_KEY');
+  /// Hôte PostHog : `https://eu.i.posthog.com` (UE) ou `https://us.i.posthog.com`.
+  /// Default UE pour rester aligné RGPD si non fourni.
+  static const posthogHost = String.fromEnvironment(
+    'POSTHOG_HOST',
+    defaultValue: 'https://eu.i.posthog.com',
+  );
+
   // ── Dev ──────────────────────────────────────────────────
   /// Forcer le statut premium sans RevenueCat (dev/test uniquement).
   /// Passer `--dart-define=DEV_FORCE_PREMIUM=true` ou l'ajouter dans env.json.
