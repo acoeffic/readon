@@ -1,9 +1,11 @@
 // lib/widgets/user_search_card.dart
 import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
+import '../services/mutual_friends_service.dart';
 import '../theme/app_theme.dart';
 import '../models/user_search_result.dart';
-import '../features/badges/widgets/first_book_badge_painter.dart';
+import 'mutual_friends_badge.dart';
+import 'remote_badge_image.dart';
 import 'cached_profile_avatar.dart';
 
 class UserSearchCard extends StatelessWidget {
@@ -12,6 +14,7 @@ class UserSearchCard extends StatelessWidget {
   final VoidCallback? onCancelRequest;
   final VoidCallback? onViewProfile;
   final bool isRequestPending;
+  final MutualFriendsSummary mutualFriends;
 
   const UserSearchCard({
     super.key,
@@ -20,6 +23,7 @@ class UserSearchCard extends StatelessWidget {
     this.onCancelRequest,
     this.onViewProfile,
     this.isRequestPending = false,
+    this.mutualFriends = MutualFriendsSummary.empty,
   });
 
   String _formatMemberSince(DateTime createdAt) {
@@ -85,6 +89,10 @@ class UserSearchCard extends StatelessWidget {
                       ),
                     ],
                   ),
+                  if (!mutualFriends.isEmpty) ...[
+                    const SizedBox(height: 6),
+                    MutualFriendsBadge(summary: mutualFriends),
+                  ],
                 ],
               ),
             ),
@@ -130,6 +138,10 @@ class UserSearchCard extends StatelessWidget {
                         fontStyle: FontStyle.italic,
                       ),
                     ),
+                  ],
+                  if (!mutualFriends.isEmpty) ...[
+                    const SizedBox(height: 6),
+                    MutualFriendsBadge(summary: mutualFriends),
                   ],
                 ],
               ),
@@ -560,81 +572,7 @@ class UserSearchCard extends StatelessWidget {
   }
 
   Widget _buildBadgeIcon(UserBadgeSimple badge) {
-    if (isFirstBookBadge(id: badge.id)) return const FirstBookBadge(size: 26);
-    if (isApprenticeReaderBadge(id: badge.id)) return const ApprenticeReaderBadge(size: 26);
-    if (isConfirmedReaderBadge(id: badge.id)) return const ConfirmedReaderBadge(size: 26);
-    if (isBibliophileBadge(id: badge.id)) return const BibliophileBadge(size: 26);
-    if (isDevoreurBadge(id: badge.id)) return const DevoreurBadge(size: 26);
-    if (isCentenaireLivresBadge(id: badge.id)) return const CentenaireLivresBadge(size: 26);
-    if (isLegendeLitteraireBadge(id: badge.id)) return const LegendeLitteraireBadge(size: 26);
-    if (isBibliothequeVivanteBadge(id: badge.id)) return const BibliothequeVivanteBadge(size: 26);
-    if (isFirstSessionBadge(id: badge.id)) return const FirstSessionBadge(size: 26);
-    if (isOneHourMagicBadge(id: badge.id)) return const OneHourMagicBadge(size: 26);
-    if (isSundayReaderBadge(id: badge.id)) return const SundayReaderBadge(size: 26);
-    if (isPassionateBadge(id: badge.id)) return const PassionateBadge(size: 26);
-    if (isCenturionBadge(id: badge.id)) return const CenturionBadge(size: 26);
-    if (isMarathonBadge(id: badge.id)) return const MarathonBadge(size: 26);
-    if (isHalfMillenniumBadge(id: badge.id)) return const HalfMillenniumBadge(size: 26);
-    if (isMillenniumBadge(id: badge.id)) return const MillenniumBadge(size: 26);
-    if (isClubFounderBadge(id: badge.id)) return const ClubFounderBadge(size: 26);
-    if (isClubLeaderBadge(id: badge.id)) return const ClubLeaderBadge(size: 26);
-    if (isResidentBadge(id: badge.id)) return const ResidentBadge(size: 26);
-    if (isHabitueBadge(id: badge.id)) return const HabitueBadge(size: 26);
-    if (isPilierBadge(id: badge.id)) return const PilierBadge(size: 26);
-    if (isMonumentBadge(id: badge.id)) return const MonumentBadge(size: 26);
-    if (isAnnualOnePerMonthBadge(id: badge.id)) return const AnnualOnePerMonthBadge(size: 26);
-    if (isAnnualTwoPerMonthBadge(id: badge.id)) return const AnnualTwoPerMonthBadge(size: 26);
-    if (isAnnualOnePerWeekBadge(id: badge.id)) return const AnnualOnePerWeekBadge(size: 26);
-    if (isAnnualCentenaireBadge(id: badge.id)) return const AnnualCentenaireBadge(size: 26);
-    if (isOccasionBastilleDayBadge(id: badge.id)) return const OccasionBastilleDayBadge(size: 26);
-    if (isOccasionChristmasBadge(id: badge.id)) return const OccasionChristmasBadge(size: 26);
-    if (isOccasionFeteMusiqueBadge(id: badge.id)) return const OccasionFeteMusiqueBadge(size: 26);
-    if (isOccasionHalloweenBadge(id: badge.id)) return const OccasionHalloweenBadge(size: 26);
-    if (isOccasionSummerReadBadge(id: badge.id)) return const OccasionSummerReadBadge(size: 26);
-    if (isOccasionValentineBadge(id: badge.id)) return const OccasionValentineBadge(size: 26);
-    if (isOccasionNyeBadge(id: badge.id)) return const OccasionNyeBadge(size: 26);
-    if (isOccasionLabourDayBadge(id: badge.id)) return const OccasionLabourDayBadge(size: 26);
-    if (isOccasionWorldBookDayBadge(id: badge.id)) return const OccasionWorldBookDayBadge(size: 26);
-    if (isOccasionNewYearBadge(id: badge.id)) return const OccasionNewYearBadge(size: 26);
-    if (isOccasionEasterBadge(id: badge.id)) return const OccasionEasterBadge(size: 26);
-    if (isOccasionAprilFoolsBadge(id: badge.id)) return const OccasionAprilFoolsBadge(size: 26);
-    if (isGenreSfApprentiBadge(id: badge.id)) return const GenreSfApprentiBadge(size: 26);
-    if (isGenrePolarApprentiBadge(id: badge.id)) return const GenrePolarApprentiBadge(size: 26);
-    if (isGenrePolarAdepteBadge(id: badge.id)) return const GenrePolarAdepteBadge(size: 26);
-    if (isGenrePolarMaitreBadge(id: badge.id)) return const GenrePolarMaitreBadge(size: 26);
-    if (isGenrePolarLegendeBadge(id: badge.id)) return const GenrePolarLegendeBadge(size: 26);
-    if (isGenreSfAdepteBadge(id: badge.id)) return const GenreSfAdepteBadge(size: 26);
-    if (isGenreSfMaitreBadge(id: badge.id)) return const GenreSfMaitreBadge(size: 26);
-    if (isGenreSfLegendeBadge(id: badge.id)) return const GenreSfLegendeBadge(size: 26);
-    if (isGenreRomanceApprentiBadge(id: badge.id)) return const GenreRomanceApprentiBadge(size: 26);
-    if (isGenreRomanceAdepteBadge(id: badge.id)) return const GenreRomanceAdepteBadge(size: 26);
-    if (isGenreRomanceMaitreBadge(id: badge.id)) return const GenreRomanceMaitreBadge(size: 26);
-    if (isGenreRomanceLegendeBadge(id: badge.id)) return const GenreRomanceLegendeBadge(size: 26);
-    if (isGenreHorreurApprentiBadge(id: badge.id)) return const GenreHorreurApprentiBadge(size: 26);
-    if (isGenreHorreurAdepteBadge(id: badge.id)) return const GenreHorreurAdepteBadge(size: 26);
-    if (isGenreHorreurMaitreBadge(id: badge.id)) return const GenreHorreurMaitreBadge(size: 26);
-    if (isGenreHorreurLegendeBadge(id: badge.id)) return const GenreHorreurLegendeBadge(size: 26);
-    if (isGenreBioApprentiBadge(id: badge.id)) return const GenreBioApprentiBadge(size: 26);
-    if (isGenreBioAdepteBadge(id: badge.id)) return const GenreBioAdepteBadge(size: 26);
-    if (isGenreBioMaitreBadge(id: badge.id)) return const GenreBioMaitreBadge(size: 26);
-    if (isGenreBioLegendeBadge(id: badge.id)) return const GenreBioLegendeBadge(size: 26);
-    if (isGenreHistoireApprentiBadge(id: badge.id)) return const GenreHistoireApprentiBadge(size: 26);
-    if (isGenreHistoireAdepteBadge(id: badge.id)) return const GenreHistoireAdepteBadge(size: 26);
-    if (isGenreHistoireMaitreBadge(id: badge.id)) return const GenreHistoireMaitreBadge(size: 26);
-    if (isGenreHistoireLegendeBadge(id: badge.id)) return const GenreHistoireLegendeBadge(size: 26);
-    if (isGenreDevpersoApprentiBadge(id: badge.id)) return const GenreDevpersoApprentiBadge(size: 26);
-    if (isGenreDevpersoAdepteBadge(id: badge.id)) return const GenreDevpersoAdepteBadge(size: 26);
-    if (isGenreDevpersoMaitreBadge(id: badge.id)) return const GenreDevpersoMaitreBadge(size: 26);
-    if (isGenreDevpersoLegendeBadge(id: badge.id)) return const GenreDevpersoLegendeBadge(size: 26);
-    if (isStreak7DaysBadge(id: badge.id)) return const Streak7DaysBadge(size: 26);
-    if (isStreak14DaysBadge(id: badge.id)) return const Streak14DaysBadge(size: 26);
-    if (isStreak30DaysBadge(id: badge.id)) return const Streak30DaysBadge(size: 26);
-    if (isStreak60DaysBadge(id: badge.id)) return const Streak60DaysBadge(size: 26);
-    if (isStreak90DaysBadge(id: badge.id)) return const Streak90DaysBadge(size: 26);
-    if (isStreak180DaysBadge(id: badge.id)) return const Streak180DaysBadge(size: 26);
-    if (isStreak365DaysBadge(id: badge.id)) return const Streak365DaysBadge(size: 26);
-    if (badge.id.startsWith('comeback_')) return ComebackBadge(badgeId: badge.id, size: 26);
-    return Text(badge.icon, style: const TextStyle(fontSize: 20));
+    return RemoteBadgeImage.fromSimple(badge, size: 26);
   }
 
   Color _hexToColor(String hexString) {

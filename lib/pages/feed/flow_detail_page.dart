@@ -8,7 +8,7 @@ import '../../l10n/app_localizations.dart';
 import '../../models/feature_flags.dart';
 import '../../models/reading_flow.dart';
 import '../../models/flow_freeze.dart';
-import '../../pages/profile/upgrade_page.dart';
+import '../../services/native_paywall_service.dart';
 import '../../providers/subscription_provider.dart';
 import '../../services/flow_service.dart';
 import '../../theme/app_theme.dart';
@@ -519,9 +519,9 @@ class _FlowDetailPageState extends State<FlowDetailPage> {
           if (!isPremium && isAtRisk && !canFreeze) ...[
             const SizedBox(height: 8),
             GestureDetector(
-              onTap: () => Navigator.push(
+              onTap: () => NativePaywallService.present(
                 context,
-                MaterialPageRoute(builder: (_) => const UpgradePage(highlightedFeature: Feature.flowManualFreeze)),
+                highlightedFeature: Feature.flowManualFreeze,
               ),
               child: Container(
                 padding: const EdgeInsets.all(10),
@@ -741,8 +741,9 @@ class _FlowDetailPageState extends State<FlowDetailPage> {
         // Overlay avec message
         Positioned.fill(
           child: GestureDetector(
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const UpgradePage(highlightedFeature: Feature.flowHistory)),
+            onTap: () => NativePaywallService.present(
+              context,
+              highlightedFeature: Feature.flowHistory,
             ),
             child: Container(
               decoration: BoxDecoration(

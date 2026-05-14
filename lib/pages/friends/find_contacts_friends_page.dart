@@ -3,7 +3,9 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../l10n/app_localizations.dart';
 import '../../services/contacts_service.dart';
+import '../../services/mutual_friends_service.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/mutual_friends_badge.dart';
 
 class FindContactsFriendsPage extends StatefulWidget {
   const FindContactsFriendsPage({super.key});
@@ -17,12 +19,14 @@ enum _PageState { loading, results, permissionDenied, permissionPermanentlyDenie
 
 class _FindContactsFriendsPageState extends State<FindContactsFriendsPage> {
   final ContactsService _contactsService = ContactsService();
+  final MutualFriendsService _mutualFriendsService = MutualFriendsService();
 
   _PageState _state = _PageState.loading;
   List<ContactMatch> _matchedUsers = [];
   List<UnmatchedContact> _unmatchedContacts = [];
   final Set<String> _requestsSent = {};
   final Set<String> _invitesSent = {};
+  Map<String, MutualFriendsSummary> _mutuals = {};
 
   @override
   void initState() {
@@ -50,10 +54,17 @@ class _FindContactsFriendsPageState extends State<FindContactsFriendsPage> {
 
       final result = await _contactsService.fetchContactsWithDetails();
 
+      // Calculer les amis communs en batch pour les contacts déjà sur l'app
+      final matchedIds = result.matched.map((m) => m.id).toList();
+      final mutuals = matchedIds.isEmpty
+          ? <String, MutualFriendsSummary>{}
+          : await _mutualFriendsService.getSummariesBatch(matchedIds);
+
       if (!mounted) return;
       setState(() {
         _matchedUsers = result.matched;
         _unmatchedContacts = result.unmatched;
+        _mutuals = mutuals;
         _state = _PageState.results;
       });
     } catch (e) {
@@ -296,6 +307,15 @@ class _FindContactsFriendsPageState extends State<FindContactsFriendsPage> {
                           : AppColors.textSecondary,
                     ),
                   ),
+                Builder(builder: (_) {
+                  final mutual =
+                      _mutuals[user.id] ?? MutualFriendsSummary.empty;
+                  if (mutual.isEmpty) return const SizedBox.shrink();
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: MutualFriendsBadge(summary: mutual),
+                  );
+                }),
               ],
             ),
           ),

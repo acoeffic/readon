@@ -95,14 +95,22 @@ class AppNotification {
     if (difference.inMinutes < 1) {
       return 'À l\'instant';
     } else if (difference.inHours < 1) {
-      return 'Il y a ${difference.inMinutes}min';
+      return 'Il y a ${difference.inMinutes} min';
     } else if (difference.inDays < 1) {
-      return 'Il y a ${difference.inHours}h';
+      return 'Il y a ${difference.inHours} h';
     } else if (difference.inDays < 7) {
-      return 'Il y a ${difference.inDays}j';
-    } else {
-      return '${createdAt.day}/${createdAt.month}/${createdAt.year}';
+      return 'Il y a ${difference.inDays} j';
     }
+
+    const months = [
+      'janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin',
+      'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.',
+    ];
+    final m = months[createdAt.month - 1];
+    if (createdAt.year == now.year) {
+      return '${createdAt.day} $m';
+    }
+    return '${createdAt.day} $m ${createdAt.year}';
   }
 }
 
@@ -183,6 +191,22 @@ class NotificationsService {
   /// Marquer toutes les notifications comme lues
   Future<void> markAllAsRead() async {
     await markAsRead();
+  }
+
+  /// Supprimer une notification.
+  Future<void> deleteNotification(String notificationId) async {
+    try {
+      final userId = _supabase.auth.currentUser?.id;
+      if (userId == null) return;
+      await _supabase
+          .from('notifications')
+          .delete()
+          .eq('id', notificationId)
+          .eq('user_id', userId);
+    } catch (e) {
+      debugPrint('Erreur deleteNotification: $e');
+      rethrow;
+    }
   }
 
   /// Stream en temps réel des notifications

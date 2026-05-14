@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:share_plus/share_plus.dart';
@@ -14,6 +15,7 @@ import '../../../models/book.dart';
 import '../../../models/reading_session.dart';
 import '../../../models/reading_flow.dart';
 import '../../../theme/app_theme.dart';
+import '../../../utils/app_constants.dart';
 import '../../../widgets/cached_book_cover.dart';
 import '../../../widgets/cached_profile_avatar.dart';
 import '../../../widgets/reaction_picker.dart';
@@ -125,6 +127,7 @@ class _BookFinishedCardState extends State<BookFinishedCard>
   String? _bookCover;
   String? _bookIsbn;
   String? _bookGoogleId;
+  int? _bookPageCount;
 
   // Book stats (loaded for own activities)
   BookReadingStats? _bookStats;
@@ -241,6 +244,7 @@ class _BookFinishedCardState extends State<BookFinishedCard>
         _bookCover = book['cover_url'] as String?;
         _bookIsbn = book['isbn'] as String?;
         _bookGoogleId = book['google_id'] as String?;
+        _bookPageCount = (book['page_count'] as num?)?.toInt();
       });
     } catch (e) {
       debugPrint('Erreur _loadBookInfo: $e');
@@ -392,7 +396,7 @@ class _BookFinishedCardState extends State<BookFinishedCard>
     final title = _bookTitle ?? 'un livre';
     final author = _bookAuthor != null ? ' de $_bookAuthor' : '';
     final shareText =
-        "Je viens de terminer \"$title\"$author ! 📚✨\n\n#Lecture #LexDay";
+        "Je viens de terminer \"$title\"$author ! 📚✨\n\n#Lecture #LexDay\n$kAppStoreUrl";
     if (!mounted) return;
     final box = context.findRenderObject() as RenderBox?;
     final origin =
@@ -475,6 +479,23 @@ class _BookFinishedCardState extends State<BookFinishedCard>
     }
   }
 
+  /// Détecte une lecture importée / antérieure à LexDay :
+  /// session "fantôme" qui couvre tout le livre sans durée enregistrée.
+  bool _isPreviousRead({
+    required double? durationMinutes,
+    required int? startPage,
+    required int? endPage,
+    required int? bookPageCount,
+  }) {
+    final noDuration = durationMinutes == null || durationMinutes <= 0;
+    final wholeBook = startPage == 1 &&
+        bookPageCount != null &&
+        bookPageCount > 0 &&
+        endPage != null &&
+        endPage >= bookPageCount;
+    return noDuration && wholeBook;
+  }
+
   String _formatDuration(double? durationMinutes) {
     if (durationMinutes == null || durationMinutes <= 0) return '';
     final hours = (durationMinutes / 60).floor();
@@ -503,7 +524,14 @@ class _BookFinishedCardState extends State<BookFinishedCard>
     final durationMinutes =
         (payload?['duration_minutes'] as num?)?.toDouble();
     final pagesRead = payload?['pages_read'] as int?;
+    final startPage = payload?['start_page'] as int?;
     final endPage = payload?['end_page'] as int?;
+    final isPreviousRead = _isPreviousRead(
+      durationMinutes: durationMinutes,
+      startPage: startPage,
+      endPage: endPage,
+      bookPageCount: _bookPageCount,
+    );
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -752,14 +780,18 @@ class _BookFinishedCardState extends State<BookFinishedCard>
 
                       const SizedBox(height: 20),
 
-                      // Stats pills
-                      _buildStatsPills(
-                        isDark: isDark,
-                        durationMinutes: durationMinutes,
-                        pagesRead: pagesRead,
-                        endPage: endPage,
-                        isOwn: isOwn,
-                      ),
+                      // Pour une lecture importée : badge dédié à la place
+                      // des stats (qui n'auraient pas de sens : 0 min, etc.)
+                      if (isPreviousRead)
+                        const Center(child: _PreviousReadBadge())
+                      else
+                        _buildStatsPills(
+                          isDark: isDark,
+                          durationMinutes: durationMinutes,
+                          pagesRead: pagesRead,
+                          endPage: endPage,
+                          isOwn: isOwn,
+                        ),
                           ],
                         ),
                       ),
@@ -959,75 +991,68 @@ class _BookFinishedCardState extends State<BookFinishedCard>
     final secondary =
         isDark ? _BFColors.secondaryDark : _BFColors.secondaryLight;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        // Reactions bar
-        ReactionsBar(
-          reactionCounts: _reactionCounts,
-          userEmoji: _userEmoji,
-          onOpenPicker: _openReactionPicker,
-          onToggleReaction: _toggleReaction,
+        Expanded(
+          child: ReactionsBar(
+            reactionCounts: _reactionCounts,
+            userEmoji: _userEmoji,
+            onOpenPicker: _openReactionPicker,
+            onToggleReaction: _toggleReaction,
+          ),
         ),
-
-        const SizedBox(height: 8),
-
-        Row(
-          children: [
-            // Comment button
-            GestureDetector(
-              onTap: _showCommentsSheet,
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: isDark
-                      ? _BFColors.likeInactiveBgDark
-                      : _BFColors.likeInactiveBgLight,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.chat_bubble_outline,
-                        size: 18, color: secondary),
-                    if (_commentCount > 0) ...[
-                      const SizedBox(width: 4),
-                      Text(
-                        '$_commentCount',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: secondary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
+        const SizedBox(width: 8),
+        // Comment button
+        GestureDetector(
+          onTap: _showCommentsSheet,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: isDark
+                  ? _BFColors.likeInactiveBgDark
+                  : _BFColors.likeInactiveBgLight,
+              borderRadius: BorderRadius.circular(20),
             ),
-
-            // Share button (own activity only)
-            if (isOwn) ...[
-              const SizedBox(width: 8),
-              GestureDetector(
-                onTap: _showShareSheet,
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: isDark
-                        ? _BFColors.likeInactiveBgDark
-                        : _BFColors.likeInactiveBgLight,
-                    borderRadius: BorderRadius.circular(20),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.chat_bubble_outline, size: 18, color: secondary),
+                if (_commentCount > 0) ...[
+                  const SizedBox(width: 4),
+                  Text(
+                    '$_commentCount',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: secondary,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                  child:
-                      Icon(Icons.share_outlined, size: 18, color: secondary),
-                ),
-              ),
-            ],
-          ],
+                ],
+              ],
+            ),
+          ),
         ),
+        // Share button (own activity only)
+        if (isOwn) ...[
+          const SizedBox(width: 8),
+          GestureDetector(
+            onTap: () {
+              HapticFeedback.selectionClick();
+              _showShareSheet();
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? _BFColors.likeInactiveBgDark
+                    : _BFColors.likeInactiveBgLight,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Icon(Icons.share_outlined, size: 18, color: secondary),
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -1200,6 +1225,50 @@ class _ParticlesPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _ParticlesPainter old) =>
       old.progress != progress;
+}
+
+// =============================================================================
+// Previous-read badge — affiché à la place des stats pour les livres
+// importés / déjà lus avant LexDay (durée 0, session "fantôme" qui couvre
+// tout le livre). Évite l'affichage trompeur "0 min".
+// =============================================================================
+class _PreviousReadBadge extends StatelessWidget {
+  const _PreviousReadBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final accent = isDark
+        ? AppColors.gold.withValues(alpha: 0.9)
+        : const Color(0xFFB8923A);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+      decoration: BoxDecoration(
+        color: accent.withValues(alpha: isDark ? 0.20 : 0.12),
+        borderRadius: BorderRadius.circular(AppRadius.pill),
+        border: Border.all(
+          color: accent.withValues(alpha: 0.4),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.history_edu_rounded, size: 16, color: accent),
+          const SizedBox(width: 8),
+          Text(
+            'Lecture précédente',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: accent,
+              letterSpacing: 0.2,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 // =============================================================================

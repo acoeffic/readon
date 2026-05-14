@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../widgets/require_account_sheet.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../services/reaction_service.dart';
 import '../../../providers/subscription_provider.dart';
 import '../../../theme/app_theme.dart';
+import '../../../utils/app_constants.dart';
 import 'package:provider/provider.dart';
 import '../../../widgets/reaction_picker.dart';
 import '../../../widgets/reactions_bar.dart';
@@ -136,6 +139,10 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
   }
 
   Future<void> _openReactionPicker() async {
+    if (Supabase.instance.client.auth.currentUser == null) {
+      await showRequireAccountSheet(context);
+      return;
+    }
     final sub = context.read<SubscriptionProvider>();
     final selectedEmoji = await ReactionPicker.show(
       context: context,
@@ -148,6 +155,10 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
   }
 
   Future<void> _toggleReaction(String emoji) async {
+    if (Supabase.instance.client.auth.currentUser == null) {
+      await showRequireAccountSheet(context);
+      return;
+    }
     final activityId = (widget.activity['activity_id'] ?? widget.activity['id']) as int;
     final previousCounts = Map<String, int>.from(_reactionCounts);
     final previousUserEmoji = _userEmoji;
@@ -256,6 +267,19 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
     }
 
     if (activityType == 'reading_session' && payload != null) {
+      // Lecture importée (livre déjà lu avant LexDay) → libellé dédié
+      final durationMinutes =
+          (payload['duration_minutes'] as num?)?.toDouble();
+      final startPage = payload['start_page'] as int?;
+      final endPage = payload['end_page'] as int?;
+      if (_isPreviousRead(
+        durationMinutes: durationMinutes,
+        startPage: startPage,
+        endPage: endPage,
+        bookPageCount: _bookPageCount,
+      )) {
+        return 'a ajouté un livre déjà lu';
+      }
       final pagesRead = payload['pages_read'] as int?;
       if (pagesRead != null) {
         return 'a lu $pagesRead page${pagesRead > 1 ? 's' : ''}';
@@ -269,12 +293,12 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
     final title = bookTitle ?? 'un livre';
     final author = bookAuthor != null ? ' de $bookAuthor' : '';
     if (_isBookFinished()) {
-      return "Je viens de terminer \"$title\"$author ! 📚✨\n\n#Lecture #LexDay";
+      return "Je viens de terminer \"$title\"$author ! 📚✨\n\n#Lecture #LexDay\n$kAppStoreUrl";
     }
     final payload = widget.activity['payload'] as Map<String, dynamic>?;
     final pagesRead = payload?['pages_read'] as int?;
     final pages = pagesRead != null ? '$pagesRead pages de ' : '';
-    return "Je viens de lire $pages\"$title\"$author 📖\n\n#Lecture #LexDay";
+    return "Je viens de lire $pages\"$title\"$author 📖\n\n#Lecture #LexDay\n$kAppStoreUrl";
   }
 
   Future<void> _showShareSheet(String? bookTitle, String? bookAuthor) async {
@@ -437,7 +461,26 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
     final hours = (durationMinutes / 60).floor();
     final minutes = (durationMinutes % 60).round();
     if (hours > 0) return '${hours}h${minutes.toString().padLeft(2, '0')}';
+    // < 30 secondes : ne rien afficher plutôt que "0 min" qui n'a pas de sens
+    if (minutes <= 0) return '';
     return '$minutes min';
+  }
+
+  /// Détecte une lecture importée / antérieure à LexDay :
+  /// session "fantôme" couvrant tout le livre sans durée enregistrée.
+  bool _isPreviousRead({
+    required double? durationMinutes,
+    required int? startPage,
+    required int? endPage,
+    required int? bookPageCount,
+  }) {
+    final noDuration = durationMinutes == null || durationMinutes <= 0;
+    final wholeBook = startPage == 1 &&
+        bookPageCount != null &&
+        bookPageCount > 0 &&
+        endPage != null &&
+        endPage >= bookPageCount;
+    return noDuration && wholeBook;
   }
 
   @override
@@ -645,36 +688,49 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
               GestureDetector(
                 onTap: _navigateToSessionDetail,
                 behavior: HitTestBehavior.opaque,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (pagesRead != null || durationMinutes != null) ...[
-                      const SizedBox(height: 14),
-                      _StatsBar(
-                        durationText: _formatDuration(durationMinutes),
-                        pagesRead: pagesRead,
-                        startPage: startPage,
-                        endPage: endPage,
-                      ),
+                child: Builder(builder: (_) {
+                  final isPrev = _isPreviousRead(
+                    durationMinutes: durationMinutes,
+                    startPage: startPage,
+                    endPage: endPage,
+                    bookPageCount: bookPageCount,
+                  );
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (isPrev) ...[
+                        const SizedBox(height: 14),
+                        const _PreviousReadBadge(),
+                      ] else if (pagesRead != null ||
+                          durationMinutes != null) ...[
+                        const SizedBox(height: 14),
+                        _StatsBar(
+                          durationText: _formatDuration(durationMinutes),
+                          pagesRead: pagesRead,
+                          startPage: startPage,
+                          endPage: endPage,
+                        ),
+                      ],
                     ],
-                  ],
-                ),
+                  );
+                }),
               ),
 
               const SizedBox(height: 12),
 
-              // Reactions bar
-              ReactionsBar(
-                reactionCounts: _reactionCounts,
-                userEmoji: _userEmoji,
-                onOpenPicker: _openReactionPicker,
-                onToggleReaction: _toggleReaction,
-              ),
-
-              const SizedBox(height: 8),
-
+              // Reactions + actions sur la même ligne
               Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
+                  Expanded(
+                    child: ReactionsBar(
+                      reactionCounts: _reactionCounts,
+                      userEmoji: _userEmoji,
+                      onOpenPicker: _openReactionPicker,
+                      onToggleReaction: _toggleReaction,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
                   GestureDetector(
                     onTap: _showCommentsSheet,
                     child: Container(
@@ -706,7 +762,10 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
                   if (widget.activity['author_id'] == Supabase.instance.client.auth.currentUser?.id) ...[
                     const SizedBox(width: 8),
                     GestureDetector(
-                      onTap: () => _showShareSheet(bookTitle, bookAuthor),
+                      onTap: () {
+                        HapticFeedback.selectionClick();
+                        _showShareSheet(bookTitle, bookAuthor);
+                      },
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
@@ -802,6 +861,55 @@ class _StatsBar extends StatelessWidget {
             ],
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Badge affiché à la place de la stats bar pour une lecture importée
+/// (livre déjà lu avant LexDay → pas de durée réelle, session "fantôme").
+class _PreviousReadBadge extends StatelessWidget {
+  const _PreviousReadBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final accent = isDark
+        ? AppColors.gold.withValues(alpha: 0.85)
+        : const Color(0xFFB8923A);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: accent.withValues(alpha: isDark ? 0.18 : 0.10),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: accent.withValues(alpha: 0.35),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.history_edu_rounded, size: 16, color: accent),
+          const SizedBox(width: 8),
+          Text(
+            'Lecture précédente',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: accent,
+              letterSpacing: 0.2,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            '· ajoutée à la bibliothèque',
+            style: TextStyle(
+              fontSize: 12,
+              color: accent.withValues(alpha: 0.75),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1127,7 +1235,7 @@ class _ShareBottomSheet extends StatelessWidget {
 
   Future<void> _shareToLinkedIn(BuildContext context) async {
     final text = Uri.encodeComponent(shareText);
-    final url = Uri.parse('https://www.linkedin.com/sharing/share-offsite/?url=https://lexday.app&summary=$text');
+    final url = Uri.parse('https://www.linkedin.com/sharing/share-offsite/?url=$kAppStoreUrl&summary=$text');
     if (await canLaunchUrl(url)) {
       await launchUrl(url, mode: LaunchMode.externalApplication);
     }
@@ -1145,7 +1253,7 @@ class _ShareBottomSheet extends StatelessWidget {
 
   Future<void> _shareToMessenger(BuildContext context) async {
     final text = Uri.encodeComponent(shareText);
-    final url = Uri.parse('fb-messenger://share?link=https://lexday.app&quote=$text');
+    final url = Uri.parse('fb-messenger://share?link=$kAppStoreUrl&quote=$text');
     if (await canLaunchUrl(url)) {
       await launchUrl(url, mode: LaunchMode.externalApplication);
     }

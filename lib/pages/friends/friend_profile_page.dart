@@ -1,15 +1,20 @@
 import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
+import '../../widgets/require_account_sheet.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../theme/app_theme.dart';
 import '../../models/reading_session.dart';
 import '../../models/book.dart';
 import '../../services/badges_service.dart';
 import '../../services/flow_service.dart';
+import '../../services/moderation_service.dart';
+import '../../services/mutual_friends_service.dart';
 import '../../pages/sessions/session_detail_page.dart';
 import '../../widgets/badges_grid.dart';
 import '../../widgets/cached_profile_avatar.dart';
 import '../../widgets/constrained_content.dart';
+import '../../widgets/mutual_friends_badge.dart';
+import '../../widgets/report_sheet.dart';
 
 class FriendProfilePage extends StatefulWidget {
   final String userId;
@@ -47,6 +52,7 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
   String? _friendshipStatus; // 'accepted', 'pending', null
   bool _isProfilePrivate = false;
   bool _canViewDetails = false; // true si public OU ami accepté
+  MutualFriendsSummary _mutualFriends = MutualFriendsSummary.empty;
 
   @override
   void initState() {
@@ -63,6 +69,9 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
     // Puis charger le statut d'amitié (qui dépend de is_profile_private)
     await _loadFriendshipStatus();
 
+    // Amis communs (utile dès qu'on regarde un profil, peu importe le statut)
+    final mutualFuture = MutualFriendsService().getSummary(widget.userId);
+
     // Charger les détails uniquement si autorisé
     if (_canViewDetails) {
       await Future.wait([
@@ -73,7 +82,13 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
       ]);
     }
 
-    if (mounted) setState(() => _loading = false);
+    final mutual = await mutualFuture;
+    if (mounted) {
+      setState(() {
+        _mutualFriends = mutual;
+        _loading = false;
+      });
+    }
   }
 
   Future<void> _loadProfile() async {
@@ -236,6 +251,10 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
   }
 
   Future<void> _addFriend() async {
+    if (supabase.auth.currentUser == null) {
+      await showRequireAccountSheet(context);
+      return;
+    }
     final l = AppLocalizations.of(context);
     try {
       final currentUserId = supabase.auth.currentUser?.id;
@@ -280,6 +299,54 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
     } catch (e) {
       debugPrint('Erreur _cancelFriendRequest: $e');
     }
+  }
+
+  void _onModerationAction(String action) {
+    switch (action) {
+      case 'report':
+        showReportSheet(
+          context,
+          targetType: ReportTargetType.user,
+          targetId: widget.userId,
+          targetUserId: widget.userId,
+        );
+      case 'block':
+        _confirmBlock();
+    }
+  }
+
+  Future<void> _confirmBlock() async {
+    final l = AppLocalizations.of(context);
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l.blockUserConfirmTitle(_userName)),
+        content: Text(l.blockUserConfirmMessage),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l.blockUserConfirmCta,
+                style: const TextStyle(color: AppColors.error)),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+
+    final ok = await ModerationService().blockUser(widget.userId);
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(ok ? l.userBlockedMessage : l.blockUserErrorMessage),
+        backgroundColor: ok ? AppColors.primary : Colors.red.shade700,
+      ),
+    );
+    if (ok) Navigator.of(context).pop();
   }
 
   Future<void> _removeFriend() async {
@@ -333,6 +400,39 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
         ),
         title: Text(_userName, style: const TextStyle(fontWeight: FontWeight.w600)),
         centerTitle: true,
+        actions: [
+          // Menu modération (Apple §1.2 UGC) : signaler / bloquer.
+          // Caché pour son propre profil.
+          if (Supabase.instance.client.auth.currentUser?.id != widget.userId)
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert),
+              onSelected: _onModerationAction,
+              itemBuilder: (ctx) => [
+                PopupMenuItem(
+                  value: 'report',
+                  child: Row(
+                    children: [
+                      const Icon(Icons.flag_outlined,
+                          size: 18, color: Colors.red),
+                      const SizedBox(width: 10),
+                      Text(l.reportUserAction),
+                    ],
+                  ),
+                ),
+                PopupMenuItem(
+                  value: 'block',
+                  child: Row(
+                    children: [
+                      const Icon(Icons.block,
+                          size: 18, color: Colors.red),
+                      const SizedBox(width: 10),
+                      Text(l.blockUserAction),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+        ],
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
@@ -441,6 +541,10 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
               fontStyle: FontStyle.italic,
             ),
           ),
+        ],
+        if (!_mutualFriends.isEmpty) ...[
+          const SizedBox(height: AppSpace.s),
+          MutualFriendsBadge(summary: _mutualFriends, fontSize: 13),
         ],
       ],
     );

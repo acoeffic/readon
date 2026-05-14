@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../services/comments_service.dart';
+import '../../../services/moderation_service.dart';
 import '../../../theme/app_theme.dart';
 import '../../../widgets/cached_profile_avatar.dart';
+import '../../../widgets/report_sheet.dart';
+import '../../../widgets/require_account_sheet.dart';
 
 class CommentsSheet extends StatefulWidget {
   final int activityId;
@@ -49,6 +52,10 @@ class _CommentsSheetState extends State<CommentsSheet> {
   }
 
   Future<void> _sendComment() async {
+    if (Supabase.instance.client.auth.currentUser == null) {
+      await showRequireAccountSheet(context);
+      return;
+    }
     final content = _controller.text.trim();
     if (content.isEmpty || _isSending) return;
 
@@ -219,8 +226,13 @@ class _CommentsSheetState extends State<CommentsSheet> {
   Widget _buildCommentTile(Comment comment, bool isDark, AppLocalizations l10n) {
     final isOwnPending =
         comment.isPending && comment.authorId == _currentUserId;
+    final isOwn = comment.authorId == _currentUserId;
 
-    return Padding(
+    return InkWell(
+      // Long-press → menu modération (Apple §1.2). Désactivé pour ses
+      // propres commentaires (rien à signaler).
+      onLongPress: isOwn ? null : () => _showCommentActions(comment, l10n),
+      child: Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -291,6 +303,64 @@ class _CommentsSheetState extends State<CommentsSheet> {
             ),
           ),
         ],
+      ),
+    ),
+    );
+  }
+
+  void _showCommentActions(Comment comment, AppLocalizations l10n) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.flag_outlined, color: Colors.red),
+              title: Text(l10n.reportCommentAction),
+              onTap: () {
+                Navigator.pop(ctx);
+                showReportSheet(
+                  context,
+                  targetType: ReportTargetType.comment,
+                  targetId: comment.id.toString(),
+                  targetUserId: comment.authorId,
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.block, color: Colors.red),
+              title: Text(l10n.blockUserAction),
+              onTap: () async {
+                Navigator.pop(ctx);
+                final ok = await ModerationService().blockUser(comment.authorId);
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(ok
+                        ? l10n.userBlockedMessage
+                        : l10n.blockUserErrorMessage),
+                    backgroundColor:
+                        ok ? AppColors.primary : Colors.red.shade700,
+                  ),
+                );
+                if (ok) {
+                  setState(() {
+                    _comments.removeWhere((c) => c.authorId == comment.authorId);
+                  });
+                }
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.close),
+              title: Text(l10n.cancel),
+              onTap: () => Navigator.pop(ctx),
+            ),
+          ],
+        ),
       ),
     );
   }

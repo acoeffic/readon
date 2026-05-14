@@ -7,6 +7,7 @@ import 'package:timezone/data/latest_all.dart' as tzdata;
 import 'package:flutter_timezone/flutter_timezone.dart';
 
 import '../features/wrapped/monthly/monthly_wrapped_screen.dart';
+import 'wrapped_banner_service.dart';
 
 class MonthlyNotificationService {
   static final MonthlyNotificationService _instance =
@@ -415,7 +416,32 @@ class MonthlyNotificationService {
     // Re-schedule for next month so the user keeps getting notifications
     MonthlyNotificationService().scheduleNextMonthlyNotification();
 
-    navigatorKey.currentState?.push(
+    // Filet de sécurité : afficher la bannière dans le feed pendant 24 h.
+    WrappedBannerService().setPending(month: month, year: year);
+
+    _pushWrappedScreen(month: month, year: year);
+  }
+
+  /// Pousse l'écran Wrapped en réessayant si le navigatorKey n'est pas
+  /// encore prêt (typique du cold start après un tap notification).
+  static void _pushWrappedScreen({
+    required int month,
+    required int year,
+    int retriesLeft = 5,
+  }) {
+    final navState = navigatorKey.currentState;
+    if (navState == null) {
+      if (retriesLeft <= 0) return;
+      Future.delayed(const Duration(milliseconds: 400), () {
+        _pushWrappedScreen(
+          month: month,
+          year: year,
+          retriesLeft: retriesLeft - 1,
+        );
+      });
+      return;
+    }
+    navState.push(
       MaterialPageRoute(
         builder: (_) => MonthlyWrappedScreen(month: month, year: year),
       ),

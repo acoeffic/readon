@@ -7,6 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../features/wrapped/monthly/monthly_wrapped_screen.dart';
 import 'monthly_notification_service.dart';
+import 'wrapped_banner_service.dart';
 
 /// Handles FCM token capture, storage in Supabase, token refresh,
 /// and notification tap routing.
@@ -92,6 +93,19 @@ class PushNotificationService {
     final initialMessage = await _messaging.getInitialMessage();
     if (initialMessage != null) {
       pendingInitialMessage = initialMessage;
+      // Pré-enregistre tout de suite l'état de bannière à partir du payload
+      // — comme `initialize()` est `await`-é APRÈS la création de
+      // MainNavigation dans AuthGate, il y a une race condition possible
+      // avec _consumePendingNotification (postFrameCallback). Si la course
+      // est perdue, la bannière dans le feed prend le relais.
+      final data = initialMessage.data;
+      if (data['type'] == 'monthly_wrapped') {
+        final month = int.tryParse(data['month'] ?? '');
+        final year = int.tryParse(data['year'] ?? '');
+        if (month != null && year != null) {
+          await WrappedBannerService().setPending(month: month, year: year);
+        }
+      }
     }
   }
 
@@ -129,14 +143,45 @@ class PushNotificationService {
         // Re-schedule local notification for next month
         MonthlyNotificationService().scheduleNextMonthlyNotification();
 
-        MonthlyNotificationService.navigatorKey.currentState?.push(
-          MaterialPageRoute(
-            builder: (_) => MonthlyWrappedScreen(month: month, year: year),
-          ),
-        );
+        // Toujours stocker l'état pour la bannière du feed (24 h) — ainsi
+        // l'utilisateur peut ré-ouvrir le wrapped depuis le feed même si
+        // la navigation directe échoue (navigatorKey pas encore prêt,
+        // splash en cours, etc.).
+        WrappedBannerService().setPending(month: month, year: year);
+
+        // Tentative de navigation immédiate. Si le navigateur n'est pas
+        // encore prêt (ex: app en cold start, splash visible), la bannière
+        // dans le feed prendra le relais.
+        _pushWrappedScreen(month: month, year: year);
       // Other notification types (comment, like, friend_request, etc.)
       // are handled by in-app navigation and don't need explicit routing here.
     }
+  }
+
+  /// Pousse l'écran Wrapped via le navigatorKey global. Réessaie après un
+  /// court délai si l'état du navigateur n'est pas encore prêt (cold start).
+  static void _pushWrappedScreen({
+    required int month,
+    required int year,
+    int retriesLeft = 5,
+  }) {
+    final navState = MonthlyNotificationService.navigatorKey.currentState;
+    if (navState == null) {
+      if (retriesLeft <= 0) return;
+      Future.delayed(const Duration(milliseconds: 400), () {
+        _pushWrappedScreen(
+          month: month,
+          year: year,
+          retriesLeft: retriesLeft - 1,
+        );
+      });
+      return;
+    }
+    navState.push(
+      MaterialPageRoute(
+        builder: (_) => MonthlyWrappedScreen(month: month, year: year),
+      ),
+    );
   }
 
   /// Clear the FCM token from the profile (call on sign out).

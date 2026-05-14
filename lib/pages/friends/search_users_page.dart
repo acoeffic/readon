@@ -4,13 +4,18 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/book.dart';
 import '../../services/books_service.dart';
+import '../../services/mutual_friends_service.dart';
+import '../../services/people_you_may_know_service.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/app_constants.dart';
 import '../../widgets/back_header.dart';
+import '../../widgets/mutual_friends_badge.dart';
 import '../../widgets/user_search_card.dart';
 import '../../models/reading_group.dart';
 import '../../models/user_search_result.dart';
 import '../groups/group_detail_page.dart';
 import 'friend_profile_page.dart';
+import 'people_you_may_know_page.dart';
 import '../../widgets/constrained_content.dart';
 
 class SearchUsersPage extends StatefulWidget {
@@ -23,9 +28,15 @@ class SearchUsersPage extends StatefulWidget {
 class _SearchUsersPageState extends State<SearchUsersPage> {
   final _controller = TextEditingController();
   final _booksService = BooksService();
+  final _mutualFriendsService = MutualFriendsService();
+  final _peopleService = PeopleYouMayKnowService();
   List<UserSearchResult> _userResults = [];
   List<ReadingGroup> _groupResults = [];
   Map<String, bool> _pendingRequests = {}; // user_id -> isPending
+  Map<String, MutualFriendsSummary> _mutuals = {};
+  // Suggestions affichées quand le champ de recherche est vide.
+  List<UserSearchResult> _suggestions = [];
+  bool _loadingSuggestions = true;
   bool _loading = false;
   int _selectedTab = 0; // 0 = Amis, 1 = Groupes
   Book? _currentReadingBook;
@@ -34,6 +45,46 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
   void initState() {
     super.initState();
     _loadCurrentBook();
+    _loadSuggestions();
+  }
+
+  Future<void> _loadSuggestions() async {
+    try {
+      final pymk = await _peopleService.getSuggestions(limit: 15);
+      if (!mounted) return;
+
+      // Conversion vers UserSearchResult pour réutiliser _buildSimpleUserItem.
+      // Les profils renvoyés par la RPC sont publics (la fonction filtre).
+      final converted = pymk
+          .map((p) => UserSearchResult(
+                id: p.userId,
+                displayName: p.displayName,
+                avatarUrl: p.avatarUrl,
+                isProfilePrivate: false,
+                booksFinished: p.booksFinished,
+                currentFlow: p.currentFlow,
+              ))
+          .toList();
+
+      // Les amis communs sont déjà inclus dans le payload PYMK : on évite
+      // un round-trip à MutualFriendsService.
+      final mutualsFromPymk = {
+        for (final p in pymk) p.userId: p.mutualSummary,
+      };
+
+      setState(() {
+        _suggestions = converted;
+        _mutuals = {..._mutuals, ...mutualsFromPymk};
+        _loadingSuggestions = false;
+      });
+
+      // En revanche on a besoin de connaître l'état "demande déjà envoyée"
+      // pour griser le bouton « Ajouter » à l'ouverture du modal.
+      await _checkPendingRequests(converted.map((u) => u.id).toList());
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _loadingSuggestions = false);
+    }
   }
 
   Future<void> _loadCurrentBook() async {
@@ -48,7 +99,7 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
     final text = bookTitle != null
         ? '\u{1F4D6} Je suis en train de lire $bookTitle\n\n'
             'Tu lis quoi en ce moment ? \u{1F440}\n'
-            'lexday.app'
+            '$kAppStoreUrl'
         : l.shareInviteText;
     final box = context.findRenderObject() as RenderBox?;
     final origin = box != null ? box.localToGlobal(Offset.zero) & box.size : null;
@@ -122,9 +173,15 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
         // Vérifier les demandes d'amitié existantes
         await _checkPendingRequests(enrichedUsers.map((u) => u.id).toList());
 
+        // Charger les amis communs en batch
+        final mutuals = await _mutualFriendsService.getSummariesBatch(
+          enrichedUsers.map((u) => u.id).toList(),
+        );
+
         if (!mounted) return;
         setState(() {
           _userResults = enrichedUsers;
+          _mutuals = mutuals;
           _loading = false;
         });
       } else {
@@ -457,6 +514,8 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
                     ),
                   ),
                 ),
+                const SizedBox(height: AppSpace.s),
+                _buildDiscoverReadersCta(l),
                 const SizedBox(height: AppSpace.m),
               ],
 
@@ -474,6 +533,26 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
   }
 
   Widget _buildUserResults(AppLocalizations l) {
+    final hasQuery = _controller.text.trim().length >= 2;
+
+    // Pas de recherche en cours → on tente de remplir le vide avec des
+    // suggestions multi-signal au lieu du message « tape 2 caractères ».
+    if (!hasQuery && _userResults.isEmpty && !_loading) {
+      if (_loadingSuggestions) {
+        return const Center(child: CircularProgressIndicator());
+      }
+      if (_suggestions.isNotEmpty) {
+        return _buildSuggestionsList(l);
+      }
+      return Center(
+        child: Text(
+          l.typeMin2Chars,
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
+      );
+    }
+
+    // Cas standard : champ rempli, on affiche les résultats live.
     if (_userResults.isEmpty && !_loading) {
       return Center(
         child: Text(
@@ -495,7 +574,106 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
     );
   }
 
+  Widget _buildDiscoverReadersCta(AppLocalizations l) {
+    return GestureDetector(
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const PeopleYouMayKnowPage()),
+      ),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.primary.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: AppColors.primary.withValues(alpha: 0.25),
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.18),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(
+                Icons.travel_explore,
+                size: 20,
+                color: AppColors.primary,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l.discoverReadersTitle,
+                    style: const TextStyle(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    l.discoverReadersSubtitle,
+                    style: TextStyle(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withValues(alpha: 0.65),
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.arrow_forward_ios,
+              size: 16,
+              color: AppColors.primary.withValues(alpha: 0.7),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSuggestionsList(AppLocalizations l) {
+    return ListView.separated(
+      padding: EdgeInsets.zero,
+      itemCount: _suggestions.length + 1,
+      separatorBuilder: (_, __) => const SizedBox(height: AppSpace.xs),
+      itemBuilder: (context, index) {
+        if (index == 0) {
+          return Padding(
+            padding: const EdgeInsets.only(
+              bottom: AppSpace.s,
+              top: AppSpace.xs,
+            ),
+            child: Text(
+              l.suggestionsForYou,
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.7),
+                  ),
+            ),
+          );
+        }
+        final user = _suggestions[index - 1];
+        final isPending = _pendingRequests[user.id] ?? false;
+        return _buildSimpleUserItem(user, isPending, l);
+      },
+    );
+  }
+
   Widget _buildSimpleUserItem(UserSearchResult user, bool isPending, AppLocalizations l) {
+    final mutual = _mutuals[user.id] ?? MutualFriendsSummary.empty;
     return GestureDetector(
       onTap: () => _showUserDetailsModal(user, isPending),
       child: Container(
@@ -527,7 +705,7 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
             ),
             const SizedBox(width: AppSpace.m),
 
-            // Nom + indicateur privé
+            // Nom + indicateur privé + amis en commun
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -554,6 +732,53 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
                         ),
                       ],
                     ),
+                  ] else ...[
+                    // Trust signals : livres terminés + streak actuel
+                    if ((user.booksFinished ?? 0) > 0 ||
+                        (user.currentFlow ?? 0) > 0) ...[
+                      const SizedBox(height: 3),
+                      Row(
+                        children: [
+                          if ((user.booksFinished ?? 0) > 0) ...[
+                            const Text('📖',
+                                style: TextStyle(fontSize: 11)),
+                            const SizedBox(width: 3),
+                            Text(
+                              '${user.booksFinished} livre${(user.booksFinished ?? 0) > 1 ? 's' : ''}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurface
+                                    .withValues(alpha: 0.65),
+                              ),
+                            ),
+                          ],
+                          if ((user.booksFinished ?? 0) > 0 &&
+                              (user.currentFlow ?? 0) > 0)
+                            const SizedBox(width: 8),
+                          if ((user.currentFlow ?? 0) > 0) ...[
+                            const Text('🔥',
+                                style: TextStyle(fontSize: 11)),
+                            const SizedBox(width: 3),
+                            Text(
+                              '${user.currentFlow}j',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurface
+                                    .withValues(alpha: 0.65),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ],
+                  ],
+                  if (!mutual.isEmpty) ...[
+                    const SizedBox(height: 4),
+                    MutualFriendsBadge(summary: mutual),
                   ],
                 ],
               ),
@@ -601,6 +826,8 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
                 child: UserSearchCard(
                   user: user,
                   isRequestPending: isPending,
+                  mutualFriends:
+                      _mutuals[user.id] ?? MutualFriendsSummary.empty,
                   onAddFriend: () {
                     _addFriend(user);
                     Navigator.pop(context);

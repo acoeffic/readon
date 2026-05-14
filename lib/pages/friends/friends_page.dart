@@ -5,6 +5,7 @@ import '../../theme/app_theme.dart';
 import 'find_contacts_friends_page.dart';
 import 'friend_profile_page.dart';
 import 'friend_requests_page.dart';
+import 'people_you_may_know_page.dart';
 import 'search_users_page.dart';
 import '../../widgets/constrained_content.dart';
 
@@ -105,6 +106,16 @@ class _FriendsPageState extends State<FriendsPage> {
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         title: Text(l.myFriends),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.auto_awesome, color: AppColors.primary),
+            tooltip: 'À découvrir',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                    builder: (_) => const PeopleYouMayKnowPage()),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.contact_phone, color: AppColors.primary),
             tooltip: l.findFriends,
