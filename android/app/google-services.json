@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "870762668846",
+    "project_id": "readon-fc5d9",
+    "storage_bucket": "readon-fc5d9.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:870762668846:android:254d95ca65daa7cbdb50bf",
+        "android_client_info": {
+          "package_name": "com.acoeffic.lexday"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "870762668846-dq8n3pvgrpo3vcrtuciogf4dc9gik0am.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAAddDjTgcgnmI6cV4ru9meYKXUvdP3tcI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "870762668846-dq8n3pvgrpo3vcrtuciogf4dc9gik0am.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "870762668846-f550jt8npljlch1vtu0q6tj3qt94amtd.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "fr.lexday.app"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
