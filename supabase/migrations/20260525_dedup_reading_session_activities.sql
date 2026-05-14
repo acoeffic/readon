@@ -68,6 +68,27 @@ WHERE a.type = 'reading_session'
   AND s.end_time IS NOT NULL
   AND ABS(EXTRACT(EPOCH FROM (s.end_time - a.created_at))) < 120;
 
+-- ─── 2.5. Cleanup post-backfill par session_id ──────────────────────────
+-- Le cleanup step 1 ne couvrait que les doublons exacts (mêmes book_id +
+-- start/end_page). Si une session a été terminée 2 fois avec un end_page
+-- différent entre les 2 (resume + lecture supplémentaire avant 2ème end),
+-- step 1 les a laissés passer. Mais après backfill, l'UPDATE a pu assigner
+-- le même session_id aux 2 activités → l'index unique partiel échouerait.
+-- On dédoublonne ici par (author_id, session_id) pour garantir l'unicité.
+
+WITH ranked_by_session AS (
+  SELECT id,
+         ROW_NUMBER() OVER (
+           PARTITION BY author_id, payload->>'session_id'
+           ORDER BY id
+         ) AS rn
+  FROM activities
+  WHERE type = 'reading_session'
+    AND payload ? 'session_id'
+)
+DELETE FROM activities
+WHERE id IN (SELECT id FROM ranked_by_session WHERE rn > 1);
+
 -- ─── 3. Index unique partiel ────────────────────────────────────────────
 -- Garde-fou final : impossible d'avoir deux activités reading_session
 -- portant le même session_id pour un même author_id. Le WHERE rend l'index
