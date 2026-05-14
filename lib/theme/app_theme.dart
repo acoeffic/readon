@@ -2,6 +2,7 @@
 // Thème Flutter extrait et simplifié depuis votre fichier monolithique
 
 import 'package:flutter/material.dart';
+import 'theme_variant.dart';
 
 class AppColors {
   // Colors used in both themes
@@ -93,15 +94,23 @@ extension AppThemeColorsExtension on BuildContext {
 // Theme definitions
 // ---------------------------------------------------------------------------
 class AppTheme {
-  static ThemeData light = _buildTheme(Brightness.light);
-  static ThemeData dark = _buildTheme(Brightness.dark);
+  /// Light theme avec un variant donné. Default = Sage (compat).
+  static ThemeData light({ThemeVariantPalette? variant}) =>
+      _buildTheme(Brightness.light, variant ?? ThemeVariants.sage);
 
-  static ThemeData _buildTheme(Brightness brightness) {
+  /// Dark theme avec un variant donné.
+  static ThemeData dark({ThemeVariantPalette? variant}) =>
+      _buildTheme(Brightness.dark, variant ?? ThemeVariants.sage);
+
+  static ThemeData _buildTheme(
+    Brightness brightness,
+    ThemeVariantPalette variant,
+  ) {
     final isDark = brightness == Brightness.dark;
     final colors = AppThemeColors._(brightness);
 
     final colorScheme = ColorScheme.fromSeed(
-      seedColor: AppColors.primary,
+      seedColor: variant.primary,
       brightness: brightness,
       surface: isDark ? AppColors.surfaceDark : null,
     );
@@ -196,7 +205,7 @@ class AppTheme {
       // Chip
       chipTheme: ChipThemeData(
         backgroundColor: colors.pillBg,
-        selectedColor: AppColors.primary.withValues(alpha: isDark ? 0.3 : 0.15),
+        selectedColor: variant.primary.withValues(alpha: isDark ? 0.3 : 0.15),
         labelStyle: TextStyle(color: colors.textPrimary, fontSize: 13),
         side: BorderSide.none,
         shape: RoundedRectangleBorder(
@@ -222,7 +231,7 @@ class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadius.m),
-          borderSide: const BorderSide(color: AppColors.primary, width: 2),
+          borderSide: BorderSide(color: variant.primary, width: 2),
         ),
       ),
 

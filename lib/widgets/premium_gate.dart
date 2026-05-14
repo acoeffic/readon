@@ -6,7 +6,7 @@ import 'package:provider/provider.dart';
 import '../l10n/app_localizations.dart';
 import '../models/feature_flags.dart';
 import '../providers/subscription_provider.dart';
-import '../pages/profile/upgrade_page.dart';
+import '../services/native_paywall_service.dart';
 import '../theme/app_theme.dart';
 
 class PremiumGate extends StatelessWidget {
@@ -228,11 +228,9 @@ void showPremiumUpsellSheet(
                 child: ElevatedButton(
                   onPressed: () {
                     Navigator.of(ctx).pop();
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) =>
-                            UpgradePage(highlightedFeature: feature),
-                      ),
+                    NativePaywallService.present(
+                      context,
+                      highlightedFeature: feature,
                     );
                   },
                   style: ElevatedButton.styleFrom(
@@ -381,10 +379,9 @@ class _BillingIssueWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     return GestureDetector(
-      onTap: () => Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => UpgradePage(highlightedFeature: feature),
-        ),
+      onTap: () => NativePaywallService.present(
+        context,
+        highlightedFeature: feature,
       ),
       child: Container(
         padding: const EdgeInsets.all(AppSpace.l),
