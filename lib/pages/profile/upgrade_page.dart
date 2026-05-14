@@ -348,14 +348,23 @@ class _UpgradePageState extends State<UpgradePage> {
                     padding: EdgeInsets.symmetric(vertical: 32),
                     child: Center(child: CircularProgressIndicator()),
                   )
-                else if (_error != null)
+                else if (_error != null) ...[
+                  // Fallback: offerings failed to load (sandbox/TF hiccup).
+                  // Show static plans so reviewers/users always see pricing.
+                  _buildStaticFallbackPlans(isDark, onSurface),
+                  const SizedBox(height: 10),
                   Center(
                     child: Text(
                       l.cannotLoadOffers,
-                      style: const TextStyle(color: AppColors.error),
+                      style: TextStyle(
+                        color: AppColors.error,
+                        fontSize: 12,
+                      ),
                     ),
-                  )
-                else ...[
+                  ),
+                  const SizedBox(height: 10),
+                  _buildSubscriptionTermsBlock(onSurface),
+                ] else ...[
                   _buildPlanCards(isDark, onSurface),
 
                   const SizedBox(height: AppSpace.l),
@@ -449,50 +458,10 @@ class _UpgradePageState extends State<UpgradePage> {
                           ),
                   ),
 
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 14),
 
-                  // Legal
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      GestureDetector(
-                        onTap: () => launchUrl(
-                          Uri.parse('https://lexday.app/terms'),
-                          mode: LaunchMode.externalApplication,
-                        ),
-                        child: Text(
-                          l.termsOfUse,
-                          style: TextStyle(
-                            fontSize: 10.5,
-                            color: onSurface.withValues(alpha: 0.3),
-                          ),
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        child: Text(
-                          '•',
-                          style: TextStyle(
-                            fontSize: 10.5,
-                            color: onSurface.withValues(alpha: 0.2),
-                          ),
-                        ),
-                      ),
-                      GestureDetector(
-                        onTap: () => launchUrl(
-                          Uri.parse('https://lexday.app/privacy'),
-                          mode: LaunchMode.externalApplication,
-                        ),
-                        child: Text(
-                          l.privacyPolicy,
-                          style: TextStyle(
-                            fontSize: 10.5,
-                            color: onSurface.withValues(alpha: 0.3),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                  // Subscription terms block (Apple compliance)
+                  _buildSubscriptionTermsBlock(onSurface),
 
                   const SizedBox(height: AppSpace.l),
                 ],
@@ -766,6 +735,134 @@ class _UpgradePageState extends State<UpgradePage> {
             mainPeriod: l.perMonth,
             subtitle: l.noCommitment,
           ),
+      ],
+    );
+  }
+
+  /// Static fallback shown when RevenueCat offerings fail to load.
+  /// Prices are App Store Connect configuration truth-of-record, displayed
+  /// here verbatim so the paywall never appears priceless to reviewers.
+  Widget _buildStaticFallbackPlans(bool isDark, Color onSurface) {
+    final l = AppLocalizations.of(context);
+    return Column(
+      children: [
+        _PlanCard(
+          title: l.annual,
+          isSelected: _annualSelected,
+          onTap: () => setState(() => _annualSelected = true),
+          isDark: isDark,
+          onSurface: onSurface,
+          isRecommended: true,
+          recommendedLabel: l.recommended,
+          mainPrice: '3,33 €',
+          mainPeriod: l.perMonth,
+          subtitle: l.thenPerYear('39,99 €'),
+        ),
+        const SizedBox(height: 10),
+        _PlanCard(
+          title: l.monthly,
+          isSelected: !_annualSelected,
+          onTap: () => setState(() => _annualSelected = false),
+          isDark: isDark,
+          onSurface: onSurface,
+          mainPrice: '3,99 €',
+          mainPeriod: l.perMonth,
+          subtitle: l.noCommitment,
+        ),
+      ],
+    );
+  }
+
+  /// Construit le texte de termes d'abonnement avec les prix dynamiques
+  /// fournis par RevenueCat (priceString = format localisé "$3.99" ou
+  /// "3,99 €" selon la région du compte App Store / Play Store).
+  String _buildTermsText() {
+    final offering = _offerings?.current;
+    final annual = offering?.annual;
+    final monthly = offering?.monthly;
+
+    if (_annualSelected) {
+      // Prix annuel + équivalent mensuel calculé localement.
+      String annualPrice = '39,99 €';
+      String monthlyEquivalent = '3,33 €';
+      if (annual != null) {
+        annualPrice = annual.storeProduct.priceString;
+        final m = annual.storeProduct.price / 12;
+        final code = annual.storeProduct.currencyCode;
+        final formatted = m.toStringAsFixed(2).replaceAll('.', ',');
+        if (code == 'EUR') {
+          monthlyEquivalent = '$formatted €';
+        } else if (code == 'USD') {
+          monthlyEquivalent = '\$$formatted';
+        } else {
+          monthlyEquivalent = '$formatted $code';
+        }
+      }
+      return 'LexDay Premium — abonnement annuel à $annualPrice/an '
+          '(≈ $monthlyEquivalent/mois).\n'
+          'Essai gratuit de 7 jours. Renouvellement automatique jusqu\'à '
+          'annulation dans les réglages App Store, au moins 24 h avant '
+          'la fin de la période en cours.';
+    }
+
+    String monthlyPrice = '3,99 €';
+    if (monthly != null) {
+      monthlyPrice = monthly.storeProduct.priceString;
+    }
+    return 'LexDay Premium — abonnement mensuel à $monthlyPrice/mois. '
+        'Renouvellement automatique jusqu\'à annulation dans les '
+        'réglages App Store, au moins 24 h avant la fin de la '
+        'période en cours.';
+  }
+
+  /// Apple-compliant subscription terms block :
+  /// subscription title, duration, price with unit, auto-renew disclosure,
+  /// and functional links to Terms of Use (EULA) + Privacy Policy.
+  Widget _buildSubscriptionTermsBlock(Color onSurface) {
+    final l = AppLocalizations.of(context);
+    final textStyle = TextStyle(
+      fontSize: 12,
+      color: onSurface.withValues(alpha: 0.6),
+      height: 1.45,
+    );
+    final linkStyle = TextStyle(
+      fontSize: 12,
+      color: onSurface.withValues(alpha: 0.85),
+      fontWeight: FontWeight.w600,
+      decoration: TextDecoration.underline,
+      height: 1.45,
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Text(
+          _buildTermsText(),
+          textAlign: TextAlign.center,
+          style: textStyle,
+        ),
+        const SizedBox(height: 12),
+        Wrap(
+          alignment: WrapAlignment.center,
+          spacing: 14,
+          runSpacing: 6,
+          children: [
+            GestureDetector(
+              onTap: () => launchUrl(
+                Uri.parse('https://www.lexday.fr/conditions-abonnement.html'),
+                mode: LaunchMode.externalApplication,
+              ),
+              child: Text(l.termsOfUse, style: linkStyle),
+            ),
+            GestureDetector(
+              onTap: () => launchUrl(
+                Uri.parse('https://www.lexday.fr/privacy.html'),
+                mode: LaunchMode.externalApplication,
+              ),
+              child: Text(l.privacyPolicy, style: linkStyle),
+            ),
+          ],
+        ),
       ],
     );
   }

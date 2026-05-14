@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../config/env.dart';
 
@@ -25,6 +26,35 @@ class SubscriptionStatus {
   factory SubscriptionStatus.free() => const SubscriptionStatus(
         isPremium: false,
         status: 'free',
+      );
+}
+
+/// Détails enrichis pour l'écran "Gérer mon abonnement".
+class SubscriptionDetails {
+  final bool isPremium;
+  final String status;
+  final String? productId;
+  final DateTime? originalPurchaseDate;
+  final DateTime? latestPurchaseDate;
+  final DateTime? expiresAt;
+  final bool willRenew;
+  final String? store; // 'APP_STORE', 'PLAY_STORE', etc.
+
+  const SubscriptionDetails({
+    required this.isPremium,
+    required this.status,
+    required this.willRenew,
+    this.productId,
+    this.originalPurchaseDate,
+    this.latestPurchaseDate,
+    this.expiresAt,
+    this.store,
+  });
+
+  factory SubscriptionDetails.free() => const SubscriptionDetails(
+        isPremium: false,
+        status: 'free',
+        willRenew: false,
       );
 }
 
@@ -63,7 +93,14 @@ class SubscriptionService {
     try {
       final PurchasesConfiguration configuration;
       if (Platform.isIOS || Platform.isMacOS) {
-        configuration = PurchasesConfiguration(_apiKeyIOS);
+        configuration = PurchasesConfiguration(_apiKeyIOS)
+          // Observer mode iOS : la vue SwiftUI SubscriptionStoreView réalise
+          // l'achat en StoreKit 2 direct ; RevenueCat observe et synchronise
+          // l'entitlement (webhook Supabase inchangé).
+          ..purchasesAreCompletedBy = PurchasesAreCompletedByMyApp(
+            storeKitVersion: StoreKitVersion.storeKit2,
+          )
+          ..storeKitVersion = StoreKitVersion.storeKit2;
       } else if (Platform.isAndroid) {
         configuration = PurchasesConfiguration(_apiKeyAndroid);
       } else {
@@ -173,6 +210,74 @@ class SubscriptionService {
         debugPrint('Erreur fallback Supabase: $e2');
         return false;
       }
+    }
+  }
+
+  /// Ouvre l'écran natif de gestion des abonnements (App Store / Play Store).
+  /// C'est l'unique moyen permis par les stores pour se désabonner.
+  /// Utilise le `managementURL` fourni par RevenueCat (retourne le bon lien
+  /// store selon la plateforme) ; fallback sur l'URL générique du compte.
+  Future<void> showManageSubscriptions() async {
+    if (isDevPremium) {
+      debugPrint('DEV_FORCE_PREMIUM: showManageSubscriptions no-op');
+      return;
+    }
+    Uri? target;
+    try {
+      final customerInfo = await Purchases.getCustomerInfo();
+      final managementUrl = customerInfo.managementURL;
+      if (managementUrl != null && managementUrl.isNotEmpty) {
+        target = Uri.tryParse(managementUrl);
+      }
+    } catch (e) {
+      debugPrint('managementURL fetch failed: $e');
+    }
+    target ??= Platform.isIOS
+        ? Uri.parse('https://apps.apple.com/account/subscriptions')
+        : Uri.parse('https://play.google.com/store/account/subscriptions');
+    try {
+      await launchUrl(target, mode: LaunchMode.externalApplication);
+    } catch (e) {
+      debugPrint('launchUrl manage subs failed: $e');
+    }
+  }
+
+  /// Détails enrichis (date d'abonnement initial, auto-renew, store…) pour
+  /// l'écran "Gérer mon abonnement".
+  Future<SubscriptionDetails> getSubscriptionDetails() async {
+    if (isDevPremium) {
+      return SubscriptionDetails(
+        isPremium: true,
+        status: 'premium',
+        productId: 'dev_force_premium',
+        willRenew: true,
+        originalPurchaseDate: DateTime.now(),
+      );
+    }
+    try {
+      final customerInfo = await Purchases.getCustomerInfo();
+      final entitlement = customerInfo.entitlements.active[entitlementId];
+      if (entitlement == null) return SubscriptionDetails.free();
+
+      return SubscriptionDetails(
+        isPremium: true,
+        status: entitlement.periodType == PeriodType.trial
+            ? 'trial'
+            : 'premium',
+        productId: entitlement.productIdentifier,
+        willRenew: entitlement.willRenew,
+        originalPurchaseDate:
+            DateTime.tryParse(entitlement.originalPurchaseDate),
+        latestPurchaseDate:
+            DateTime.tryParse(entitlement.latestPurchaseDate),
+        expiresAt: entitlement.expirationDate != null
+            ? DateTime.tryParse(entitlement.expirationDate!)
+            : null,
+        store: entitlement.store.name,
+      );
+    } catch (e) {
+      debugPrint('Erreur getSubscriptionDetails: $e');
+      return SubscriptionDetails.free();
     }
   }
 
