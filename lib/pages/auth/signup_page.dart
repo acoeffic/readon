@@ -6,6 +6,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../config/env.dart';
 import '../../l10n/app_localizations.dart';
+import '../../services/auth_resend_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/back_header.dart';
 import '../auth/confirm_email_page.dart';
@@ -45,6 +46,7 @@ class _SignUpPageState extends State<SignUpPage> {
             AppLocalizations.of(context).emailAlreadyUsedMessage,
             style: const TextStyle(fontSize: 15),
           ),
+          actionsOverflowDirection: VerticalDirection.down,
           actions: [
             TextButton(
               onPressed: () {
@@ -55,6 +57,20 @@ class _SignUpPageState extends State<SignUpPage> {
                 style: const TextStyle(
                   color: AppColors.textSecondary,
                   fontSize: 16,
+                ),
+              ),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                await _resendConfirmationEmail();
+              },
+              child: Text(
+                AppLocalizations.of(context).resendConfirmationEmail,
+                style: const TextStyle(
+                  color: AppColors.primary,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),
@@ -82,6 +98,47 @@ class _SignUpPageState extends State<SignUpPage> {
         );
       },
     );
+  }
+
+  Future<void> _resendConfirmationEmail() async {
+    final email = emailController.text.trim();
+    if (email.isEmpty) return;
+
+    final result = await AuthResendService.instance.resendSignupConfirmation(
+      email: email,
+      emailRedirectTo: Env.authV1CallbackUrl,
+    );
+
+    if (!mounted) return;
+    final l10n = AppLocalizations.of(context);
+
+    if (result.sent) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.resendConfirmationSent),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 4),
+        ),
+      );
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => ConfirmEmailPage(email: email)),
+      );
+    } else if (result.retryAfter != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            l10n.resendConfirmationCooldown(result.retryAfter!.inSeconds),
+          ),
+        ),
+      );
+    } else if (result.error != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.resendConfirmationError(result.error!)),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   Future<void> _sendPasswordResetEmail() async {
@@ -201,7 +258,7 @@ class _SignUpPageState extends State<SignUpPage> {
       );
 
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const ConfirmEmailPage()),
+        MaterialPageRoute(builder: (_) => ConfirmEmailPage(email: email)),
       );
     } on AuthException catch (e) {
       if (!mounted) return;
@@ -225,7 +282,7 @@ class _SignUpPageState extends State<SignUpPage> {
   @override
   Widget build(BuildContext context) {
     return Theme(
-      data: AppTheme.light,
+      data: AppTheme.light(),
       child: Scaffold(
       backgroundColor: AppColors.bgLight,
       body: SafeArea(

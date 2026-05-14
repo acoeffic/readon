@@ -1,8 +1,11 @@
   import 'package:flutter/foundation.dart';
   import 'package:flutter/material.dart';
+  import 'package:provider/provider.dart';
   import 'package:supabase_flutter/supabase_flutter.dart';
+  import '../../providers/guest_mode_provider.dart';
   import '../../theme/app_theme.dart';
   import '../../navigation/main_navigation.dart';
+  import '../../services/analytics_service.dart';
   import '../../services/monthly_notification_service.dart';
   import '../../services/feed_prefetcher.dart';
   import '../../services/push_notification_service.dart';
@@ -31,6 +34,20 @@
       final session = Supabase.instance.client.auth.currentSession;
 
       if (session == null) {
+        // Mode invité : si l'utilisateur a précédemment choisi "Continuer
+        // sans compte", on l'envoie directement dans l'app (contenu public
+        // uniquement). Sinon, écran de connexion.
+        if (mounted) {
+          final guest = context.read<GuestModeProvider>();
+          if (!guest.initialized) await guest.load();
+          if (guest.isGuest) {
+            setState(() {
+              _destination = const MainNavigation();
+              _loading = false;
+            });
+            return;
+          }
+        }
         setState(() {
           _destination = const LoginPage();
           _loading = false;
@@ -41,6 +58,16 @@
       try {
         final user = session.user;
         final userId = user.id;
+
+        // Identifier l'utilisateur côté PostHog (lie events anonymes ↔ user)
+        await AnalyticsService().identify(
+          userId: userId,
+          properties: {
+            if (user.email != null) 'email': user.email!,
+            'auth_provider':
+                (user.appMetadata['provider'] as String?) ?? 'email',
+          },
+        );
 
         // Associer l'utilisateur à RevenueCat
         await SubscriptionService().loginUser(userId);

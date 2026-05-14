@@ -9,13 +9,17 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:provider/provider.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../config/env.dart';
 import '../../l10n/app_localizations.dart';
+import '../../navigation/main_navigation.dart';
+import '../../providers/guest_mode_provider.dart';
 import '../../theme/app_theme.dart';
 import 'auth_gate.dart';
+import 'confirm_email_page.dart';
 import 'signup_page.dart';
 
 class LoginPage extends StatefulWidget {
@@ -108,6 +112,20 @@ class _LoginPageState extends State<LoginPage> {
         (route) => false,
       );
     } on AuthException catch (e) {
+      // Email pas encore confirmé : on n'incrémente pas le compteur de
+      // tentatives (ce n'est pas une erreur de mot de passe) et on
+      // redirige vers la page de confirmation avec l'email pré-rempli.
+      final isNotConfirmed = e.code == 'email_not_confirmed' ||
+          e.message.toLowerCase().contains('email not confirmed') ||
+          e.message.toLowerCase().contains('not confirmed');
+      if (isNotConfirmed) {
+        if (!mounted) return;
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => ConfirmEmailPage(email: email)),
+        );
+        return;
+      }
+
       _failedAttempts++;
       if (_failedAttempts >= 3) {
         // Backoff : 2^(attempts-3) secondes → 1s, 2s, 4s, 8s, 16s, max 30s
@@ -598,6 +616,34 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       ),
                     ],
+                  ),
+                ),
+
+                const SizedBox(height: 18),
+
+                // Continue without account (guest mode)
+                Center(
+                  child: GestureDetector(
+                    onTap: () async {
+                      await context.read<GuestModeProvider>().enterGuestMode();
+                      if (!context.mounted) return;
+                      Navigator.of(context).pushAndRemoveUntil(
+                        MaterialPageRoute(
+                          builder: (_) => const MainNavigation(),
+                        ),
+                        (route) => false,
+                      );
+                    },
+                    child: Text(
+                      l10n.continueWithoutAccount,
+                      style: TextStyle(
+                        color: colors.textSecondary,
+                        fontSize: 13,
+                        fontFamily: 'Poppins',
+                        decoration: TextDecoration.underline,
+                        decorationColor: colors.textSecondary.withValues(alpha: 0.4),
+                      ),
+                    ),
                   ),
                 ),
               ],
