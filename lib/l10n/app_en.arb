@@ -3,8 +3,23 @@
 
   "navFeed": "Feed",
   "navLibrary": "Library",
+  "navMuse": "Muse",
   "navClub": "Club",
   "navProfile": "My space",
+
+  "tutorialDashboardTitle": "Your daily snapshot",
+  "tutorialDashboardDescription": "Your streak, today's minutes and pages this week — track your progress at a glance.",
+  "tutorialFeedTitle": "Your feed",
+  "tutorialFeedDescription": "See your friends' activity, trending books and your current reads here.",
+  "tutorialMuseTitle": "Muse, your AI coach",
+  "tutorialMuseDescription": "Chat with Muse for recommendations, summaries, or to talk about what you're reading.",
+  "tutorialFabTitle": "Start reading",
+  "tutorialFabDescription": "Tap here to start a reading session — we'll track the time for you.",
+  "tutorialProfileTitle": "Your space",
+  "tutorialProfileDescription": "Stats, badges, goals and settings all live here.",
+  "tutorialNext": "Next",
+  "tutorialDone": "Done",
+  "tutorialSkip": "Skip",
 
   "kindleSyncedAutomatically": "Kindle synced automatically",
 
@@ -32,6 +47,14 @@
   "or": "or",
   "newToLexDay": "New to LexDay? ",
   "createAnAccount": "Create an account",
+  "continueWithoutAccount": "Continue without an account",
+  "guestModeBannerTitle": "Guest mode",
+  "guestModeBannerSubtitle": "Sign up to unlock the full LexDay experience.",
+  "guestRequireAccountTitle": "Create a free account",
+  "guestRequireAccountSubtitle": "This action needs a LexDay account. Create yours in seconds to continue.",
+  "guestSignUpCta": "Create an account",
+  "guestSignInCta": "I already have an account",
+  "guestCancelCta": "Later",
 
   "emailAlreadyUsed": "Email already in use",
   "emailAlreadyUsedMessage": "This email is already associated with an existing account. Would you like to reset your password?",
@@ -56,7 +79,29 @@
   "emailSent": "Email sent",
   "checkYourEmail": "Check your email",
   "confirmEmailSent": "We sent you a link to confirm your email address.",
+  "confirmEmailSentTo": "We sent a link to {email}. Click it to activate your account.",
+  "@confirmEmailSentTo": {
+    "placeholders": {
+      "email": {"type": "String"}
+    }
+  },
   "iConfirmedMyEmail": "I confirmed my email",
+  "resendConfirmationEmail": "Resend confirmation email",
+  "resendConfirmationCooldown": "Try again in {seconds}s",
+  "@resendConfirmationCooldown": {
+    "placeholders": {
+      "seconds": {"type": "int"}
+    }
+  },
+  "resendConfirmationSent": "Confirmation email resent. Check your inbox.",
+  "resendConfirmationError": "Couldn't resend email: {message}",
+  "@resendConfirmationError": {
+    "placeholders": {
+      "message": {"type": "String"}
+    }
+  },
+  "emailNotConfirmedTitle": "Email not confirmed",
+  "emailNotConfirmedMessage": "Your account isn't activated yet. Click the link from the email, or request a new one.",
 
   "suggestionsForYou": "Suggestions for you",
   "bookAddedToLibrary": "{title} added to your library",
@@ -73,7 +118,7 @@
   "friendsNotReadToday": "Your friends haven't read today yet",
   "noActivityYet": "No activity yet",
   "addFriendsToSeeActivity": "Add friends to see their reading!",
-  "shareInviteText": "📖 Join me on LexDay!\n\nWhat are you reading? 👀\nlexday.app",
+  "shareInviteText": "📖 Join me on LexDay!\n\nWhat are you reading? 👀\nhttps://apps.apple.com/fr/app/lexday/id6760492023",
   "errorGeneric": "Error: {message}",
   "@errorGeneric": {
     "placeholders": {
@@ -120,6 +165,21 @@
       "date": {"type": "String"}
     }
   },
+  "manageSubscriptionTitle": "Manage subscription",
+  "manageSubscriptionButton": "Manage in App Store",
+  "manageSubscriptionHint": "To change or cancel your subscription, open the App Store subscription manager. Cancellation takes effect at the end of the current period.",
+  "subPlanLabel": "Plan",
+  "subPriceLabel": "Price",
+  "subStartDateLabel": "Subscribed since",
+  "subNextRenewalLabel": "Next renewal",
+  "subEndsOnLabel": "Ends on",
+  "subAutoRenewLabel": "Auto-renewal",
+  "enabled": "Enabled",
+  "disabled": "Disabled",
+  "noActiveSubscription": "No active subscription",
+  "noActiveSubscriptionHint": "You're on LexDay's free tier. Upgrade to Premium to unlock every feature.",
+  "purchasesRestored": "Purchases restored successfully",
+  "noPurchasesToRestore": "No purchases to restore",
   "privacySection": "Privacy",
   "privateProfile": "🔒 Private profile",
   "statsHidden": "Your stats are hidden",
@@ -519,6 +579,8 @@
   "myClubs": "My clubs",
   "myGroups": "My groups",
   "discover": "Discover",
+  "discoverReadersTitle": "Discover readers",
+  "discoverReadersSubtitle": "Find profiles you'll click with",
   "createClub": "Create a Club",
   "noGroups": "No groups",
   "createOrJoinGroup": "Create or join a reading group",
@@ -886,7 +948,7 @@
   "authorizeContacts": "To find your friends, allow access to your contacts.",
   "cannotAccessContactsRetry": "Cannot access your contacts. Try again later.",
   "errorOccurred": "An error occurred",
-  "shareInviteToLexDay": "Join me on LexDay to track our reading together! Download the app: https://readon.app",
+  "shareInviteToLexDay": "Join me on LexDay to track our reading together! Download the app: https://apps.apple.com/fr/app/lexday/id6760492023",
 
   "friendRequests": "Friend requests",
   "cannotGetRequests": "Cannot get requests",
@@ -1028,6 +1090,9 @@
   "tryMoreSpecific": "Try a more specific title",
   "searchByTitleAuthor": "Search a book by title or author",
 
+  "themePickerTitle": "Color theme",
+  "themePickerSubtitle": "Customize the app colors. Sage is the default theme, others are available with Premium.",
+  "themePickerSettingsLabel": "Color theme",
   "noReadingSession": "No reading session",
   "startSessionPrompt": "Start a session to begin!",
   "unknownBook": "Unknown book",
@@ -1360,6 +1425,12 @@
       "person": {"type": "String"}
     }
   },
+  "readWithDisplay": "Read with {person}",
+  "@readWithDisplay": {
+    "placeholders": {
+      "person": {"type": "String"}
+    }
+  },
 
   "readingForStatsTitle": "Shared readings",
   "readingForStatsSubtitle": "Time spent reading for your loved ones",
@@ -1470,5 +1541,93 @@
   "staleSessionFinishButton": "Finish",
   "staleSessionContinueButton": "Continue",
   "staleSessionNotifTitle": "Reading session in progress",
-  "staleSessionNotifBody": "You left a reading session open. Are you done?"
+  "staleSessionNotifBody": "You left a reading session open. Are you done?",
+
+  "wrappedBannerTitle": "Your {month} Wrapped is here!",
+  "@wrappedBannerTitle": {
+    "placeholders": {
+      "month": {"type": "String"}
+    }
+  },
+  "wrappedBannerSubtitle": "Dive into your month in numbers",
+  "wrappedBannerDismiss": "Close",
+
+  "groupLibrary": "Library",
+  "groupLibrarySubtitle": "Club reading lists",
+  "groupLibraryEmpty": "No lists yet",
+  "groupLibraryEmptyHint": "Create a first list to share what the club is reading.",
+  "groupLibraryViewAll": "View all",
+  "groupLibraryNewList": "New list",
+  "groupLibraryListTitle": "List name",
+  "groupLibraryListTitlePlaceholder": "e.g. Summer reads",
+  "groupLibraryListDescription": "Description (optional)",
+  "groupLibraryListDescriptionPlaceholder": "What's this list about?",
+  "groupLibraryCreateList": "Create list",
+  "groupLibraryDeleteList": "Delete list",
+  "groupLibraryDeleteListConfirm": "Delete \"{title}\"? Books referenced will be removed from the list.",
+  "@groupLibraryDeleteListConfirm": {
+    "placeholders": {
+      "title": {"type": "String"}
+    }
+  },
+  "groupLibraryBookCount": "{count, plural, =0{No books} =1{1 book} other{{count} books}}",
+  "@groupLibraryBookCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "groupLibraryAddBook": "Add a book",
+  "groupLibraryAddBookFromLibrary": "From my library",
+  "groupLibraryAddBookFromSearch": "Search a book",
+  "groupLibraryRemoveBook": "Remove from list",
+  "groupLibraryListEmpty": "No books in this list",
+  "groupLibraryListEmptyHint": "Tap \"+\" to add a book.",
+  "groupLibraryAddedBy": "Added by {name}",
+  "@groupLibraryAddedBy": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "groupLibraryCreatedBy": "Created by {name}",
+  "@groupLibraryCreatedBy": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+
+  "reportSheetTitle": "Report",
+  "reportSheetSubtitle": "Tell us what's wrong. Reports are confidential and reviewed by our team.",
+  "reportDetailsLabel": "Additional details (optional)",
+  "reportDetailsHint": "Add context to help us review faster…",
+  "reportSubmitButton": "Submit report",
+  "reportSubmittedMessage": "Report submitted. Thanks for helping keep the community safe.",
+  "reportAlreadySubmittedMessage": "You've already reported this.",
+  "reportNotAuthenticatedMessage": "You need to be signed in to report content.",
+  "reportErrorMessage": "Couldn't submit the report. Please try again.",
+  "reportReasonSpam": "Spam or misleading",
+  "reportReasonHarassment": "Harassment or bullying",
+  "reportReasonHateSpeech": "Hate speech",
+  "reportReasonSexualContent": "Sexual or explicit content",
+  "reportReasonViolence": "Violence or dangerous behavior",
+  "reportReasonSelfHarm": "Self-harm or suicide",
+  "reportReasonMisinformation": "False information",
+  "reportReasonImpersonation": "Impersonation",
+  "reportReasonIllegal": "Illegal activity",
+  "reportReasonOther": "Something else",
+  "reportUserAction": "Report user",
+  "reportCommentAction": "Report comment",
+  "reportActivityAction": "Report this post",
+  "blockUserAction": "Block user",
+  "unblockUserAction": "Unblock user",
+  "blockUserConfirmTitle": "Block {name}?",
+  "@blockUserConfirmTitle": {
+    "placeholders": {"name": {"type": "String"}}
+  },
+  "blockUserConfirmMessage": "They won't be able to find or interact with you, and you won't see their content. If you were friends, the friendship will be removed.",
+  "blockUserConfirmCta": "Block",
+  "userBlockedMessage": "User blocked.",
+  "userUnblockedMessage": "User unblocked.",
+  "blockUserErrorMessage": "Couldn't block this user. Please try again.",
+  "blockedUsersTitle": "Blocked users",
+  "blockedUsersEmpty": "You haven't blocked anyone."
 }

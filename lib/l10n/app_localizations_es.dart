@@ -15,10 +15,57 @@ class AppLocalizationsEs extends AppLocalizations {
   String get navLibrary => 'Biblio';
 
   @override
+  String get navMuse => 'Muse';
+
+  @override
   String get navClub => 'Club';
 
   @override
   String get navProfile => 'Mi espacio';
+
+  @override
+  String get tutorialDashboardTitle => 'Tu resumen del día';
+
+  @override
+  String get tutorialDashboardDescription =>
+      'Tu racha, los minutos de hoy y las páginas de la semana — un vistazo para seguir tu progreso.';
+
+  @override
+  String get tutorialFeedTitle => 'Tu feed';
+
+  @override
+  String get tutorialFeedDescription =>
+      'Aquí encuentras la actividad de tus amigos, las tendencias y tus lecturas en curso.';
+
+  @override
+  String get tutorialMuseTitle => 'Muse, tu coach IA';
+
+  @override
+  String get tutorialMuseDescription =>
+      'Chatea con Muse para recibir recomendaciones, resúmenes o hablar de tus lecturas.';
+
+  @override
+  String get tutorialFabTitle => 'Empieza a leer';
+
+  @override
+  String get tutorialFabDescription =>
+      'Pulsa aquí para iniciar una sesión de lectura — cronometramos por ti.';
+
+  @override
+  String get tutorialProfileTitle => 'Tu espacio';
+
+  @override
+  String get tutorialProfileDescription =>
+      'Tus estadísticas, insignias, objetivos y ajustes están aquí.';
+
+  @override
+  String get tutorialNext => 'Siguiente';
+
+  @override
+  String get tutorialDone => 'Hecho';
+
+  @override
+  String get tutorialSkip => 'Omitir';
 
   @override
   String get kindleSyncedAutomatically => 'Kindle sincronizado automáticamente';
@@ -82,6 +129,32 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get createAnAccount => 'Crear una cuenta';
+
+  @override
+  String get continueWithoutAccount => 'Continuar sin cuenta';
+
+  @override
+  String get guestModeBannerTitle => 'Modo invitado';
+
+  @override
+  String get guestModeBannerSubtitle =>
+      'Crea una cuenta para disfrutar de todas las funciones.';
+
+  @override
+  String get guestRequireAccountTitle => 'Crea una cuenta gratis';
+
+  @override
+  String get guestRequireAccountSubtitle =>
+      'Esta acción requiere una cuenta LexDay. Crea la tuya en segundos para continuar.';
+
+  @override
+  String get guestSignUpCta => 'Crear cuenta';
+
+  @override
+  String get guestSignInCta => 'Ya tengo una cuenta';
+
+  @override
+  String get guestCancelCta => 'Más tarde';
 
   @override
   String get emailAlreadyUsed => 'Email ya en uso';
@@ -155,7 +228,36 @@ class AppLocalizationsEs extends AppLocalizations {
       'Te hemos enviado un enlace para confirmar tu dirección de email.';
 
   @override
+  String confirmEmailSentTo(String email) {
+    return 'Hemos enviado un enlace a $email. Pulsa para activar tu cuenta.';
+  }
+
+  @override
   String get iConfirmedMyEmail => 'He confirmado mi email';
+
+  @override
+  String get resendConfirmationEmail => 'Reenviar el email de confirmación';
+
+  @override
+  String resendConfirmationCooldown(int seconds) {
+    return 'Reintenta en ${seconds}s';
+  }
+
+  @override
+  String get resendConfirmationSent =>
+      'Email de confirmación reenviado. Revisa tu bandeja.';
+
+  @override
+  String resendConfirmationError(String message) {
+    return 'No se ha podido reenviar el email: $message';
+  }
+
+  @override
+  String get emailNotConfirmedTitle => 'Email no confirmado';
+
+  @override
+  String get emailNotConfirmedMessage =>
+      'Tu cuenta aún no está activada. Pulsa el enlace recibido o solicita uno nuevo.';
 
   @override
   String get suggestionsForYou => 'Sugerencias para ti';
@@ -191,7 +293,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get shareInviteText =>
-      '📖 ¡Únete a mí en LexDay!\n\n¿Qué estás leyendo? 👀\nlexday.app';
+      '📖 ¡Únete a mí en LexDay!\n\n¿Qué estás leyendo? 👀\nhttps://apps.apple.com/fr/app/lexday/id6760492023';
 
   @override
   String errorGeneric(String message) {
@@ -279,6 +381,53 @@ class AppLocalizationsEs extends AppLocalizations {
   String premiumActiveUntil(String date) {
     return 'Premium activo (hasta el $date)';
   }
+
+  @override
+  String get manageSubscriptionTitle => 'Gestionar mi suscripción';
+
+  @override
+  String get manageSubscriptionButton => 'Gestionar en App Store';
+
+  @override
+  String get manageSubscriptionHint =>
+      'Para modificar o cancelar tu suscripción, abre el gestor de suscripciones de la App Store. La cancelación surtirá efecto al final del período en curso.';
+
+  @override
+  String get subPlanLabel => 'Plan';
+
+  @override
+  String get subPriceLabel => 'Precio';
+
+  @override
+  String get subStartDateLabel => 'Suscrito desde';
+
+  @override
+  String get subNextRenewalLabel => 'Próxima renovación';
+
+  @override
+  String get subEndsOnLabel => 'Finaliza el';
+
+  @override
+  String get subAutoRenewLabel => 'Renovación automática';
+
+  @override
+  String get enabled => 'Activada';
+
+  @override
+  String get disabled => 'Desactivada';
+
+  @override
+  String get noActiveSubscription => 'Sin suscripción activa';
+
+  @override
+  String get noActiveSubscriptionHint =>
+      'Estás usando LexDay en su versión gratuita. Pásate a Premium para desbloquear todas las funciones.';
+
+  @override
+  String get purchasesRestored => 'Compras restauradas con éxito';
+
+  @override
+  String get noPurchasesToRestore => 'No hay compras para restaurar';
 
   @override
   String get privacySection => 'Privacidad';
@@ -1138,6 +1287,12 @@ class AppLocalizationsEs extends AppLocalizations {
   String get discover => 'Descubrir';
 
   @override
+  String get discoverReadersTitle => 'Descubrir lectores';
+
+  @override
+  String get discoverReadersSubtitle => 'Encuentra perfiles que te se parezcan';
+
+  @override
   String get createClub => 'Crear un Club';
 
   @override
@@ -1858,7 +2013,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get shareInviteToLexDay =>
-      '¡Únete a mí en LexDay para seguir nuestras lecturas juntos! Descarga la app: https://readon.app';
+      '¡Únete a mí en LexDay para seguir nuestras lecturas juntos! Descarga la app: https://apps.apple.com/fr/app/lexday/id6760492023';
 
   @override
   String get friendRequests => 'Solicitudes de amistad';
@@ -2119,6 +2274,16 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get searchByTitleAuthor => 'Busca un libro por título o autor';
+
+  @override
+  String get themePickerTitle => 'Tema de colores';
+
+  @override
+  String get themePickerSubtitle =>
+      'Personaliza los colores de la app. Sage es el tema por defecto, los demás están disponibles con Premium.';
+
+  @override
+  String get themePickerSettingsLabel => 'Tema de colores';
 
   @override
   String get noReadingSession => 'Sin sesión de lectura';
@@ -2797,6 +2962,11 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
+  String readWithDisplay(String person) {
+    return 'Leído con $person';
+  }
+
+  @override
   String get readingForStatsTitle => 'Lecturas compartidas';
 
   @override
@@ -3017,4 +3187,203 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get staleSessionNotifBody =>
       'Tu as laissé une session de lecture ouverte. Tu as fini ?';
+
+  @override
+  String wrappedBannerTitle(String month) {
+    return '¡Tu Wrapped $month ya está aquí!';
+  }
+
+  @override
+  String get wrappedBannerSubtitle => 'Sumérgete en tu mes en cifras';
+
+  @override
+  String get wrappedBannerDismiss => 'Cerrar';
+
+  @override
+  String get groupLibrary => 'Biblioteca';
+
+  @override
+  String get groupLibrarySubtitle => 'Listas de lectura del club';
+
+  @override
+  String get groupLibraryEmpty => 'Aún no hay listas';
+
+  @override
+  String get groupLibraryEmptyHint =>
+      'Crea una primera lista para compartir lecturas con el club.';
+
+  @override
+  String get groupLibraryViewAll => 'Ver todo';
+
+  @override
+  String get groupLibraryNewList => 'Nueva lista';
+
+  @override
+  String get groupLibraryListTitle => 'Nombre de la lista';
+
+  @override
+  String get groupLibraryListTitlePlaceholder => 'Ej. Lecturas de verano';
+
+  @override
+  String get groupLibraryListDescription => 'Descripción (opcional)';
+
+  @override
+  String get groupLibraryListDescriptionPlaceholder =>
+      '¿De qué trata esta lista?';
+
+  @override
+  String get groupLibraryCreateList => 'Crear lista';
+
+  @override
+  String get groupLibraryDeleteList => 'Eliminar lista';
+
+  @override
+  String groupLibraryDeleteListConfirm(String title) {
+    return '¿Eliminar \"$title\"? Los libros referenciados se quitarán de la lista.';
+  }
+
+  @override
+  String groupLibraryBookCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count libros',
+      one: '1 libro',
+      zero: 'Sin libros',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get groupLibraryAddBook => 'Añadir un libro';
+
+  @override
+  String get groupLibraryAddBookFromLibrary => 'Desde mi biblioteca';
+
+  @override
+  String get groupLibraryAddBookFromSearch => 'Buscar un libro';
+
+  @override
+  String get groupLibraryRemoveBook => 'Quitar de la lista';
+
+  @override
+  String get groupLibraryListEmpty => 'Sin libros en esta lista';
+
+  @override
+  String get groupLibraryListEmptyHint => 'Toca «+» para añadir un libro.';
+
+  @override
+  String groupLibraryAddedBy(String name) {
+    return 'Añadido por $name';
+  }
+
+  @override
+  String groupLibraryCreatedBy(String name) {
+    return 'Creada por $name';
+  }
+
+  @override
+  String get reportSheetTitle => 'Reportar';
+
+  @override
+  String get reportSheetSubtitle =>
+      'Cuéntanos qué pasa. Los reportes son confidenciales y los revisa nuestro equipo.';
+
+  @override
+  String get reportDetailsLabel => 'Detalles adicionales (opcional)';
+
+  @override
+  String get reportDetailsHint =>
+      'Añade contexto para ayudarnos a moderar más rápido…';
+
+  @override
+  String get reportSubmitButton => 'Enviar reporte';
+
+  @override
+  String get reportSubmittedMessage =>
+      'Reporte enviado. Gracias por mantener la comunidad segura.';
+
+  @override
+  String get reportAlreadySubmittedMessage => 'Ya reportaste este contenido.';
+
+  @override
+  String get reportNotAuthenticatedMessage =>
+      'Necesitas iniciar sesión para reportar.';
+
+  @override
+  String get reportErrorMessage =>
+      'No se pudo enviar el reporte. Inténtalo de nuevo.';
+
+  @override
+  String get reportReasonSpam => 'Spam o engañoso';
+
+  @override
+  String get reportReasonHarassment => 'Acoso o intimidación';
+
+  @override
+  String get reportReasonHateSpeech => 'Discurso de odio';
+
+  @override
+  String get reportReasonSexualContent => 'Contenido sexual o explícito';
+
+  @override
+  String get reportReasonViolence => 'Violencia o conducta peligrosa';
+
+  @override
+  String get reportReasonSelfHarm => 'Autolesión o suicidio';
+
+  @override
+  String get reportReasonMisinformation => 'Información falsa';
+
+  @override
+  String get reportReasonImpersonation => 'Suplantación de identidad';
+
+  @override
+  String get reportReasonIllegal => 'Actividad ilegal';
+
+  @override
+  String get reportReasonOther => 'Otra razón';
+
+  @override
+  String get reportUserAction => 'Reportar usuario';
+
+  @override
+  String get reportCommentAction => 'Reportar comentario';
+
+  @override
+  String get reportActivityAction => 'Reportar publicación';
+
+  @override
+  String get blockUserAction => 'Bloquear usuario';
+
+  @override
+  String get unblockUserAction => 'Desbloquear';
+
+  @override
+  String blockUserConfirmTitle(String name) {
+    return '¿Bloquear a $name?';
+  }
+
+  @override
+  String get blockUserConfirmMessage =>
+      'No podrá encontrarte ni interactuar contigo, y tú no verás su contenido. Si erais amigos, la amistad se eliminará.';
+
+  @override
+  String get blockUserConfirmCta => 'Bloquear';
+
+  @override
+  String get userBlockedMessage => 'Usuario bloqueado.';
+
+  @override
+  String get userUnblockedMessage => 'Usuario desbloqueado.';
+
+  @override
+  String get blockUserErrorMessage =>
+      'No se pudo bloquear a este usuario. Inténtalo de nuevo.';
+
+  @override
+  String get blockedUsersTitle => 'Usuarios bloqueados';
+
+  @override
+  String get blockedUsersEmpty => 'No has bloqueado a nadie.';
 }

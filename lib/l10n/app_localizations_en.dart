@@ -15,10 +15,57 @@ class AppLocalizationsEn extends AppLocalizations {
   String get navLibrary => 'Library';
 
   @override
+  String get navMuse => 'Muse';
+
+  @override
   String get navClub => 'Club';
 
   @override
   String get navProfile => 'My space';
+
+  @override
+  String get tutorialDashboardTitle => 'Your daily snapshot';
+
+  @override
+  String get tutorialDashboardDescription =>
+      'Your streak, today\'s minutes and pages this week — track your progress at a glance.';
+
+  @override
+  String get tutorialFeedTitle => 'Your feed';
+
+  @override
+  String get tutorialFeedDescription =>
+      'See your friends\' activity, trending books and your current reads here.';
+
+  @override
+  String get tutorialMuseTitle => 'Muse, your AI coach';
+
+  @override
+  String get tutorialMuseDescription =>
+      'Chat with Muse for recommendations, summaries, or to talk about what you\'re reading.';
+
+  @override
+  String get tutorialFabTitle => 'Start reading';
+
+  @override
+  String get tutorialFabDescription =>
+      'Tap here to start a reading session — we\'ll track the time for you.';
+
+  @override
+  String get tutorialProfileTitle => 'Your space';
+
+  @override
+  String get tutorialProfileDescription =>
+      'Stats, badges, goals and settings all live here.';
+
+  @override
+  String get tutorialNext => 'Next';
+
+  @override
+  String get tutorialDone => 'Done';
+
+  @override
+  String get tutorialSkip => 'Skip';
 
   @override
   String get kindleSyncedAutomatically => 'Kindle synced automatically';
@@ -81,6 +128,32 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get createAnAccount => 'Create an account';
+
+  @override
+  String get continueWithoutAccount => 'Continue without an account';
+
+  @override
+  String get guestModeBannerTitle => 'Guest mode';
+
+  @override
+  String get guestModeBannerSubtitle =>
+      'Sign up to unlock the full LexDay experience.';
+
+  @override
+  String get guestRequireAccountTitle => 'Create a free account';
+
+  @override
+  String get guestRequireAccountSubtitle =>
+      'This action needs a LexDay account. Create yours in seconds to continue.';
+
+  @override
+  String get guestSignUpCta => 'Create an account';
+
+  @override
+  String get guestSignInCta => 'I already have an account';
+
+  @override
+  String get guestCancelCta => 'Later';
 
   @override
   String get emailAlreadyUsed => 'Email already in use';
@@ -152,7 +225,36 @@ class AppLocalizationsEn extends AppLocalizations {
       'We sent you a link to confirm your email address.';
 
   @override
+  String confirmEmailSentTo(String email) {
+    return 'We sent a link to $email. Click it to activate your account.';
+  }
+
+  @override
   String get iConfirmedMyEmail => 'I confirmed my email';
+
+  @override
+  String get resendConfirmationEmail => 'Resend confirmation email';
+
+  @override
+  String resendConfirmationCooldown(int seconds) {
+    return 'Try again in ${seconds}s';
+  }
+
+  @override
+  String get resendConfirmationSent =>
+      'Confirmation email resent. Check your inbox.';
+
+  @override
+  String resendConfirmationError(String message) {
+    return 'Couldn\'t resend email: $message';
+  }
+
+  @override
+  String get emailNotConfirmedTitle => 'Email not confirmed';
+
+  @override
+  String get emailNotConfirmedMessage =>
+      'Your account isn\'t activated yet. Click the link from the email, or request a new one.';
 
   @override
   String get suggestionsForYou => 'Suggestions for you';
@@ -188,7 +290,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get shareInviteText =>
-      '📖 Join me on LexDay!\n\nWhat are you reading? 👀\nlexday.app';
+      '📖 Join me on LexDay!\n\nWhat are you reading? 👀\nhttps://apps.apple.com/fr/app/lexday/id6760492023';
 
   @override
   String errorGeneric(String message) {
@@ -275,6 +377,53 @@ class AppLocalizationsEn extends AppLocalizations {
   String premiumActiveUntil(String date) {
     return 'Premium active (until $date)';
   }
+
+  @override
+  String get manageSubscriptionTitle => 'Manage subscription';
+
+  @override
+  String get manageSubscriptionButton => 'Manage in App Store';
+
+  @override
+  String get manageSubscriptionHint =>
+      'To change or cancel your subscription, open the App Store subscription manager. Cancellation takes effect at the end of the current period.';
+
+  @override
+  String get subPlanLabel => 'Plan';
+
+  @override
+  String get subPriceLabel => 'Price';
+
+  @override
+  String get subStartDateLabel => 'Subscribed since';
+
+  @override
+  String get subNextRenewalLabel => 'Next renewal';
+
+  @override
+  String get subEndsOnLabel => 'Ends on';
+
+  @override
+  String get subAutoRenewLabel => 'Auto-renewal';
+
+  @override
+  String get enabled => 'Enabled';
+
+  @override
+  String get disabled => 'Disabled';
+
+  @override
+  String get noActiveSubscription => 'No active subscription';
+
+  @override
+  String get noActiveSubscriptionHint =>
+      'You\'re on LexDay\'s free tier. Upgrade to Premium to unlock every feature.';
+
+  @override
+  String get purchasesRestored => 'Purchases restored successfully';
+
+  @override
+  String get noPurchasesToRestore => 'No purchases to restore';
 
   @override
   String get privacySection => 'Privacy';
@@ -1124,6 +1273,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get discover => 'Discover';
 
   @override
+  String get discoverReadersTitle => 'Discover readers';
+
+  @override
+  String get discoverReadersSubtitle => 'Find profiles you\'ll click with';
+
+  @override
   String get createClub => 'Create a Club';
 
   @override
@@ -1837,7 +1992,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get shareInviteToLexDay =>
-      'Join me on LexDay to track our reading together! Download the app: https://readon.app';
+      'Join me on LexDay to track our reading together! Download the app: https://apps.apple.com/fr/app/lexday/id6760492023';
 
   @override
   String get friendRequests => 'Friend requests';
@@ -2097,6 +2252,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get searchByTitleAuthor => 'Search a book by title or author';
+
+  @override
+  String get themePickerTitle => 'Color theme';
+
+  @override
+  String get themePickerSubtitle =>
+      'Customize the app colors. Sage is the default theme, others are available with Premium.';
+
+  @override
+  String get themePickerSettingsLabel => 'Color theme';
 
   @override
   String get noReadingSession => 'No reading session';
@@ -2771,6 +2936,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String readWithDisplay(String person) {
+    return 'Read with $person';
+  }
+
+  @override
   String get readingForStatsTitle => 'Shared readings';
 
   @override
@@ -2989,4 +3159,202 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get staleSessionNotifBody =>
       'You left a reading session open. Are you done?';
+
+  @override
+  String wrappedBannerTitle(String month) {
+    return 'Your $month Wrapped is here!';
+  }
+
+  @override
+  String get wrappedBannerSubtitle => 'Dive into your month in numbers';
+
+  @override
+  String get wrappedBannerDismiss => 'Close';
+
+  @override
+  String get groupLibrary => 'Library';
+
+  @override
+  String get groupLibrarySubtitle => 'Club reading lists';
+
+  @override
+  String get groupLibraryEmpty => 'No lists yet';
+
+  @override
+  String get groupLibraryEmptyHint =>
+      'Create a first list to share what the club is reading.';
+
+  @override
+  String get groupLibraryViewAll => 'View all';
+
+  @override
+  String get groupLibraryNewList => 'New list';
+
+  @override
+  String get groupLibraryListTitle => 'List name';
+
+  @override
+  String get groupLibraryListTitlePlaceholder => 'e.g. Summer reads';
+
+  @override
+  String get groupLibraryListDescription => 'Description (optional)';
+
+  @override
+  String get groupLibraryListDescriptionPlaceholder =>
+      'What\'s this list about?';
+
+  @override
+  String get groupLibraryCreateList => 'Create list';
+
+  @override
+  String get groupLibraryDeleteList => 'Delete list';
+
+  @override
+  String groupLibraryDeleteListConfirm(String title) {
+    return 'Delete \"$title\"? Books referenced will be removed from the list.';
+  }
+
+  @override
+  String groupLibraryBookCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count books',
+      one: '1 book',
+      zero: 'No books',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get groupLibraryAddBook => 'Add a book';
+
+  @override
+  String get groupLibraryAddBookFromLibrary => 'From my library';
+
+  @override
+  String get groupLibraryAddBookFromSearch => 'Search a book';
+
+  @override
+  String get groupLibraryRemoveBook => 'Remove from list';
+
+  @override
+  String get groupLibraryListEmpty => 'No books in this list';
+
+  @override
+  String get groupLibraryListEmptyHint => 'Tap \"+\" to add a book.';
+
+  @override
+  String groupLibraryAddedBy(String name) {
+    return 'Added by $name';
+  }
+
+  @override
+  String groupLibraryCreatedBy(String name) {
+    return 'Created by $name';
+  }
+
+  @override
+  String get reportSheetTitle => 'Report';
+
+  @override
+  String get reportSheetSubtitle =>
+      'Tell us what\'s wrong. Reports are confidential and reviewed by our team.';
+
+  @override
+  String get reportDetailsLabel => 'Additional details (optional)';
+
+  @override
+  String get reportDetailsHint => 'Add context to help us review faster…';
+
+  @override
+  String get reportSubmitButton => 'Submit report';
+
+  @override
+  String get reportSubmittedMessage =>
+      'Report submitted. Thanks for helping keep the community safe.';
+
+  @override
+  String get reportAlreadySubmittedMessage => 'You\'ve already reported this.';
+
+  @override
+  String get reportNotAuthenticatedMessage =>
+      'You need to be signed in to report content.';
+
+  @override
+  String get reportErrorMessage =>
+      'Couldn\'t submit the report. Please try again.';
+
+  @override
+  String get reportReasonSpam => 'Spam or misleading';
+
+  @override
+  String get reportReasonHarassment => 'Harassment or bullying';
+
+  @override
+  String get reportReasonHateSpeech => 'Hate speech';
+
+  @override
+  String get reportReasonSexualContent => 'Sexual or explicit content';
+
+  @override
+  String get reportReasonViolence => 'Violence or dangerous behavior';
+
+  @override
+  String get reportReasonSelfHarm => 'Self-harm or suicide';
+
+  @override
+  String get reportReasonMisinformation => 'False information';
+
+  @override
+  String get reportReasonImpersonation => 'Impersonation';
+
+  @override
+  String get reportReasonIllegal => 'Illegal activity';
+
+  @override
+  String get reportReasonOther => 'Something else';
+
+  @override
+  String get reportUserAction => 'Report user';
+
+  @override
+  String get reportCommentAction => 'Report comment';
+
+  @override
+  String get reportActivityAction => 'Report this post';
+
+  @override
+  String get blockUserAction => 'Block user';
+
+  @override
+  String get unblockUserAction => 'Unblock user';
+
+  @override
+  String blockUserConfirmTitle(String name) {
+    return 'Block $name?';
+  }
+
+  @override
+  String get blockUserConfirmMessage =>
+      'They won\'t be able to find or interact with you, and you won\'t see their content. If you were friends, the friendship will be removed.';
+
+  @override
+  String get blockUserConfirmCta => 'Block';
+
+  @override
+  String get userBlockedMessage => 'User blocked.';
+
+  @override
+  String get userUnblockedMessage => 'User unblocked.';
+
+  @override
+  String get blockUserErrorMessage =>
+      'Couldn\'t block this user. Please try again.';
+
+  @override
+  String get blockedUsersTitle => 'Blocked users';
+
+  @override
+  String get blockedUsersEmpty => 'You haven\'t blocked anyone.';
 }

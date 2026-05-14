@@ -3,8 +3,23 @@
 
   "navFeed": "Feed",
   "navLibrary": "Biblio",
+  "navMuse": "Muse",
   "navClub": "Club",
   "navProfile": "Mi espacio",
+
+  "tutorialDashboardTitle": "Tu resumen del día",
+  "tutorialDashboardDescription": "Tu racha, los minutos de hoy y las páginas de la semana — un vistazo para seguir tu progreso.",
+  "tutorialFeedTitle": "Tu feed",
+  "tutorialFeedDescription": "Aquí encuentras la actividad de tus amigos, las tendencias y tus lecturas en curso.",
+  "tutorialMuseTitle": "Muse, tu coach IA",
+  "tutorialMuseDescription": "Chatea con Muse para recibir recomendaciones, resúmenes o hablar de tus lecturas.",
+  "tutorialFabTitle": "Empieza a leer",
+  "tutorialFabDescription": "Pulsa aquí para iniciar una sesión de lectura — cronometramos por ti.",
+  "tutorialProfileTitle": "Tu espacio",
+  "tutorialProfileDescription": "Tus estadísticas, insignias, objetivos y ajustes están aquí.",
+  "tutorialNext": "Siguiente",
+  "tutorialDone": "Hecho",
+  "tutorialSkip": "Omitir",
 
   "kindleSyncedAutomatically": "Kindle sincronizado automáticamente",
 
@@ -32,6 +47,14 @@
   "or": "o",
   "newToLexDay": "¿Nuevo en LexDay? ",
   "createAnAccount": "Crear una cuenta",
+  "continueWithoutAccount": "Continuar sin cuenta",
+  "guestModeBannerTitle": "Modo invitado",
+  "guestModeBannerSubtitle": "Crea una cuenta para disfrutar de todas las funciones.",
+  "guestRequireAccountTitle": "Crea una cuenta gratis",
+  "guestRequireAccountSubtitle": "Esta acción requiere una cuenta LexDay. Crea la tuya en segundos para continuar.",
+  "guestSignUpCta": "Crear cuenta",
+  "guestSignInCta": "Ya tengo una cuenta",
+  "guestCancelCta": "Más tarde",
 
   "emailAlreadyUsed": "Email ya en uso",
   "emailAlreadyUsedMessage": "Este email ya está asociado a una cuenta existente. ¿Deseas restablecer tu contraseña?",
@@ -56,7 +79,29 @@
   "emailSent": "Email enviado",
   "checkYourEmail": "Revisa tu email",
   "confirmEmailSent": "Te hemos enviado un enlace para confirmar tu dirección de email.",
+  "confirmEmailSentTo": "Hemos enviado un enlace a {email}. Pulsa para activar tu cuenta.",
+  "@confirmEmailSentTo": {
+    "placeholders": {
+      "email": {"type": "String"}
+    }
+  },
   "iConfirmedMyEmail": "He confirmado mi email",
+  "resendConfirmationEmail": "Reenviar el email de confirmación",
+  "resendConfirmationCooldown": "Reintenta en {seconds}s",
+  "@resendConfirmationCooldown": {
+    "placeholders": {
+      "seconds": {"type": "int"}
+    }
+  },
+  "resendConfirmationSent": "Email de confirmación reenviado. Revisa tu bandeja.",
+  "resendConfirmationError": "No se ha podido reenviar el email: {message}",
+  "@resendConfirmationError": {
+    "placeholders": {
+      "message": {"type": "String"}
+    }
+  },
+  "emailNotConfirmedTitle": "Email no confirmado",
+  "emailNotConfirmedMessage": "Tu cuenta aún no está activada. Pulsa el enlace recibido o solicita uno nuevo.",
 
   "suggestionsForYou": "Sugerencias para ti",
   "bookAddedToLibrary": "{title} añadido a tu biblioteca",
@@ -73,7 +118,7 @@
   "friendsNotReadToday": "Tus amigos aún no han leído hoy",
   "noActivityYet": "Sin actividad aún",
   "addFriendsToSeeActivity": "¡Añade amigos para ver sus lecturas!",
-  "shareInviteText": "📖 ¡Únete a mí en LexDay!\n\n¿Qué estás leyendo? 👀\nlexday.app",
+  "shareInviteText": "📖 ¡Únete a mí en LexDay!\n\n¿Qué estás leyendo? 👀\nhttps://apps.apple.com/fr/app/lexday/id6760492023",
   "errorGeneric": "Error: {message}",
   "@errorGeneric": {
     "placeholders": {
@@ -120,6 +165,21 @@
       "date": {"type": "String"}
     }
   },
+  "manageSubscriptionTitle": "Gestionar mi suscripción",
+  "manageSubscriptionButton": "Gestionar en App Store",
+  "manageSubscriptionHint": "Para modificar o cancelar tu suscripción, abre el gestor de suscripciones de la App Store. La cancelación surtirá efecto al final del período en curso.",
+  "subPlanLabel": "Plan",
+  "subPriceLabel": "Precio",
+  "subStartDateLabel": "Suscrito desde",
+  "subNextRenewalLabel": "Próxima renovación",
+  "subEndsOnLabel": "Finaliza el",
+  "subAutoRenewLabel": "Renovación automática",
+  "enabled": "Activada",
+  "disabled": "Desactivada",
+  "noActiveSubscription": "Sin suscripción activa",
+  "noActiveSubscriptionHint": "Estás usando LexDay en su versión gratuita. Pásate a Premium para desbloquear todas las funciones.",
+  "purchasesRestored": "Compras restauradas con éxito",
+  "noPurchasesToRestore": "No hay compras para restaurar",
   "privacySection": "Privacidad",
   "privateProfile": "🔒 Perfil privado",
   "statsHidden": "Tus estadísticas están ocultas",
@@ -519,6 +579,8 @@
   "myClubs": "Mis clubs",
   "myGroups": "Mis grupos",
   "discover": "Descubrir",
+  "discoverReadersTitle": "Descubrir lectores",
+  "discoverReadersSubtitle": "Encuentra perfiles que te se parezcan",
   "createClub": "Crear un Club",
   "noGroups": "Ningún grupo",
   "createOrJoinGroup": "Crea o únete a un grupo de lectura",
@@ -875,7 +937,7 @@
   "authorizeContacts": "Para encontrar a tus amigos, permite el acceso a tus contactos.",
   "cannotAccessContactsRetry": "No se puede acceder a tus contactos. Inténtalo más tarde.",
   "errorOccurred": "Ha ocurrido un error",
-  "shareInviteToLexDay": "¡Únete a mí en LexDay para seguir nuestras lecturas juntos! Descarga la app: https://readon.app",
+  "shareInviteToLexDay": "¡Únete a mí en LexDay para seguir nuestras lecturas juntos! Descarga la app: https://apps.apple.com/fr/app/lexday/id6760492023",
 
   "friendRequests": "Solicitudes de amistad",
   "cannotGetRequests": "No se pueden obtener las solicitudes",
@@ -1008,6 +1070,9 @@
   "tryMoreSpecific": "Intenta con un título más específico",
   "searchByTitleAuthor": "Busca un libro por título o autor",
 
+  "themePickerTitle": "Tema de colores",
+  "themePickerSubtitle": "Personaliza los colores de la app. Sage es el tema por defecto, los demás están disponibles con Premium.",
+  "themePickerSettingsLabel": "Tema de colores",
   "noReadingSession": "Sin sesión de lectura",
   "startSessionPrompt": "¡Inicia una sesión para empezar!",
   "unknownBook": "Libro desconocido",
@@ -1327,6 +1392,12 @@
       "person": {"type": "String"}
     }
   },
+  "readWithDisplay": "Leído con {person}",
+  "@readWithDisplay": {
+    "placeholders": {
+      "person": {"type": "String"}
+    }
+  },
 
   "readingForStatsTitle": "Lecturas compartidas",
   "readingForStatsSubtitle": "Tiempo dedicado a leer para tus seres queridos",
@@ -1425,5 +1496,93 @@
   "freeIncludedFeed": "Feed social",
   "freeIncludedGoals": "Objetivos e insignias básicas",
   "freeIncludedWrapped": "Wrapped mensual y anual",
-  "freeIncludedWidget": "Widget iOS"
+  "freeIncludedWidget": "Widget iOS",
+
+  "wrappedBannerTitle": "¡Tu Wrapped {month} ya está aquí!",
+  "@wrappedBannerTitle": {
+    "placeholders": {
+      "month": {"type": "String"}
+    }
+  },
+  "wrappedBannerSubtitle": "Sumérgete en tu mes en cifras",
+  "wrappedBannerDismiss": "Cerrar",
+
+  "groupLibrary": "Biblioteca",
+  "groupLibrarySubtitle": "Listas de lectura del club",
+  "groupLibraryEmpty": "Aún no hay listas",
+  "groupLibraryEmptyHint": "Crea una primera lista para compartir lecturas con el club.",
+  "groupLibraryViewAll": "Ver todo",
+  "groupLibraryNewList": "Nueva lista",
+  "groupLibraryListTitle": "Nombre de la lista",
+  "groupLibraryListTitlePlaceholder": "Ej. Lecturas de verano",
+  "groupLibraryListDescription": "Descripción (opcional)",
+  "groupLibraryListDescriptionPlaceholder": "¿De qué trata esta lista?",
+  "groupLibraryCreateList": "Crear lista",
+  "groupLibraryDeleteList": "Eliminar lista",
+  "groupLibraryDeleteListConfirm": "¿Eliminar \"{title}\"? Los libros referenciados se quitarán de la lista.",
+  "@groupLibraryDeleteListConfirm": {
+    "placeholders": {
+      "title": {"type": "String"}
+    }
+  },
+  "groupLibraryBookCount": "{count, plural, =0{Sin libros} =1{1 libro} other{{count} libros}}",
+  "@groupLibraryBookCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "groupLibraryAddBook": "Añadir un libro",
+  "groupLibraryAddBookFromLibrary": "Desde mi biblioteca",
+  "groupLibraryAddBookFromSearch": "Buscar un libro",
+  "groupLibraryRemoveBook": "Quitar de la lista",
+  "groupLibraryListEmpty": "Sin libros en esta lista",
+  "groupLibraryListEmptyHint": "Toca «+» para añadir un libro.",
+  "groupLibraryAddedBy": "Añadido por {name}",
+  "@groupLibraryAddedBy": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "groupLibraryCreatedBy": "Creada por {name}",
+  "@groupLibraryCreatedBy": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+
+  "reportSheetTitle": "Reportar",
+  "reportSheetSubtitle": "Cuéntanos qué pasa. Los reportes son confidenciales y los revisa nuestro equipo.",
+  "reportDetailsLabel": "Detalles adicionales (opcional)",
+  "reportDetailsHint": "Añade contexto para ayudarnos a moderar más rápido…",
+  "reportSubmitButton": "Enviar reporte",
+  "reportSubmittedMessage": "Reporte enviado. Gracias por mantener la comunidad segura.",
+  "reportAlreadySubmittedMessage": "Ya reportaste este contenido.",
+  "reportNotAuthenticatedMessage": "Necesitas iniciar sesión para reportar.",
+  "reportErrorMessage": "No se pudo enviar el reporte. Inténtalo de nuevo.",
+  "reportReasonSpam": "Spam o engañoso",
+  "reportReasonHarassment": "Acoso o intimidación",
+  "reportReasonHateSpeech": "Discurso de odio",
+  "reportReasonSexualContent": "Contenido sexual o explícito",
+  "reportReasonViolence": "Violencia o conducta peligrosa",
+  "reportReasonSelfHarm": "Autolesión o suicidio",
+  "reportReasonMisinformation": "Información falsa",
+  "reportReasonImpersonation": "Suplantación de identidad",
+  "reportReasonIllegal": "Actividad ilegal",
+  "reportReasonOther": "Otra razón",
+  "reportUserAction": "Reportar usuario",
+  "reportCommentAction": "Reportar comentario",
+  "reportActivityAction": "Reportar publicación",
+  "blockUserAction": "Bloquear usuario",
+  "unblockUserAction": "Desbloquear",
+  "blockUserConfirmTitle": "¿Bloquear a {name}?",
+  "@blockUserConfirmTitle": {
+    "placeholders": {"name": {"type": "String"}}
+  },
+  "blockUserConfirmMessage": "No podrá encontrarte ni interactuar contigo, y tú no verás su contenido. Si erais amigos, la amistad se eliminará.",
+  "blockUserConfirmCta": "Bloquear",
+  "userBlockedMessage": "Usuario bloqueado.",
+  "userUnblockedMessage": "Usuario desbloqueado.",
+  "blockUserErrorMessage": "No se pudo bloquear a este usuario. Inténtalo de nuevo.",
+  "blockedUsersTitle": "Usuarios bloqueados",
+  "blockedUsersEmpty": "No has bloqueado a nadie."
 }

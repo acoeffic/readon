@@ -112,6 +112,12 @@ abstract class AppLocalizations {
   /// **'Biblio'**
   String get navLibrary;
 
+  /// No description provided for @navMuse.
+  ///
+  /// In fr, this message translates to:
+  /// **'Muse'**
+  String get navMuse;
+
   /// No description provided for @navClub.
   ///
   /// In fr, this message translates to:
@@ -123,6 +129,84 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Mon espace'**
   String get navProfile;
+
+  /// No description provided for @tutorialDashboardTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ton résumé du jour'**
+  String get tutorialDashboardTitle;
+
+  /// No description provided for @tutorialDashboardDescription.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ta série, tes minutes du jour et tes pages de la semaine — un coup d\'œil pour suivre tes progrès.'**
+  String get tutorialDashboardDescription;
+
+  /// No description provided for @tutorialFeedTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ton feed'**
+  String get tutorialFeedTitle;
+
+  /// No description provided for @tutorialFeedDescription.
+  ///
+  /// In fr, this message translates to:
+  /// **'Retrouve ici l\'activité de tes amis, les tendances et tes lectures en cours.'**
+  String get tutorialFeedDescription;
+
+  /// No description provided for @tutorialMuseTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Muse, ton coach IA'**
+  String get tutorialMuseTitle;
+
+  /// No description provided for @tutorialMuseDescription.
+  ///
+  /// In fr, this message translates to:
+  /// **'Discute avec Muse pour des recommandations, des résumés ou parler de tes lectures.'**
+  String get tutorialMuseDescription;
+
+  /// No description provided for @tutorialFabTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Démarre une lecture'**
+  String get tutorialFabTitle;
+
+  /// No description provided for @tutorialFabDescription.
+  ///
+  /// In fr, this message translates to:
+  /// **'Appuie ici pour lancer une session sur un livre — on s\'occupe de chronométrer pour toi.'**
+  String get tutorialFabDescription;
+
+  /// No description provided for @tutorialProfileTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ton espace'**
+  String get tutorialProfileTitle;
+
+  /// No description provided for @tutorialProfileDescription.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tes statistiques, tes badges, tes objectifs et tes paramètres se trouvent ici.'**
+  String get tutorialProfileDescription;
+
+  /// No description provided for @tutorialNext.
+  ///
+  /// In fr, this message translates to:
+  /// **'Suivant'**
+  String get tutorialNext;
+
+  /// No description provided for @tutorialDone.
+  ///
+  /// In fr, this message translates to:
+  /// **'Terminé'**
+  String get tutorialDone;
+
+  /// No description provided for @tutorialSkip.
+  ///
+  /// In fr, this message translates to:
+  /// **'Passer'**
+  String get tutorialSkip;
 
   /// No description provided for @kindleSyncedAutomatically.
   ///
@@ -243,6 +327,54 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Create an account'**
   String get createAnAccount;
+
+  /// No description provided for @continueWithoutAccount.
+  ///
+  /// In fr, this message translates to:
+  /// **'Continuer sans compte'**
+  String get continueWithoutAccount;
+
+  /// No description provided for @guestModeBannerTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Mode invité'**
+  String get guestModeBannerTitle;
+
+  /// No description provided for @guestModeBannerSubtitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Crée un compte pour profiter de toutes les fonctionnalités.'**
+  String get guestModeBannerSubtitle;
+
+  /// No description provided for @guestRequireAccountTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Crée un compte gratuit'**
+  String get guestRequireAccountTitle;
+
+  /// No description provided for @guestRequireAccountSubtitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cette action nécessite un compte LexDay. Crée le tien en quelques secondes pour continuer.'**
+  String get guestRequireAccountSubtitle;
+
+  /// No description provided for @guestSignUpCta.
+  ///
+  /// In fr, this message translates to:
+  /// **'Créer un compte'**
+  String get guestSignUpCta;
+
+  /// No description provided for @guestSignInCta.
+  ///
+  /// In fr, this message translates to:
+  /// **'J\'ai déjà un compte'**
+  String get guestSignInCta;
+
+  /// No description provided for @guestCancelCta.
+  ///
+  /// In fr, this message translates to:
+  /// **'Plus tard'**
+  String get guestCancelCta;
 
   /// No description provided for @emailAlreadyUsed.
   ///
@@ -376,11 +508,53 @@ abstract class AppLocalizations {
   /// **'Nous t\'avons envoyé un lien pour confirmer ton adresse email.'**
   String get confirmEmailSent;
 
+  /// No description provided for @confirmEmailSentTo.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nous avons envoyé un lien à {email}. Clique dessus pour activer ton compte.'**
+  String confirmEmailSentTo(String email);
+
   /// No description provided for @iConfirmedMyEmail.
   ///
   /// In fr, this message translates to:
   /// **'J\'ai confirmé mon email'**
   String get iConfirmedMyEmail;
+
+  /// No description provided for @resendConfirmationEmail.
+  ///
+  /// In fr, this message translates to:
+  /// **'Renvoyer l\'email de confirmation'**
+  String get resendConfirmationEmail;
+
+  /// No description provided for @resendConfirmationCooldown.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réessaie dans {seconds}s'**
+  String resendConfirmationCooldown(int seconds);
+
+  /// No description provided for @resendConfirmationSent.
+  ///
+  /// In fr, this message translates to:
+  /// **'Email de confirmation renvoyé. Vérifie ta boîte.'**
+  String get resendConfirmationSent;
+
+  /// No description provided for @resendConfirmationError.
+  ///
+  /// In fr, this message translates to:
+  /// **'Impossible de renvoyer l\'email : {message}'**
+  String resendConfirmationError(String message);
+
+  /// No description provided for @emailNotConfirmedTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Email non confirmé'**
+  String get emailNotConfirmedTitle;
+
+  /// No description provided for @emailNotConfirmedMessage.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ton compte n\'est pas encore activé. Clique sur le lien reçu par email, ou demande un nouveau lien.'**
+  String get emailNotConfirmedMessage;
 
   /// No description provided for @suggestionsForYou.
   ///
@@ -445,7 +619,7 @@ abstract class AppLocalizations {
   /// No description provided for @shareInviteText.
   ///
   /// In fr, this message translates to:
-  /// **'📖 Rejoins-moi sur LexDay !\n\nTu lis quoi en ce moment ? 👀\nlexday.app'**
+  /// **'📖 Rejoins-moi sur LexDay !\n\nTu lis quoi en ce moment ? 👀\nhttps://apps.apple.com/fr/app/lexday/id6760492023'**
   String get shareInviteText;
 
   /// No description provided for @errorGeneric.
@@ -591,6 +765,96 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Premium actif (jusqu\'au {date})'**
   String premiumActiveUntil(String date);
+
+  /// No description provided for @manageSubscriptionTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Gérer mon abonnement'**
+  String get manageSubscriptionTitle;
+
+  /// No description provided for @manageSubscriptionButton.
+  ///
+  /// In fr, this message translates to:
+  /// **'Gérer sur l\'App Store'**
+  String get manageSubscriptionButton;
+
+  /// No description provided for @manageSubscriptionHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Pour modifier ou annuler ton abonnement, ouvre la gestion des abonnements de l\'App Store. L\'annulation prend effet à la fin de la période en cours.'**
+  String get manageSubscriptionHint;
+
+  /// No description provided for @subPlanLabel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Formule'**
+  String get subPlanLabel;
+
+  /// No description provided for @subPriceLabel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Prix'**
+  String get subPriceLabel;
+
+  /// No description provided for @subStartDateLabel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Abonné depuis'**
+  String get subStartDateLabel;
+
+  /// No description provided for @subNextRenewalLabel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Prochain renouvellement'**
+  String get subNextRenewalLabel;
+
+  /// No description provided for @subEndsOnLabel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Se termine le'**
+  String get subEndsOnLabel;
+
+  /// No description provided for @subAutoRenewLabel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Renouvellement automatique'**
+  String get subAutoRenewLabel;
+
+  /// No description provided for @enabled.
+  ///
+  /// In fr, this message translates to:
+  /// **'Activé'**
+  String get enabled;
+
+  /// No description provided for @disabled.
+  ///
+  /// In fr, this message translates to:
+  /// **'Désactivé'**
+  String get disabled;
+
+  /// No description provided for @noActiveSubscription.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun abonnement actif'**
+  String get noActiveSubscription;
+
+  /// No description provided for @noActiveSubscriptionHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tu utilises LexDay dans sa version gratuite. Passe à Premium pour débloquer toutes les fonctionnalités.'**
+  String get noActiveSubscriptionHint;
+
+  /// No description provided for @purchasesRestored.
+  ///
+  /// In fr, this message translates to:
+  /// **'Achats restaurés avec succès'**
+  String get purchasesRestored;
+
+  /// No description provided for @noPurchasesToRestore.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun achat à restaurer'**
+  String get noPurchasesToRestore;
 
   /// No description provided for @privacySection.
   ///
@@ -2134,6 +2398,18 @@ abstract class AppLocalizations {
   /// **'Découvrir'**
   String get discover;
 
+  /// No description provided for @discoverReadersTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Découvrir des lecteurs'**
+  String get discoverReadersTitle;
+
+  /// No description provided for @discoverReadersSubtitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Trouve des profils qui te ressemblent'**
+  String get discoverReadersSubtitle;
+
   /// No description provided for @createClub.
   ///
   /// In fr, this message translates to:
@@ -3409,7 +3685,7 @@ abstract class AppLocalizations {
   /// No description provided for @shareInviteToLexDay.
   ///
   /// In fr, this message translates to:
-  /// **'Rejoins-moi sur LexDay pour suivre nos lectures ensemble ! Télécharge l\'app : https://readon.app'**
+  /// **'Rejoins-moi sur LexDay pour suivre nos lectures ensemble ! Télécharge l\'app : https://apps.apple.com/fr/app/lexday/id6760492023'**
   String get shareInviteToLexDay;
 
   /// No description provided for @friendRequests.
@@ -3861,6 +4137,24 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Recherche un livre par titre ou auteur'**
   String get searchByTitleAuthor;
+
+  /// No description provided for @themePickerTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Thème de couleurs'**
+  String get themePickerTitle;
+
+  /// No description provided for @themePickerSubtitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Personnalise les couleurs de l\'app. Sage est le thème par défaut, les autres sont disponibles avec Premium.'**
+  String get themePickerSubtitle;
+
+  /// No description provided for @themePickerSettingsLabel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Thème de couleurs'**
+  String get themePickerSettingsLabel;
 
   /// No description provided for @noReadingSession.
   ///
@@ -5068,6 +5362,12 @@ abstract class AppLocalizations {
   /// **'Lu pour {person}'**
   String readingForDisplay(String person);
 
+  /// No description provided for @readWithDisplay.
+  ///
+  /// In fr, this message translates to:
+  /// **'Lu avec {person}'**
+  String readWithDisplay(String person);
+
   /// No description provided for @readingForStatsTitle.
   ///
   /// In fr, this message translates to:
@@ -5445,6 +5745,348 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Tu as laissé une session de lecture ouverte. Tu as fini ?'**
   String get staleSessionNotifBody;
+
+  /// No description provided for @wrappedBannerTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ton Wrapped {month} est là !'**
+  String wrappedBannerTitle(String month);
+
+  /// No description provided for @wrappedBannerSubtitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Plonge dans ton mois en chiffres'**
+  String get wrappedBannerSubtitle;
+
+  /// No description provided for @wrappedBannerDismiss.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fermer'**
+  String get wrappedBannerDismiss;
+
+  /// No description provided for @groupLibrary.
+  ///
+  /// In fr, this message translates to:
+  /// **'Bibliothèque'**
+  String get groupLibrary;
+
+  /// No description provided for @groupLibrarySubtitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Listes de lecture du club'**
+  String get groupLibrarySubtitle;
+
+  /// No description provided for @groupLibraryEmpty.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucune liste pour l\'instant'**
+  String get groupLibraryEmpty;
+
+  /// No description provided for @groupLibraryEmptyHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Crée une première liste pour partager tes lectures avec le club.'**
+  String get groupLibraryEmptyHint;
+
+  /// No description provided for @groupLibraryViewAll.
+  ///
+  /// In fr, this message translates to:
+  /// **'Voir tout'**
+  String get groupLibraryViewAll;
+
+  /// No description provided for @groupLibraryNewList.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nouvelle liste'**
+  String get groupLibraryNewList;
+
+  /// No description provided for @groupLibraryListTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nom de la liste'**
+  String get groupLibraryListTitle;
+
+  /// No description provided for @groupLibraryListTitlePlaceholder.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ex. Lectures de l\'été'**
+  String get groupLibraryListTitlePlaceholder;
+
+  /// No description provided for @groupLibraryListDescription.
+  ///
+  /// In fr, this message translates to:
+  /// **'Description (optionnel)'**
+  String get groupLibraryListDescription;
+
+  /// No description provided for @groupLibraryListDescriptionPlaceholder.
+  ///
+  /// In fr, this message translates to:
+  /// **'À quoi sert cette liste ?'**
+  String get groupLibraryListDescriptionPlaceholder;
+
+  /// No description provided for @groupLibraryCreateList.
+  ///
+  /// In fr, this message translates to:
+  /// **'Créer la liste'**
+  String get groupLibraryCreateList;
+
+  /// No description provided for @groupLibraryDeleteList.
+  ///
+  /// In fr, this message translates to:
+  /// **'Supprimer la liste'**
+  String get groupLibraryDeleteList;
+
+  /// No description provided for @groupLibraryDeleteListConfirm.
+  ///
+  /// In fr, this message translates to:
+  /// **'Supprimer « {title} » ? Les livres référencés seront retirés de la liste.'**
+  String groupLibraryDeleteListConfirm(String title);
+
+  /// No description provided for @groupLibraryBookCount.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =0{Aucun livre} =1{1 livre} other{{count} livres}}'**
+  String groupLibraryBookCount(int count);
+
+  /// No description provided for @groupLibraryAddBook.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajouter un livre'**
+  String get groupLibraryAddBook;
+
+  /// No description provided for @groupLibraryAddBookFromLibrary.
+  ///
+  /// In fr, this message translates to:
+  /// **'Depuis ma bibliothèque'**
+  String get groupLibraryAddBookFromLibrary;
+
+  /// No description provided for @groupLibraryAddBookFromSearch.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rechercher un livre'**
+  String get groupLibraryAddBookFromSearch;
+
+  /// No description provided for @groupLibraryRemoveBook.
+  ///
+  /// In fr, this message translates to:
+  /// **'Retirer de la liste'**
+  String get groupLibraryRemoveBook;
+
+  /// No description provided for @groupLibraryListEmpty.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun livre dans cette liste'**
+  String get groupLibraryListEmpty;
+
+  /// No description provided for @groupLibraryListEmptyHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tape sur « + » pour ajouter un livre.'**
+  String get groupLibraryListEmptyHint;
+
+  /// No description provided for @groupLibraryAddedBy.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajouté par {name}'**
+  String groupLibraryAddedBy(String name);
+
+  /// No description provided for @groupLibraryCreatedBy.
+  ///
+  /// In fr, this message translates to:
+  /// **'Créée par {name}'**
+  String groupLibraryCreatedBy(String name);
+
+  /// No description provided for @reportSheetTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Signaler'**
+  String get reportSheetTitle;
+
+  /// No description provided for @reportSheetSubtitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Dis-nous ce qui ne va pas. Les signalements sont confidentiels et examinés par notre équipe.'**
+  String get reportSheetSubtitle;
+
+  /// No description provided for @reportDetailsLabel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Détails supplémentaires (optionnel)'**
+  String get reportDetailsLabel;
+
+  /// No description provided for @reportDetailsHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajoute du contexte pour nous aider à modérer plus vite…'**
+  String get reportDetailsHint;
+
+  /// No description provided for @reportSubmitButton.
+  ///
+  /// In fr, this message translates to:
+  /// **'Envoyer le signalement'**
+  String get reportSubmitButton;
+
+  /// No description provided for @reportSubmittedMessage.
+  ///
+  /// In fr, this message translates to:
+  /// **'Signalement envoyé. Merci de protéger la communauté.'**
+  String get reportSubmittedMessage;
+
+  /// No description provided for @reportAlreadySubmittedMessage.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tu as déjà signalé ce contenu.'**
+  String get reportAlreadySubmittedMessage;
+
+  /// No description provided for @reportNotAuthenticatedMessage.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tu dois être connecté pour signaler.'**
+  String get reportNotAuthenticatedMessage;
+
+  /// No description provided for @reportErrorMessage.
+  ///
+  /// In fr, this message translates to:
+  /// **'Impossible d\'envoyer le signalement. Réessaie.'**
+  String get reportErrorMessage;
+
+  /// No description provided for @reportReasonSpam.
+  ///
+  /// In fr, this message translates to:
+  /// **'Spam ou trompeur'**
+  String get reportReasonSpam;
+
+  /// No description provided for @reportReasonHarassment.
+  ///
+  /// In fr, this message translates to:
+  /// **'Harcèlement ou intimidation'**
+  String get reportReasonHarassment;
+
+  /// No description provided for @reportReasonHateSpeech.
+  ///
+  /// In fr, this message translates to:
+  /// **'Discours haineux'**
+  String get reportReasonHateSpeech;
+
+  /// No description provided for @reportReasonSexualContent.
+  ///
+  /// In fr, this message translates to:
+  /// **'Contenu sexuel ou explicite'**
+  String get reportReasonSexualContent;
+
+  /// No description provided for @reportReasonViolence.
+  ///
+  /// In fr, this message translates to:
+  /// **'Violence ou comportement dangereux'**
+  String get reportReasonViolence;
+
+  /// No description provided for @reportReasonSelfHarm.
+  ///
+  /// In fr, this message translates to:
+  /// **'Automutilation ou suicide'**
+  String get reportReasonSelfHarm;
+
+  /// No description provided for @reportReasonMisinformation.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fausse information'**
+  String get reportReasonMisinformation;
+
+  /// No description provided for @reportReasonImpersonation.
+  ///
+  /// In fr, this message translates to:
+  /// **'Usurpation d\'identité'**
+  String get reportReasonImpersonation;
+
+  /// No description provided for @reportReasonIllegal.
+  ///
+  /// In fr, this message translates to:
+  /// **'Activité illégale'**
+  String get reportReasonIllegal;
+
+  /// No description provided for @reportReasonOther.
+  ///
+  /// In fr, this message translates to:
+  /// **'Autre raison'**
+  String get reportReasonOther;
+
+  /// No description provided for @reportUserAction.
+  ///
+  /// In fr, this message translates to:
+  /// **'Signaler cet utilisateur'**
+  String get reportUserAction;
+
+  /// No description provided for @reportCommentAction.
+  ///
+  /// In fr, this message translates to:
+  /// **'Signaler le commentaire'**
+  String get reportCommentAction;
+
+  /// No description provided for @reportActivityAction.
+  ///
+  /// In fr, this message translates to:
+  /// **'Signaler cette publication'**
+  String get reportActivityAction;
+
+  /// No description provided for @blockUserAction.
+  ///
+  /// In fr, this message translates to:
+  /// **'Bloquer l\'utilisateur'**
+  String get blockUserAction;
+
+  /// No description provided for @unblockUserAction.
+  ///
+  /// In fr, this message translates to:
+  /// **'Débloquer'**
+  String get unblockUserAction;
+
+  /// No description provided for @blockUserConfirmTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Bloquer {name} ?'**
+  String blockUserConfirmTitle(String name);
+
+  /// No description provided for @blockUserConfirmMessage.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cette personne ne pourra plus te trouver ou interagir avec toi, et tu ne verras plus son contenu. Si vous étiez amis, le lien d\'amitié sera supprimé.'**
+  String get blockUserConfirmMessage;
+
+  /// No description provided for @blockUserConfirmCta.
+  ///
+  /// In fr, this message translates to:
+  /// **'Bloquer'**
+  String get blockUserConfirmCta;
+
+  /// No description provided for @userBlockedMessage.
+  ///
+  /// In fr, this message translates to:
+  /// **'Utilisateur bloqué.'**
+  String get userBlockedMessage;
+
+  /// No description provided for @userUnblockedMessage.
+  ///
+  /// In fr, this message translates to:
+  /// **'Utilisateur débloqué.'**
+  String get userUnblockedMessage;
+
+  /// No description provided for @blockUserErrorMessage.
+  ///
+  /// In fr, this message translates to:
+  /// **'Impossible de bloquer cet utilisateur. Réessaie.'**
+  String get blockUserErrorMessage;
+
+  /// No description provided for @blockedUsersTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Utilisateurs bloqués'**
+  String get blockedUsersTitle;
+
+  /// No description provided for @blockedUsersEmpty.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tu n\'as bloqué personne.'**
+  String get blockedUsersEmpty;
 }
 
 class _AppLocalizationsDelegate
