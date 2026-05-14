@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../services/badges_service.dart';
 import '../../../theme/app_theme.dart';
 import '../../profile/all_badges_page.dart';
-import '../../../features/badges/widgets/first_book_badge_painter.dart';
+import '../../../widgets/remote_badge_image.dart';
 
 class BadgeOverviewCard extends StatelessWidget {
   final int unlocked;
@@ -103,173 +103,9 @@ class BadgeOverviewCard extends StatelessWidget {
                       )
                     : Row(
                         children: recentBadges.map((badge) {
-                          final badgeColor = _parseColor(badge.color);
                           return Padding(
                             padding: const EdgeInsets.only(right: AppSpace.s),
-                            child: isFirstBookBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const FirstBookBadge(size: 56)
-                                : isApprenticeReaderBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const ApprenticeReaderBadge(size: 56)
-                                : isConfirmedReaderBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const ConfirmedReaderBadge(size: 56)
-                                : isBibliophileBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const BibliophileBadge(size: 56)
-                                : isDevoreurBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const DevoreurBadge(size: 56)
-                                : isCentenaireLivresBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const CentenaireLivresBadge(size: 56)
-                                : isLegendeLitteraireBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const LegendeLitteraireBadge(size: 56)
-                                : isBibliothequeVivanteBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const BibliothequeVivanteBadge(size: 56)
-                                : isFirstSessionBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const FirstSessionBadge(size: 56)
-                                : isOneHourMagicBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const OneHourMagicBadge(size: 56)
-                                : isSundayReaderBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const SundayReaderBadge(size: 56)
-                                : isPassionateBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const PassionateBadge(size: 56)
-                                : isCenturionBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const CenturionBadge(size: 56)
-                                : isMarathonBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const MarathonBadge(size: 56)
-                                : isHalfMillenniumBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const HalfMillenniumBadge(size: 56)
-                                : isMillenniumBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const MillenniumBadge(size: 56)
-                                : isClubFounderBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const ClubFounderBadge(size: 56)
-                                : isClubLeaderBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const ClubLeaderBadge(size: 56)
-                                : isResidentBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const ResidentBadge(size: 56)
-                                : isHabitueBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const HabitueBadge(size: 56)
-                                : isPilierBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const PilierBadge(size: 56)
-                                : isMonumentBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const MonumentBadge(size: 56)
-                                : isAnnualOnePerMonthBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const AnnualOnePerMonthBadge(size: 56)
-                                : isAnnualTwoPerMonthBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const AnnualTwoPerMonthBadge(size: 56)
-                                : isAnnualOnePerWeekBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const AnnualOnePerWeekBadge(size: 56)
-                                : isAnnualCentenaireBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const AnnualCentenaireBadge(size: 56)
-                                : isOccasionBastilleDayBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const OccasionBastilleDayBadge(size: 56)
-                                : isOccasionChristmasBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const OccasionChristmasBadge(size: 56)
-                                : isOccasionFeteMusiqueBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const OccasionFeteMusiqueBadge(size: 56)
-                                : isOccasionHalloweenBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const OccasionHalloweenBadge(size: 56)
-                                : isOccasionSummerReadBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const OccasionSummerReadBadge(size: 56)
-                                : isOccasionValentineBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const OccasionValentineBadge(size: 56)
-                                : isOccasionNyeBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const OccasionNyeBadge(size: 56)
-                                : isOccasionLabourDayBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const OccasionLabourDayBadge(size: 56)
-                                : isOccasionWorldBookDayBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const OccasionWorldBookDayBadge(size: 56)
-                                : isOccasionNewYearBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const OccasionNewYearBadge(size: 56)
-                                : isOccasionEasterBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const OccasionEasterBadge(size: 56)
-                                : isOccasionAprilFoolsBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const OccasionAprilFoolsBadge(size: 56)
-                                : isGenreSfApprentiBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const GenreSfApprentiBadge(size: 56)
-                                : isGenrePolarApprentiBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const GenrePolarApprentiBadge(size: 56)
-                                : isGenrePolarAdepteBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const GenrePolarAdepteBadge(size: 56)
-                                : isGenrePolarMaitreBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const GenrePolarMaitreBadge(size: 56)
-                                : isGenrePolarLegendeBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const GenrePolarLegendeBadge(size: 56)
-                                : isGenreSfApprentiBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const GenreSfApprentiBadge(size: 56)
-                                : isGenreSfAdepteBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const GenreSfAdepteBadge(size: 56)
-                                : isGenreSfMaitreBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const GenreSfMaitreBadge(size: 56)
-                                : isGenreSfLegendeBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const GenreSfLegendeBadge(size: 56)
-                                : isGenreRomanceApprentiBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const GenreRomanceApprentiBadge(size: 56)
-                                : isGenreRomanceAdepteBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const GenreRomanceAdepteBadge(size: 56)
-                                : isGenreRomanceMaitreBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const GenreRomanceMaitreBadge(size: 56)
-                                : isGenreRomanceLegendeBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const GenreRomanceLegendeBadge(size: 56)
-                                : isGenreHorreurApprentiBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const GenreHorreurApprentiBadge(size: 56)
-                                : isGenreHorreurAdepteBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const GenreHorreurAdepteBadge(size: 56)
-                                : isGenreHorreurMaitreBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const GenreHorreurMaitreBadge(size: 56)
-                                : isGenreHorreurLegendeBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const GenreHorreurLegendeBadge(size: 56)
-                                : isGenreBioApprentiBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const GenreBioApprentiBadge(size: 56)
-                                : isGenreBioAdepteBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const GenreBioAdepteBadge(size: 56)
-                                : isGenreBioMaitreBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const GenreBioMaitreBadge(size: 56)
-                                : isGenreBioLegendeBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const GenreBioLegendeBadge(size: 56)
-                                : isGenreHistoireApprentiBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const GenreHistoireApprentiBadge(size: 56)
-                                : isGenreHistoireAdepteBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const GenreHistoireAdepteBadge(size: 56)
-                                : isGenreHistoireMaitreBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const GenreHistoireMaitreBadge(size: 56)
-                                : isGenreHistoireLegendeBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const GenreHistoireLegendeBadge(size: 56)
-                                : isGenreDevpersoApprentiBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const GenreDevpersoApprentiBadge(size: 56)
-                                : isGenreDevpersoAdepteBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const GenreDevpersoAdepteBadge(size: 56)
-                                : isGenreDevpersoMaitreBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const GenreDevpersoMaitreBadge(size: 56)
-                                : isGenreDevpersoLegendeBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const GenreDevpersoLegendeBadge(size: 56)
-                                : isStreak7DaysBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const Streak7DaysBadge(size: 56)
-                                : isStreak14DaysBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const Streak14DaysBadge(size: 56)
-                                : isStreak30DaysBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const Streak30DaysBadge(size: 56)
-                                : isStreak60DaysBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const Streak60DaysBadge(size: 56)
-                                : isStreak90DaysBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const Streak90DaysBadge(size: 56)
-                                : isStreak180DaysBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const Streak180DaysBadge(size: 56)
-                                : isStreak365DaysBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? const Streak365DaysBadge(size: 56)
-                                : isComebackBadge(id: badge.id, category: badge.category, requirement: badge.requirement)
-                                ? ComebackBadge(badgeId: badge.id, size: 56)
-                                : Container(
-                                    width: 56,
-                                    height: 56,
-                                    decoration: BoxDecoration(
-                                      color: badgeColor.withValues(alpha: 0.15),
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: Center(
-                                      child: Text(
-                                        badge.icon,
-                                        style: const TextStyle(fontSize: 28),
-                                      ),
-                                    ),
-                                  ),
+                            child: RemoteBadgeImage.fromBadge(badge, size: 56),
                           );
                         }).toList(),
                       ),
@@ -281,14 +117,6 @@ class BadgeOverviewCard extends StatelessWidget {
     );
   }
 
-  Color _parseColor(String hex) {
-    try {
-      final cleanHex = hex.replaceAll('#', '');
-      return Color(int.parse('FF$cleanHex', radix: 16));
-    } catch (_) {
-      return AppColors.primary;
-    }
-  }
 }
 
 class _BadgeProgressPainter extends CustomPainter {

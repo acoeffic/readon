@@ -99,7 +99,13 @@ serve(async (req) => {
       return jsonResponse({ error: "premium_required", message: "Cette fonctionnalité est réservée aux utilisateurs Premium." }, 403);
     }
 
-    // Exchange code for access token
+    // Exchange code for access token.
+    //
+    // The redirect_uri sent here MUST exactly match the one used in the
+    // authorize step. Notion does not accept custom URI schemes, so we
+    // use this function's own HTTPS URL as the canonical redirect_uri.
+    const defaultRedirectUri =
+      `${SUPABASE_URL}/functions/v1/notion-oauth-redirect`;
     const credentials = btoa(`${NOTION_CLIENT_ID}:${NOTION_CLIENT_SECRET}`);
 
     const tokenResponse = await fetch("https://api.notion.com/v1/oauth/token", {
@@ -111,7 +117,7 @@ serve(async (req) => {
       body: JSON.stringify({
         grant_type: "authorization_code",
         code,
-        redirect_uri: redirect_uri || "lexday://notion/callback",
+        redirect_uri: redirect_uri || defaultRedirectUri,
       }),
     });
 

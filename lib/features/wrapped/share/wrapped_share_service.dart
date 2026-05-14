@@ -1,11 +1,13 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:screenshot/screenshot.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../../utils/app_constants.dart';
 import '../yearly/yearly_wrapped_data.dart';
 import '../yearly/widgets/yearly_animations.dart';
 import 'share_format.dart';
@@ -39,7 +41,7 @@ class WrappedShareService {
     required int year,
     Rect? sharePositionOrigin,
   }) async {
-    final text = 'Mon annee de lecture $year \uD83D\uDCDA\u2728 #LexDayWrapped';
+    final text = 'Mon annee de lecture $year \uD83D\uDCDA\u2728 #LexDayWrapped\n$kAppStoreUrl';
 
     // Destinations that go directly to the native share sheet
     if (destination == ShareDestination.whatsapp ||
@@ -153,6 +155,7 @@ class _WrappedShareSheetState extends State<_WrappedShareSheet> {
   }
 
   Future<void> _onDestinationTap(ShareDestination destination) async {
+    HapticFeedback.selectionClick();
     if (_loadingDestination != null || _capturedImage == null) return;
     setState(() => _loadingDestination = destination);
 

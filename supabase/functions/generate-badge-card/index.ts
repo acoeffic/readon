@@ -141,6 +141,39 @@ const dmSansLight = loadGoogleFont("DM Sans", 300);
 const dmSansRegular = loadGoogleFont("DM Sans", 400);
 const dmSansMedium = loadGoogleFont("DM Sans", 500);
 
+// ── Badge image URL resolution ─────────────────────────────────────
+//
+// Default pattern: `asset/Image/badge/Nouveau/<badgeId>.png`.
+// Overrides allow swapping in a freshly-uploaded asset (e.g. one with
+// real RGBA transparency) without renaming the storage object. Keep
+// the entries here in sync with `lib/widgets/remote_badge_image.dart`.
+const BADGE_IMAGE_OVERRIDES: Record<string, string> = {
+  books_1:
+    `${SUPABASE_URL}/storage/v1/object/public/asset/Image/badge/Nouveau/ChatGPT%20Image%2028%20avr.%202026,%2016_52_05.png`,
+};
+
+function badgeImageUrl(badgeId: string): string {
+  return (
+    BADGE_IMAGE_OVERRIDES[badgeId] ||
+    `${SUPABASE_URL}/storage/v1/object/public/asset/Image/badge/Nouveau/${badgeId}.png`
+  );
+}
+
+/// HEAD-check the badge PNG. Returns the URL if the asset exists and is
+/// a PNG, null otherwise (so we fall back to the emoji rendering).
+async function resolveBadgeImage(badgeId: string): Promise<string | null> {
+  const url = badgeImageUrl(badgeId);
+  try {
+    const res = await fetch(url, { method: "HEAD" });
+    if (!res.ok) return null;
+    const ct = res.headers.get("content-type") ?? "";
+    if (!ct.startsWith("image/")) return null;
+    return url;
+  } catch {
+    return null;
+  }
+}
+
 // ── Card component ──────────────────────────────────────────────────
 
 interface BadgeData {
@@ -153,13 +186,14 @@ interface BadgeData {
 
 interface CardProps {
   badge: BadgeData;
+  badgeImage: string | null;
   booksCount: number;
   totalPages: number;
   totalHours: string;
   stars: Star[];
 }
 
-function BadgeCard({ badge, booksCount, totalPages, totalHours, stars }: CardProps) {
+function BadgeCard({ badge, badgeImage, booksCount, totalPages, totalHours, stars }: CardProps) {
   const categoryLabel = CATEGORY_LABELS[badge.category] || badge.category;
 
   return React.createElement(
@@ -329,7 +363,7 @@ function BadgeCard({ badge, booksCount, totalPages, totalHours, stars }: CardPro
       )
     ),
 
-    // Badge emoji in styled circle
+    // Badge artwork — PNG from storage if available, emoji fallback otherwise.
     React.createElement(
       "div",
       {
@@ -343,24 +377,34 @@ function BadgeCard({ badge, booksCount, totalPages, totalHours, stars }: CardPro
           marginTop: -20,
         },
       },
-      React.createElement(
-        "div",
-        {
-          style: {
-            width: 160,
-            height: 160,
-            borderRadius: "50%",
-            background: `${badge.color}25`,
-            border: `3px solid ${badge.color}60`,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: 80,
-            boxShadow: `0 0 60px ${badge.color}30, 0 8px 32px rgba(0,0,0,0.6)`,
-          },
-        },
-        badge.icon
-      )
+      badgeImage
+        ? React.createElement("img", {
+            src: badgeImage,
+            width: 200,
+            height: 200,
+            style: {
+              objectFit: "contain",
+              filter: `drop-shadow(0 0 60px ${badge.color}30) drop-shadow(0 8px 24px rgba(0,0,0,0.6))`,
+            },
+          })
+        : React.createElement(
+            "div",
+            {
+              style: {
+                width: 160,
+                height: 160,
+                borderRadius: "50%",
+                background: `${badge.color}25`,
+                border: `3px solid ${badge.color}60`,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 80,
+                boxShadow: `0 0 60px ${badge.color}30, 0 8px 32px rgba(0,0,0,0.6)`,
+              },
+            },
+            badge.icon
+          )
     ),
 
     // Content area
@@ -649,8 +693,8 @@ serve(async (req) => {
       }
     }
 
-    // ── Fetch badge + user stats in parallel ──
-    const [badgeRes, booksRes, sessionsRes] = await Promise.all([
+    // ── Fetch badge + user stats + badge artwork in parallel ──
+    const [badgeRes, booksRes, sessionsRes, badgeImage] = await Promise.all([
       supabase
         .from("badges")
         .select("id, name, description, icon, category, color")
@@ -668,6 +712,8 @@ serve(async (req) => {
         .select("start_time, end_time, start_page, end_page")
         .eq("user_id", user.id)
         .not("end_time", "is", null),
+
+      resolveBadgeImage(badge_id),
     ]);
 
     if (badgeRes.error || !badgeRes.data) {
@@ -713,6 +759,7 @@ serve(async (req) => {
     const imageResponse = new ImageResponse(
       BadgeCard({
         badge,
+        badgeImage,
         booksCount,
         totalPages,
         totalHours: totalHoursStr,

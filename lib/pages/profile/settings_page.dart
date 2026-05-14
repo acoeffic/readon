@@ -11,10 +11,13 @@ import '../../providers/theme_provider.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers/subscription_provider.dart';
 import '../../services/subscription_service.dart';
+import 'blocked_users_page.dart';
 import 'notification_settings_page.dart';
 import 'kindle_login_page.dart';
+import 'manage_subscription_page.dart';
 import 'reading_goals_page.dart';
-import 'upgrade_page.dart';
+import 'theme_picker_page.dart';
+import '../../services/native_paywall_service.dart';
 import '../../services/kindle_webview_service.dart';
 import '../../services/kindle_auto_sync_service.dart';
 import '../../models/feature_flags.dart';
@@ -27,8 +30,11 @@ import '../../services/google_books_service.dart';
 import '../../services/notion_service.dart';
 import '../../services/avatar_cache_service.dart';
 import '../../services/push_notification_service.dart';
+import '../../services/badges_service.dart';
 import '../../services/books_service.dart';
+import '../../services/analytics_service.dart';
 import '../../services/feed_cache_service.dart';
+import '../../widgets/badge_unlocked_dialog.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -231,9 +237,7 @@ class _SettingsPageState extends State<SettingsPage> {
   Future<void> _connectNotion() async {
     final sub = context.read<SubscriptionProvider>();
     if (!sub.isPremium) {
-      Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => const UpgradePage()),
-      );
+      NativePaywallService.present(context);
       return;
     }
 
@@ -481,6 +485,7 @@ if (!allowedExtensions.contains(fileExtension)) {
           ),
         );
       }
+      await _checkProfileBadges();
     } catch (e) {
       debugPrint('Erreur upload photo: $e');
       if (mounted) {
@@ -585,6 +590,7 @@ if (!allowedExtensions.contains(fileExtension)) {
           ),
         );
       }
+      await _checkProfileBadges();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -731,6 +737,8 @@ if (!allowedExtensions.contains(fileExtension)) {
       // Nettoyer les caches et le token FCM AVANT la déconnexion
       await FeedCacheService.clear();
       await PushNotificationService().clearToken();
+      await AnalyticsService().track(AnalyticsEvent.logout);
+      await AnalyticsService().reset();
 
       // Déconnexion Supabase AVANT la navigation pour que
       // AuthGate voit session == null et affiche LoginPage
@@ -761,6 +769,25 @@ if (!allowedExtensions.contains(fileExtension)) {
           ),
         );
       }
+    }
+  }
+
+  /// Déclenche le check des badges après un update profil (display_name ou
+  /// avatar). Permet de débloquer notamment `engage_profile` qui requiert
+  /// les deux remplis simultanément.
+  Future<void> _checkProfileBadges() async {
+    try {
+      final newBadges = await BadgesService().checkAndAwardBadges();
+      if (newBadges.isEmpty || !mounted) return;
+      for (final badge in newBadges) {
+        await showDialog<void>(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => BadgeUnlockedDialog(badge: badge),
+        );
+      }
+    } catch (e) {
+      debugPrint('Erreur _checkProfileBadges (non bloquante): $e');
     }
   }
 
@@ -827,10 +854,17 @@ if (!allowedExtensions.contains(fileExtension)) {
                   items: [
                     _SettingsItem(
                       label: sub.isPremium ? subLabel : l10n.upgradeToPremium,
-                      onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const UpgradePage()),
-                      ),
+                      onTap: () => NativePaywallService.present(context),
                     ),
+                    if (sub.isPremium)
+                      _SettingsItem(
+                        label: l10n.manageSubscriptionTitle,
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const ManageSubscriptionPage(),
+                          ),
+                        ),
+                      ),
                   ],
                 );
               }),
@@ -979,6 +1013,37 @@ if (!allowedExtensions.contains(fileExtension)) {
                             ],
                           ),
                         ),
+                        const SizedBox(height: AppSpace.m),
+                        // Accès à la liste des utilisateurs bloqués (UGC §1.2)
+                        InkWell(
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const BlockedUsersPage(),
+                            ),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    l10n.blockedUsersTitle,
+                                    style: Theme.of(context).textTheme.titleMedium,
+                                  ),
+                                ),
+                                Icon(
+                                  Icons.arrow_forward_ios,
+                                  size: 16,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurface
+                                      .withValues(alpha: 0.4),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -1074,9 +1139,8 @@ if (!allowedExtensions.contains(fileExtension)) {
                                           if (!isPremium) ...[
                                             const SizedBox(width: 8),
                                             GestureDetector(
-                                              onTap: () => Navigator.of(context).push(
-                                                MaterialPageRoute(builder: (_) => const UpgradePage()),
-                                              ),
+                                              onTap: () =>
+                                                  NativePaywallService.present(context),
                                               child: Container(
                                                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                                 decoration: BoxDecoration(
@@ -1230,9 +1294,8 @@ if (!allowedExtensions.contains(fileExtension)) {
                                         final isPremium = context.watch<SubscriptionProvider>().isPremium;
                                         if (isPremium) return const SizedBox.shrink();
                                         return GestureDetector(
-                                          onTap: () => Navigator.of(context).push(
-                                            MaterialPageRoute(builder: (_) => const UpgradePage()),
-                                          ),
+                                          onTap: () =>
+                                              NativePaywallService.present(context),
                                           child: Container(
                                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                             decoration: BoxDecoration(
@@ -1287,6 +1350,14 @@ if (!allowedExtensions.contains(fileExtension)) {
                     onTap: themeProvider.themeMode != ThemeMode.system
                         ? () => themeProvider.setThemeMode(ThemeMode.system)
                         : null,
+                  ),
+                  _SettingsItem(
+                    label: '${l10n.themePickerSettingsLabel} · ${themeProvider.variant.name}',
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const ThemePickerPage(),
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -1371,6 +1442,8 @@ if (!allowedExtensions.contains(fileExtension)) {
                       await FeedCacheService.clear();
                       await PushNotificationService().clearToken();
                       await SubscriptionService().logoutUser();
+                      await AnalyticsService().track(AnalyticsEvent.logout);
+                      await AnalyticsService().reset();
                       await Supabase.instance.client.auth.signOut();
 
                       if (context.mounted) {

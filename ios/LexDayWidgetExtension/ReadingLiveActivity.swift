@@ -19,7 +19,7 @@ struct ReadingLiveActivity: Widget {
             DynamicIsland {
                 // --- Dynamic Island expanded ---
                 DynamicIslandExpandedRegion(.leading) {
-                    LiveActivityCover(base64: context.attributes.coverBase64, size: 48)
+                    LiveActivityCover(sessionId: context.attributes.sessionId, size: 48)
                         .padding(.leading, 4)
                 }
                 DynamicIslandExpandedRegion(.trailing) {
@@ -78,7 +78,7 @@ struct LockScreenReadingView: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
-            LiveActivityCover(base64: context.attributes.coverBase64, size: 56)
+            LiveActivityCover(sessionId: context.attributes.sessionId, size: 56)
 
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 6) {
@@ -124,11 +124,14 @@ struct LockScreenReadingView: View {
 
 @available(iOS 16.1, *)
 struct LiveActivityCover: View {
-    let base64: String
+    let sessionId: String
     let size: CGFloat
 
     private var uiImage: UIImage? {
-        guard !base64.isEmpty, let data = Data(base64Encoded: base64) else { return nil }
+        // Lit l'image depuis le container App Group partagé (écrite par
+        // l'app Flutter au moment de démarrer la Live Activity).
+        guard let url = ReadingActivityAttributes.coverFileURL(for: sessionId),
+              let data = try? Data(contentsOf: url) else { return nil }
         return UIImage(data: data)
     }
 
@@ -192,20 +195,24 @@ struct PauseResumeButton: View {
                 Button(intent: ResumeReadingIntent(sessionId: context.attributes.sessionId)) {
                     Label("Reprendre", systemImage: "play.fill")
                         .labelStyle(.titleAndIcon)
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(.system(size: 15, weight: .semibold))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
                 }
                 .tint(Color.lexstaGreen)
                 .buttonStyle(.borderedProminent)
-                .controlSize(.small)
+                .controlSize(.regular)
             } else {
                 Button(intent: PauseReadingIntent(sessionId: context.attributes.sessionId)) {
                     Label("Pause", systemImage: "pause.fill")
                         .labelStyle(.titleAndIcon)
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(.system(size: 15, weight: .semibold))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
                 }
                 .tint(Color.lexstaGreen.opacity(0.85))
                 .buttonStyle(.borderedProminent)
-                .controlSize(.small)
+                .controlSize(.regular)
             }
         } else {
             // iOS 16.1–16.4 : pas de boutons interactifs. On affiche juste un indicateur.

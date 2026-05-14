@@ -1,6 +1,56 @@
 import '../services/badges_service.dart';
 import 'reading_goal.dart';
 
+enum StatsPeriod { thisWeek, thisMonth, thisYear, allTime }
+
+class SessionSpeedPoint {
+  final DateTime date;
+  final double pagesPerHour;
+
+  const SessionSpeedPoint({required this.date, required this.pagesPerHour});
+}
+
+class CurrentBookRhythm {
+  final int bookId;
+  final String title;
+  final String? author;
+  final String? coverUrl;
+  final int currentPage;
+  final int totalPages;
+  final List<SessionSpeedPoint> sessionSpeeds;
+  final int averagePagesPerHour;
+  final int sessionCount;
+  final double? remainingHours;
+
+  const CurrentBookRhythm({
+    required this.bookId,
+    required this.title,
+    this.author,
+    this.coverUrl,
+    required this.currentPage,
+    required this.totalPages,
+    required this.sessionSpeeds,
+    required this.averagePagesPerHour,
+    required this.sessionCount,
+    this.remainingHours,
+  });
+
+  double get progressPercent =>
+      totalPages > 0 ? (currentPage / totalPages * 100).clamp(0, 100) : 0;
+}
+
+class TopAuthor {
+  final String name;
+  final int booksRead;
+  final int totalMinutes;
+
+  const TopAuthor({
+    required this.name,
+    required this.booksRead,
+    required this.totalMinutes,
+  });
+}
+
 class MonthlyPageCount {
   final String label;
   final int month;
@@ -83,6 +133,11 @@ class ReadingStatistics {
   final List<UserBadge> recentBadges;
   final List<ReadingForStatEntry> readingForStats;
   final int sessionCount;
+  final int pagesInPeriod;
+  final int? previousPeriodPages;
+  final List<TopAuthor> topAuthors;
+  final StatsPeriod period;
+  final CurrentBookRhythm? currentBookRhythm;
 
   const ReadingStatistics({
     required this.activeGoals,
@@ -95,5 +150,10 @@ class ReadingStatistics {
     required this.recentBadges,
     this.readingForStats = const [],
     this.sessionCount = 0,
+    this.pagesInPeriod = 0,
+    this.previousPeriodPages,
+    this.topAuthors = const [],
+    this.period = StatsPeriod.thisYear,
+    this.currentBookRhythm,
   });
 }

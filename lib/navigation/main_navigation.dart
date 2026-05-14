@@ -3,9 +3,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:showcaseview/showcaseview.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../pages/feed/feed_page.dart';
-import '../pages/books/user_books_page.dart';
+import '../pages/chat/ai_conversations_page.dart';
 import '../pages/profile/profile_page.dart';
 import '../pages/groups/groups_page.dart';
 import '../pages/reading/active_reading_session_page.dart';
@@ -15,14 +16,18 @@ import '../services/reading_session_service.dart';
 import '../widgets/global_reading_session_fab.dart';
 import '../widgets/active_session_banner.dart';
 import '../theme/app_theme.dart';
+import '../providers/guest_mode_provider.dart';
 import '../providers/subscription_provider.dart';
+import '../widgets/require_account_sheet.dart';
 import '../features/badges/services/anniversary_service.dart';
 import '../features/badges/widgets/anniversary_unlock_overlay.dart';
 import '../services/books_service.dart';
 import '../services/kindle_auto_sync_service.dart';
 import '../services/monthly_notification_service.dart';
+import '../services/onboarding_tutorial_service.dart';
 import '../services/push_notification_service.dart';
 import '../services/session_pause_service.dart';
+import '../services/wrapped_banner_service.dart';
 import '../pages/reading/end_reading_session_page.dart';
 import '../features/wrapped/monthly/monthly_wrapped_screen.dart';
 import '../widgets/kindle_auto_sync_widget.dart';
@@ -57,11 +62,25 @@ class _MainNavigationState extends State<MainNavigation>
   bool _staleModalShown = false;
   final _pauseService = SessionPauseService();
 
-  final List<Widget> _pages = const [
-    FeedPage(),
-    UserBooksPage(),
-    GroupsPage(),
-    ProfilePage(),
+  // Onboarding tutorial (showcase coach marks)
+  final _tutorialService = OnboardingTutorialService();
+  final GlobalKey _feedShowcaseKey = GlobalKey();
+  final GlobalKey _feedContentShowcaseKey = GlobalKey();
+  final GlobalKey _museShowcaseKey = GlobalKey();
+  final GlobalKey _fabShowcaseKey = GlobalKey();
+  final GlobalKey _profileShowcaseKey = GlobalKey();
+  // Capturé dans le `builder` de ShowCaseWidget — c'est le seul context
+  // qui a ShowCaseWidget comme ancêtre (le `context` du State est au-dessus).
+  BuildContext? _showcaseContext;
+
+  late final List<Widget> _pages = [
+    FeedPage(
+      headerShowcaseKey: _feedShowcaseKey,
+      feedContentShowcaseKey: _feedContentShowcaseKey,
+    ),
+    const AiConversationsPage(),
+    const GroupsPage(),
+    const ProfilePage(),
   ];
 
   @override
@@ -76,7 +95,34 @@ class _MainNavigationState extends State<MainNavigation>
       _enrichMissingCovers();
       _consumePendingNotification();
       _updateHomeWidget();
+      _maybeStartOnboardingTutorial();
     });
+  }
+
+  Future<void> _maybeStartOnboardingTutorial() async {
+    // Pas de tutoriel en mode invité — on attend qu'un compte existe.
+    if (!mounted) return;
+    final isGuest = context.read<GuestModeProvider>().isGuest;
+    if (isGuest) return;
+
+    final seen = await _tutorialService.hasSeenMainTutorial();
+    if (seen || !mounted) return;
+
+    // Laisse le temps aux premiers frames (banners, header) de se poser
+    // avant de positionner les overlays.
+    await Future.delayed(const Duration(milliseconds: 600));
+    if (!mounted) return;
+
+    final ctx = _showcaseContext;
+    if (ctx == null || !ctx.mounted) return;
+
+    ShowCaseWidget.of(ctx).startShowCase([
+      _feedShowcaseKey,
+      _feedContentShowcaseKey,
+      _museShowcaseKey,
+      _fabShowcaseKey,
+      _profileShowcaseKey,
+    ]);
   }
 
   void _setupSyncListener() {
@@ -228,6 +274,8 @@ class _MainNavigationState extends State<MainNavigation>
       // or manual refresh to avoid burning the shared Google Books API quota.
       final service = BooksService();
       await service.reEnrichSuspiciousBooks();
+      // One-time Amazon cover backfill (version-gated). Quota-free.
+      await service.enrichCoversWithAmazon();
     } catch (_) {}
   }
 
@@ -248,11 +296,20 @@ class _MainNavigationState extends State<MainNavigation>
       final year = int.tryParse(data['year'] ?? '');
       if (month == null || year == null) return;
 
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => MonthlyWrappedScreen(month: month, year: year),
-        ),
-      );
+      // Affiche la bannière dans le feed pendant 24 h (filet de sécurité
+      // au cas où la navigation immédiate échouerait).
+      WrappedBannerService().setPending(month: month, year: year);
+
+      // Petit délai pour laisser le Scaffold se monter complètement avant
+      // de pousser une nouvelle route (sinon la transition peut être ratée).
+      Future.delayed(const Duration(milliseconds: 300), () {
+        if (!mounted) return;
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => MonthlyWrappedScreen(month: month, year: year),
+          ),
+        );
+      });
     }
   }
 
@@ -408,6 +465,17 @@ class _MainNavigationState extends State<MainNavigation>
   }
 
   void _onItemTapped(int index) {
+    // Mode invité : Muse (1) et Mon espace (3) nécessitent un compte.
+    final isGuest = context.read<GuestModeProvider>().isGuest;
+    if (isGuest && (index == 1 || index == 3)) {
+      showRequireAccountSheet(context);
+      return;
+    }
+    // Re-tap sur l'onglet feed déjà sélectionné : remonter en haut.
+    if (index == 0 && _selectedIndex == 0) {
+      FeedPage.notifyScrollToTop();
+      return;
+    }
     setState(() {
       _selectedIndex = index;
     });
@@ -415,11 +483,21 @@ class _MainNavigationState extends State<MainNavigation>
 
   @override
   Widget build(BuildContext context) {
-    final isTablet = Responsive.isTablet(context);
+    return ShowCaseWidget(
+      disableMovingAnimation: true,
+      onFinish: _onTutorialFinished,
+      builder: (showcaseCtx) {
+        _showcaseContext = showcaseCtx;
+        return _buildScaffold(showcaseCtx);
+      },
+    );
+  }
 
+  Widget _buildScaffold(BuildContext context) {
     final hasActiveBanner =
         _activeSession != null && _activeSessionBook != null;
     final isOffline = !Provider.of<ConnectivityProvider>(context).isOnline;
+    final l10n = AppLocalizations.of(context);
 
     final topPadding = (hasActiveBanner ? 44.0 : 0.0) + (isOffline ? 36.0 : 0.0);
 
@@ -453,66 +531,6 @@ class _MainNavigationState extends State<MainNavigation>
       ],
     );
 
-    if (isTablet) {
-      return Scaffold(
-        body: SafeArea(
-          child: Row(
-            children: [
-              NavigationRail(
-                selectedIndex: _selectedIndex,
-                onDestinationSelected: _onItemTapped,
-                labelType: NavigationRailLabelType.all,
-                backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-                indicatorColor: AppColors.primary.withValues(alpha: 0.15),
-                selectedIconTheme: const IconThemeData(color: AppColors.primary),
-                selectedLabelTextStyle: const TextStyle(
-                  color: AppColors.primary,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                ),
-                unselectedLabelTextStyle: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-                  fontSize: 12,
-                ),
-                leading: const Padding(
-                  padding: EdgeInsets.only(top: 8, bottom: 24),
-                  child: GlobalReadingSessionFAB(),
-                ),
-                destinations: [
-                  NavigationRailDestination(
-                    icon: const Icon(Icons.home_outlined),
-                    selectedIcon: const Icon(Icons.home),
-                    label: Text(AppLocalizations.of(context).navFeed),
-                  ),
-                  NavigationRailDestination(
-                    icon: const Icon(Icons.library_books_outlined),
-                    selectedIcon: const Icon(Icons.library_books),
-                    label: Text(AppLocalizations.of(context).navLibrary),
-                  ),
-                  NavigationRailDestination(
-                    icon: const Icon(Icons.groups_outlined),
-                    selectedIcon: const Icon(Icons.groups),
-                    label: Text(AppLocalizations.of(context).navClub),
-                  ),
-                  NavigationRailDestination(
-                    icon: const Icon(Icons.person_outline),
-                    selectedIcon: const Icon(Icons.person),
-                    label: Text(AppLocalizations.of(context).navProfile),
-                  ),
-                ],
-              ),
-              VerticalDivider(
-                thickness: 1,
-                width: 1,
-                color: Theme.of(context).dividerColor.withValues(alpha: 0.3),
-              ),
-              Expanded(child: body),
-            ],
-          ),
-        ),
-      );
-    }
-
     return Scaffold(
       body: body,
       bottomNavigationBar: BottomAppBar(
@@ -522,47 +540,114 @@ class _MainNavigationState extends State<MainNavigation>
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            _buildNavItem(context, 0, Icons.home_outlined, Icons.home, AppLocalizations.of(context).navFeed),
-            _buildNavItem(context, 1, Icons.library_books_outlined, Icons.library_books, AppLocalizations.of(context).navLibrary),
+            _buildNavItem(context, 0, Icons.home_outlined, Icons.home, l10n.navFeed),
+            _buildNavItem(
+              context,
+              1,
+              Icons.auto_awesome_outlined,
+              Icons.auto_awesome,
+              l10n.navMuse,
+              showcaseKey: _museShowcaseKey,
+              showcaseTitle: l10n.tutorialMuseTitle,
+              showcaseDescription: l10n.tutorialMuseDescription,
+            ),
             const SizedBox(width: 60), // espace pour le notch du FAB
-            _buildNavItem(context, 2, Icons.groups_outlined, Icons.groups, AppLocalizations.of(context).navClub),
-            _buildNavItem(context, 3, Icons.person_outline, Icons.person, AppLocalizations.of(context).navProfile),
+            _buildNavItem(context, 2, Icons.groups_outlined, Icons.groups, l10n.navClub),
+            _buildNavItem(
+              context,
+              3,
+              Icons.person_outline,
+              Icons.person,
+              l10n.navProfile,
+              showcaseKey: _profileShowcaseKey,
+              showcaseTitle: l10n.tutorialProfileTitle,
+              showcaseDescription: l10n.tutorialProfileDescription,
+            ),
           ],
         ),
       ),
-      floatingActionButton: const GlobalReadingSessionFAB(),
+      floatingActionButton: Showcase(
+        key: _fabShowcaseKey,
+        title: l10n.tutorialFabTitle,
+        description: l10n.tutorialFabDescription,
+        targetShapeBorder: const CircleBorder(),
+        targetPadding: const EdgeInsets.all(8),
+        tooltipBackgroundColor: AppColors.primary,
+        textColor: Colors.white,
+        titleTextStyle: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w700,
+          fontSize: 16,
+        ),
+        descTextStyle: const TextStyle(color: Colors.white, fontSize: 13),
+        child: const GlobalReadingSessionFAB(),
+      ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
     );
   }
 
-  Widget _buildNavItem(BuildContext context, int index, IconData icon, IconData activeIcon, String label) {
+  void _onTutorialFinished() {
+    _tutorialService.markMainTutorialSeen();
+  }
+
+  Widget _buildNavItem(
+    BuildContext context,
+    int index,
+    IconData icon,
+    IconData activeIcon,
+    String label, {
+    GlobalKey? showcaseKey,
+    String? showcaseTitle,
+    String? showcaseDescription,
+  }) {
     final isSelected = _selectedIndex == index;
     final color = isSelected
         ? AppColors.primary
         : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6);
 
+    Widget content = Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(isSelected ? activeIcon : icon, color: color, size: 24),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              color: color,
+              fontSize: 12,
+              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (showcaseKey != null) {
+      content = Showcase(
+        key: showcaseKey,
+        title: showcaseTitle,
+        description: showcaseDescription ?? '',
+        targetBorderRadius: BorderRadius.circular(AppRadius.m),
+        targetPadding: const EdgeInsets.all(2),
+        tooltipBackgroundColor: AppColors.primary,
+        textColor: Colors.white,
+        titleTextStyle: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w700,
+          fontSize: 16,
+        ),
+        descTextStyle: const TextStyle(color: Colors.white, fontSize: 13),
+        child: content,
+      );
+    }
+
     return Expanded(
       child: InkWell(
         onTap: () => _onItemTapped(index),
         borderRadius: BorderRadius.circular(AppRadius.m),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 6),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(isSelected ? activeIcon : icon, color: color, size: 24),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                style: TextStyle(
-                  color: color,
-                  fontSize: 12,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                ),
-              ),
-            ],
-          ),
-        ),
+        child: content,
       ),
     );
   }

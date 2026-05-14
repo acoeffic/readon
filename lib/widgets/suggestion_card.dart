@@ -23,7 +23,9 @@ class SuggestionCard extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.only(bottom: AppSpace.m),
       child: InkWell(
-        onTap: onTap,
+        // Tap sur la carte entière → ouvre la fiche descriptive avec bouton
+        // d'achat Amazon. Si un onTap externe est fourni il prend la priorité.
+        onTap: onTap ?? () => _showBookSummarySheet(context),
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(AppSpace.m),
@@ -253,8 +255,10 @@ class SuggestionCard extends StatelessWidget {
     } else {
       query = [title, if (author != null) author].join(' ');
     }
+    // tag=lexday-21 → affiliation utilisée partout ailleurs dans l'app
+    // (cf. prize_list_detail_page, curated_list_detail_page, ai_chat_page).
     final url = Uri.parse(
-      'https://www.amazon.fr/s?k=${Uri.encodeComponent(query)}',
+      'https://www.amazon.fr/s?k=${Uri.encodeComponent(query)}&i=stripbooks&tag=lexday-21',
     );
     await launchUrl(url, mode: LaunchMode.externalApplication);
   }

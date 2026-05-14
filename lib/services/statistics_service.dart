@@ -1,8 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../models/book.dart';
 import '../models/reading_statistics.dart';
 import '../models/reading_goal.dart';
 import 'badges_service.dart';
+import 'books_service.dart';
 import 'goals_service.dart';
 import 'flow_service.dart';
 
@@ -16,33 +18,163 @@ class StatisticsService {
   final GoalsService _goalsService = GoalsService();
   final BadgesService _badgesService = BadgesService();
   final FlowService _flowService = FlowService();
+  final BooksService _booksService = BooksService();
 
-  Future<ReadingStatistics> getStatistics({int? year, String? readingFor}) async {
+  ({DateTime start, DateTime end}) _periodRange(StatsPeriod p, DateTime now) {
+    switch (p) {
+      case StatsPeriod.thisWeek:
+        // ISO week: Monday 00:00 to next Monday 00:00
+        final weekday = now.weekday; // 1=Mon..7=Sun
+        final start = DateTime(now.year, now.month, now.day - (weekday - 1));
+        final end = start.add(const Duration(days: 7));
+        return (start: start, end: end);
+      case StatsPeriod.thisMonth:
+        final start = DateTime(now.year, now.month, 1);
+        final end = DateTime(now.year, now.month + 1, 1);
+        return (start: start, end: end);
+      case StatsPeriod.thisYear:
+        final start = DateTime(now.year, 1, 1);
+        final end = DateTime(now.year + 1, 1, 1);
+        return (start: start, end: end);
+      case StatsPeriod.allTime:
+        return (start: DateTime(2000), end: DateTime(now.year + 1, 1, 1));
+    }
+  }
+
+  ({DateTime start, DateTime end}) _chartRange(DateTime now) {
+    return (
+      start: DateTime(now.year, now.month - 5, 1),
+      end: DateTime(now.year, now.month + 1, 1),
+    );
+  }
+
+  Future<CurrentBookRhythm?> _getCurrentBookRhythm(String userId) async {
+    try {
+      final current = await _booksService.getCurrentReadingBook();
+      if (current == null) return null;
+
+      final book = current['book'] as Book;
+      final currentPage = (current['current_page'] as num?)?.toInt() ?? 0;
+      final totalPages = (current['total_pages'] as num?)?.toInt() ?? 0;
+
+      final response = await _supabase
+          .from('reading_sessions')
+          .select('start_time, end_time, start_page, end_page')
+          .eq('user_id', userId)
+          .eq('book_id', book.id.toString())
+          .not('end_time', 'is', null)
+          .order('start_time', ascending: true);
+
+      final sessions = List<Map<String, dynamic>>.from(response as List);
+
+      int totalMinutes = 0;
+      int totalPagesRead = 0;
+      final speeds = <SessionSpeedPoint>[];
+
+      for (final s in sessions) {
+        try {
+          final st = DateTime.parse(s['start_time'] as String).toLocal();
+          final et = DateTime.parse(s['end_time'] as String).toLocal();
+          final mins = et.difference(st).inMinutes;
+          if (mins <= 0) continue;
+          final sp = (s['start_page'] as num?)?.toInt() ?? 0;
+          final ep = (s['end_page'] as num?)?.toInt() ?? 0;
+          final pages = ep > sp ? ep - sp : 0;
+          if (pages == 0) continue;
+
+          totalMinutes += mins;
+          totalPagesRead += pages;
+          speeds.add(SessionSpeedPoint(
+            date: st,
+            pagesPerHour: pages / (mins / 60),
+          ));
+        } catch (_) {}
+      }
+
+      final avgSpeed = totalMinutes > 0
+          ? (totalPagesRead / (totalMinutes / 60)).round()
+          : 0;
+      double? remaining;
+      if (totalPages > 0 && avgSpeed > 0 && currentPage < totalPages) {
+        remaining = (totalPages - currentPage) / avgSpeed;
+      }
+
+      return CurrentBookRhythm(
+        bookId: book.id,
+        title: book.title,
+        author: book.author,
+        coverUrl: book.coverUrl,
+        currentPage: currentPage,
+        totalPages: totalPages,
+        sessionSpeeds: speeds,
+        averagePagesPerHour: avgSpeed,
+        sessionCount: speeds.length,
+        remainingHours: remaining,
+      );
+    } catch (e) {
+      debugPrint('Erreur _getCurrentBookRhythm: $e');
+      return null;
+    }
+  }
+
+  Future<int> _getPagesInRange(
+    String userId,
+    DateTime start,
+    DateTime end,
+  ) async {
+    try {
+      final res = await _supabase
+          .from('reading_sessions')
+          .select('start_page, end_page')
+          .eq('user_id', userId)
+          .not('end_time', 'is', null)
+          .gte('start_time', start.toUtc().toIso8601String())
+          .lt('start_time', end.toUtc().toIso8601String());
+      int total = 0;
+      for (final s in (res as List)) {
+        final sp = (s['start_page'] as num?)?.toInt() ?? 0;
+        final ep = (s['end_page'] as num?)?.toInt() ?? 0;
+        if (ep > sp) total += ep - sp;
+      }
+      return total;
+    } catch (e) {
+      debugPrint('Erreur _getPagesInRange: $e');
+      return 0;
+    }
+  }
+
+  Future<ReadingStatistics> getStatistics({
+    StatsPeriod period = StatsPeriod.thisYear,
+    String? readingFor,
+  }) async {
     final userId = _supabase.auth.currentUser?.id;
     if (userId == null) throw Exception('Utilisateur non connecte');
 
     final now = DateTime.now();
-    final targetYear = year ?? now.year;
-
-    // Rolling 6-month window when no specific year is requested
-    final String startIso;
-    final String endIso;
-    if (year != null) {
-      startIso = DateTime.utc(year).toIso8601String();
-      endIso = DateTime.utc(year + 1).toIso8601String();
-    } else {
-      startIso = DateTime.utc(now.year, now.month - 5, 1).toIso8601String();
-      endIso = DateTime.utc(now.year, now.month + 1, 1).toIso8601String();
-    }
+    final pr = _periodRange(period, now);
+    final cr = _chartRange(now);
+    final periodStartIso = pr.start.toUtc().toIso8601String();
+    final periodEndIso = pr.end.toUtc().toIso8601String();
+    final chartStartIso = cr.start.toUtc().toIso8601String();
+    final chartEndIso = cr.end.toUtc().toIso8601String();
 
     final List<dynamic> results;
     try {
       results = await Future.wait([
-        _goalsService.getActiveGoalsWithProgress(year: targetYear), // 0
-        _getCompletedSessions(userId, startIso, endIso),            // 1
-        _badgesService.getUserBadges(),                              // 2
-        _flowService.getUserFlow(),                              // 3
-        _getAllTimeTotals(userId),                                    // 4
+        _goalsService.getActiveGoalsWithProgress(year: now.year), // 0
+        _getCompletedSessions(userId, periodStartIso, periodEndIso), // 1
+        _badgesService.getUserBadges(),                                // 2
+        _flowService.getUserFlow(),                                    // 3
+        _getAllTimeTotals(userId),                                      // 4
+        _getCompletedSessions(userId, chartStartIso, chartEndIso),    // 5
+        period == StatsPeriod.thisYear
+            ? _getPagesInRange(
+                userId,
+                DateTime(now.year - 1, 1, 1),
+                DateTime(now.year, 1, 1),
+              )
+            : Future.value(null),                                      // 6
+        _getCurrentBookRhythm(userId),                                 // 7
       ]);
     } catch (e) {
       debugPrint('❌ Future.wait failed: $e');
@@ -54,6 +186,9 @@ class StatisticsService {
     final badges = results[2] as List<UserBadge>;
     final flow = results[3] as dynamic;
     final allTimeTotals = results[4] as Map<String, int>;
+    final chartSessions = results[5] as List<Map<String, dynamic>>;
+    final previousYearPages = results[6] as int?;
+    final currentBookRhythm = results[7] as CurrentBookRhythm?;
 
     // Filter sessions by readingFor if specified
     if (readingFor != null) {
@@ -61,34 +196,45 @@ class StatisticsService {
     }
 
     // Aggregate session data
-    final Map<int, int> monthlyPages = {};
     final Map<String, int> genreMinutes = {};
     final Map<int, Map<int, int>> heatmap = {};
     final Map<String, int> readingForMinutes = {};
     final Map<String, int> readingForPages = {};
     final Map<String, int> readingForSessions = {};
+    final Map<String, _AuthorAgg> authorAgg = {};
     int longestSessionMin = 0;
     DateTime? longestSessionDate;
+    int pagesInPeriod = 0;
 
     for (final s in sessions) {
       try {
         final startTime = DateTime.parse(s['start_time'] as String).toLocal();
         final endTime = DateTime.parse(s['end_time'] as String).toLocal();
         final durationMin = endTime.difference(startTime).inMinutes;
-        if (durationMin <= 0) continue;
 
         final startPage = (s['start_page'] as num?)?.toInt() ?? 0;
         final endPage = (s['end_page'] as num?)?.toInt() ?? 0;
         final pagesRead = endPage > startPage ? endPage - startPage : 0;
 
-        // Pages per month
-        monthlyPages[startTime.month] =
-            (monthlyPages[startTime.month] ?? 0) + pagesRead;
+        // Pages count regardless of duration (covers sub-minute sessions
+        // and imports where end_time == start_time).
+        pagesInPeriod += pagesRead;
 
-        // Genre distribution
+        // Time/genre/heatmap aggregates require a valid positive duration.
+        if (durationMin <= 0) continue;
+
+        // Genre distribution + author aggregation
         final booksData = s['books'];
         final genre = (booksData is Map ? booksData['genre'] as String? : null) ?? 'Autre';
         genreMinutes[genre] = (genreMinutes[genre] ?? 0) + durationMin;
+
+        final author = booksData is Map ? booksData['author'] as String? : null;
+        final bookId = s['book_id']?.toString();
+        if (author != null && author.trim().isNotEmpty && bookId != null) {
+          final agg = authorAgg.putIfAbsent(author, () => _AuthorAgg());
+          agg.minutes += durationMin;
+          agg.bookIds.add(bookId);
+        }
 
         // Heatmap: weekday (1=Mon..7=Sun) x timeSlot (0=Matin, 1=Midi, 2=Soir, 3=Nuit)
         final weekday = startTime.weekday;
@@ -126,8 +272,8 @@ class StatisticsService {
       }
     }
 
-    // Fallback: si aucune session cette année, heatmap all-time (sauf si filtre actif)
-    if (heatmap.isEmpty && readingFor == null) {
+    // Fallback: si aucune session sur la période, heatmap all-time (sauf si filtre actif)
+    if (heatmap.isEmpty && readingFor == null && period != StatsPeriod.allTime) {
       try {
         final allSessions = await _supabase
             .from('reading_sessions')
@@ -161,26 +307,30 @@ class StatisticsService {
       }
     }
 
-    // Build pages per month
+    // Build pages per month — always from rolling 6-month chart sessions
+    // (independent of selected period filter, gives a stable backdrop).
+    final Map<String, int> chartMonthlyPages = {};
+    for (final s in chartSessions) {
+      try {
+        final st = DateTime.parse(s['start_time'] as String).toLocal();
+        final sp = (s['start_page'] as num?)?.toInt() ?? 0;
+        final ep = (s['end_page'] as num?)?.toInt() ?? 0;
+        final pages = ep > sp ? ep - sp : 0;
+        final key = '${st.year}-${st.month}';
+        chartMonthlyPages[key] = (chartMonthlyPages[key] ?? 0) + pages;
+      } catch (_) {}
+    }
+
     final pagesPerMonth = <MonthlyPageCount>[];
-    if (year != null) {
-      for (int m = 1; m <= 12; m++) {
-        pagesPerMonth.add(MonthlyPageCount(
-          label: _frenchMonths[m],
-          month: m,
-          pages: monthlyPages[m] ?? 0,
-        ));
-      }
-    } else {
-      for (int i = 0; i < 6; i++) {
-        final monthDate = DateTime(now.year, now.month - 5 + i, 1);
-        final m = monthDate.month;
-        pagesPerMonth.add(MonthlyPageCount(
-          label: _frenchMonths[m],
-          month: m,
-          pages: monthlyPages[m] ?? 0,
-        ));
-      }
+    for (int i = 0; i < 6; i++) {
+      final monthDate = DateTime(now.year, now.month - 5 + i, 1);
+      final m = monthDate.month;
+      final key = '${monthDate.year}-$m';
+      pagesPerMonth.add(MonthlyPageCount(
+        label: _frenchMonths[m],
+        month: m,
+        pages: chartMonthlyPages[key] ?? 0,
+      ));
     }
 
     // Build genre distribution
@@ -254,6 +404,19 @@ class StatisticsService {
     }).toList()
       ..sort((a, b) => b.totalMinutes.compareTo(a.totalMinutes));
 
+    // Top authors — distinct books per author from period sessions
+    final topAuthors = authorAgg.entries
+        .map((e) => TopAuthor(
+              name: e.key,
+              booksRead: e.value.bookIds.length,
+              totalMinutes: e.value.minutes,
+            ))
+        .toList()
+      ..sort((a, b) {
+        final byBooks = b.booksRead.compareTo(a.booksRead);
+        return byBooks != 0 ? byBooks : b.totalMinutes.compareTo(a.totalMinutes);
+      });
+
     return ReadingStatistics(
       activeGoals: goals,
       pagesPerMonth: pagesPerMonth,
@@ -265,6 +428,11 @@ class StatisticsService {
       recentBadges: recentUnlocked.take(3).toList(),
       readingForStats: readingForEntries,
       sessionCount: sessions.length,
+      pagesInPeriod: pagesInPeriod,
+      previousPeriodPages: previousYearPages,
+      topAuthors: topAuthors.take(3).toList(),
+      period: period,
+      currentBookRhythm: currentBookRhythm,
     );
   }
 
@@ -296,29 +464,31 @@ class StatisticsService {
         try {
           final booksResponse = await _supabase
               .from('user_books')
-              .select('book_id, books(genre)')
+              .select('book_id, books(genre, author)')
               .eq('user_id', userId)
               .inFilter('book_id', bookIds.map((id) => int.tryParse(id!) ?? 0).where((id) => id > 0).toList());
 
-          final genreMap = <String, String>{};
+          final bookMeta = <String, Map<String, String?>>{};
           for (final ub in (booksResponse as List)) {
             final bookId = ub['book_id']?.toString();
             final booksData = ub['books'];
-            final genre = booksData is Map ? booksData['genre']?.toString() : null;
-            if (bookId != null && genre != null) {
-              genreMap[bookId] = genre;
+            if (bookId != null && booksData is Map) {
+              bookMeta[bookId] = {
+                'genre': booksData['genre']?.toString(),
+                'author': booksData['author']?.toString(),
+              };
             }
           }
 
-          // Merge genre back into sessions
+          // Merge genre + author back into sessions
           for (final s in sessions) {
             final bookId = s['book_id']?.toString();
-            if (bookId != null && genreMap.containsKey(bookId)) {
-              s['books'] = {'genre': genreMap[bookId]};
+            if (bookId != null && bookMeta.containsKey(bookId)) {
+              s['books'] = bookMeta[bookId];
             }
           }
         } catch (e) {
-          debugPrint('Erreur fetch book genres: $e');
+          debugPrint('Erreur fetch book metadata: $e');
         }
       }
 
@@ -399,4 +569,9 @@ class StatisticsService {
       return {'minutes': 0, 'pages': 0, 'sessions': 0, 'books': 0};
     }
   }
+}
+
+class _AuthorAgg {
+  int minutes = 0;
+  final Set<String> bookIds = {};
 }

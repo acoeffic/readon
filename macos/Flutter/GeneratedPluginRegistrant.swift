@@ -19,6 +19,7 @@ import google_sign_in_ios
 import just_audio
 import mobile_scanner
 import path_provider_foundation
+import posthog_flutter
 import purchases_flutter
 import record_macos
 import share_plus
@@ -43,6 +44,7 @@ func RegisterGeneratedPlugins(registry: FlutterPluginRegistry) {
   JustAudioPlugin.register(with: registry.registrar(forPlugin: "JustAudioPlugin"))
   MobileScannerPlugin.register(with: registry.registrar(forPlugin: "MobileScannerPlugin"))
   PathProviderPlugin.register(with: registry.registrar(forPlugin: "PathProviderPlugin"))
+  PosthogFlutterPlugin.register(with: registry.registrar(forPlugin: "PosthogFlutterPlugin"))
   PurchasesFlutterPlugin.register(with: registry.registrar(forPlugin: "PurchasesFlutterPlugin"))
   RecordMacOsPlugin.register(with: registry.registrar(forPlugin: "RecordMacOsPlugin"))
   SharePlusMacosPlugin.register(with: registry.registrar(forPlugin: "SharePlusMacosPlugin"))

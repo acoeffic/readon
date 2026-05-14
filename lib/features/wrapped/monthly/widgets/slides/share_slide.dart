@@ -268,7 +268,7 @@ class _ShareSlideState extends State<ShareSlide> {
         FadeUp(
           delay: const Duration(milliseconds: 500),
           child: _ShareButton(
-            year: data.year,
+            monthName: data.monthName,
             accent: theme.accent,
             isLoading: _loadingAction == 'generic',
             onTap: _shareGeneric,
@@ -348,17 +348,26 @@ class _ShareSlideState extends State<ShareSlide> {
 // ---------------------------------------------------------------------------
 
 class _ShareButton extends StatelessWidget {
-  final int year;
+  final String monthName;
   final Color accent;
   final bool isLoading;
   final VoidCallback onTap;
 
   const _ShareButton({
-    required this.year,
+    required this.monthName,
     required this.accent,
     required this.isLoading,
     required this.onTap,
   });
+
+  /// Élision française : "d'Avril" pour les mois commençant par une voyelle
+  /// (a/e/i/o/u, et "h" muet), "de Mars" sinon.
+  String _withFrenchPrefix(String month) {
+    if (month.isEmpty) return month;
+    final first = month[0].toLowerCase();
+    const vowels = {'a', 'e', 'i', 'o', 'u', 'h', 'é', 'è', 'à'};
+    return vowels.contains(first) ? "d'$month" : 'de $month';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -399,7 +408,7 @@ class _ShareButton extends StatelessWidget {
                   ),
                 )
               : Text(
-                  'Partager mon Wrapped $year',
+                  'Partager mon Wrapped ${_withFrenchPrefix(monthName)}',
                   style: const TextStyle(
                     fontFamily: 'Poppins',
                     fontSize: 18,

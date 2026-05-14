@@ -3,7 +3,9 @@ import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/back_header.dart';
 import '../../models/reading_goal.dart';
+import '../../services/badges_service.dart';
 import '../../services/goals_service.dart';
+import '../../widgets/badge_unlocked_dialog.dart';
 import '../../widgets/constrained_content.dart';
 
 class ReadingGoalsPage extends StatefulWidget {
@@ -118,6 +120,24 @@ class _ReadingGoalsPageState extends State<ReadingGoalsPage> {
 
     try {
       await _goalsService.saveAllGoals(goals);
+
+      // Trigger badge check (notamment goal_created qui se débloque
+      // à la création du 1ᵉʳ objectif).
+      try {
+        final newBadges = await BadgesService().checkAndAwardBadges();
+        if (newBadges.isNotEmpty && mounted) {
+          for (final badge in newBadges) {
+            await showDialog<void>(
+              context: context,
+              barrierDismissible: false,
+              builder: (context) => BadgeUnlockedDialog(badge: badge),
+            );
+          }
+        }
+      } catch (e) {
+        debugPrint('Erreur checkAndAwardBadges (non bloquante): $e');
+      }
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

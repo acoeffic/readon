@@ -918,6 +918,9 @@ class _BookListItem extends StatelessWidget {
               // Book cover
               _BookCover(
                 coverUrl: coverUrl,
+                isbn: book.isbn,
+                title: book.title,
+                author: book.author,
                 gradientColor: gradientColor,
               ),
               const SizedBox(width: 12),
@@ -971,35 +974,44 @@ class _BookListItem extends StatelessWidget {
 
 class _BookCover extends StatelessWidget {
   final String? coverUrl;
+  final String? isbn;
+  final String? title;
+  final String? author;
   final Color gradientColor;
 
   const _BookCover({
     required this.coverUrl,
+    required this.isbn,
+    required this.title,
+    required this.author,
     required this.gradientColor,
   });
 
   @override
   Widget build(BuildContext context) {
-    if (coverUrl != null) {
-      return CachedBookCover(
-        imageUrl: coverUrl,
-        width: 44,
-        height: 64,
-        borderRadius: BorderRadius.circular(4),
-      );
-    }
-
-    return Container(
+    // Always go through CachedBookCover so the fallback chain
+    // (Google Books → Amazon → iTunes → OL → BnF → title+author) runs
+    // even when Google Books metadata hasn't been resolved yet.
+    return CachedBookCover(
+      imageUrl: coverUrl,
+      isbn: isbn,
+      title: title,
+      author: author,
       width: 44,
       height: 64,
-      decoration: BoxDecoration(
-        color: gradientColor.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: Icon(
-        Icons.book,
-        size: 20,
-        color: gradientColor.withValues(alpha: 0.4),
+      borderRadius: BorderRadius.circular(4),
+      placeholder: Container(
+        width: 44,
+        height: 64,
+        decoration: BoxDecoration(
+          color: gradientColor.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Icon(
+          Icons.book,
+          size: 20,
+          color: gradientColor.withValues(alpha: 0.4),
+        ),
       ),
     );
   }

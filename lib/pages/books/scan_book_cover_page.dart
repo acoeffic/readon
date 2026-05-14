@@ -699,90 +699,70 @@ class _ScanBookCoverPageState extends State<ScanBookCoverPage>
 
   /// Scanner OCR (photo couverture)
   Widget _buildOCRScanner() {
+    final isInitial = _imageFile == null &&
+        _searchResults.isEmpty &&
+        !_isProcessing &&
+        !_isSearching &&
+        _errorMessage == null &&
+        _successMessage == null;
+
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpace.l,
+        AppSpace.l,
+        AppSpace.l,
+        AppSpace.xl,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Instructions
-          Builder(
-            builder: (context) {
-              final isDark = Theme.of(context).brightness == Brightness.dark;
-              return Card(
-                color: isDark ? Colors.blue.shade900.withValues(alpha: 0.3) : Colors.blue.shade50,
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(Icons.info_outline, color: isDark ? Colors.blue.shade300 : Colors.blue),
-                          const SizedBox(width: 8),
-                          Text('Scan de couverture',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: isDark ? Colors.white : null,
-                              )),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text('1. Photographiez la couverture du livre',
-                          style: TextStyle(color: isDark ? Colors.white70 : null)),
-                      Text('2. L\'OCR détecte le titre et l\'auteur',
-                          style: TextStyle(color: isDark ? Colors.white70 : null)),
-                      Text('3. Recherche automatique sur Google Books',
-                          style: TextStyle(color: isDark ? Colors.white70 : null)),
-                      const SizedBox(height: 8),
-                      Text('Astuce: si l\'ISBN est visible, il sera détecté automatiquement',
-                          style: TextStyle(
-                            fontStyle: FontStyle.italic,
-                            color: isDark ? Colors.white60 : null,
-                          )),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
+          if (isInitial) ...[
+            _buildOCRHero(),
+            const SizedBox(height: AppSpace.l),
+            _buildOCRSteps(),
+            const SizedBox(height: AppSpace.xl),
+          ],
 
-          const SizedBox(height: 20),
-
-          // Boutons de capture
-          Row(
-            children: [
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: _isProcessing ? null : _takePicture,
-                  icon: const Icon(Icons.camera_alt),
-                  label: const Text('Photo'),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.all(16),
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                  ),
+          // Action principale
+          SizedBox(
+            height: 56,
+            child: ElevatedButton.icon(
+              onPressed: _isProcessing ? null : _takePicture,
+              icon: const Icon(Icons.camera_alt_rounded),
+              label: const Text(
+                'Prendre une photo',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppRadius.pill),
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: _isProcessing ? null : _pickFromGallery,
-                  icon: const Icon(Icons.photo_library),
-                  label: const Text('Galerie'),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.all(16),
-                    backgroundColor: AppColors.primary.withValues(alpha: 0.6),
-                    foregroundColor: Colors.white,
-                  ),
-                ),
+            ),
+          ),
+          const SizedBox(height: AppSpace.s),
+          Center(
+            child: TextButton.icon(
+              onPressed: _isProcessing ? null : _pickFromGallery,
+              icon: const Icon(Icons.photo_library_outlined, size: 18),
+              label: const Text('Choisir depuis la galerie'),
+              style: TextButton.styleFrom(
+                foregroundColor: AppColors.primary,
               ),
-            ],
+            ),
           ),
 
-          const SizedBox(height: 20),
+          if (isInitial) ...[
+            const SizedBox(height: AppSpace.l),
+            _buildIsbnTip(),
+          ],
 
           // Processing
-          if (_isProcessing)
+          if (_isProcessing) ...[
+            const SizedBox(height: AppSpace.l),
             const Card(
               child: Padding(
                 padding: EdgeInsets.all(20),
@@ -795,6 +775,7 @@ class _ScanBookCoverPageState extends State<ScanBookCoverPage>
                 ),
               ),
             ),
+          ],
 
           // Messages
           _buildMessages(),
@@ -852,6 +833,121 @@ class _ScanBookCoverPageState extends State<ScanBookCoverPage>
 
           // Résultats
           _buildSearchResults(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOCRHero() {
+    return AspectRatio(
+      aspectRatio: 3 / 4,
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.primary.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(AppRadius.l),
+          border: Border.all(
+            color: AppColors.primary.withValues(alpha: 0.25),
+            width: 1.5,
+          ),
+        ),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Center(
+              child: AnimatedBuilder(
+                animation: _pulseAnimation,
+                builder: (context, child) {
+                  return Transform.scale(
+                    scale: _pulseAnimation.value,
+                    child: child,
+                  );
+                },
+                child: Container(
+                  width: 88,
+                  height: 88,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.18),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.camera_alt_rounded,
+                    size: 44,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: AppSpace.l,
+              child: Column(
+                children: [
+                  Text(
+                    'Photographiez la couverture',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'On détecte le titre et trouve le livre',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: 0.6),
+                        ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOCRSteps() {
+    return Row(
+      children: const [
+        _OCRStep(icon: Icons.camera_alt_outlined, label: 'Photo'),
+        SizedBox(width: AppSpace.s),
+        _OCRStep(icon: Icons.text_fields_rounded, label: 'Détection'),
+        SizedBox(width: AppSpace.s),
+        _OCRStep(icon: Icons.auto_awesome_outlined, label: 'Recherche'),
+      ],
+    );
+  }
+
+  Widget _buildIsbnTip() {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpace.m,
+        vertical: AppSpace.s,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(AppRadius.pill),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.lightbulb_outline_rounded,
+            size: 16,
+            color: AppColors.primary,
+          ),
+          const SizedBox(width: AppSpace.s),
+          Flexible(
+            child: Text(
+              'Si l\'ISBN est visible, il sera détecté automatiquement',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w500,
+                  ),
+            ),
+          ),
         ],
       ),
     );
@@ -965,6 +1061,39 @@ class _ScanBookCoverPageState extends State<ScanBookCoverPage>
                 ),
               )),
         ],
+      ),
+    );
+  }
+}
+
+class _OCRStep extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  const _OCRStep({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    final onSurface = Theme.of(context).colorScheme.onSurface;
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: AppSpace.m),
+        decoration: BoxDecoration(
+          color: onSurface.withValues(alpha: 0.04),
+          borderRadius: BorderRadius.circular(AppRadius.m),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, size: 22, color: AppColors.primary),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: onSurface.withValues(alpha: 0.8),
+                  ),
+            ),
+          ],
+        ),
       ),
     );
   }

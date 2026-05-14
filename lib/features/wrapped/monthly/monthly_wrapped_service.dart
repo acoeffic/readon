@@ -130,20 +130,68 @@ class MonthlyWrappedService {
   // ---------------------------------------------------------------------------
 
   /// All completed sessions in the month window, with book info.
+  ///
+  /// Note: `reading_sessions.book_id` est `text`, `books.id` est `bigint` —
+  /// donc pas de vraie FK PostgreSQL → l'embed PostgREST `books(...)` échoue
+  /// avec "Could not find a relationship". On fait deux requêtes et on joint
+  /// côté Dart.
   Future<List<Map<String, dynamic>>> _getCompletedSessions(
     String userId, String startIso, String endIso,
   ) async {
     try {
-      final response = await _supabase
+      final sessions = await _supabase
           .from('reading_sessions')
-          .select('start_time, end_time, book_id, books(title, author, cover_url)')
+          .select('start_time, end_time, book_id')
           .eq('user_id', userId)
           .not('end_time', 'is', null)
           .gte('start_time', startIso)
           .lt('start_time', endIso)
           .order('start_time');
 
-      return List<Map<String, dynamic>>.from(response as List);
+      final sessionsList = List<Map<String, dynamic>>.from(sessions as List);
+
+      // Collecte les book_id uniques (en text — c'est ce que stocke la table).
+      final bookIdsText = <String>{};
+      for (final s in sessionsList) {
+        final raw = s['book_id'];
+        if (raw == null) continue;
+        bookIdsText.add(raw.toString());
+      }
+      if (bookIdsText.isEmpty) return sessionsList;
+
+      // Convertit en bigint pour la requête `books.id`. Les ids non numériques
+      // (cas Kindle p.ex.) sont ignorés.
+      final bookIdsInt = bookIdsText
+          .map((s) => int.tryParse(s))
+          .whereType<int>()
+          .toList();
+
+      if (bookIdsInt.isEmpty) return sessionsList;
+
+      final books = await _supabase
+          .from('books')
+          .select('id, title, author, cover_url')
+          .inFilter('id', bookIdsInt);
+
+      final booksById = <String, Map<String, dynamic>>{};
+      for (final b in (books as List)) {
+        final id = b['id'].toString();
+        booksById[id] = {
+          'title': b['title'],
+          'author': b['author'],
+          'cover_url': b['cover_url'],
+        };
+      }
+
+      // Injecte les infos livre dans chaque session, comme le faisait l'embed.
+      for (final s in sessionsList) {
+        final id = s['book_id']?.toString();
+        if (id != null && booksById.containsKey(id)) {
+          s['books'] = booksById[id];
+        }
+      }
+
+      return sessionsList;
     } catch (e) {
       debugPrint('Erreur _getCompletedSessions: $e');
       return [];
@@ -215,12 +263,14 @@ class MonthlyWrappedService {
     String userId, String startIso, String endIso,
   ) async {
     try {
+      // La colonne réelle dans `user_badges` est `unlocked_at` (pas
+      // `earned_at`) — voir migrations 20260201_complete_badges_system.sql.
       final response = await _supabase
           .from('user_badges')
           .select('badge_id, badges(name, icon)')
           .eq('user_id', userId)
-          .gte('earned_at', startIso)
-          .lt('earned_at', endIso);
+          .gte('unlocked_at', startIso)
+          .lt('unlocked_at', endIso);
 
       return (response as List).map((row) {
         final badge = row['badges'] as Map<String, dynamic>?;

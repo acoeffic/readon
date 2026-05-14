@@ -13,6 +13,7 @@ import '../../features/wrapped/yearly/yearly_wrapped_screen.dart';
 import '../../features/badges/widgets/anniversary_debug_page.dart';
 import '../../features/badges/widgets/books_badge_debug_page.dart';
 import '../../services/lexday_sync_service.dart';
+import '../../services/wrapped_banner_service.dart';
 
 class ProfileDetailPage extends StatefulWidget {
   const ProfileDetailPage({super.key});
@@ -178,6 +179,48 @@ class _ProfileDetailPageState extends State<ProfileDetailPage> {
                     ),
                   ),
                 ),
+              ),
+              const SizedBox(height: AppSpace.m),
+              _navButton(
+                context,
+                label: 'Monthly Wrapped (mois dernier — vraies données)',
+                icon: Icons.calendar_today_outlined,
+                onPressed: () {
+                  // Calcule le mois précédent (la notif arrive le 1er pour le mois N-1).
+                  final now = DateTime.now();
+                  final prev = DateTime(now.year, now.month - 1, 1);
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => MonthlyWrappedScreen(
+                        month: prev.month,
+                        year: prev.year,
+                        // pas de demoData → fetch Supabase réel
+                      ),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: AppSpace.m),
+              _navButton(
+                context,
+                label: 'Tester la bannière Wrapped dans le feed',
+                icon: Icons.notifications_active_outlined,
+                onPressed: () async {
+                  final now = DateTime.now();
+                  final prev = DateTime(now.year, now.month - 1, 1);
+                  await WrappedBannerService().setPending(
+                    month: prev.month,
+                    year: prev.year,
+                  );
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Bannière armée pour ${prev.month}/${prev.year}. Va dans le feed pour la voir.',
+                      ),
+                    ),
+                  );
+                },
               ),
               const SizedBox(height: AppSpace.m),
               _navButton(

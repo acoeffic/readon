@@ -86,7 +86,10 @@ class SlideFinal extends StatelessWidget {
           FadeUp(
             delay: const Duration(milliseconds: 800),
             child: GestureDetector(
-              onTap: () => showWrappedShareSheet(context: context, data: data),
+              onTap: () {
+                HapticFeedback.mediumImpact();
+                showWrappedShareSheet(context: context, data: data);
+              },
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 16),
                 decoration: BoxDecoration(
@@ -120,7 +123,10 @@ class SlideFinal extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                _SocialLink(label: 'Instagram', onTap: () => showWrappedShareSheet(context: context, data: data)),
+                _SocialLink(label: 'Instagram', onTap: () {
+                  HapticFeedback.selectionClick();
+                  showWrappedShareSheet(context: context, data: data);
+                }),
                 const SizedBox(width: 20),
                 _SocialLink(label: 'Twitter', onTap: _shareToTwitter),
                 const SizedBox(width: 20),

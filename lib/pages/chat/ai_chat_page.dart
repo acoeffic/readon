@@ -14,7 +14,7 @@ import '../../services/chat_service.dart' show ChatService, ChatLimitReachedExce
 import '../../services/google_books_service.dart';
 import '../../services/user_custom_lists_service.dart';
 import '../../models/user_custom_list.dart';
-import '../profile/upgrade_page.dart';
+import '../../services/native_paywall_service.dart';
 import '../curated_lists/create_custom_list_dialog.dart';
 import '../../widgets/constrained_content.dart';
 
@@ -365,10 +365,9 @@ class _AiChatPageState extends State<AiChatPage> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => const UpgradePage(highlightedFeature: Feature.aiChat),
-                  ),
+                onPressed: () => NativePaywallService.present(
+                  context,
+                  highlightedFeature: Feature.aiChat,
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,

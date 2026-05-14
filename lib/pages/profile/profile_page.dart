@@ -10,6 +10,7 @@ import 'profile_detail_page.dart';
 import '../sessions/sessions_tab.dart';
 import '../stats/stats_tab.dart';
 import '../curated_lists/saved_lists_tab.dart';
+import '../books/user_books_page.dart';
 
 class ProfilePage extends StatefulWidget {
   final bool showBack;
@@ -27,13 +28,31 @@ class _ProfilePageState extends State<ProfilePage>
   String _userName = 'Utilisateur';
   String? _avatarUrl;
   String? _localAvatarPath;
+  int _pendingFriendRequests = 0;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
     _tabController.addListener(_onTabChanged);
     _loadUserInfo();
+    _loadPendingFriendRequests();
+  }
+
+  Future<void> _loadPendingFriendRequests() async {
+    try {
+      final user = supabase.auth.currentUser;
+      if (user == null) return;
+      final res = await supabase
+          .from('friends')
+          .select('id')
+          .eq('addressee_id', user.id)
+          .eq('status', 'pending');
+      if (!mounted) return;
+      setState(() => _pendingFriendRequests = (res as List).length);
+    } catch (e) {
+      debugPrint('Erreur _loadPendingFriendRequests: $e');
+    }
   }
 
   @override
@@ -100,7 +119,7 @@ class _ProfilePageState extends State<ProfilePage>
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
-        child: ConstrainedContent(
+        child: ConstrainedContent.wide(
           child: Column(
           children: [
             // --- HEADER COMPACT ---
@@ -129,21 +148,45 @@ class _ProfilePageState extends State<ProfilePage>
                             builder: (_) => const ProfileDetailPage()),
                       );
                       _loadUserInfo();
+                      _loadPendingFriendRequests();
                     },
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        CachedProfileAvatar(
-                          imageUrl: _avatarUrl,
-                          localFilePath: _localAvatarPath,
-                          userName: _userName,
-                          radius: 18,
-                          backgroundColor:
-                              Theme.of(context).brightness == Brightness.dark
-                                  ? AppColors.accentDark
-                                  : AppColors.accentLight,
-                          textColor: AppColors.primary,
-                          fontSize: 14,
+                        Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            CachedProfileAvatar(
+                              imageUrl: _avatarUrl,
+                              localFilePath: _localAvatarPath,
+                              userName: _userName,
+                              radius: 18,
+                              backgroundColor:
+                                  Theme.of(context).brightness == Brightness.dark
+                                      ? AppColors.accentDark
+                                      : AppColors.accentLight,
+                              textColor: AppColors.primary,
+                              fontSize: 14,
+                            ),
+                            if (_pendingFriendRequests > 0)
+                              Positioned(
+                                right: -1,
+                                top: -1,
+                                child: Container(
+                                  width: 12,
+                                  height: 12,
+                                  decoration: BoxDecoration(
+                                    color: Colors.red,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: Theme.of(context)
+                                          .scaffoldBackgroundColor,
+                                      width: 2,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
                         const SizedBox(width: AppSpace.s),
                         Text(
@@ -180,11 +223,13 @@ class _ProfilePageState extends State<ProfilePage>
               labelColor: AppColors.primary,
               unselectedLabelColor:
                   Theme.of(context).textTheme.bodyMedium?.color,
-              tabAlignment: TabAlignment.fill,
+              isScrollable: true,
+              tabAlignment: TabAlignment.start,
               tabs: [
                 Tab(text: l10n.mySessions),
                 Tab(text: l10n.myStatistics),
                 Tab(text: l10n.myLists),
+                Tab(text: l10n.myLibrary),
               ],
             ),
 
@@ -196,6 +241,7 @@ class _ProfilePageState extends State<ProfilePage>
                   const SessionsTab(),
                   const StatsTab(),
                   SavedListsTab(key: _savedListsKey),
+                  const UserBooksPage(),
                 ],
               ),
             ),

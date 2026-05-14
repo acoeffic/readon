@@ -264,7 +264,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
     final steps = _buildSteps();
 
     return Theme(
-      data: AppTheme.light,
+      data: AppTheme.light(),
       child: Scaffold(
         backgroundColor: AppColors.bgLight,
         body: SafeArea(

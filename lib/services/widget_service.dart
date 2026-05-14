@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/book.dart';
 import '../models/reading_flow.dart';
+import '../widgets/cached_book_cover.dart';
 import 'books_service.dart';
 import 'flow_service.dart';
 
@@ -58,7 +59,7 @@ class WidgetService {
         final book = currentBookData['book'] as Book;
         bookTitle = book.title;
         bookAuthor = book.author ?? '';
-        bookCoverUrl = book.coverUrl ?? '';
+        bookCoverUrl = await _resolveBestCoverUrl(book);
 
         final currentPage = currentBookData['current_page'] as int? ?? 0;
         final totalPages = currentBookData['total_pages'] as int? ?? 0;
@@ -91,6 +92,39 @@ class WidgetService {
     } catch (e) {
       debugPrint('❌ Erreur updateWidget: $e');
     }
+  }
+
+  /// Résout la meilleure URL de couverture disponible (Google Books > Amazon
+  /// via ISBN-10 > URL stockée), dans le même esprit que la chaîne utilisée
+  /// par CachedBookCover. Fait un best-effort sans bloquer trop longtemps.
+  Future<String> _resolveBestCoverUrl(Book book) async {
+    // 1. Cache in-memory déjà résolu par CachedBookCover (si le livre a
+    //    été affiché dans l'app, la bonne URL y est).
+    final cached = CachedBookCover.resolvedUrl(
+      imageUrl: book.coverUrl,
+      isbn: book.isbn,
+      googleId: book.googleId,
+    );
+    if (cached != null && cached.isNotEmpty) return cached;
+
+    // 2. URL déterministe Google Books via googleId (pas d'appel réseau).
+    if (book.googleId != null && book.googleId!.isNotEmpty) {
+      return 'https://books.google.com/books/content'
+          '?id=${book.googleId}'
+          '&printsec=frontcover&img=1&zoom=3&source=gbs_api';
+    }
+
+    // 3. Amazon via ISBN (best-effort, timeout court).
+    if (book.isbn != null && book.isbn!.isNotEmpty) {
+      try {
+        final amazonUrl = await CachedBookCover.fetchAmazonCover(book.isbn!)
+            .timeout(const Duration(seconds: 3));
+        if (amazonUrl != null) return amazonUrl;
+      } catch (_) {}
+    }
+
+    // 4. URL brute stockée en dernier recours.
+    return book.coverUrl ?? '';
   }
 
   /// Télécharger la couverture et la convertir en base64 pour le widget

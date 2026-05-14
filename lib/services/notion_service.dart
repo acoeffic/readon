@@ -46,14 +46,22 @@ class NotionService {
 
   // ── OAuth URL ────────────────────────────────────────────
 
+  /// Notion n'accepte pas les custom schemes (`lexday://`) comme
+  /// `redirect_uri`. On enregistre donc l'URL HTTPS d'une Edge Function
+  /// Supabase (`notion-oauth-redirect`) qui se charge ensuite de rediriger
+  /// (302) vers le deep link de l'app. Cette même URL doit être utilisée
+  /// à la fois dans l'URL d'autorisation et lors de l'échange du code,
+  /// car Notion vérifie qu'elles correspondent.
+  static String get _notionRedirectUri =>
+      '${Env.supabaseUrl}/functions/v1/notion-oauth-redirect';
+
   String getOAuthUrl() {
     final clientId = Env.notionClientId;
-    const redirectUri = 'lexday://notion/callback';
     return 'https://api.notion.com/v1/oauth/authorize'
         '?client_id=$clientId'
         '&response_type=code'
         '&owner=user'
-        '&redirect_uri=${Uri.encodeComponent(redirectUri)}';
+        '&redirect_uri=${Uri.encodeComponent(_notionRedirectUri)}';
   }
 
   // ── Exchange code for token ──────────────────────────────
@@ -61,7 +69,7 @@ class NotionService {
   Future<String> exchangeCode(String code) async {
     final response = await _supabase.functions.invoke(
       'notion-oauth-callback',
-      body: {'code': code, 'redirect_uri': 'lexday://notion/callback'},
+      body: {'code': code, 'redirect_uri': _notionRedirectUri},
     );
 
     final data = _parseResponse(response.data);

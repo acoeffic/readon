@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../utils/responsive.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:just_audio/just_audio.dart';
 import '../../l10n/app_localizations.dart';
@@ -30,7 +31,7 @@ import '../../models/reading_sheet.dart';
 import '../../services/annotation_service.dart';
 import '../../services/ai_service.dart';
 import '../../services/notion_service.dart';
-import '../profile/upgrade_page.dart';
+import '../../services/native_paywall_service.dart';
 import 'reading_sheet_share_service.dart';
 
 class UserBooksPage extends StatefulWidget {
@@ -223,7 +224,7 @@ class _UserBooksPageState extends State<UserBooksPage> {
     return Scaffold(
       backgroundColor: bg,
       body: SafeArea(
-        child: ConstrainedContent(
+        child: ConstrainedContent.wide(
           child: _isLoading
               ? const Center(child: CircularProgressIndicator())
               : _booksWithStatus.isEmpty
@@ -593,8 +594,8 @@ class _UserBooksPageState extends State<UserBooksPage> {
           },
           childCount: books.length,
         ),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 3,
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: Responsive.isWide(context) ? 5 : 3,
           crossAxisSpacing: 12,
           mainAxisSpacing: 12,
           childAspectRatio: 0.55,
@@ -724,8 +725,8 @@ class _UserBooksPageState extends State<UserBooksPage> {
           },
           childCount: books.length,
         ),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 3,
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: Responsive.isWide(context) ? 6 : 3,
           crossAxisSpacing: 12,
           mainAxisSpacing: 12,
           childAspectRatio: 0.65,
@@ -2306,13 +2307,9 @@ class _BookDetailPageState extends State<BookDetailPage> {
                 )
               : OutlinedButton.icon(
                   onPressed: () {
-                    Navigator.push(
+                    NativePaywallService.present(
                       context,
-                      MaterialPageRoute(
-                        builder: (_) => const UpgradePage(
-                          highlightedFeature: Feature.readingSheet,
-                        ),
-                      ),
+                      highlightedFeature: Feature.readingSheet,
                     );
                   },
                   icon: const Icon(Icons.lock_outline, size: 18),
@@ -2611,13 +2608,9 @@ class _BookDetailPageState extends State<BookDetailPage> {
 
   Future<void> _generateReadingSheet({bool force = false}) async {
     if (!FeatureFlags.isUnlocked(context, Feature.readingSheet)) {
-      Navigator.push(
+      NativePaywallService.present(
         context,
-        MaterialPageRoute(
-          builder: (_) => const UpgradePage(
-            highlightedFeature: Feature.readingSheet,
-          ),
-        ),
+        highlightedFeature: Feature.readingSheet,
       );
       return;
     }
@@ -2637,13 +2630,9 @@ class _BookDetailPageState extends State<BookDetailPage> {
     } on AiPremiumRequiredException {
       if (mounted) {
         setState(() => _isGeneratingSheet = false);
-        Navigator.push(
+        NativePaywallService.present(
           context,
-          MaterialPageRoute(
-            builder: (_) => const UpgradePage(
-              highlightedFeature: Feature.readingSheet,
-            ),
-          ),
+          highlightedFeature: Feature.readingSheet,
         );
       }
     } catch (e) {
@@ -3040,13 +3029,9 @@ class _BookDetailPageState extends State<BookDetailPage> {
                 child: ElevatedButton(
                   onPressed: () {
                     Navigator.pop(context);
-                    Navigator.push(
+                    NativePaywallService.present(
                       context,
-                      MaterialPageRoute(
-                        builder: (_) => const UpgradePage(
-                          highlightedFeature: Feature.aiSummary,
-                        ),
-                      ),
+                      highlightedFeature: Feature.aiSummary,
                     );
                   },
                   style: ElevatedButton.styleFrom(

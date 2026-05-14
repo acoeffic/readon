@@ -198,9 +198,11 @@ struct MediumWidgetView: View {
                     Text("\(entry.todayMinutes)")
                         .font(.system(size: 17, weight: .bold, design: .serif))
                         .foregroundColor(.lexstaGreenDark)
-                    Text("min today")
+                    Text("min aujourd'hui")
                         .font(.system(size: 8))
                         .foregroundColor(.lexstaGreen.opacity(0.8))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
                 }
                 VStack(spacing: 1) {
                     Image(systemName: "flame.fill")
@@ -209,9 +211,11 @@ struct MediumWidgetView: View {
                     Text("\(entry.streak)")
                         .font(.system(size: 17, weight: .bold, design: .serif))
                         .foregroundColor(.lexstaGreenDark)
-                    Text("day streak")
+                    Text("jours de flow")
                         .font(.system(size: 8))
                         .foregroundColor(.lexstaGreen.opacity(0.8))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
                 }
             }
             .frame(width: 60)

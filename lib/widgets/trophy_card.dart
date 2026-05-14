@@ -2,6 +2,7 @@
 // Widget pour afficher un trophée dans la page de résumé de session
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'dart:math' as math;
 import '../models/trophy.dart';
 import '../pages/badges/badge_share_service.dart';
@@ -237,6 +238,7 @@ class _TrophyUnlockedDialogState extends State<TrophyUnlockedDialog>
                       // Partager
                       ElevatedButton.icon(
                         onPressed: () {
+                          HapticFeedback.mediumImpact();
                           Navigator.of(context).pop();
                           final badge = UserBadge(
                             id: widget.trophy.id,

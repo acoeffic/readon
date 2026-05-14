@@ -4,7 +4,7 @@
 import 'package:flutter/material.dart';
 import '../models/feature_flags.dart';
 import '../services/reaction_service.dart';
-import '../pages/profile/upgrade_page.dart';
+import '../services/native_paywall_service.dart';
 import '../theme/app_theme.dart';
 
 class ReactionPicker {
@@ -85,11 +85,9 @@ class _PickerSheet extends StatelessWidget {
                   onTap: () {
                     if (isLocked) {
                       Navigator.pop(context);
-                      Navigator.push(
+                      NativePaywallService.present(
                         context,
-                        MaterialPageRoute(
-                          builder: (_) => const UpgradePage(highlightedFeature: Feature.advancedReactions),
-                        ),
+                        highlightedFeature: Feature.advancedReactions,
                       );
                     } else {
                       Navigator.pop(context, emoji);

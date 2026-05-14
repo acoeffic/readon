@@ -32,17 +32,28 @@ public struct ReadingActivityAttributes: ActivityAttributes {
     }
 
     /// Attributs fixes pendant toute la durée de la Live Activity.
+    ///
+    /// IMPORTANT : ActivityKit impose une limite de ~4 Ko sur l'ensemble
+    /// attributes + content state. On ne stocke donc PAS l'image de couverture
+    /// ici (elle ferait plusieurs dizaines de Ko). À la place, elle est écrite
+    /// dans le container App Group partagé et le widget la lit à partir du
+    /// sessionId.
     public let sessionId: String
     public let bookTitle: String
     public let bookAuthor: String
-    /// Image de couverture encodée en base64 (récupérée via WidgetService).
-    /// Peut être vide : on affiche alors un placeholder.
-    public let coverBase64: String
 
-    public init(sessionId: String, bookTitle: String, bookAuthor: String, coverBase64: String) {
+    public init(sessionId: String, bookTitle: String, bookAuthor: String) {
         self.sessionId = sessionId
         self.bookTitle = bookTitle
         self.bookAuthor = bookAuthor
-        self.coverBase64 = coverBase64
+    }
+
+    /// Chemin sur disque de la couverture pour une session donnée, dans le
+    /// container partagé App Group. Le widget et l'app utilisent cette même
+    /// méthode pour écrire / lire l'image.
+    public static func coverFileURL(for sessionId: String) -> URL? {
+        FileManager.default
+            .containerURL(forSecurityApplicationGroupIdentifier: "group.fr.lexday.app")?
+            .appendingPathComponent("live_activity_cover_\(sessionId).jpg")
     }
 }

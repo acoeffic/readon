@@ -7,8 +7,14 @@ const _dayLabels = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 class ReadingHeatmap extends StatelessWidget {
   final Map<int, Map<int, int>> data; // weekday (1-7) -> {timeSlot (0-3) -> minutes}
   final bool showHeader;
+  final bool embedded;
 
-  const ReadingHeatmap({super.key, required this.data, this.showHeader = true});
+  const ReadingHeatmap({
+    super.key,
+    required this.data,
+    this.showHeader = true,
+    this.embedded = false,
+  });
 
   int get _maxCount {
     int max = 0;
@@ -42,6 +48,77 @@ class ReadingHeatmap extends StatelessWidget {
     final subtitleColor =
         Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5);
 
+    final grid = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const SizedBox(width: 50),
+            ..._dayLabels.map((label) => Expanded(
+                  child: Text(
+                    label,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withValues(alpha: 0.6),
+                    ),
+                  ),
+                )),
+          ],
+        ),
+        const SizedBox(height: AppSpace.s),
+        Column(
+          children: List.generate(4, (slotIndex) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 50,
+                    child: Text(
+                      _timeSlotLabels[slotIndex],
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withValues(alpha: 0.5),
+                      ),
+                    ),
+                  ),
+                  ...List.generate(7, (dayIndex) {
+                    final weekday = dayIndex + 1; // 1=Mon..7=Sun
+                    final count = data[weekday]?[slotIndex] ?? 0;
+                    final color = _intensityColor(
+                        count, maxCount > 0 ? maxCount : 1, context);
+
+                    return Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 2),
+                        child: Container(
+                          height: 38,
+                          decoration: BoxDecoration(
+                            color: color,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
+                ],
+              ),
+            );
+          }),
+        ),
+      ],
+    );
+
+    if (embedded) return grid;
+
     return Container(
       padding: const EdgeInsets.all(AppSpace.l),
       decoration: BoxDecoration(
@@ -66,73 +143,7 @@ class ReadingHeatmap extends StatelessWidget {
             ),
             const SizedBox(height: AppSpace.l),
           ],
-
-          // Day labels at the top
-          Row(
-            children: [
-              const SizedBox(width: 50),
-              ..._dayLabels.map((label) => Expanded(
-                    child: Text(
-                      label,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onSurface
-                            .withValues(alpha: 0.6),
-                      ),
-                    ),
-                  )),
-            ],
-          ),
-          const SizedBox(height: AppSpace.s),
-
-          // Grid: 4 rows (Matin, Midi, Soir, Nuit) x 7 columns
-          Column(
-            children: List.generate(4, (slotIndex) {
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Row(
-                  children: [
-                    SizedBox(
-                      width: 50,
-                      child: Text(
-                        _timeSlotLabels[slotIndex],
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withValues(alpha: 0.5),
-                        ),
-                      ),
-                    ),
-                    ...List.generate(7, (dayIndex) {
-                      final weekday = dayIndex + 1; // 1=Mon..7=Sun
-                      final count = data[weekday]?[slotIndex] ?? 0;
-                      final color = _intensityColor(
-                          count, maxCount > 0 ? maxCount : 1, context);
-
-                      return Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 2),
-                          child: Container(
-                            height: 38,
-                            decoration: BoxDecoration(
-                              color: color,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                        ),
-                      );
-                    }),
-                  ],
-                ),
-              );
-            }),
-          ),
+          grid,
         ],
       ),
     );

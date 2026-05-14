@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
@@ -12,6 +13,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../services/badges_service.dart';
 import '../../features/wrapped/share/share_format.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/app_constants.dart';
 import 'badge_share_card.dart';
 
 // ==========================================================================
@@ -82,7 +84,7 @@ class BadgeShareService {
     Rect? sharePositionOrigin,
   }) async {
     final text =
-        'Je viens de débloquer le badge "${badge.name}" \uD83C\uDFC6 #LexDay';
+        'Je viens de débloquer le badge "${badge.name}" \uD83C\uDFC6 #LexDay\n$kAppStoreUrl';
 
     if (destination == ShareDestination.whatsapp ||
         destination == ShareDestination.message ||
@@ -201,6 +203,7 @@ class _BadgeShareSheetState extends State<_BadgeShareSheet> {
   }
 
   Future<void> _onDestinationTap(ShareDestination destination) async {
+    HapticFeedback.selectionClick();
     if (_loadingDestination != null || _capturedImage == null) return;
     setState(() => _loadingDestination = destination);
 
