@@ -50,4 +50,11 @@ class KindleAutoSyncService {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(_lastSyncKey) != null;
   }
+
+  /// Supprime la préférence d'auto-sync pour que la prochaine reconnexion
+  /// reparte sur la valeur par défaut (activé).
+  Future<void> clearPreference() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_autoSyncEnabledKey);
+  }
 }

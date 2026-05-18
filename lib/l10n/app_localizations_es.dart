@@ -510,6 +510,19 @@ class AppLocalizationsEs extends AppLocalizations {
   String get kindleSyncedSuccess => '¡Kindle sincronizado con éxito!';
 
   @override
+  String get kindleDisconnect => 'Desconectar mi Kindle';
+
+  @override
+  String get kindleDisconnectConfirmTitle => '¿Desconectar cuenta Kindle?';
+
+  @override
+  String get kindleDisconnectConfirmMessage =>
+      'Los libros ya importados se conservarán en tu biblioteca LexDay. Se borrarán las cookies de sesión, la caché local y tus estadísticas Kindle.';
+
+  @override
+  String get kindleDisconnectedSuccess => 'Cuenta Kindle desconectada';
+
+  @override
   String get notionSection => 'Notion';
 
   @override
@@ -3101,6 +3114,45 @@ class AppLocalizationsEs extends AppLocalizations {
   String get kindleRetryButton => 'Reintentar';
 
   @override
+  String get kindleReviewTitle => 'Elige tus libros';
+
+  @override
+  String get kindleReviewSubtitle =>
+      'Desmarca los que no quieras ver en tu biblioteca LexDay.';
+
+  @override
+  String get kindleReviewSelectAll => 'Seleccionar todo';
+
+  @override
+  String get kindleReviewDeselectAll => 'Deseleccionar todo';
+
+  @override
+  String kindleReviewSelectedCount(int selected, int total) {
+    return '$selected/$total seleccionados';
+  }
+
+  @override
+  String kindleReviewImportButton(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Importar $count libros',
+      one: 'Importar 1 libro',
+      zero: 'Ningún libro para importar',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get kindleReviewStatusReading => 'Leyendo';
+
+  @override
+  String get kindleReviewStatusFinished => 'Terminado';
+
+  @override
+  String get kindleReviewStatusToRead => 'Por leer';
+
+  @override
   String get premiumFeature => 'Función Premium';
 
   @override
@@ -3386,4 +3438,63 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get blockedUsersEmpty => 'No has bloqueado a nadie.';
+
+  @override
+  String get manualSearchTitle => 'Buscar un libro';
+
+  @override
+  String get manualSearchHint => 'Título, autor o ISBN';
+
+  @override
+  String get manualSearchClear => 'Borrar';
+
+  @override
+  String get manualSearchRetry => 'Reintentar';
+
+  @override
+  String get manualSearchEmptyTitle =>
+      'Encuentra tu libro en unas pocas letras';
+
+  @override
+  String get manualSearchEmptyHint =>
+      'Escribe un título, un autor o un ISBN. Las sugerencias aparecen mientras escribes.';
+
+  @override
+  String get manualSearchTipTitle => 'Ej.: «Harry Potter mago»';
+
+  @override
+  String get manualSearchTipAuthor => 'Ej.: «Harari Sapiens»';
+
+  @override
+  String get manualSearchTipIsbn =>
+      'También puedes pegar un ISBN (10 o 13 dígitos)';
+
+  @override
+  String get manualSearchNoResults => 'No se encontraron libros';
+
+  @override
+  String get manualSearchNoResultsHint =>
+      'Prueba con otra ortografía, añade el nombre del autor o elimina algunas palabras.';
+
+  @override
+  String get totalPagesUnknownLabel => 'Número total de páginas';
+
+  @override
+  String get totalPagesUnknownHint =>
+      'No lo tenemos para este libro — indícalo para seguir tu progreso.';
+
+  @override
+  String get totalPagesPlaceholder => 'ej. 320';
+
+  @override
+  String get totalPagesSaveBtn => 'Guardar';
+
+  @override
+  String get totalPagesSaved => 'Número de páginas guardado ✓';
+
+  @override
+  String get totalPagesSaveError => 'No se pudo guardar. Inténtalo de nuevo.';
+
+  @override
+  String get totalPagesInvalid => 'Introduce un número válido (> 0).';
 }

@@ -1000,6 +1000,30 @@ abstract class AppLocalizations {
   /// **'Kindle synchronisé avec succès !'**
   String get kindleSyncedSuccess;
 
+  /// No description provided for @kindleDisconnect.
+  ///
+  /// In fr, this message translates to:
+  /// **'Déconnecter mon Kindle'**
+  String get kindleDisconnect;
+
+  /// No description provided for @kindleDisconnectConfirmTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Déconnecter le compte Kindle ?'**
+  String get kindleDisconnectConfirmTitle;
+
+  /// No description provided for @kindleDisconnectConfirmMessage.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tes livres déjà importés seront conservés dans ta bibliothèque LexDay. Les cookies de connexion, le cache local et tes statistiques Kindle seront supprimés.'**
+  String get kindleDisconnectConfirmMessage;
+
+  /// No description provided for @kindleDisconnectedSuccess.
+  ///
+  /// In fr, this message translates to:
+  /// **'Compte Kindle déconnecté'**
+  String get kindleDisconnectedSuccess;
+
   /// No description provided for @notionSection.
   ///
   /// In fr, this message translates to:
@@ -5584,6 +5608,60 @@ abstract class AppLocalizations {
   /// **'Réessayer'**
   String get kindleRetryButton;
 
+  /// No description provided for @kindleReviewTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Choisis tes livres'**
+  String get kindleReviewTitle;
+
+  /// No description provided for @kindleReviewSubtitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Décoche ceux que tu ne veux pas voir dans ta bibliothèque LexDay.'**
+  String get kindleReviewSubtitle;
+
+  /// No description provided for @kindleReviewSelectAll.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tout sélectionner'**
+  String get kindleReviewSelectAll;
+
+  /// No description provided for @kindleReviewDeselectAll.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tout désélectionner'**
+  String get kindleReviewDeselectAll;
+
+  /// No description provided for @kindleReviewSelectedCount.
+  ///
+  /// In fr, this message translates to:
+  /// **'{selected}/{total} sélectionnés'**
+  String kindleReviewSelectedCount(int selected, int total);
+
+  /// No description provided for @kindleReviewImportButton.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =0{Aucun livre à importer} =1{Importer 1 livre} other{Importer {count} livres}}'**
+  String kindleReviewImportButton(int count);
+
+  /// No description provided for @kindleReviewStatusReading.
+  ///
+  /// In fr, this message translates to:
+  /// **'En cours'**
+  String get kindleReviewStatusReading;
+
+  /// No description provided for @kindleReviewStatusFinished.
+  ///
+  /// In fr, this message translates to:
+  /// **'Terminé'**
+  String get kindleReviewStatusFinished;
+
+  /// No description provided for @kindleReviewStatusToRead.
+  ///
+  /// In fr, this message translates to:
+  /// **'À lire'**
+  String get kindleReviewStatusToRead;
+
   /// No description provided for @premiumFeature.
   ///
   /// In fr, this message translates to:
@@ -6087,6 +6165,114 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Tu n\'as bloqué personne.'**
   String get blockedUsersEmpty;
+
+  /// No description provided for @manualSearchTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rechercher un livre'**
+  String get manualSearchTitle;
+
+  /// No description provided for @manualSearchHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Titre, auteur ou ISBN'**
+  String get manualSearchHint;
+
+  /// No description provided for @manualSearchClear.
+  ///
+  /// In fr, this message translates to:
+  /// **'Effacer'**
+  String get manualSearchClear;
+
+  /// No description provided for @manualSearchRetry.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réessayer'**
+  String get manualSearchRetry;
+
+  /// No description provided for @manualSearchEmptyTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Trouve ton livre en quelques lettres'**
+  String get manualSearchEmptyTitle;
+
+  /// No description provided for @manualSearchEmptyHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tape un titre, un auteur ou un ISBN. Les suggestions apparaissent au fur et à mesure.'**
+  String get manualSearchEmptyHint;
+
+  /// No description provided for @manualSearchTipTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ex : « Harry Potter sorcier »'**
+  String get manualSearchTipTitle;
+
+  /// No description provided for @manualSearchTipAuthor.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ex : « Harari Sapiens »'**
+  String get manualSearchTipAuthor;
+
+  /// No description provided for @manualSearchTipIsbn.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tu peux aussi coller un ISBN (10 ou 13 chiffres)'**
+  String get manualSearchTipIsbn;
+
+  /// No description provided for @manualSearchNoResults.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun livre trouvé'**
+  String get manualSearchNoResults;
+
+  /// No description provided for @manualSearchNoResultsHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Essaie une autre orthographe, ajoute le nom de l\'auteur, ou retire des mots.'**
+  String get manualSearchNoResultsHint;
+
+  /// No description provided for @totalPagesUnknownLabel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nombre de pages total'**
+  String get totalPagesUnknownLabel;
+
+  /// No description provided for @totalPagesUnknownHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'On ne l\'a pas pour ce livre — renseigne-le pour suivre ta progression.'**
+  String get totalPagesUnknownHint;
+
+  /// No description provided for @totalPagesPlaceholder.
+  ///
+  /// In fr, this message translates to:
+  /// **'ex. 320'**
+  String get totalPagesPlaceholder;
+
+  /// No description provided for @totalPagesSaveBtn.
+  ///
+  /// In fr, this message translates to:
+  /// **'Enregistrer'**
+  String get totalPagesSaveBtn;
+
+  /// No description provided for @totalPagesSaved.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nombre de pages enregistré ✓'**
+  String get totalPagesSaved;
+
+  /// No description provided for @totalPagesSaveError.
+  ///
+  /// In fr, this message translates to:
+  /// **'Impossible d\'enregistrer. Réessaie.'**
+  String get totalPagesSaveError;
+
+  /// No description provided for @totalPagesInvalid.
+  ///
+  /// In fr, this message translates to:
+  /// **'Entre un nombre valide (> 0).'**
+  String get totalPagesInvalid;
 }
 
 class _AppLocalizationsDelegate

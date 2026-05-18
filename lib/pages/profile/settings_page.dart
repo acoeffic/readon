@@ -220,6 +220,42 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
+  Future<void> _disconnectKindle() async {
+    final l10n = AppLocalizations.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.kindleDisconnectConfirmTitle),
+        content: Text(l10n.kindleDisconnectConfirmMessage),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: Text(l10n.kindleDisconnect),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    await KindleWebViewService().disconnect();
+    await KindleAutoSyncService().clearPreference();
+
+    if (!mounted) return;
+    setState(() {
+      _kindleLastSync = null;
+      _kindleAutoSyncEnabled = true;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(l10n.kindleDisconnectedSuccess)),
+    );
+  }
+
   Future<void> _loadNotionStatus() async {
     final notion = NotionService();
     await notion.refreshConnectionStatus();
@@ -1187,6 +1223,17 @@ if (!allowedExtensions.contains(fileExtension)) {
                             );
                           }),
                         ],
+                        // Bouton de déconnexion : toujours visible pour
+                        // permettre de "reset" l'état (cookies WebView, cache)
+                        // même quand aucun sync n'a abouti (cas où l'utilisateur
+                        // a juste laissé des cookies Amazon traîner).
+                        const SizedBox(height: AppSpace.m),
+                        const Divider(height: 1),
+                        _SettingsItem(
+                          label: l10n.kindleDisconnect,
+                          labelColor: Colors.red,
+                          onTap: _disconnectKindle,
+                        ),
                       ],
                     ),
                   ),
@@ -1581,11 +1628,16 @@ class _SettingsSection extends StatelessWidget {
 class _SettingsItem extends StatelessWidget {
   final String label;
   final VoidCallback? onTap;
+  final Color? labelColor;
 
-  const _SettingsItem({required this.label, this.onTap});
+  const _SettingsItem({required this.label, this.onTap, this.labelColor});
 
   @override
   Widget build(BuildContext context) {
+    final Color? resolvedColor = labelColor ??
+        (onTap == null
+            ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4)
+            : null);
     return InkWell(
       onTap: onTap,
       child: Padding(
@@ -1596,7 +1648,7 @@ class _SettingsItem extends StatelessWidget {
               child: Text(
                 label,
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: onTap == null ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4) : null,
+                  color: resolvedColor,
                 ),
               ),
             ),

@@ -209,6 +209,10 @@
   "autoSync": "Sync automática",
   "kindleAutoSyncDescription": "Sincroniza tus libros Kindle al abrir la app",
   "kindleSyncedSuccess": "¡Kindle sincronizado con éxito!",
+  "kindleDisconnect": "Desconectar mi Kindle",
+  "kindleDisconnectConfirmTitle": "¿Desconectar cuenta Kindle?",
+  "kindleDisconnectConfirmMessage": "Los libros ya importados se conservarán en tu biblioteca LexDay. Se borrarán las cookies de sesión, la caché local y tus estadísticas Kindle.",
+  "kindleDisconnectedSuccess": "Cuenta Kindle desconectada",
   "notionSection": "Notion",
   "connectedTo": "Conectado a {name}",
   "@connectedTo": {
@@ -1469,6 +1473,27 @@
   "kindlePhaseErrorSubtitle": "Amazon no respondió a tiempo.\nPuedes intentar de nuevo, normalmente tarda unos segundos.",
   "kindleRetryButton": "Reintentar",
 
+  "kindleReviewTitle": "Elige tus libros",
+  "kindleReviewSubtitle": "Desmarca los que no quieras ver en tu biblioteca LexDay.",
+  "kindleReviewSelectAll": "Seleccionar todo",
+  "kindleReviewDeselectAll": "Deseleccionar todo",
+  "kindleReviewSelectedCount": "{selected}/{total} seleccionados",
+  "@kindleReviewSelectedCount": {
+    "placeholders": {
+      "selected": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+  "kindleReviewImportButton": "{count, plural, =0{Ningún libro para importar} =1{Importar 1 libro} other{Importar {count} libros}}",
+  "@kindleReviewImportButton": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "kindleReviewStatusReading": "Leyendo",
+  "kindleReviewStatusFinished": "Terminado",
+  "kindleReviewStatusToRead": "Por leer",
+
   "premiumFeature": "Función Premium",
   "unlockFeatureWith": "Desbloquear con Premium",
   "premiumUpsellCta": "Descubrir Premium",
@@ -1584,5 +1609,23 @@
   "userUnblockedMessage": "Usuario desbloqueado.",
   "blockUserErrorMessage": "No se pudo bloquear a este usuario. Inténtalo de nuevo.",
   "blockedUsersTitle": "Usuarios bloqueados",
-  "blockedUsersEmpty": "No has bloqueado a nadie."
+  "blockedUsersEmpty": "No has bloqueado a nadie.",
+  "manualSearchTitle": "Buscar un libro",
+  "manualSearchHint": "Título, autor o ISBN",
+  "manualSearchClear": "Borrar",
+  "manualSearchRetry": "Reintentar",
+  "manualSearchEmptyTitle": "Encuentra tu libro en unas pocas letras",
+  "manualSearchEmptyHint": "Escribe un título, un autor o un ISBN. Las sugerencias aparecen mientras escribes.",
+  "manualSearchTipTitle": "Ej.: «Harry Potter mago»",
+  "manualSearchTipAuthor": "Ej.: «Harari Sapiens»",
+  "manualSearchTipIsbn": "También puedes pegar un ISBN (10 o 13 dígitos)",
+  "manualSearchNoResults": "No se encontraron libros",
+  "manualSearchNoResultsHint": "Prueba con otra ortografía, añade el nombre del autor o elimina algunas palabras.",
+  "totalPagesUnknownLabel": "Número total de páginas",
+  "totalPagesUnknownHint": "No lo tenemos para este libro — indícalo para seguir tu progreso.",
+  "totalPagesPlaceholder": "ej. 320",
+  "totalPagesSaveBtn": "Guardar",
+  "totalPagesSaved": "Número de páginas guardado ✓",
+  "totalPagesSaveError": "No se pudo guardar. Inténtalo de nuevo.",
+  "totalPagesInvalid": "Introduce un número válido (> 0)."
 }

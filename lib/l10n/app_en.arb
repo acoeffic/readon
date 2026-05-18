@@ -209,6 +209,10 @@
   "autoSync": "Auto sync",
   "kindleAutoSyncDescription": "Sync your Kindle books at each app launch",
   "kindleSyncedSuccess": "Kindle synced successfully!",
+  "kindleDisconnect": "Disconnect my Kindle",
+  "kindleDisconnectConfirmTitle": "Disconnect Kindle account?",
+  "kindleDisconnectConfirmMessage": "Books already imported will stay in your LexDay library. Login cookies, local cache and your Kindle stats will be removed.",
+  "kindleDisconnectedSuccess": "Kindle account disconnected",
   "notionSection": "Notion",
   "connectedTo": "Connected to {name}",
   "@connectedTo": {
@@ -1502,6 +1506,27 @@
   "kindlePhaseErrorSubtitle": "Amazon didn't respond in time.\nYou can try again — it usually takes just a few seconds.",
   "kindleRetryButton": "Try again",
 
+  "kindleReviewTitle": "Pick your books",
+  "kindleReviewSubtitle": "Uncheck the ones you don't want in your LexDay library.",
+  "kindleReviewSelectAll": "Select all",
+  "kindleReviewDeselectAll": "Deselect all",
+  "kindleReviewSelectedCount": "{selected}/{total} selected",
+  "@kindleReviewSelectedCount": {
+    "placeholders": {
+      "selected": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+  "kindleReviewImportButton": "{count, plural, =0{No book to import} =1{Import 1 book} other{Import {count} books}}",
+  "@kindleReviewImportButton": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "kindleReviewStatusReading": "Reading",
+  "kindleReviewStatusFinished": "Finished",
+  "kindleReviewStatusToRead": "To read",
+
   "premiumFeature": "Premium Feature",
   "unlockFeatureWith": "Unlock with Premium",
   "premiumUpsellCta": "Discover Premium",
@@ -1629,5 +1654,23 @@
   "userUnblockedMessage": "User unblocked.",
   "blockUserErrorMessage": "Couldn't block this user. Please try again.",
   "blockedUsersTitle": "Blocked users",
-  "blockedUsersEmpty": "You haven't blocked anyone."
+  "blockedUsersEmpty": "You haven't blocked anyone.",
+  "manualSearchTitle": "Search a book",
+  "manualSearchHint": "Title, author or ISBN",
+  "manualSearchClear": "Clear",
+  "manualSearchRetry": "Retry",
+  "manualSearchEmptyTitle": "Find your book in a few keystrokes",
+  "manualSearchEmptyHint": "Type a title, an author or an ISBN. Suggestions appear as you type.",
+  "manualSearchTipTitle": "e.g. \"Harry Potter sorcerer\"",
+  "manualSearchTipAuthor": "e.g. \"Harari Sapiens\"",
+  "manualSearchTipIsbn": "You can also paste an ISBN (10 or 13 digits)",
+  "manualSearchNoResults": "No books found",
+  "manualSearchNoResultsHint": "Try a different spelling, add the author name, or remove some words.",
+  "totalPagesUnknownLabel": "Total page count",
+  "totalPagesUnknownHint": "We don't have it for this book — set it to track your progress.",
+  "totalPagesPlaceholder": "e.g. 320",
+  "totalPagesSaveBtn": "Save",
+  "totalPagesSaved": "Page count saved ✓",
+  "totalPagesSaveError": "Couldn't save. Try again.",
+  "totalPagesInvalid": "Enter a valid number (> 0)."
 }

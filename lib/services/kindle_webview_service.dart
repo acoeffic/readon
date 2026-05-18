@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:webview_flutter/webview_flutter.dart';
 
 class KindleReadingData {
   final int? booksReadThisYear;
@@ -274,6 +275,38 @@ class KindleWebViewService {
       })();
     ''';
   }
+
+  /// Clique sur le bouton "Sign in" de la landing page Kindle pour déclencher
+  /// la navigation vers le vrai form de signin Amazon (avec le bon assoc_handle
+  /// géré côté Amazon). Renvoie true si un bouton a été cliqué.
+  static const String clickSignInScript = '''
+    (function() {
+      try {
+        var candidates = Array.prototype.slice.call(
+          document.querySelectorAll('a, button')
+        );
+        for (var i = 0; i < candidates.length; i++) {
+          var el = candidates[i];
+          var href = (el.getAttribute('href') || '').toLowerCase();
+          var txt = (el.innerText || el.textContent || '').trim().toLowerCase();
+          var match = href.indexOf('/ap/signin') !== -1
+              || /^sign[\\s-]?in\$/.test(txt)
+              || /^se\\s+connecter\$/.test(txt);
+          if (match) {
+            if (el.tagName === 'A' && el.href) {
+              window.location.href = el.href;
+            } else {
+              el.click();
+            }
+            return JSON.stringify({ clicked: true, txt: txt, href: href });
+          }
+        }
+        return JSON.stringify({ clicked: false });
+      } catch(e) {
+        return JSON.stringify({ clicked: false, error: e.message });
+      }
+    })();
+  ''';
 
   /// Script synchrone pour vérifier si la bibliothèque est chargée
   /// Appelé en boucle depuis Dart (pas d'async/await car iOS ne le supporte pas)
@@ -976,6 +1009,31 @@ class KindleWebViewService {
   Future<String?> getLastSyncDate() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(_lastSyncKey);
+  }
+
+  /// Déconnecte le compte Kindle : vide le cache local, les cookies WebView et
+  /// supprime la ligne `kindle_sync` en Supabase. Les livres déjà importés
+  /// dans la bibliothèque LexDay sont conservés (un disconnect ≠ un wipe books).
+  Future<void> disconnect() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_cacheKey);
+    await prefs.remove(_lastSyncKey);
+
+    try {
+      await WebViewCookieManager().clearCookies();
+    } catch (e) {
+      debugPrint('Kindle disconnect: clearCookies failed: $e');
+    }
+
+    try {
+      final supabase = Supabase.instance.client;
+      final userId = supabase.auth.currentUser?.id;
+      if (userId != null) {
+        await supabase.from('kindle_sync').delete().eq('user_id', userId);
+      }
+    } catch (e) {
+      debugPrint('Kindle disconnect: Supabase delete failed: $e');
+    }
   }
 
   /// Sauvegarde les données dans Supabase

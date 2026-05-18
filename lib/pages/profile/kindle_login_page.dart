@@ -5,6 +5,7 @@ import '../../l10n/app_localizations.dart';
 import '../../services/kindle_webview_service.dart';
 import '../../services/books_service.dart';
 import '../../theme/app_theme.dart';
+import 'kindle_book_review_page.dart';
 
 /// Étapes visibles du sync Kindle
 enum _SyncPhase {
@@ -54,10 +55,14 @@ class _KindleLoginPageState extends State<KindleLoginPage>
   static const String _readingInsightsUrl =
       'https://www.amazon.com/kindle/reading/insights';
 
+  // Vraie UA macOS Safari : matche ce que WKWebView est réellement au niveau
+  // moteur (WebKit). L'ancienne UA Chrome desktop poussait Amazon à servir une
+  // version optimisée Chrome dont les CSS/JS échouent silencieusement sur
+  // WebKit iOS → page de signin avec 100k chars de HTML mais rendu blanc.
   static const String _userAgent =
       'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) '
-      'AppleWebKit/537.36 (KHTML, like Gecko) '
-      'Chrome/120.0.0.0 Safari/537.36';
+      'AppleWebKit/605.1.15 (KHTML, like Gecko) '
+      'Version/17.6 Safari/605.1.15';
 
   @override
   void initState() {
@@ -98,7 +103,6 @@ class _KindleLoginPageState extends State<KindleLoginPage>
         NavigationDelegate(
           onPageFinished: (url) => _onInsightsPageFinished(url),
           onWebResourceError: (_) {
-            // Insights en erreur → on continue sans
             debugPrint('Kindle insights webview error');
           },
         ),
@@ -123,10 +127,25 @@ class _KindleLoginPageState extends State<KindleLoginPage>
       return;
     }
 
-    // Cas 2 : Kindle Cloud Reader → lancer l'extraction parallèle
+    // Cas 2a : Landing Amazon (non-auth) → clic sur "Sign in" pour rediriger
+    // vers le form de signin (avec le bon assoc_handle géré par Amazon).
+    if (url.contains('read.amazon.com/landing')) {
+      if (mounted) setState(() => _phase = _SyncPhase.login);
+      try {
+        await _libraryController.runJavaScriptReturningResult(
+            KindleWebViewService.clickSignInScript);
+      } catch (e) {
+        debugPrint('Kindle signin click error: $e');
+      }
+      return;
+    }
+
+    // Cas 2b : Kindle Cloud Reader (URL kindle-library) → on est authentifié,
+    // lancer l'extraction. L'URL elle-même est le signal d'auth (Amazon
+    // redirige les non-auth vers /landing, jamais /kindle-library).
     if (url.contains('read.amazon.com')) {
       if (_phase == _SyncPhase.login || _phase == _SyncPhase.connecting) {
-        setState(() => _phase = _SyncPhase.syncing);
+        if (mounted) setState(() => _phase = _SyncPhase.syncing);
         _startParallelExtraction();
       }
       return;
@@ -327,21 +346,58 @@ class _KindleLoginPageState extends State<KindleLoginPage>
     _finalized = true;
     _timeoutTimer?.cancel();
 
-    if (mounted) setState(() => _phase = _SyncPhase.importing);
-
-    final books = _libraryBooks!;
+    var books = _libraryBooks!;
     final insights = _insightsData;
+    final booksService = BooksService();
+    final lastSync = await _service.getLastSyncDate();
+    final isFirstSync = lastSync == null;
 
     try {
+      // Page de validation manuelle : on n'affiche la review que s'il y a
+      // au moins un livre détecté qui n'est pas déjà dans la bibliothèque
+      // LexDay de l'utilisateur. Sinon on file droit en import (cas re-sync
+      // où on ne fait que mettre à jour les statuts des livres existants).
+      if (books.isNotEmpty && mounted) {
+        final existingTitles =
+            await booksService.findExistingKindleTitlesForCurrentUser(
+          books.map((b) => b.title).toList(),
+        );
+        final newBooks = books
+            .where((b) => !existingTitles.contains(b.title))
+            .toList();
+
+        if (newBooks.isNotEmpty && mounted) {
+          final accepted = await Navigator.push<Set<String>>(
+            context,
+            MaterialPageRoute(
+              builder: (_) => KindleBookReviewPage(
+                newBooks: newBooks,
+                isFirstSync: isFirstSync,
+              ),
+            ),
+          );
+          if (accepted == null) {
+            // L'utilisateur a fermé la page sans valider → on annule l'import.
+            if (mounted) Navigator.pop(context);
+            return;
+          }
+          // Garder les livres existants (pour mises à jour de statut) + les
+          // nouveaux livres explicitement cochés par l'utilisateur.
+          books = books
+              .where((b) =>
+                  existingTitles.contains(b.title) ||
+                  accepted.contains(b.title))
+              .toList();
+        }
+      }
+
+      if (mounted) setState(() => _phase = _SyncPhase.importing);
+
       // Import des livres dans Supabase
       if (books.isNotEmpty) {
         final tempData = KindleReadingData(books: books);
         await _service.saveLocally(tempData);
 
-        final lastSync = await _service.getLastSyncDate();
-        final isFirstSync = lastSync == null;
-
-        final booksService = BooksService();
         final imported = await booksService.importKindleBooks(
           books,
           isFirstSync: isFirstSync,
@@ -351,7 +407,6 @@ class _KindleLoginPageState extends State<KindleLoginPage>
 
       // Marquer les livres terminés depuis insights
       if (insights != null && insights.books.isNotEmpty) {
-        final booksService = BooksService();
         await booksService.markBooksAsFinished(insights.books);
       }
 
@@ -416,6 +471,11 @@ class _KindleLoginPageState extends State<KindleLoginPage>
         ),
       ),
       body: Stack(
+        // StackFit.expand est indispensable : sinon le Stack se sized sur ses
+        // enfants non-positioned (ici seulement l'Offstage des insights qui
+        // est à 0×0), donc Positioned.fill fill du zéro et la WebView se
+        // retrouve avec un viewport 0×0 → page Amazon chargée mais invisible.
+        fit: StackFit.expand,
         children: [
           // WebView principale (login → library) — visible pendant le login
           Positioned.fill(

@@ -483,6 +483,42 @@ class BooksService {
   /// Enrichit chaque livre avec les métadonnées de Google Books (couverture, description)
   /// Si [isFirstSync] est true, tous les livres sauf les 2 premiers (plus récents)
   /// sont marqués comme terminés avec kindle_auto_finished = true
+  /// Renvoie le sous-ensemble des [titles] qui existent déjà comme livres Kindle
+  /// dans la bibliothèque (`user_books`) de l'utilisateur courant. Utilisé par
+  /// le flow de sync pour calculer la liste des "nouveaux" livres à proposer
+  /// dans la page de validation manuelle.
+  Future<Set<String>> findExistingKindleTitlesForCurrentUser(
+    List<String> titles,
+  ) async {
+    if (titles.isEmpty) return <String>{};
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) return <String>{};
+
+    final books = await _supabase
+        .from('books')
+        .select('id, title')
+        .eq('source', 'kindle')
+        .inFilter('title', titles);
+
+    final list = books as List;
+    if (list.isEmpty) return <String>{};
+
+    final titleByBookId = <int, String>{
+      for (final b in list) b['id'] as int: b['title'] as String,
+    };
+
+    final userBooks = await _supabase
+        .from('user_books')
+        .select('book_id')
+        .eq('user_id', userId)
+        .inFilter('book_id', titleByBookId.keys.toList());
+
+    return (userBooks as List)
+        .map((ub) => titleByBookId[ub['book_id'] as int])
+        .whereType<String>()
+        .toSet();
+  }
+
   Future<int> importKindleBooks(List<KindleBookProgress> kindleBooks, {bool isFirstSync = false}) async {
     int imported = 0;
     final userId = _supabase.auth.currentUser?.id;
