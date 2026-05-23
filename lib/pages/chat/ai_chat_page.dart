@@ -17,6 +17,7 @@ import '../../models/user_custom_list.dart';
 import '../../services/native_paywall_service.dart';
 import '../curated_lists/create_custom_list_dialog.dart';
 import '../../widgets/constrained_content.dart';
+import '../../utils/amazon_affiliate.dart';
 
 class AiChatPage extends StatefulWidget {
   final int? conversationId;
@@ -674,15 +675,12 @@ class _AiChatPageState extends State<AiChatPage> {
                         ),
                         const SizedBox(height: 8),
                         GestureDetector(
-                          onTap: () {
-                            final query = Uri.encodeComponent(
-                              '${googleBook.title} ${googleBook.authorsString}'.trim(),
-                            );
-                            launchUrl(
-                              Uri.parse('https://www.amazon.fr/s?k=$query&i=stripbooks&tag=lexday-21'),
-                              mode: LaunchMode.externalApplication,
-                            );
-                          },
+                          onTap: () => AmazonAffiliate.openForBook(
+                            isbn: googleBook.isbn13,
+                            title: googleBook.title,
+                            author: googleBook.authorsString,
+                            source: AmazonClickSource.chatCardChip,
+                          ),
                           child: Container(
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 10, vertical: 6),
@@ -775,15 +773,12 @@ class _AiChatPageState extends State<AiChatPage> {
                       context: ctx,
                       emoji: '📦',
                       label: l.amazon,
-                      onTap: () {
-                        final query = Uri.encodeComponent(
-                          '${googleBook.title} ${googleBook.authorsString}'.trim(),
-                        );
-                        launchUrl(
-                          Uri.parse('https://www.amazon.fr/s?k=$query&i=stripbooks&tag=lexday-21'),
-                          mode: LaunchMode.externalApplication,
-                        );
-                      },
+                      onTap: () => AmazonAffiliate.openForBook(
+                        isbn: googleBook.isbn13,
+                        title: googleBook.title,
+                        author: googleBook.authorsString,
+                        source: AmazonClickSource.chatBuySheet,
+                      ),
                     ),
                   ],
                 ),

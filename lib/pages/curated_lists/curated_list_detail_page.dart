@@ -13,6 +13,7 @@ import '../../theme/app_theme.dart';
 import '../../widgets/cached_book_cover.dart';
 import 'create_custom_list_dialog.dart';
 import '../../widgets/constrained_content.dart';
+import '../../utils/amazon_affiliate.dart';
 
 class CuratedListDetailPage extends StatefulWidget {
   final CuratedList list;
@@ -548,15 +549,12 @@ class _CuratedListDetailPageState extends State<CuratedListDetailPage> {
                       context: context,
                       emoji: '📦',
                       label: l.amazon,
-                      onTap: () {
-                        final query = Uri.encodeComponent(
-                          '${entry.title} ${entry.author}'.trim(),
-                        );
-                        launchUrl(
-                          Uri.parse('https://www.amazon.fr/s?k=$query&i=stripbooks&tag=lexday-21'),
-                          mode: LaunchMode.externalApplication,
-                        );
-                      },
+                      onTap: () => AmazonAffiliate.openForBook(
+                        isbn: entry.isbn,
+                        title: entry.title,
+                        author: entry.author,
+                        source: AmazonClickSource.curatedList,
+                      ),
                     ),
                   ],
                 ),

@@ -1,10 +1,10 @@
 // lib/widgets/suggestion_card.dart
 
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../l10n/app_localizations.dart';
 import '../models/book_suggestion.dart';
 import '../theme/app_theme.dart';
+import '../utils/amazon_affiliate.dart';
 import 'cached_book_cover.dart';
 
 class SuggestionCard extends StatelessWidget {
@@ -233,7 +233,12 @@ class SuggestionCard extends StatelessWidget {
               const SizedBox(height: AppSpace.l),
               // Bouton Amazon
               FilledButton.icon(
-                onPressed: () => _openAmazon(book.isbn, book.title, book.author),
+                onPressed: () => AmazonAffiliate.openForBook(
+                  isbn: book.isbn,
+                  title: book.title,
+                  author: book.author,
+                  source: AmazonClickSource.suggestionCard,
+                ),
                 icon: const Icon(Icons.shopping_cart_outlined),
                 label: Text(l10n.buyOnAmazon),
                 style: FilledButton.styleFrom(
@@ -246,21 +251,6 @@ class SuggestionCard extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  Future<void> _openAmazon(String? isbn, String title, String? author) async {
-    final String query;
-    if (isbn != null && isbn.isNotEmpty) {
-      query = isbn;
-    } else {
-      query = [title, if (author != null) author].join(' ');
-    }
-    // tag=lexday-21 → affiliation utilisée partout ailleurs dans l'app
-    // (cf. prize_list_detail_page, curated_list_detail_page, ai_chat_page).
-    final url = Uri.parse(
-      'https://www.amazon.fr/s?k=${Uri.encodeComponent(query)}&i=stripbooks&tag=lexday-21',
-    );
-    await launchUrl(url, mode: LaunchMode.externalApplication);
   }
 
   Color _getTypeColor() {

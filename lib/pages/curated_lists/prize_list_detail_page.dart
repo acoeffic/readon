@@ -10,6 +10,7 @@ import '../../models/user_custom_list.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/cached_book_cover.dart';
 import '../../widgets/constrained_content.dart';
+import '../../utils/amazon_affiliate.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../bookstores/nearby_bookstores_page.dart';
 import 'create_custom_list_dialog.dart';
@@ -274,16 +275,12 @@ class _PrizeListDetailPageState extends State<PrizeListDetailPage> {
                       context: pageContext,
                       emoji: '\u{1F4E6}',
                       label: l.amazon,
-                      onTap: () {
-                        final query = Uri.encodeComponent(
-                          '${book.title} ${book.author ?? ""}'.trim(),
-                        );
-                        launchUrl(
-                          Uri.parse(
-                              'https://www.amazon.fr/s?k=$query&i=stripbooks&tag=lexday-21'),
-                          mode: LaunchMode.externalApplication,
-                        );
-                      },
+                      onTap: () => AmazonAffiliate.openForBook(
+                        isbn: book.isbn,
+                        title: book.title,
+                        author: book.author,
+                        source: AmazonClickSource.prizeList,
+                      ),
                     ),
                   ],
                 ),

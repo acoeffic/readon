@@ -74,6 +74,7 @@ abstract final class AnalyticsEvent {
   static const paywallDismissed = 'paywall_dismissed';
   static const subscriptionStarted = 'subscription_started';
   static const subscriptionCancelled = 'subscription_cancelled';
+  static const amazonLinkClicked = 'amazon_link_clicked';
 }
 
 class AnalyticsService {
