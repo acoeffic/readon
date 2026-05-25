@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -7,6 +6,7 @@ import '../../l10n/app_localizations.dart';
 import '../../models/book.dart';
 import '../../models/reading_group.dart';
 import '../../services/books_service.dart';
+import '../../services/google_books_service.dart';
 import '../../services/groups_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/cached_book_cover.dart';
@@ -305,6 +305,7 @@ class _AddBookSheet extends StatefulWidget {
 class _AddBookSheetState extends State<_AddBookSheet> {
   final _searchCtrl = TextEditingController();
   final _booksService = BooksService();
+  final _googleBooksService = GoogleBooksService();
   final _service = GroupsService();
   Timer? _debounce;
   bool _searching = false;
@@ -331,34 +332,22 @@ class _AddBookSheetState extends State<_AddBookSheet> {
     }
     setState(() => _searching = true);
     try {
-      final response = await Supabase.instance.client.functions.invoke(
-        'search_books',
-        body: {'q': q},
-      );
-
-      List<dynamic> parsed = [];
-      final payload = response.data;
-      if (payload is Map<String, dynamic>) {
-        final r = payload['results'];
-        if (r is List) parsed = r;
-      } else if (payload is List) {
-        parsed = payload;
-      } else if (payload is String) {
-        try {
-          final decoded = jsonDecode(payload);
-          if (decoded is Map<String, dynamic>) {
-            final r = decoded['results'];
-            if (r is List) parsed = r;
-          } else if (decoded is List) {
-            parsed = decoded;
-          }
-        } catch (_) {}
-      }
-
+      final books = await _googleBooksService.searchBooks(q);
+      if (!mounted) return;
       setState(() {
-        _results = parsed
-            .whereType<Map<String, dynamic>>()
-            .map(Map<String, dynamic>.from)
+        _results = books
+            .map((b) => <String, dynamic>{
+                  'title': b.title,
+                  'author': b.authorsString,
+                  'isbn': b.isbn13,
+                  'cover_url': b.coverUrl,
+                  'page_count': b.pageCount,
+                  'description': b.description,
+                  'google_id': b.id,
+                  'publisher': b.publisher,
+                  'language': b.language ?? 'fr',
+                  'published_date': b.publishedDate,
+                })
             .toList();
         _searching = false;
       });
