@@ -2,6 +2,7 @@
   "buildCommand": "",
   "outputDirectory": ".",
   "rewrites": [
+    { "source": "/confirm", "destination": "/confirm.html" },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "headers": [
