@@ -66,9 +66,20 @@ class _StartReadingSessionPageUnifiedState extends State<StartReadingSessionPage
   Future<void> _loadBookStats() async {
     try {
       final stats = await _sessionService.getBookStats(widget.book.id.toString());
-      if (mounted && stats.currentPage != null) {
-        setState(() => _lastPage = stats.currentPage);
-      }
+      if (!mounted || stats.currentPage == null) return;
+      setState(() {
+        _lastPage = stats.currentPage;
+        // Prefill the start-page input with the last known page so that
+        // resuming a book is a single tap. Only when the user hasn't
+        // started typing/scanning yet — never overwrite a manual entry
+        // or an OCR detection.
+        if (_manualPageController.text.isEmpty &&
+            _manualPageNumber == null &&
+            _detectedPageNumber == null) {
+          _manualPageController.text = stats.currentPage.toString();
+          _manualPageNumber = stats.currentPage;
+        }
+      });
     } catch (_) {}
   }
 
