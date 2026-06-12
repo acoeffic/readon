@@ -12,6 +12,7 @@ import '../../services/notifications_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/constrained_content.dart';
 import '../feed/feed_page.dart';
+import '../feed/widgets/comments_sheet.dart';
 import '../sessions/session_detail_page.dart';
 
 class NotificationsPage extends StatefulWidget {
@@ -172,8 +173,21 @@ class _NotificationsPageState extends State<NotificationsPage> {
 
   void _onNotificationTap(AppNotification notification) {
     HapticFeedback.selectionClick();
-    if ((notification.type == NotificationType.like ||
-            notification.type == NotificationType.comment) &&
+
+    if (notification.type == NotificationType.comment &&
+        notification.activityId > 0) {
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        builder: (_) => CommentsSheet(activityId: notification.activityId),
+      );
+      return;
+    }
+
+    if (notification.type == NotificationType.like &&
         notification.activityId > 0) {
       final payload = notification.activityPayload;
       if (payload == null) return;

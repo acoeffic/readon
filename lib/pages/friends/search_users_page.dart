@@ -124,12 +124,13 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
 
     try {
       if (_selectedTab == 0) {
-        // Recherche par nom uniquement (jamais par email → anti-énumération)
-        final basicData = await supabase
-            .from('profiles')
-            .select('id, display_name')
-            .ilike('display_name', pattern)
-            .limit(20);
+        // Recherche par nom uniquement (jamais par email → anti-énumération).
+        // RPC `search_users_by_name` applique unaccent() côté DB pour matcher
+        // "voge" → "Vögel" / "Vogel" / "Vogél" sans exiger les accents exacts.
+        final basicData = await supabase.rpc(
+          'search_users_by_name',
+          params: {'p_term': query, 'p_limit': 20},
+        );
 
         if (!mounted) return;
 

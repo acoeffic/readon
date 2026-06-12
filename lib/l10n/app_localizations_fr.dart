@@ -181,6 +181,31 @@ class AppLocalizationsFr extends AppLocalizations {
       'Le mot de passe doit contenir majuscule, minuscule et chiffre';
 
   @override
+  String get resetNewPasswordTitle => 'Nouveau mot de passe';
+
+  @override
+  String get resetNewPasswordHeading => 'Choisis un nouveau mot de passe';
+
+  @override
+  String get resetNewPasswordSubtitle =>
+      'Saisis ton nouveau mot de passe ci-dessous.';
+
+  @override
+  String get newPasswordLabel => 'Nouveau mot de passe';
+
+  @override
+  String get confirmPasswordLabel => 'Confirme le mot de passe';
+
+  @override
+  String get passwordsDoNotMatch => 'Les mots de passe ne correspondent pas';
+
+  @override
+  String get updatePasswordButton => 'Mettre à jour le mot de passe';
+
+  @override
+  String get passwordUpdatedSuccess => 'Mot de passe mis à jour.';
+
+  @override
   String get mustAcceptTerms =>
       'Vous devez accepter les conditions d\'utilisation';
 
@@ -2401,6 +2426,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get errorDeleting => 'Erreur lors de la suppression';
 
   @override
+  String get endSessionError =>
+      'Impossible de terminer la session pour le moment. Réessaie dans un instant.';
+
+  @override
   String get loadingError => 'Erreur de chargement';
 
   @override
@@ -2486,6 +2515,13 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get friendRequestEmailDesc =>
       'Recevoir un email quand quelqu\'un t\'envoie une demande d\'ami';
+
+  @override
+  String get commentEmail => 'Commentaires par email';
+
+  @override
+  String get commentEmailDesc =>
+      'Recevoir un email quand quelqu\'un commente une de tes lectures';
 
   @override
   String get pushSection => 'Notifications push';
@@ -3505,4 +3541,94 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get totalPagesInvalid => 'Entre un nombre valide (> 0).';
+
+  @override
+  String get statsPageTitle => 'Statistiques';
+
+  @override
+  String get statsPageHeading => 'Statistiques de lecture';
+
+  @override
+  String get statsPageComingSoon => 'Fonctionnalité à venir';
+
+  @override
+  String get allBadgesPageTitle => 'Mes badges';
+
+  @override
+  String get peopleYouMayKnowPageTitle => 'À découvrir';
+
+  @override
+  String get addBookPageTitle => 'Ajouter un livre';
+
+  @override
+  String get addBookSearchHeading => 'Recherche Google Books';
+
+  @override
+  String get addBookSearchHint => 'Titre, auteur ou ISBN';
+
+  @override
+  String get addBookSaveBtn => 'Enregistrer';
+
+  @override
+  String get startReadingPageTitle => 'Démarrer une lecture';
+
+  @override
+  String get startReadingSelectedBook => 'Livre sélectionné';
+
+  @override
+  String get feedSectionListsForYou => 'Listes pour toi';
+
+  @override
+  String get feedSectionTrending => 'Tendances';
+
+  @override
+  String get feedSectionPublicClubs => 'Clubs publics à découvrir';
+
+  @override
+  String get feedGuestCtaTitle => 'Rejoins LexDay';
+
+  @override
+  String get feedGuestCtaSubtitle =>
+      'Suis tes lectures, tes amis, tes objectifs.';
+
+  @override
+  String get legalNoticeTitle => 'Mentions légales';
+
+  @override
+  String get onboardingHabitQuestion => 'Comment lis-tu\nle plus souvent ?';
+
+  @override
+  String get onboardingHabitEreaderLabel => 'Liseuse';
+
+  @override
+  String get onboardingHabitEreaderSubtitle => 'Kindle, Kobo...';
+
+  @override
+  String get onboardingHabitPaperLabel => 'Papier';
+
+  @override
+  String get onboardingHabitPaperSubtitle => 'Livres physiques';
+
+  @override
+  String get onboardingHabitMixLabel => 'Un mix';
+
+  @override
+  String get onboardingHabitMixSubtitle => 'Les deux !';
+
+  @override
+  String get autoFreezeUsedTitle => 'Ton flow a été protégé !';
+
+  @override
+  String autoFreezeUsedBody(int days) {
+    return 'Un freeze automatique a sauvé ta série de $days jours. Lis quelques pages aujourd\'hui pour la faire continuer.';
+  }
+
+  @override
+  String get autoFreezeUsedCta => 'Continuer ma série';
+
+  @override
+  String get feedGoalsCardTitle => 'Mes objectifs';
+
+  @override
+  String get feedGoalsCta => 'Fixe-toi un objectif de lecture';
 }

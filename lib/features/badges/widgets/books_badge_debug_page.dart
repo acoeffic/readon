@@ -2,9 +2,9 @@
 // Page de test temporaire pour les badges livres terminés — à supprimer avant la prod
 
 import 'package:flutter/material.dart';
-import '../../../services/badges_service.dart';
-import '../../../widgets/badge_unlocked_dialog.dart';
-import '../../../widgets/remote_badge_image.dart';
+import 'package:lexday/features/badges/services/badges_service.dart';
+import 'package:lexday/features/badges/widgets/badge_unlocked_dialog.dart';
+import 'package:lexday/features/badges/widgets/remote_badge_image.dart';
 
 /// Les 8 badges livres terminés avec leurs métadonnées.
 class _BookBadgeData {

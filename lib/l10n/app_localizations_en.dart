@@ -179,6 +179,30 @@ class AppLocalizationsEn extends AppLocalizations {
       'Password must contain uppercase, lowercase and a number';
 
   @override
+  String get resetNewPasswordTitle => 'New password';
+
+  @override
+  String get resetNewPasswordHeading => 'Choose a new password';
+
+  @override
+  String get resetNewPasswordSubtitle => 'Enter your new password below.';
+
+  @override
+  String get newPasswordLabel => 'New password';
+
+  @override
+  String get confirmPasswordLabel => 'Confirm password';
+
+  @override
+  String get passwordsDoNotMatch => 'Passwords do not match';
+
+  @override
+  String get updatePasswordButton => 'Update password';
+
+  @override
+  String get passwordUpdatedSuccess => 'Password updated.';
+
+  @override
   String get mustAcceptTerms => 'You must accept the terms of use';
 
   @override
@@ -781,10 +805,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get errorGoogleBooks => 'Google Books search error';
 
   @override
-  String get termsOfServiceTitle => 'Terms of Service';
+  String get termsOfServiceTitle => 'Terms of service';
 
   @override
-  String get privacyPolicyTitle => 'Privacy Policy';
+  String get privacyPolicyTitle => 'Privacy policy';
 
   @override
   String get legalNoticesTitle => 'Legal Notices';
@@ -2371,6 +2395,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get errorDeleting => 'Error deleting';
 
   @override
+  String get endSessionError =>
+      'Couldn\'t end the session right now. Please try again in a moment.';
+
+  @override
   String get loadingError => 'Loading error';
 
   @override
@@ -2456,6 +2484,13 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get friendRequestEmailDesc =>
       'Receive an email when someone sends you a friend request';
+
+  @override
+  String get commentEmail => 'Comments by email';
+
+  @override
+  String get commentEmailDesc =>
+      'Receive an email when someone comments on one of your reading sessions';
 
   @override
   String get pushSection => 'Push notifications';
@@ -3467,4 +3502,93 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get totalPagesInvalid => 'Enter a valid number (> 0).';
+
+  @override
+  String get statsPageTitle => 'Statistics';
+
+  @override
+  String get statsPageHeading => 'Reading statistics';
+
+  @override
+  String get statsPageComingSoon => 'Coming soon';
+
+  @override
+  String get allBadgesPageTitle => 'My badges';
+
+  @override
+  String get peopleYouMayKnowPageTitle => 'Discover';
+
+  @override
+  String get addBookPageTitle => 'Add a book';
+
+  @override
+  String get addBookSearchHeading => 'Google Books search';
+
+  @override
+  String get addBookSearchHint => 'Title, author or ISBN';
+
+  @override
+  String get addBookSaveBtn => 'Save';
+
+  @override
+  String get startReadingPageTitle => 'Start reading';
+
+  @override
+  String get startReadingSelectedBook => 'Selected book';
+
+  @override
+  String get feedSectionListsForYou => 'Lists for you';
+
+  @override
+  String get feedSectionTrending => 'Trending';
+
+  @override
+  String get feedSectionPublicClubs => 'Discover public clubs';
+
+  @override
+  String get feedGuestCtaTitle => 'Join LexDay';
+
+  @override
+  String get feedGuestCtaSubtitle => 'Track your readings, friends and goals.';
+
+  @override
+  String get legalNoticeTitle => 'Legal notice';
+
+  @override
+  String get onboardingHabitQuestion => 'How do you\nread most often?';
+
+  @override
+  String get onboardingHabitEreaderLabel => 'E-reader';
+
+  @override
+  String get onboardingHabitEreaderSubtitle => 'Kindle, Kobo...';
+
+  @override
+  String get onboardingHabitPaperLabel => 'Paper';
+
+  @override
+  String get onboardingHabitPaperSubtitle => 'Physical books';
+
+  @override
+  String get onboardingHabitMixLabel => 'A mix';
+
+  @override
+  String get onboardingHabitMixSubtitle => 'Both!';
+
+  @override
+  String get autoFreezeUsedTitle => 'Your flow was protected!';
+
+  @override
+  String autoFreezeUsedBody(int days) {
+    return 'An automatic freeze saved your $days-day streak. Read a few pages today to keep it going.';
+  }
+
+  @override
+  String get autoFreezeUsedCta => 'Keep my streak going';
+
+  @override
+  String get feedGoalsCardTitle => 'My goals';
+
+  @override
+  String get feedGoalsCta => 'Set a reading goal';
 }

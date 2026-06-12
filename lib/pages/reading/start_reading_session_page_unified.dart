@@ -50,6 +50,11 @@ class _StartReadingSessionPageUnifiedState extends State<StartReadingSessionPage
   final TextEditingController _pageNumberController = TextEditingController();
   final TextEditingController _manualPageController = TextEditingController();
   final FocusNode _pageFocusNode = FocusNode();
+  final TextEditingController _totalPagesController = TextEditingController();
+  final FocusNode _totalPagesFocusNode = FocusNode();
+  int? _totalPagesOverride;
+  bool _isSavingTotalPages = false;
+  String? _totalPagesError;
 
   ReadingSession? _activeSession;
   Book? _activeSessionBook; // the book tied to the active session (may differ from widget.book)
@@ -129,7 +134,47 @@ class _StartReadingSessionPageUnifiedState extends State<StartReadingSessionPage
     _pageNumberController.dispose();
     _manualPageController.dispose();
     _pageFocusNode.dispose();
+    _totalPagesController.dispose();
+    _totalPagesFocusNode.dispose();
     super.dispose();
+  }
+
+  Future<void> _saveTotalPages() async {
+    final l = AppLocalizations.of(context);
+    final raw = _totalPagesController.text.trim();
+    final parsed = int.tryParse(raw);
+    if (parsed == null || parsed <= 0) {
+      setState(() => _totalPagesError = l.totalPagesInvalid);
+      return;
+    }
+    setState(() {
+      _isSavingTotalPages = true;
+      _totalPagesError = null;
+    });
+    try {
+      await Supabase.instance.client
+          .from('books')
+          .update({'page_count': parsed})
+          .eq('id', widget.book.id);
+      if (!mounted) return;
+      _totalPagesFocusNode.unfocus();
+      setState(() {
+        _totalPagesOverride = parsed;
+        _isSavingTotalPages = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l.totalPagesSaved),
+          backgroundColor: _kSageGreen,
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _isSavingTotalPages = false;
+        _totalPagesError = l.totalPagesSaveError;
+      });
+    }
   }
 
   Future<void> _takePicture() async {
@@ -152,27 +197,6 @@ class _StartReadingSessionPageUnifiedState extends State<StartReadingSessionPage
     } catch (e) {
       setState(() {
         _errorMessage = AppLocalizations.of(context).errorCapture(e.toString());
-      });
-    }
-  }
-
-  Future<void> _pickFromGallery() async {
-    try {
-      setState(() {
-        _errorMessage = null;
-        _detectedPageNumber = null;
-      });
-
-      final XFile? photo = await _picker.pickImage(
-        source: ImageSource.gallery,
-      );
-
-      if (photo == null) return;
-
-      await _processImage(photo);
-    } catch (e) {
-      setState(() {
-        _errorMessage = AppLocalizations.of(context).errorSelection(e.toString());
       });
     }
   }
@@ -477,7 +501,7 @@ class _StartReadingSessionPageUnifiedState extends State<StartReadingSessionPage
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final book = widget.book;
-    final totalPages = book.pageCount;
+    final totalPages = _totalPagesOverride ?? book.pageCount;
     final currentPage = _lastPage ?? 0;
     final progress = (totalPages != null && totalPages > 0)
         ? (currentPage / totalPages).clamp(0.0, 1.0)
@@ -907,24 +931,16 @@ class _StartReadingSessionPageUnifiedState extends State<StartReadingSessionPage
 
                       const SizedBox(height: 14),
 
-                      // Scan buttons
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _DashedButton(
-                              label: '📷  ${l.scanPageBtn}',
-                              onTap: _isProcessing ? null : _takePicture,
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: _DashedButton(
-                              label: '🖼️  ${l.galleryPageBtn}',
-                              onTap: _isProcessing ? null : _pickFromGallery,
-                            ),
-                          ),
-                        ],
+                      // Scan button
+                      _DashedButton(
+                        label: '📷  ${l.scanPageBtn}',
+                        onTap: _isProcessing ? null : _takePicture,
                       ),
+
+                      if (totalPages == null || totalPages == 0) ...[
+                        const SizedBox(height: 20),
+                        _buildTotalPagesField(l),
+                      ],
                     ],
                   ),
                 ),
@@ -1225,6 +1241,154 @@ class _StartReadingSessionPageUnifiedState extends State<StartReadingSessionPage
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildTotalPagesField(AppLocalizations l) {
+    final hasFocus = _totalPagesFocusNode.hasFocus;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
+      decoration: BoxDecoration(
+        color: _kGold.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: hasFocus
+              ? _kGold.withValues(alpha: 0.55)
+              : _kGold.withValues(alpha: 0.30),
+          width: 1.2,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.menu_book_rounded, size: 16, color: _kGold),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  l.totalPagesUnknownLabel,
+                  style: GoogleFonts.dmSans(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF6E5A2A),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            l.totalPagesUnknownHint,
+            style: GoogleFonts.dmSans(
+              fontSize: 12,
+              color: const Color(0xFF8A7A52),
+              height: 1.3,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: hasFocus
+                          ? _kGold.withValues(alpha: 0.55)
+                          : const Color(0xFFE2DDD5),
+                      width: 1.2,
+                    ),
+                  ),
+                  child: TextField(
+                    key: const ValueKey('total_pages_input'),
+                    controller: _totalPagesController,
+                    focusNode: _totalPagesFocusNode,
+                    keyboardType: TextInputType.number,
+                    textAlign: TextAlign.center,
+                    cursorColor: _kGold,
+                    // Volontairement en dmSans (sans-serif) pour contraster avec
+                    // le champ "À quelle page es-tu ?" qui est en cormorantGaramond.
+                    style: GoogleFonts.dmSans(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF1A1A1A),
+                      letterSpacing: 0.3,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: l.totalPagesPlaceholder,
+                      hintStyle: GoogleFonts.dmSans(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        color: const Color(0xFFB8AE96),
+                      ),
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 12,
+                      ),
+                    ),
+                    onChanged: (_) {
+                      if (_totalPagesError != null) {
+                        setState(() => _totalPagesError = null);
+                      }
+                    },
+                    onTap: () => setState(() {}),
+                    onSubmitted: (_) => _saveTotalPages(),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              SizedBox(
+                height: 44,
+                child: ElevatedButton(
+                  onPressed: _isSavingTotalPages ? null : _saveTotalPages,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _kGold,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: _isSavingTotalPages
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
+                      : Text(
+                          l.totalPagesSaveBtn,
+                          style: GoogleFonts.dmSans(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                ),
+              ),
+            ],
+          ),
+          if (_totalPagesError != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              _totalPagesError!,
+              style: GoogleFonts.dmSans(
+                fontSize: 12,
+                color: Colors.orange.shade800,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }

@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../utils/responsive.dart';
+import '../../utils/amazon_affiliate.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:just_audio/just_audio.dart';
 import '../../l10n/app_localizations.dart';
 import '../../services/books_service.dart';
-import '../../services/badges_service.dart';
-import '../../widgets/badge_unlocked_dialog.dart';
+import 'package:lexday/features/badges/services/badges_service.dart';
+import 'package:lexday/features/badges/widgets/badge_unlocked_dialog.dart';
 import '../../models/book.dart';
 import '../../models/user_custom_list.dart';
 import '../../services/reading_session_service.dart';
@@ -1463,13 +1464,12 @@ class _BookDetailPageState extends State<BookDetailPage> {
   }
 
   Future<void> _openAmazonLink() async {
-    final query = Uri.encodeComponent(
-      '${widget.book.title} ${widget.book.author ?? ''}'.trim(),
+    await AmazonAffiliate.openForBook(
+      isbn: widget.book.isbn,
+      title: widget.book.title,
+      author: widget.book.author,
+      source: AmazonClickSource.bookDetail,
     );
-    final url = Uri.parse('https://www.amazon.fr/s?k=$query&i=stripbooks&tag=lexday-21');
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url, mode: LaunchMode.externalApplication);
-    }
   }
 
   void _showAddToListSheet() async {

@@ -5,6 +5,7 @@ import '../../l10n/app_localizations.dart';
 import '../../services/kindle_webview_service.dart';
 import '../../services/books_service.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/constrained_content.dart';
 import 'kindle_book_review_page.dart';
 
 /// Étapes visibles du sync Kindle
@@ -470,7 +471,8 @@ class _KindleLoginPageState extends State<KindleLoginPage>
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: Stack(
+      body: ConstrainedContent(
+        child: Stack(
         // StackFit.expand est indispensable : sinon le Stack se sized sur ses
         // enfants non-positioned (ici seulement l'Offstage des insights qui
         // est à 0×0), donc Positioned.fill fill du zéro et la WebView se
@@ -510,6 +512,7 @@ class _KindleLoginPageState extends State<KindleLoginPage>
           // Overlay de progression
           if (!_showWebView) _buildProgressOverlay(l10n),
         ],
+      ),
       ),
     );
   }

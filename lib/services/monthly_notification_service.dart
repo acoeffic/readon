@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest_all.dart' as tzdata;
 import 'package:flutter_timezone/flutter_timezone.dart';
@@ -296,6 +297,18 @@ class MonthlyNotificationService {
 
     if (isoDays.isEmpty) return;
 
+    // Quand un token FCM est enregistré, les rappels viennent du serveur
+    // (edge function send-streak-reminders : même heure, mêmes jours, et
+    // n'envoie pas si l'utilisateur a déjà lu). Planifier en plus des
+    // notifications locales créerait des doublons — le local n'est qu'un
+    // fallback sans push.
+    if (await _hasServerPush()) {
+      debugPrint(
+        'ReadingReminders: push serveur actif (token FCM), pas de notifications locales',
+      );
+      return;
+    }
+
     await requestPermission();
 
     final notificationDetails = NotificationDetails(
@@ -352,6 +365,26 @@ class MonthlyNotificationService {
   Future<void> cancelReadingReminders() async {
     for (var i = 0; i < 7; i++) {
       await _plugin.cancel(_readingReminderBaseId + i);
+    }
+  }
+
+  /// True si un token FCM est enregistré pour l'utilisateur courant —
+  /// les rappels de lecture sont alors envoyés par le serveur.
+  Future<bool> _hasServerPush() async {
+    try {
+      final userId = Supabase.instance.client.auth.currentUser?.id;
+      if (userId == null) return false;
+
+      final row = await Supabase.instance.client
+          .from('profiles')
+          .select('fcm_token')
+          .eq('id', userId)
+          .maybeSingle();
+
+      return (row?['fcm_token'] as String?)?.isNotEmpty == true;
+    } catch (e) {
+      debugPrint('Erreur _hasServerPush: $e');
+      return false; // en cas de doute, garder le fallback local
     }
   }
 

@@ -52,4 +52,14 @@ abstract final class Env {
   /// URL de callback auth Supabase
   static String get authCallbackUrl => '$supabaseUrl/auth/callback';
   static String get authV1CallbackUrl => '$supabaseUrl/auth/v1/callback';
+
+  /// URL de redirection pour la confirmation d'email (signup) et le reset
+  /// de mot de passe. Utilise le custom scheme `lexday://` pour rouvrir
+  /// l'app au clic sur le lien dans l'email.
+  ///
+  /// ⚠️ Cette URL doit être ajoutée dans la « Redirect URL allowlist »
+  /// du projet Supabase (Authentication → URL Configuration), sinon
+  /// Supabase refusera la redirection et l'utilisateur tombera sur une
+  /// page d'erreur.
+  static const authEmailCallbackUrl = 'lexday://auth/callback';
 }

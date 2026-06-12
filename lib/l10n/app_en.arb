@@ -63,6 +63,14 @@
   "resetEmailSent": "Reset email sent. Check your inbox.",
   "passwordMin8Chars": "Password must be at least 8 characters",
   "passwordRequirements": "Password must contain uppercase, lowercase and a number",
+  "resetNewPasswordTitle": "New password",
+  "resetNewPasswordHeading": "Choose a new password",
+  "resetNewPasswordSubtitle": "Enter your new password below.",
+  "newPasswordLabel": "New password",
+  "confirmPasswordLabel": "Confirm password",
+  "passwordsDoNotMatch": "Passwords do not match",
+  "updatePasswordButton": "Update password",
+  "passwordUpdatedSuccess": "Password updated.",
   "mustAcceptTerms": "You must accept the terms of use",
   "accountCreatedCheckEmail": "Account created, check your emails.",
   "createAccountTitle": "Create an account",
@@ -1142,6 +1150,7 @@
   "sessionVisible": "Session visible in rankings",
   "errorModifying": "Error modifying",
   "errorDeleting": "Error deleting",
+  "endSessionError": "Couldn't end the session right now. Please try again in a moment.",
 
   "loadingError": "Loading error",
   "pagesReadByMonth": "Pages read by month",
@@ -1172,6 +1181,8 @@
   "emailSectionDescription": "Choose which notifications you want to receive by email.",
   "friendRequestEmail": "Friend requests by email",
   "friendRequestEmailDesc": "Receive an email when someone sends you a friend request",
+  "commentEmail": "Comments by email",
+  "commentEmailDesc": "Receive an email when someone comments on one of your reading sessions",
   "pushSection": "Push notifications",
   "pushSectionDescription": "Notifications on your device.",
   "settingsSaved": "Preferences saved",
@@ -1672,5 +1683,45 @@
   "totalPagesSaveBtn": "Save",
   "totalPagesSaved": "Page count saved ✓",
   "totalPagesSaveError": "Couldn't save. Try again.",
-  "totalPagesInvalid": "Enter a valid number (> 0)."
+  "totalPagesInvalid": "Enter a valid number (> 0).",
+
+  "statsPageTitle": "Statistics",
+  "statsPageHeading": "Reading statistics",
+  "statsPageComingSoon": "Coming soon",
+
+  "allBadgesPageTitle": "My badges",
+  "peopleYouMayKnowPageTitle": "Discover",
+
+  "addBookPageTitle": "Add a book",
+  "addBookSearchHeading": "Google Books search",
+  "addBookSearchHint": "Title, author or ISBN",
+  "addBookSaveBtn": "Save",
+
+  "startReadingPageTitle": "Start reading",
+  "startReadingSelectedBook": "Selected book",
+
+  "feedSectionListsForYou": "Lists for you",
+  "feedSectionTrending": "Trending",
+  "feedSectionPublicClubs": "Discover public clubs",
+  "feedGuestCtaTitle": "Join LexDay",
+  "feedGuestCtaSubtitle": "Track your readings, friends and goals.",
+
+  "termsOfServiceTitle": "Terms of service",
+  "privacyPolicyTitle": "Privacy policy",
+  "legalNoticeTitle": "Legal notice",
+
+  "onboardingHabitQuestion": "How do you\nread most often?",
+  "onboardingHabitEreaderLabel": "E-reader",
+  "onboardingHabitEreaderSubtitle": "Kindle, Kobo...",
+  "onboardingHabitPaperLabel": "Paper",
+  "onboardingHabitPaperSubtitle": "Physical books",
+  "onboardingHabitMixLabel": "A mix",
+  "onboardingHabitMixSubtitle": "Both!",
+
+  "autoFreezeUsedTitle": "Your flow was protected!",
+  "autoFreezeUsedBody": "An automatic freeze saved your {days}-day streak. Read a few pages today to keep it going.",
+  "autoFreezeUsedCta": "Keep my streak going",
+
+  "feedGoalsCardTitle": "My goals",
+  "feedGoalsCta": "Set a reading goal"
 }

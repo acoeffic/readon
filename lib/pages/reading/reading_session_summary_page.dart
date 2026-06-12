@@ -7,7 +7,6 @@ import '../../l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 import '../../models/book.dart';
 import '../../models/reading_session.dart';
-import '../../models/trophy.dart';
 import '../../models/feature_flags.dart';
 import '../../providers/subscription_provider.dart';
 import '../../services/native_paywall_service.dart';
@@ -23,12 +22,10 @@ import 'session_share_service.dart';
 
 class ReadingSessionSummaryPage extends StatefulWidget {
   final ReadingSession session;
-  final Trophy? trophy;
 
   const ReadingSessionSummaryPage({
     super.key,
     required this.session,
-    this.trophy,
   });
 
   @override

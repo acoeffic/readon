@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 500" width="1024" height="500">
+  <!-- Background -->
+  <rect width="1024" height="500" fill="#FAF3E8"/>
+
+  <!-- Subtle decorative dots pattern (extreme right & left, low opacity) -->
+  <g fill="#6B988D" opacity="0.08">
+    <circle cx="60" cy="60" r="3"/>
+    <circle cx="100" cy="60" r="3"/>
+    <circle cx="140" cy="60" r="3"/>
+    <circle cx="60" cy="100" r="3"/>
+    <circle cx="100" cy="100" r="3"/>
+    <circle cx="60" cy="140" r="3"/>
+    <circle cx="960" cy="440" r="3"/>
+    <circle cx="920" cy="440" r="3"/>
+    <circle cx="880" cy="440" r="3"/>
+    <circle cx="960" cy="400" r="3"/>
+    <circle cx="920" cy="400" r="3"/>
+    <circle cx="960" cy="360" r="3"/>
+  </g>
+
+  <!-- Bookmark logo (left, vertically centered) — scaled from 1024 viewBox to ~280x280 -->
+  <g transform="translate(140, 110) scale(0.273)">
+    <path fill="#6B988D" d="
+      M 433 254
+      H 591
+      A 50 50 0 0 1 641 304
+      V 700
+      A 18 18 0 0 1 612 714
+      L 512 634
+      L 412 714
+      A 18 18 0 0 1 383 700
+      V 304
+      A 50 50 0 0 1 433 254
+      Z"/>
+  </g>
+
+  <!-- Vertical separator -->
+  <line x1="440" y1="170" x2="440" y2="330" stroke="#191919" stroke-opacity="0.12" stroke-width="1.5"/>
+
+  <!-- Brand name -->
+  <text x="490" y="225"
+        font-family="DejaVu Sans, Liberation Sans, sans-serif"
+        font-weight="700" font-size="84" fill="#191919"
+        letter-spacing="-2">LexDay</text>
+
+  <!-- Tagline (sage green) -->
+  <text x="490" y="275"
+        font-family="DejaVu Sans, Liberation Sans, sans-serif"
+        font-weight="600" font-size="26" fill="#517E73">
+    Ton compagnon de lecture
+  </text>
+
+  <!-- Sub-tagline / features (muted) -->
+  <text x="490" y="320"
+        font-family="DejaVu Sans, Liberation Sans, sans-serif"
+        font-weight="400" font-size="20" fill="#191919" fill-opacity="0.6">
+    Suis tes livres · Note tes idées · Retrouve tes amis
+  </text>
+</svg>

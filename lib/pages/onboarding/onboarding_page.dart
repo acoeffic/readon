@@ -6,6 +6,7 @@ import '../../theme/app_theme.dart';
 import '../../navigation/main_navigation.dart';
 import '../../services/books_service.dart';
 import '../../services/kindle_webview_service.dart';
+import '../../services/paywall_controller.dart';
 import '../reading/start_reading_session_page_unified.dart';
 
 import 'widgets/onboarding_dots.dart';
@@ -57,7 +58,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
       steps.addAll([
         StepKindleConnect(
           onKindleResult: _handleKindleResult,
-          onSkip: _skipToEnd,
+          onSkip: _skipToSuggestedReaders,
         ),
         StepSyncProgress(
           kindleData: _kindleData,
@@ -76,7 +77,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
           addedBooks: _importedBooks,
           onBookAdded: _handleBookAdded,
           onNext: _goToNext,
-          onSkip: _skipToEnd,
+          onSkip: _skipToSuggestedReaders,
         ),
       );
     }
@@ -173,10 +174,11 @@ class _OnboardingPageState extends State<OnboardingPage> {
 
   // --- Common handlers ---
 
-  void _skipToEnd() {
-    // Skip to StepFirstSession (last step)
+  void _skipToSuggestedReaders() {
+    // Skip the import step but still go through the suggested readers step
+    // (second to last) before reaching StepFirstSession.
     final steps = _buildSteps();
-    _loadBooksAndGoTo(steps.length - 1);
+    _loadBooksAndGoTo(steps.length - 2);
   }
 
   Future<void> _loadBooksAndGoTo(int page) async {
@@ -211,6 +213,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
       'reading_habit': _readingHabit,
     }).eq('id', userId);
 
+    await PaywallController.markPendingAfterOnboarding();
+
     if (!mounted) return;
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const MainNavigation()),
@@ -238,6 +242,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
       'onboarding_completed': true,
       'reading_habit': _readingHabit,
     }).eq('id', userId);
+
+    await PaywallController.markPendingAfterOnboarding();
 
     if (!mounted) return;
 

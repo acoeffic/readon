@@ -182,6 +182,31 @@ class AppLocalizationsEs extends AppLocalizations {
       'La contraseña debe contener mayúscula, minúscula y número';
 
   @override
+  String get resetNewPasswordTitle => 'Nueva contraseña';
+
+  @override
+  String get resetNewPasswordHeading => 'Elige una nueva contraseña';
+
+  @override
+  String get resetNewPasswordSubtitle =>
+      'Introduce tu nueva contraseña a continuación.';
+
+  @override
+  String get newPasswordLabel => 'Nueva contraseña';
+
+  @override
+  String get confirmPasswordLabel => 'Confirma la contraseña';
+
+  @override
+  String get passwordsDoNotMatch => 'Las contraseñas no coinciden';
+
+  @override
+  String get updatePasswordButton => 'Actualizar la contraseña';
+
+  @override
+  String get passwordUpdatedSuccess => 'Contraseña actualizada.';
+
+  @override
   String get mustAcceptTerms => 'Debes aceptar las condiciones de uso';
 
   @override
@@ -787,7 +812,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get errorGoogleBooks => 'Error en la búsqueda de Google Books';
 
   @override
-  String get termsOfServiceTitle => 'Condiciones de uso';
+  String get termsOfServiceTitle => 'Términos del servicio';
 
   @override
   String get privacyPolicyTitle => 'Política de privacidad';
@@ -1682,24 +1707,24 @@ class AppLocalizationsEs extends AppLocalizations {
   String get titleRequired => 'El título es obligatorio';
 
   @override
-  String get startDate => 'Date de début';
+  String get startDate => 'Fecha de inicio';
 
   @override
-  String get startsOn => 'Commence le';
+  String get startsOn => 'Empieza el';
 
   @override
-  String get startsToday => 'Aujourd\'hui';
+  String get startsToday => 'Hoy';
 
   @override
-  String get upcoming => 'À venir';
+  String get upcoming => 'Próximamente';
 
   @override
   String daysUntilStart(int days) {
-    return 'Dans ${days}j';
+    return 'En $days d';
   }
 
   @override
-  String get challengeStartNotifTitle => 'Le défi commence aujourd\'hui !';
+  String get challengeStartNotifTitle => '¡El reto empieza hoy!';
 
   @override
   String get deadline => 'Fecha límite';
@@ -2184,18 +2209,18 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get removeFromLibraryTitle => 'Supprimer de ma bibliothèque ?';
+  String get removeFromLibraryTitle => '¿Eliminar de mi biblioteca?';
 
   @override
   String removeFromLibraryMessage(String title) {
-    return 'Supprimer \"$title\" définitivement de ta bibliothèque ?';
+    return '¿Eliminar \"$title\" definitivamente de tu biblioteca?';
   }
 
   @override
-  String get removeFromLibraryAction => 'Supprimer';
+  String get removeFromLibraryAction => 'Eliminar';
 
   @override
-  String get bookRemovedFromLibrary => 'Livre supprimé de ta bibliothèque';
+  String get bookRemovedFromLibrary => 'Libro eliminado de tu biblioteca';
 
   @override
   String get myListsSection => 'Mis listas';
@@ -2393,6 +2418,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get errorDeleting => 'Error al eliminar';
 
   @override
+  String get endSessionError =>
+      'No se pudo terminar la sesión. Inténtalo de nuevo en un momento.';
+
+  @override
   String get loadingError => 'Error de carga';
 
   @override
@@ -2452,41 +2481,48 @@ class AppLocalizationsEs extends AppLocalizations {
       'Recibirás una notificación los días seleccionados para recordarte leer y mantener tu flow.';
 
   @override
-  String get notificationCenter => 'Centre de notifications';
+  String get notificationCenter => 'Centro de notificaciones';
 
   @override
   String get notificationCenterDescription =>
-      'Gère tes préférences de notifications.';
+      'Gestiona tus preferencias de notificaciones.';
 
   @override
-  String get friendRequestNotifications => 'Demandes d\'ami';
+  String get friendRequestNotifications => 'Solicitudes de amistad';
 
   @override
   String get friendRequestNotificationsDesc =>
-      'Être notifié des nouvelles demandes d\'ami';
+      'Recibir notificaciones de nuevas solicitudes de amistad';
 
   @override
-  String get emailSection => 'Emails';
+  String get emailSection => 'Correos electrónicos';
 
   @override
   String get emailSectionDescription =>
-      'Choisis les notifications que tu veux recevoir par email.';
+      'Elige las notificaciones que quieres recibir por email.';
 
   @override
-  String get friendRequestEmail => 'Demandes d\'ami par email';
+  String get friendRequestEmail => 'Solicitudes de amistad por email';
 
   @override
   String get friendRequestEmailDesc =>
-      'Recevoir un email quand quelqu\'un t\'envoie une demande d\'ami';
+      'Recibir un email cuando alguien te envíe una solicitud de amistad';
 
   @override
-  String get pushSection => 'Notifications push';
+  String get commentEmail => 'Comentarios por email';
 
   @override
-  String get pushSectionDescription => 'Notifications sur ton appareil.';
+  String get commentEmailDesc =>
+      'Recibir un email cuando alguien comente una de tus lecturas';
 
   @override
-  String get settingsSaved => 'Préférences enregistrées';
+  String get pushSection => 'Notificaciones push';
+
+  @override
+  String get pushSectionDescription => 'Notificaciones en tu dispositivo.';
+
+  @override
+  String get settingsSaved => 'Preferencias guardadas';
 
   @override
   String get myGoals => 'Mis objetivos';
@@ -2806,7 +2842,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get searchingBookstores => 'Buscando librerías...';
 
   @override
-  String get loadMoreBookstores => 'Voir plus de librairies';
+  String get loadMoreBookstores => 'Ver más librerías';
 
   @override
   String get offlineBanner =>
@@ -3209,36 +3245,36 @@ class AppLocalizationsEs extends AppLocalizations {
   String get freeIncludedWidget => 'Widget iOS';
 
   @override
-  String get fabTooltip => 'Démarrer une lecture';
+  String get fabTooltip => 'Empezar una lectura';
 
   @override
-  String get shareMySession => 'Partager ma session';
+  String get shareMySession => 'Compartir mi sesión';
 
   @override
-  String get saveImage => 'Enregistrer l\'image';
+  String get saveImage => 'Guardar la imagen';
 
   @override
-  String get imageSaved => 'Image enregistrée';
+  String get imageSaved => 'Imagen guardada';
 
   @override
-  String get staleSessionModalTitle => 'Session en cours';
+  String get staleSessionModalTitle => 'Sesión en curso';
 
   @override
   String get staleSessionModalBody =>
-      'Tu as une session de lecture active. Tu as fini de lire ?';
+      'Tienes una sesión de lectura activa. ¿Has terminado de leer?';
 
   @override
-  String get staleSessionFinishButton => 'Terminer';
+  String get staleSessionFinishButton => 'Terminar';
 
   @override
-  String get staleSessionContinueButton => 'Continuer';
+  String get staleSessionContinueButton => 'Continuar';
 
   @override
-  String get staleSessionNotifTitle => 'Session de lecture en cours';
+  String get staleSessionNotifTitle => 'Sesión de lectura en curso';
 
   @override
   String get staleSessionNotifBody =>
-      'Tu as laissé une session de lecture ouverte. Tu as fini ?';
+      'Dejaste una sesión de lectura abierta. ¿Has terminado?';
 
   @override
   String wrappedBannerTitle(String month) {
@@ -3497,4 +3533,93 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get totalPagesInvalid => 'Introduce un número válido (> 0).';
+
+  @override
+  String get statsPageTitle => 'Estadísticas';
+
+  @override
+  String get statsPageHeading => 'Estadísticas de lectura';
+
+  @override
+  String get statsPageComingSoon => 'Próximamente';
+
+  @override
+  String get allBadgesPageTitle => 'Mis insignias';
+
+  @override
+  String get peopleYouMayKnowPageTitle => 'Descubrir';
+
+  @override
+  String get addBookPageTitle => 'Añadir un libro';
+
+  @override
+  String get addBookSearchHeading => 'Búsqueda en Google Books';
+
+  @override
+  String get addBookSearchHint => 'Título, autor o ISBN';
+
+  @override
+  String get addBookSaveBtn => 'Guardar';
+
+  @override
+  String get startReadingPageTitle => 'Empezar a leer';
+
+  @override
+  String get startReadingSelectedBook => 'Libro seleccionado';
+
+  @override
+  String get feedSectionListsForYou => 'Listas para ti';
+
+  @override
+  String get feedSectionTrending => 'Tendencias';
+
+  @override
+  String get feedSectionPublicClubs => 'Descubre clubs públicos';
+
+  @override
+  String get feedGuestCtaTitle => 'Únete a LexDay';
+
+  @override
+  String get feedGuestCtaSubtitle => 'Sigue tus lecturas, amigos y objetivos.';
+
+  @override
+  String get legalNoticeTitle => 'Aviso legal';
+
+  @override
+  String get onboardingHabitQuestion => '¿Cómo lees\nmás a menudo?';
+
+  @override
+  String get onboardingHabitEreaderLabel => 'Lector electrónico';
+
+  @override
+  String get onboardingHabitEreaderSubtitle => 'Kindle, Kobo...';
+
+  @override
+  String get onboardingHabitPaperLabel => 'Papel';
+
+  @override
+  String get onboardingHabitPaperSubtitle => 'Libros físicos';
+
+  @override
+  String get onboardingHabitMixLabel => 'Una mezcla';
+
+  @override
+  String get onboardingHabitMixSubtitle => '¡Ambos!';
+
+  @override
+  String get autoFreezeUsedTitle => '¡Tu flow ha sido protegido!';
+
+  @override
+  String autoFreezeUsedBody(int days) {
+    return 'Un freeze automático salvó tu racha de $days días. Lee unas páginas hoy para mantenerla.';
+  }
+
+  @override
+  String get autoFreezeUsedCta => 'Continuar mi racha';
+
+  @override
+  String get feedGoalsCardTitle => 'Mis objetivos';
+
+  @override
+  String get feedGoalsCta => 'Fíjate un objetivo de lectura';
 }

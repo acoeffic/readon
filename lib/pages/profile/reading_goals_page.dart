@@ -3,9 +3,9 @@ import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/back_header.dart';
 import '../../models/reading_goal.dart';
-import '../../services/badges_service.dart';
+import 'package:lexday/features/badges/services/badges_service.dart';
 import '../../services/goals_service.dart';
-import '../../widgets/badge_unlocked_dialog.dart';
+import 'package:lexday/features/badges/widgets/badge_unlocked_dialog.dart';
 import '../../widgets/constrained_content.dart';
 
 class ReadingGoalsPage extends StatefulWidget {

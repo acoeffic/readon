@@ -418,6 +418,54 @@ abstract class AppLocalizations {
   /// **'Le mot de passe doit contenir majuscule, minuscule et chiffre'**
   String get passwordRequirements;
 
+  /// No description provided for @resetNewPasswordTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nouveau mot de passe'**
+  String get resetNewPasswordTitle;
+
+  /// No description provided for @resetNewPasswordHeading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Choisis un nouveau mot de passe'**
+  String get resetNewPasswordHeading;
+
+  /// No description provided for @resetNewPasswordSubtitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Saisis ton nouveau mot de passe ci-dessous.'**
+  String get resetNewPasswordSubtitle;
+
+  /// No description provided for @newPasswordLabel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nouveau mot de passe'**
+  String get newPasswordLabel;
+
+  /// No description provided for @confirmPasswordLabel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Confirme le mot de passe'**
+  String get confirmPasswordLabel;
+
+  /// No description provided for @passwordsDoNotMatch.
+  ///
+  /// In fr, this message translates to:
+  /// **'Les mots de passe ne correspondent pas'**
+  String get passwordsDoNotMatch;
+
+  /// No description provided for @updatePasswordButton.
+  ///
+  /// In fr, this message translates to:
+  /// **'Mettre à jour le mot de passe'**
+  String get updatePasswordButton;
+
+  /// No description provided for @passwordUpdatedSuccess.
+  ///
+  /// In fr, this message translates to:
+  /// **'Mot de passe mis à jour.'**
+  String get passwordUpdatedSuccess;
+
   /// No description provided for @mustAcceptTerms.
   ///
   /// In fr, this message translates to:
@@ -4354,6 +4402,12 @@ abstract class AppLocalizations {
   /// **'Erreur lors de la suppression'**
   String get errorDeleting;
 
+  /// No description provided for @endSessionError.
+  ///
+  /// In fr, this message translates to:
+  /// **'Impossible de terminer la session pour le moment. Réessaie dans un instant.'**
+  String get endSessionError;
+
   /// No description provided for @loadingError.
   ///
   /// In fr, this message translates to:
@@ -4515,6 +4569,18 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Recevoir un email quand quelqu\'un t\'envoie une demande d\'ami'**
   String get friendRequestEmailDesc;
+
+  /// No description provided for @commentEmail.
+  ///
+  /// In fr, this message translates to:
+  /// **'Commentaires par email'**
+  String get commentEmail;
+
+  /// No description provided for @commentEmailDesc.
+  ///
+  /// In fr, this message translates to:
+  /// **'Recevoir un email quand quelqu\'un commente une de tes lectures'**
+  String get commentEmailDesc;
 
   /// No description provided for @pushSection.
   ///
@@ -6273,6 +6339,180 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Entre un nombre valide (> 0).'**
   String get totalPagesInvalid;
+
+  /// No description provided for @statsPageTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Statistiques'**
+  String get statsPageTitle;
+
+  /// No description provided for @statsPageHeading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Statistiques de lecture'**
+  String get statsPageHeading;
+
+  /// No description provided for @statsPageComingSoon.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fonctionnalité à venir'**
+  String get statsPageComingSoon;
+
+  /// No description provided for @allBadgesPageTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Mes badges'**
+  String get allBadgesPageTitle;
+
+  /// No description provided for @peopleYouMayKnowPageTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'À découvrir'**
+  String get peopleYouMayKnowPageTitle;
+
+  /// No description provided for @addBookPageTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajouter un livre'**
+  String get addBookPageTitle;
+
+  /// No description provided for @addBookSearchHeading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Recherche Google Books'**
+  String get addBookSearchHeading;
+
+  /// No description provided for @addBookSearchHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Titre, auteur ou ISBN'**
+  String get addBookSearchHint;
+
+  /// No description provided for @addBookSaveBtn.
+  ///
+  /// In fr, this message translates to:
+  /// **'Enregistrer'**
+  String get addBookSaveBtn;
+
+  /// No description provided for @startReadingPageTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Démarrer une lecture'**
+  String get startReadingPageTitle;
+
+  /// No description provided for @startReadingSelectedBook.
+  ///
+  /// In fr, this message translates to:
+  /// **'Livre sélectionné'**
+  String get startReadingSelectedBook;
+
+  /// No description provided for @feedSectionListsForYou.
+  ///
+  /// In fr, this message translates to:
+  /// **'Listes pour toi'**
+  String get feedSectionListsForYou;
+
+  /// No description provided for @feedSectionTrending.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tendances'**
+  String get feedSectionTrending;
+
+  /// No description provided for @feedSectionPublicClubs.
+  ///
+  /// In fr, this message translates to:
+  /// **'Clubs publics à découvrir'**
+  String get feedSectionPublicClubs;
+
+  /// No description provided for @feedGuestCtaTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rejoins LexDay'**
+  String get feedGuestCtaTitle;
+
+  /// No description provided for @feedGuestCtaSubtitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Suis tes lectures, tes amis, tes objectifs.'**
+  String get feedGuestCtaSubtitle;
+
+  /// No description provided for @legalNoticeTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Mentions légales'**
+  String get legalNoticeTitle;
+
+  /// No description provided for @onboardingHabitQuestion.
+  ///
+  /// In fr, this message translates to:
+  /// **'Comment lis-tu\nle plus souvent ?'**
+  String get onboardingHabitQuestion;
+
+  /// No description provided for @onboardingHabitEreaderLabel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Liseuse'**
+  String get onboardingHabitEreaderLabel;
+
+  /// No description provided for @onboardingHabitEreaderSubtitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Kindle, Kobo...'**
+  String get onboardingHabitEreaderSubtitle;
+
+  /// No description provided for @onboardingHabitPaperLabel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Papier'**
+  String get onboardingHabitPaperLabel;
+
+  /// No description provided for @onboardingHabitPaperSubtitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Livres physiques'**
+  String get onboardingHabitPaperSubtitle;
+
+  /// No description provided for @onboardingHabitMixLabel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Un mix'**
+  String get onboardingHabitMixLabel;
+
+  /// No description provided for @onboardingHabitMixSubtitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Les deux !'**
+  String get onboardingHabitMixSubtitle;
+
+  /// No description provided for @autoFreezeUsedTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ton flow a été protégé !'**
+  String get autoFreezeUsedTitle;
+
+  /// No description provided for @autoFreezeUsedBody.
+  ///
+  /// In fr, this message translates to:
+  /// **'Un freeze automatique a sauvé ta série de {days} jours. Lis quelques pages aujourd\'hui pour la faire continuer.'**
+  String autoFreezeUsedBody(int days);
+
+  /// No description provided for @autoFreezeUsedCta.
+  ///
+  /// In fr, this message translates to:
+  /// **'Continuer ma série'**
+  String get autoFreezeUsedCta;
+
+  /// No description provided for @feedGoalsCardTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Mes objectifs'**
+  String get feedGoalsCardTitle;
+
+  /// No description provided for @feedGoalsCta.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fixe-toi un objectif de lecture'**
+  String get feedGoalsCta;
 }
 
 class _AppLocalizationsDelegate

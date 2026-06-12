@@ -5,7 +5,7 @@ import '../services/mutual_friends_service.dart';
 import '../theme/app_theme.dart';
 import '../models/user_search_result.dart';
 import 'mutual_friends_badge.dart';
-import 'remote_badge_image.dart';
+import 'package:lexday/features/badges/widgets/remote_badge_image.dart';
 import 'cached_profile_avatar.dart';
 
 class UserSearchCard extends StatelessWidget {

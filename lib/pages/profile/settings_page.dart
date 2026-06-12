@@ -30,11 +30,11 @@ import '../../services/google_books_service.dart';
 import '../../services/notion_service.dart';
 import '../../services/avatar_cache_service.dart';
 import '../../services/push_notification_service.dart';
-import '../../services/badges_service.dart';
+import 'package:lexday/features/badges/services/badges_service.dart';
 import '../../services/books_service.dart';
 import '../../services/analytics_service.dart';
 import '../../services/feed_cache_service.dart';
-import '../../widgets/badge_unlocked_dialog.dart';
+import 'package:lexday/features/badges/widgets/badge_unlocked_dialog.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class SettingsPage extends StatefulWidget {

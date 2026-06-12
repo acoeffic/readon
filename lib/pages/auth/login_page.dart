@@ -48,7 +48,7 @@ class _LoginPageState extends State<LoginPage> {
     try {
       await Supabase.instance.client.auth.resetPasswordForEmail(
         email,
-        redirectTo: Env.authCallbackUrl,
+        redirectTo: Env.authEmailCallbackUrl,
       );
 
       if (!mounted) return;

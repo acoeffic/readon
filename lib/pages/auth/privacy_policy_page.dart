@@ -2,6 +2,7 @@
 // Page de la Politique de confidentialité
 
 import 'package:flutter/material.dart';
+import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/back_header.dart';
 
@@ -15,9 +16,9 @@ class PrivacyPolicyPage extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children: [
-            const Padding(
-              padding: EdgeInsets.all(AppSpace.l),
-              child: BackHeader(title: 'Politique de confidentialité'),
+            Padding(
+              padding: const EdgeInsets.all(AppSpace.l),
+              child: BackHeader(title: AppLocalizations.of(context).privacyPolicyTitle),
             ),
             Expanded(
               child: SingleChildScrollView(

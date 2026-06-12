@@ -48,19 +48,30 @@ class AppRadius {
 }
 
 // ---------------------------------------------------------------------------
-// Extension for easy theme-aware color access: context.appColors.cardBg
+// Extension pour accès théme-aware : context.appColors.cardBg
+// Implémentée comme `ThemeExtension` pour porter aussi le `variant` actif
+// dans le ThemeData — sinon `context.appColors` ne dépendrait que de la
+// luminosité et tous les thèmes auraient le même fond.
 // ---------------------------------------------------------------------------
-class AppThemeColors {
+class AppThemeColors extends ThemeExtension<AppThemeColors> {
   final Brightness brightness;
-  const AppThemeColors._(this.brightness);
+  final ThemeVariantPalette variant;
+
+  const AppThemeColors._(this.brightness, this.variant);
 
   bool get isDark => brightness == Brightness.dark;
 
-  // Backgrounds
-  Color get scaffoldBg => isDark ? AppColors.bgDark : AppColors.bgLight;
-  Color get cardBg => isDark ? AppColors.surfaceDark : Colors.white;
-  Color get accent => isDark ? AppColors.accentDark : AppColors.accentLight;
-  Color get libraryBg => isDark ? const Color(0xFF1A1814) : AppColors.libraryBg;
+  // Couleurs variant (utilisez ces getters au lieu de AppColors.primary)
+  Color get primary => variant.primary;
+  Color get primaryDeep => variant.primaryDeep;
+  Color get variantAccent => variant.accent;
+
+  // Backgrounds (changent par thème — gros impact visuel)
+  Color get scaffoldBg => isDark ? variant.scaffoldBgDark : variant.scaffoldBgLight;
+  Color get cardBg => isDark ? variant.cardBgDark : variant.cardBgLight;
+  Color get accent => isDark ? variant.accentBgDark : variant.accentBgLight;
+  Color get libraryBg => isDark ? variant.libraryBgDark : variant.libraryBgLight;
+  Color get pillBg => isDark ? variant.pillBgDark : variant.pillBgLight;
 
   // Text
   Color get textPrimary => isDark ? AppColors.textPrimaryDark : Colors.black;
@@ -70,9 +81,6 @@ class AppThemeColors {
   Color get border => isDark ? AppColors.borderDark : AppColors.border;
   Color get divider => isDark ? AppColors.borderDark : const Color(0xFFE8E8E8);
 
-  // Pill / chip backgrounds (for reactions, tags, etc.)
-  Color get pillBg => isDark ? const Color(0xFF2A2520) : const Color(0xFFF0EBE1);
-
   // Snackbar
   Color get snackbarSuccess => isDark ? const Color(0xFF1B5E20) : const Color(0xFF4CAF50);
   Color get snackbarError => isDark ? const Color(0xFFB71C1C) : AppColors.error;
@@ -81,11 +89,33 @@ class AppThemeColors {
   Color get shadow => isDark ? Colors.black54 : Colors.black12;
   Color get shimmerBase => isDark ? const Color(0xFF2A2A2A) : const Color(0xFFE0E0E0);
   Color get shimmerHighlight => isDark ? const Color(0xFF3A3A3A) : const Color(0xFFF5F5F5);
+
+  @override
+  AppThemeColors copyWith({
+    Brightness? brightness,
+    ThemeVariantPalette? variant,
+  }) {
+    return AppThemeColors._(
+      brightness ?? this.brightness,
+      variant ?? this.variant,
+    );
+  }
+
+  @override
+  AppThemeColors lerp(ThemeExtension<AppThemeColors>? other, double t) {
+    // Pas d'interpolation entre thèmes : on bascule franchement à mi-chemin.
+    if (other is! AppThemeColors) return this;
+    return t < 0.5 ? this : other;
+  }
 }
 
 extension AppThemeColorsExtension on BuildContext {
-  AppThemeColors get appColors =>
-      AppThemeColors._(Theme.of(this).brightness);
+  AppThemeColors get appColors {
+    final ext = Theme.of(this).extension<AppThemeColors>();
+    if (ext != null) return ext;
+    // Fallback safety net si l'extension n'est pas enregistrée (tests, etc.)
+    return AppThemeColors._(Theme.of(this).brightness, ThemeVariants.sage);
+  }
 
   bool get isDarkMode => Theme.of(this).brightness == Brightness.dark;
 }
@@ -107,12 +137,12 @@ class AppTheme {
     ThemeVariantPalette variant,
   ) {
     final isDark = brightness == Brightness.dark;
-    final colors = AppThemeColors._(brightness);
+    final colors = AppThemeColors._(brightness, variant);
 
     final colorScheme = ColorScheme.fromSeed(
       seedColor: variant.primary,
       brightness: brightness,
-      surface: isDark ? AppColors.surfaceDark : null,
+      surface: isDark ? variant.cardBgDark : null,
     );
 
     return ThemeData(
@@ -120,6 +150,7 @@ class AppTheme {
       scaffoldBackgroundColor: colors.scaffoldBg,
       colorScheme: colorScheme,
       useMaterial3: true,
+      extensions: <ThemeExtension<dynamic>>[colors],
 
       // Text
       textTheme: TextTheme(
@@ -180,7 +211,7 @@ class AppTheme {
 
       // SnackBar
       snackBarTheme: SnackBarThemeData(
-        backgroundColor: isDark ? AppColors.surfaceDark : Colors.black87,
+        backgroundColor: isDark ? variant.cardBgDark : Colors.black87,
         contentTextStyle: TextStyle(
           color: isDark ? AppColors.textPrimaryDark : Colors.white,
         ),
@@ -216,7 +247,7 @@ class AppTheme {
       // Input
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: isDark ? AppColors.surfaceDark : Colors.white,
+        fillColor: isDark ? variant.cardBgDark : Colors.white,
         contentPadding: const EdgeInsets.symmetric(
           vertical: 12,
           horizontal: 16,

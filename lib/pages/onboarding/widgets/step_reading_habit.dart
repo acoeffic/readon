@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../../theme/app_theme.dart';
 
 class StepReadingHabit extends StatelessWidget {
@@ -15,13 +16,14 @@ class StepReadingHabit extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.all(AppSpace.l),
       child: Column(
         children: [
           const Spacer(),
           Text(
-            'Comment lis-tu\nle plus souvent ?',
+            l.onboardingHabitQuestion,
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                   fontSize: 24,
@@ -32,8 +34,8 @@ class StepReadingHabit extends StatelessWidget {
           const SizedBox(height: 32),
           _HabitCard(
             icon: Icons.tablet_android,
-            label: 'Liseuse',
-            subtitle: 'Kindle, Kobo...',
+            label: l.onboardingHabitEreaderLabel,
+            subtitle: l.onboardingHabitEreaderSubtitle,
             value: 'liseuse',
             selected: selectedHabit == 'liseuse',
             onTap: () => onSelected('liseuse'),
@@ -41,8 +43,8 @@ class StepReadingHabit extends StatelessWidget {
           const SizedBox(height: AppSpace.m),
           _HabitCard(
             icon: Icons.auto_stories,
-            label: 'Papier',
-            subtitle: 'Livres physiques',
+            label: l.onboardingHabitPaperLabel,
+            subtitle: l.onboardingHabitPaperSubtitle,
             value: 'papier',
             selected: selectedHabit == 'papier',
             onTap: () => onSelected('papier'),
@@ -50,8 +52,8 @@ class StepReadingHabit extends StatelessWidget {
           const SizedBox(height: AppSpace.m),
           _HabitCard(
             icon: Icons.sync_alt,
-            label: 'Un mix',
-            subtitle: 'Les deux !',
+            label: l.onboardingHabitMixLabel,
+            subtitle: l.onboardingHabitMixSubtitle,
             value: 'mix',
             selected: selectedHabit == 'mix',
             onTap: () => onSelected('mix'),
@@ -70,9 +72,9 @@ class StepReadingHabit extends StatelessWidget {
                 ),
               ),
               onPressed: selectedHabit != null ? onNext : null,
-              child: const Text(
-                'Suivant',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              child: Text(
+                l.tutorialNext,
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
             ),
           ),

@@ -68,7 +68,8 @@ class GlobalReadingSessionFAB extends StatelessWidget {
     final booksService = BooksService();
 
     try {
-      final allBooks = await booksService.getUserBooks();
+      // Trié par lecture récente : le livre en cours apparaît en premier.
+      final allBooks = await booksService.getUserBooksByLastRead();
 
       if (!context.mounted) return;
 
@@ -488,13 +489,13 @@ class _ExpandableFABState extends State<_ExpandableFAB> with TickerProviderState
           ),
         GestureDetector(
           onTap: _toggle,
-          child: _buildMainLiquidGlassButton(isDark),
+          child: _buildMainLiquidGlassButton(isDark, context.appColors.primary),
         ),
       ],
     );
   }
 
-  Widget _buildMainLiquidGlassButton(bool isDark) {
+  Widget _buildMainLiquidGlassButton(bool isDark, Color primary) {
     return Container(
       width: 60,
       height: 60,
@@ -505,18 +506,18 @@ class _ExpandableFABState extends State<_ExpandableFAB> with TickerProviderState
           end: Alignment.bottomRight,
           colors: isDark
               ? [
-                  AppColors.primary.withValues(alpha: 0.25),
-                  AppColors.primary.withValues(alpha: 0.12),
+                  primary.withValues(alpha: 0.25),
+                  primary.withValues(alpha: 0.12),
                 ]
               : [
-                  AppColors.primary.withValues(alpha: 0.4),
-                  AppColors.primary.withValues(alpha: 0.2),
+                  primary.withValues(alpha: 0.4),
+                  primary.withValues(alpha: 0.2),
                 ],
         ),
         border: Border.all(
           color: isDark
-              ? AppColors.primary.withValues(alpha: 0.35)
-              : AppColors.primary.withValues(alpha: 0.6),
+              ? primary.withValues(alpha: 0.35)
+              : primary.withValues(alpha: 0.6),
           width: 1.5,
         ),
         boxShadow: [
@@ -527,7 +528,7 @@ class _ExpandableFABState extends State<_ExpandableFAB> with TickerProviderState
             offset: const Offset(0, 8),
           ),
           BoxShadow(
-            color: AppColors.primary.withValues(alpha: isDark ? 0.15 : 0.35),
+            color: primary.withValues(alpha: isDark ? 0.15 : 0.35),
             blurRadius: 10,
             spreadRadius: -5,
             offset: const Offset(0, -2),
@@ -544,7 +545,7 @@ class _ExpandableFABState extends State<_ExpandableFAB> with TickerProviderState
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  AppColors.primary.withValues(alpha: isDark ? 0.2 : 0.3),
+                  primary.withValues(alpha: isDark ? 0.2 : 0.3),
                   Colors.transparent,
                 ],
                 stops: const [0.0, 0.5],

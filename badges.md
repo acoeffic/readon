@@ -1,6 +1,6 @@
 # Badges ReadOn - Catalogue complet
 
-> **147 badges** au total | 18 categories | 88 gratuits | 59 premium
+> **147 badges** au total | 19 categories | 86 gratuits | 56 premium | 5 a definir
 
 ---
 
@@ -302,7 +302,7 @@
 
 ---
 
-## 18. Comeback (`comeback`) — 6 badges
+## 18. Comeback (`comeback`) — 2 badges
 
 > Tous gratuits. Declenchement : intervalle entre les 2 dernieres sessions de lecture.
 
@@ -310,10 +310,24 @@
 |---|---|---|---|---|---|
 | `comeback_3d` | 👋 | Petit Retour | 3 jours | Non | Revenir apres 3 jours sans lire |
 | `comeback_5d` | 🔄 | De Retour | 5 jours | Non | Revenir apres 5 jours sans lire |
-| `comeback_1w` | 📅 | Semaine Retrouvee | 7 jours | Non | Revenir apres 1 semaine sans lire |
-| `comeback_2w` | 💪 | Lecteur Fidele | 14 jours | Non | Revenir apres 2 semaines sans lire |
-| `comeback_1m` | 🌟 | Le Grand Retour | 30 jours | Non | Revenir apres 1 mois sans lire |
-| `comeback_3m` | 🔥 | Le Phenix Lecteur | 90 jours | Non | Revenir apres 3 mois sans lire |
+
+---
+
+## 19. Genre Masters (`genres`) — 9 badges
+
+> Badges de maitrise de genre. 4 deja en DB avec conditions actuelles ; 5 a definir (PNG present dans le bucket mais conditions/seuils/premium a confirmer).
+
+| ID | Icone | Nom | Objectif | Premium | Declencheur |
+|---|---|---|---|---|---|
+| `genre_master_thriller` | 🔪 | Maitre du Thriller | 20 thrillers | **Oui** | 20 thrillers lus |
+| `genre_master_romance` | 💕 | Maitre de la Romance | 20 romances | **Oui** | 20 romances lues |
+| `genre_master_sf` | 🚀 | Maitre de la SF | 20 livres SF | **Oui** | 20 livres SF lus |
+| `genre_master_fantasy` | 🐉 | Maitre de la Fantasy | 20 livres fantasy | **Oui** | 20 livres fantasy lus |
+| `genre_master_biography` | ❓ | _a definir_ | ? | ? | TODO — conditions a definir |
+| `genre_master_history` | ❓ | _a definir_ | ? | ? | TODO — conditions a definir |
+| `genre_master_mystery` | ❓ | _a definir_ | ? | ? | TODO — conditions a definir |
+| `genre_master_selfhelp` | ❓ | _a definir_ | ? | ? | TODO — conditions a definir |
+| `genre_master_all` | ❓ | _a definir_ | ? | ? | TODO — etre maitre dans toutes les categories ? |
 
 ---
 
@@ -337,5 +351,8 @@
 | Livres annuels | 4 | 0 | 4 |
 | Occasions | 12 | 0 | 12 |
 | Anniversaire | 5 | 2 | 3 |
-| Comeback | 6 | 0 | 6 |
-| **Total** | **138** | **50** | **88** |
+| Comeback | 2 | 0 | 2 |
+| Genre Masters | 9 | 4* | 0* |
+| **Total** | **143** | **54*** | **84*** |
+
+*5 Genre Masters a definir (conditions/premium en attente). Total catalogue : 147 badges (143 actifs + 5 TODO + 4 DB-only deja documentes).

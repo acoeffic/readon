@@ -9,6 +9,7 @@
 
 import 'package:flutter/material.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../../../services/people_you_may_know_service.dart';
 import '../../../theme/app_theme.dart';
 import '../../../widgets/cached_profile_avatar.dart';
@@ -23,6 +24,11 @@ class PeopleYouMayKnowSection extends StatelessWidget {
   final void Function(String userId) onFollow;
   final VoidCallback? onSeeAll;
 
+  /// Si false, on cache le bouton "Voir tout". Sert à éviter une boucle
+  /// d'auto-navigation quand cette section est rendue *à l'intérieur* de
+  /// [PeopleYouMayKnowPage] (qui est la cible par défaut du bouton).
+  final bool showSeeAll;
+
   const PeopleYouMayKnowSection({
     super.key,
     required this.suggestions,
@@ -30,6 +36,7 @@ class PeopleYouMayKnowSection extends StatelessWidget {
     required this.processingIds,
     required this.onFollow,
     this.onSeeAll,
+    this.showSeeAll = true,
   });
 
   void _openSeeAll(BuildContext context) {
@@ -61,15 +68,16 @@ class PeopleYouMayKnowSection extends StatelessWidget {
                 ),
               ),
             ),
-            TextButton(
-              onPressed: () => _openSeeAll(context),
-              style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                minimumSize: Size.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            if (showSeeAll)
+              TextButton(
+                onPressed: () => _openSeeAll(context),
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: const Text('Voir tout'),
               ),
-              child: const Text('Voir tout'),
-            ),
           ],
         ),
         const SizedBox(height: AppSpace.s),
@@ -225,7 +233,9 @@ class _PymkCard extends StatelessWidget {
                         ),
                       ),
                       child: Text(
-                        isRequested ? 'En attente' : '+ Suivre',
+                        isRequested
+                            ? 'En attente'
+                            : '+ ${AppLocalizations.of(context).addButton}',
                         style: const TextStyle(
                           fontSize: 12.5,
                           fontWeight: FontWeight.w700,

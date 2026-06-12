@@ -80,6 +80,27 @@ class CommentsService {
     }
   }
 
+  /// Indique si l'utilisateur courant a au moins un commentaire (pending ou
+  /// approved) sur cette activité. Sert à afficher un indicateur visuel
+  /// dans le feed.
+  Future<bool> hasUserCommented(int activityId) async {
+    try {
+      final userId = _supabase.auth.currentUser?.id;
+      if (userId == null) return false;
+      final response = await _supabase
+          .from('comments')
+          .select('id')
+          .eq('activity_id', activityId)
+          .eq('author_id', userId)
+          .neq('status', 'rejected')
+          .limit(1);
+      return (response as List).isNotEmpty;
+    } catch (e) {
+      debugPrint('Erreur hasUserCommented: $e');
+      return false;
+    }
+  }
+
   /// Ajouter un commentaire (status sera 'pending', la Edge Function modère)
   Future<Comment?> addComment({
     required int activityId,

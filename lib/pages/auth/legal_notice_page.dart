@@ -2,6 +2,7 @@
 // Page des mentions légales
 
 import 'package:flutter/material.dart';
+import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/back_header.dart';
 
@@ -15,9 +16,9 @@ class LegalNoticePage extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children: [
-            const Padding(
-              padding: EdgeInsets.all(AppSpace.l),
-              child: BackHeader(title: 'Mentions légales'),
+            Padding(
+              padding: const EdgeInsets.all(AppSpace.l),
+              child: BackHeader(title: AppLocalizations.of(context).legalNoticeTitle),
             ),
             Expanded(
               child: SingleChildScrollView(

@@ -14,8 +14,9 @@ class GoogleBooksService {
   static String get _apiKey => Env.googleBooksApiKey;
 
   /// Clé SharedPreferences pour le cache persistant ISBN → coverUrl
-  /// Bumped to v2 to invalidate stale/incorrect cover URLs from previous versions.
-  static const String _coverCacheKey = 'google_books_cover_cache_v2';
+  /// Bumped to v3 to invalidate entries polluted by searchByISBN returning
+  /// non-matching books (full-text search rather than exact lookup).
+  static const String _coverCacheKey = 'google_books_cover_cache_v3';
 
   /// Cache en mémoire : ISBN → GoogleBook (évite les appels API répétés)
   static final Map<String, GoogleBook> _isbnCache = {};
@@ -201,17 +202,32 @@ class GoogleBooksService {
     }
 
     try {
-      final uri = Uri.parse('$_baseUrl?q=isbn:${Uri.encodeComponent(isbn)}&maxResults=1&key=$_apiKey');
+      // Fetch up to 5 results — Google Books' `isbn:` operator is full-text,
+      // not an exact lookup, so the first hit can be an unrelated book that
+      // happens to mention the ISBN. We pick the first hit whose own ISBN
+      // list actually contains the queried ISBN.
+      final uri = Uri.parse('$_baseUrl?q=isbn:${Uri.encodeComponent(isbn)}&maxResults=5&key=$_apiKey');
       final response = await throttledGet(uri);
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final items = data['items'] as List<dynamic>?;
         if (items == null || items.isEmpty) return null;
-        final book = GoogleBook.fromJson(items.first);
-        _isbnCache[isbn] = book;
-        _persistCoverUrl(isbn, book.coverUrl);
-        return book;
+
+        final normIsbn = _normalizeIsbn(isbn);
+        for (final item in items) {
+          final book = GoogleBook.fromJson(item as Map<String, dynamic>);
+          final matches =
+              book.isbns.any((b) => _normalizeIsbn(b) == normIsbn);
+          if (matches) {
+            _isbnCache[isbn] = book;
+            _persistCoverUrl(isbn, book.coverUrl);
+            return book;
+          }
+        }
+        // No result actually carries this ISBN — likely Google Books mismatch.
+        debugPrint('searchByISBN: aucun résultat ne contient l\'ISBN $isbn');
+        return null;
       }
       return null;
     } catch (e) {
@@ -219,6 +235,10 @@ class GoogleBooksService {
       return null;
     }
   }
+
+  /// Normalize an ISBN for comparison: strip hyphens/spaces, lowercase X.
+  static String _normalizeIsbn(String isbn) =>
+      isbn.replaceAll(RegExp(r'[\s-]'), '').toLowerCase();
 
   /// Met en cache un GoogleBook pour un ISBN donné (utile après un fallback).
   void cacheBook(String isbn, GoogleBook book) {

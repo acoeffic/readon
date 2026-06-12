@@ -1,0 +1,34 @@
+-- =====================================================
+-- Migration: supprimer le trigger legacy `trigger_create_reading_activity`
+-- sur reading_sessions, qui fait double emploi avec
+-- `create_activity_on_session_end` et provoque l'erreur 23505 lors de
+-- la fin de session.
+--
+-- Contexte
+-- --------
+-- Le diagnostic de 20260531 a révélé deux triggers AFTER UPDATE qui
+-- créent tous les deux des activités de type 'reading_session' à la fin
+-- d'une session :
+--   1. trg_create_activity_on_session_end → create_activity_on_session_end()
+--      (versionné, à jour, avec dédup par session_id + EXCEPTION)
+--   2. trigger_create_reading_activity   → create_reading_activity()
+--      (vestige NON versionné, sans dédup → viole l'index unique
+--      uq_activities_reading_session_session_id installé en 20260525)
+--
+-- Le 2nd trigger n'est défini dans aucun fichier de migration —
+-- probablement créé manuellement via Supabase Studio à l'époque où
+-- l'app n'avait pas encore de migrations versionnées. Il insère une
+-- activité reading_session pour chaque UPDATE de reading_sessions, ce
+-- qui collide avec l'activité créée par le trigger versionné dès qu'on
+-- termine une session (UPDATE qui pose end_time).
+--
+-- Fix
+-- ---
+-- On supprime UNIQUEMENT le trigger (pas la fonction). La fonction reste
+-- en place ; si elle s'avère faire des choses utiles qu'on n'a pas
+-- identifiées, on pourra ré-attacher le trigger via une nouvelle
+-- migration. Mais l'activité reading_session est désormais entièrement
+-- prise en charge par le trigger versionné.
+-- =====================================================
+
+DROP TRIGGER IF EXISTS trigger_create_reading_activity ON reading_sessions;

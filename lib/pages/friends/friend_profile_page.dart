@@ -5,7 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../theme/app_theme.dart';
 import '../../models/reading_session.dart';
 import '../../models/book.dart';
-import '../../services/badges_service.dart';
+import 'package:lexday/features/badges/services/badges_service.dart';
 import '../../services/flow_service.dart';
 import '../../services/moderation_service.dart';
 import '../../services/mutual_friends_service.dart';

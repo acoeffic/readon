@@ -14,7 +14,7 @@ import '../../providers/subscription_provider.dart';
 import '../../services/native_paywall_service.dart';
 import '../../services/reading_session_service.dart';
 import '../../services/books_service.dart';
-import '../../services/badges_service.dart';
+import 'package:lexday/features/badges/services/badges_service.dart';
 import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/cached_book_cover.dart';

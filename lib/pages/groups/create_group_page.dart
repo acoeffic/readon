@@ -7,9 +7,9 @@ import '../../widgets/back_header.dart';
 import '../../services/groups_service.dart';
 import '../../providers/subscription_provider.dart';
 import '../../models/feature_flags.dart';
-import '../../services/badges_service.dart';
+import 'package:lexday/features/badges/services/badges_service.dart';
 import '../../widgets/premium_gate.dart';
-import '../../widgets/badge_unlocked_dialog.dart';
+import 'package:lexday/features/badges/widgets/badge_unlocked_dialog.dart';
 import '../../widgets/constrained_content.dart';
 import 'select_club_cover_page.dart';
 

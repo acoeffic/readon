@@ -2,6 +2,7 @@
 // Page des Conditions Générales d'Utilisation
 
 import 'package:flutter/material.dart';
+import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 
 class TermsOfServicePage extends StatelessWidget {
@@ -19,7 +20,7 @@ class TermsOfServicePage extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Conditions d\'utilisation'),
+        title: Text(AppLocalizations.of(context).termsOfServiceTitle),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
       ),

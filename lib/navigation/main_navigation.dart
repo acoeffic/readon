@@ -25,8 +25,11 @@ import '../services/books_service.dart';
 import '../services/kindle_auto_sync_service.dart';
 import '../services/monthly_notification_service.dart';
 import '../services/onboarding_tutorial_service.dart';
+import '../services/paywall_controller.dart';
 import '../services/push_notification_service.dart';
 import '../services/session_pause_service.dart';
+import '../services/freeze_celebration_service.dart';
+import '../services/flow_service.dart';
 import '../services/wrapped_banner_service.dart';
 import '../pages/reading/end_reading_session_page.dart';
 import '../features/wrapped/monthly/monthly_wrapped_screen.dart';
@@ -87,7 +90,9 @@ class _MainNavigationState extends State<MainNavigation>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    ReadingSessionService.activeSessionsVersion
+        .addListener(_onActiveSessionsChanged);
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       _checkAnniversary();
       _checkKindleAutoSync();
       _checkActiveSession();
@@ -95,8 +100,66 @@ class _MainNavigationState extends State<MainNavigation>
       _enrichMissingCovers();
       _consumePendingNotification();
       _updateHomeWidget();
+      // Paywall avant le tutoriel : la sheet native iOS sinon recouvre les
+      // overlays showcase et casse leur positionnement à la fermeture.
+      await _maybeShowPaywall();
+      if (!mounted) return;
       _maybeStartOnboardingTutorial();
+      _checkAutoFreezeCelebration();
     });
+  }
+
+  /// Si le cron serveur a protégé le streak avec un auto-freeze depuis la
+  /// dernière ouverture, on le célèbre — sinon l'utilisateur ne sait jamais
+  /// qu'il a été sauvé.
+  Future<void> _checkAutoFreezeCelebration() async {
+    try {
+      final unseen =
+          await FreezeCelebrationService().consumeUnseenAutoFreezes();
+      if (unseen.isEmpty || !mounted) return;
+
+      // Ne célébrer que si le streak est encore vivant.
+      final flow = await FlowService().getUserFlow();
+      if (flow.currentFlow <= 0 || !mounted) return;
+
+      final l10n = AppLocalizations.of(context);
+      await showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Text('🧊 ${l10n.autoFreezeUsedTitle}'),
+          content: Text(l10n.autoFreezeUsedBody(flow.currentFlow)),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: Text(l10n.autoFreezeUsedCta),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      debugPrint('Erreur _checkAutoFreezeCelebration: $e');
+    }
+  }
+
+  Future<void> _maybeShowPaywall() async {
+    // Pas de paywall en mode invité — on attend qu'un compte soit créé.
+    if (!mounted) return;
+    final isGuest = context.read<GuestModeProvider>().isGuest;
+    if (isGuest) return;
+
+    // Laisse les premiers frames se poser (banners, header) avant de
+    // pousser le paywall.
+    await Future.delayed(const Duration(milliseconds: 600));
+    if (!mounted) return;
+    await PaywallController.maybeShowOnAppOpen(context);
+  }
+
+  void _onActiveSessionsChanged() {
+    if (!mounted) return;
+    _checkActiveSession();
   }
 
   Future<void> _maybeStartOnboardingTutorial() async {
@@ -147,6 +210,8 @@ class _MainNavigationState extends State<MainNavigation>
   @override
   void dispose() {
     _activeSessionTimer?.cancel();
+    ReadingSessionService.activeSessionsVersion
+        .removeListener(_onActiveSessionsChanged);
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -193,10 +258,10 @@ class _MainNavigationState extends State<MainNavigation>
       if (absence >= const Duration(hours: 4)) {
         final alreadyPaused = await _pauseService.getPausedAt();
         if (alreadyPaused == null) {
-          await _pauseService.savePause(
-            pausedAt: backgroundedAt,
-            alreadyAccumulated: Duration.zero,
-          );
+          // Preserve any previously accumulated pause duration — only mark
+          // the start of this new auto-pause (backdated to when the app
+          // went to background).
+          await _pauseService.savePauseStart(backgroundedAt);
         }
       }
     }
@@ -245,7 +310,7 @@ class _MainNavigationState extends State<MainNavigation>
             onPressed: () => Navigator.of(ctx).pop(),
             child: Text(
               l.staleSessionContinueButton,
-              style: const TextStyle(color: AppColors.primary),
+              style: TextStyle(color: ctx.appColors.primary),
             ),
           ),
           TextButton(
@@ -572,7 +637,7 @@ class _MainNavigationState extends State<MainNavigation>
         description: l10n.tutorialFabDescription,
         targetShapeBorder: const CircleBorder(),
         targetPadding: const EdgeInsets.all(8),
-        tooltipBackgroundColor: AppColors.primary,
+        tooltipBackgroundColor: context.appColors.primary,
         textColor: Colors.white,
         titleTextStyle: const TextStyle(
           color: Colors.white,
@@ -602,7 +667,7 @@ class _MainNavigationState extends State<MainNavigation>
   }) {
     final isSelected = _selectedIndex == index;
     final color = isSelected
-        ? AppColors.primary
+        ? context.appColors.primary
         : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6);
 
     Widget content = Padding(
@@ -631,7 +696,7 @@ class _MainNavigationState extends State<MainNavigation>
         description: showcaseDescription ?? '',
         targetBorderRadius: BorderRadius.circular(AppRadius.m),
         targetPadding: const EdgeInsets.all(2),
-        tooltipBackgroundColor: AppColors.primary,
+        tooltipBackgroundColor: context.appColors.primary,
         textColor: Colors.white,
         titleTextStyle: const TextStyle(
           color: Colors.white,

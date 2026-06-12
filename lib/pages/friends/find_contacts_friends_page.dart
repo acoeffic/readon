@@ -5,6 +5,7 @@ import '../../l10n/app_localizations.dart';
 import '../../services/contacts_service.dart';
 import '../../services/mutual_friends_service.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/constrained_content.dart';
 import '../../widgets/mutual_friends_badge.dart';
 
 class FindContactsFriendsPage extends StatefulWidget {
@@ -119,15 +120,17 @@ class _FindContactsFriendsPageState extends State<FindContactsFriendsPage> {
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
-      body: SafeArea(
-        child: switch (_state) {
-          _PageState.loading => _buildLoading(isDark),
-          _PageState.results => _buildResults(isDark),
-          _PageState.permissionDenied => _buildPermissionDenied(isDark),
-          _PageState.permissionPermanentlyDenied =>
-            _buildPermissionPermanentlyDenied(isDark),
-          _PageState.error => _buildError(isDark),
-        },
+      body: ConstrainedContent(
+        child: SafeArea(
+          child: switch (_state) {
+            _PageState.loading => _buildLoading(isDark),
+            _PageState.results => _buildResults(isDark),
+            _PageState.permissionDenied => _buildPermissionDenied(isDark),
+            _PageState.permissionPermanentlyDenied =>
+              _buildPermissionPermanentlyDenied(isDark),
+            _PageState.error => _buildError(isDark),
+          },
+        ),
       ),
     );
   }

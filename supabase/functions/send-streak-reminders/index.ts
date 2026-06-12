@@ -161,6 +161,17 @@ interface Profile {
   timezone: string | null
 }
 
+// Heure locale de la notification "dernière chance" (streak > 0 et pas encore lu).
+// Indépendante de l'heure de rappel choisie par l'utilisateur.
+const LAST_CHANCE_TIME = '21:30'
+
+function getLastChanceMessage(streak: number): { title: string, body: string } {
+  return {
+    title: `⏰ Ton flow de ${streak} jour${streak > 1 ? 's' : ''} expire à minuit !`,
+    body: 'Quelques pages suffisent pour le sauver. 🔥',
+  }
+}
+
 function getNotificationMessage(streak: number, displayName: string): { title: string, body: string } {
   const name = displayName || 'Lecteur'
   if (streak === 0) {
@@ -306,9 +317,20 @@ serve(async (req) => {
       return isInCurrentWindow(reminderTime, p.timezone, nowUtcHours, nowUtcMinutes)
     })
 
-    console.log(`🔔 ${usersToNotify.length} notification(s) à envoyer`)
+    // "Dernière chance" : utilisateurs pas encore lus dont l'heure locale est
+    // LAST_CHANCE_TIME. Volontairement indépendant de notification_days : un
+    // streak se perd n'importe quel jour. N'est envoyée que si flow > 0
+    // (vérifié plus bas, après calcul du flow).
+    const notifiedIds = new Set(usersToNotify.map((p) => p.id))
+    const lastChanceUsers = (profiles as Profile[]).filter((p) => {
+      if (usersWhoReadToday.has(p.id)) return false
+      if (notifiedIds.has(p.id)) return false // déjà notifié dans cette fenêtre
+      return isInCurrentWindow(LAST_CHANCE_TIME, p.timezone, nowUtcHours, nowUtcMinutes)
+    })
 
-    if (usersToNotify.length === 0) {
+    console.log(`🔔 ${usersToNotify.length} rappel(s) + ${lastChanceUsers.length} candidat(s) dernière chance`)
+
+    if (usersToNotify.length === 0 && lastChanceUsers.length === 0) {
       return new Response(
         JSON.stringify({ success: true, sent: 0 }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -320,8 +342,14 @@ serve(async (req) => {
     let successCount = 0
     let errorCount = 0
     let cleanedTokens = 0
+    let lastChanceSkipped = 0
 
-    for (const user of usersToNotify) {
+    const queue: Array<{ user: Profile, isLastChance: boolean }> = [
+      ...usersToNotify.map((user) => ({ user, isLastChance: false })),
+      ...lastChanceUsers.map((user) => ({ user, isLastChance: true })),
+    ]
+
+    for (const { user, isLastChance } of queue) {
       try {
         // Calcul du flow pour cet utilisateur
         const { data: sessions } = await supabase
@@ -332,17 +360,25 @@ serve(async (req) => {
 
         const { data: freezes } = await supabase
           .from('streak_freezes')
-          .select('freeze_date')
+          .select('frozen_date')
           .eq('user_id', user.id)
 
         const sessionDates = [...new Set(
           (sessions || []).map(s => s.end_time.split('T')[0])
         )]
-        const frozenDates = (freezes || []).map(f => f.freeze_date)
+        const frozenDates = (freezes || []).map(f => f.frozen_date)
 
         const currentFlow = calculateCurrentFlow(sessionDates, frozenDates)
 
-        const { title, body } = getNotificationMessage(currentFlow, user.display_name)
+        // Dernière chance : seulement si un streak est réellement en jeu
+        if (isLastChance && currentFlow === 0) {
+          lastChanceSkipped++
+          continue
+        }
+
+        const { title, body } = isLastChance
+          ? getLastChanceMessage(currentFlow)
+          : getNotificationMessage(currentFlow, user.display_name)
 
         const result = await sendFCMNotification(accessToken, user.fcm_token, title, body, {
           type: 'streak_reminder',
@@ -359,7 +395,7 @@ serve(async (req) => {
           console.log(`🧹 Token invalide nettoyé pour ${user.display_name}`)
         } else {
           successCount++
-          console.log(`✅ Notification envoyée à ${user.display_name} (flow: ${currentFlow})`)
+          console.log(`✅ Notification${isLastChance ? ' dernière chance' : ''} envoyée à ${user.display_name} (flow: ${currentFlow})`)
         }
       } catch (error) {
         errorCount++
@@ -373,6 +409,7 @@ serve(async (req) => {
       total_profiles: profiles.length,
       users_who_read_today: usersWhoReadToday.size,
       notifications_sent: successCount,
+      last_chance_skipped: lastChanceSkipped,
       cleaned_tokens: cleanedTokens,
       errors: errorCount,
     }

@@ -12,16 +12,13 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../services/reading_session_service.dart';
 import '../../services/ocr_service.dart';
 import '../../services/books_service.dart';
-import '../../services/badges_service.dart';
+import 'package:lexday/features/badges/services/badges_service.dart';
 import '../../services/flow_service.dart';
-import '../../services/trophy_service.dart';
 import '../../services/lexday_sync_service.dart';
 import '../../models/reading_session.dart';
 import '../../models/reading_flow.dart';
-import '../../models/trophy.dart';
-import '../../widgets/badge_unlocked_dialog.dart';
+import 'package:lexday/features/badges/widgets/badge_unlocked_dialog.dart';
 import '../../widgets/cached_book_cover.dart';
-import '../../widgets/trophy_card.dart';
 import '../../models/book.dart';
 import 'reading_session_summary_page.dart';
 import 'book_completed_summary_page.dart';
@@ -58,7 +55,6 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
   final BooksService _booksService = BooksService();
   final BadgesService _badgesService = BadgesService();
   final FlowService _flowService = FlowService();
-  final TrophyService _trophyService = TrophyService();
   final ImagePicker _picker = ImagePicker();
 
   XFile? _imageFile;
@@ -230,25 +226,16 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
           ),
         );
 
-        final trophy = _trophyService.selectTrophy(completedSession);
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(
             builder: (context) => ReadingSessionSummaryPage(
               session: completedSession,
-              trophy: trophy,
             ),
           ),
           (route) => route.isFirst,
         );
         return;
       }
-
-      // L'activité reading_session est créée automatiquement par le trigger
-      // DB create_activity_on_session_end (sur UPDATE de reading_sessions
-      // quand end_time passe de NULL à non-NULL). Pas besoin de le faire ici.
-
-      // Sélectionner le trophée contextuel
-      final trophy = _trophyService.selectTrophy(completedSession);
 
       // Vérifier et attribuer les badges standard (non bloquant)
       List<dynamic> newBadges = [];
@@ -278,20 +265,6 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
         newFlowBadges = await _flowService.checkAndAwardFlowBadges();
       } catch (e) {
         debugPrint('Erreur checkAndAwardFlowBadges (non bloquante): $e');
-      }
-
-      // Vérifier et attribuer les trophées débloquables (non bloquant)
-      List<Trophy> newUnlockableTrophies = [];
-      try {
-        final flow = await _flowService.getUserFlow();
-        final activeBookCount = await _getActiveBookCount();
-        newUnlockableTrophies = await _trophyService.checkUnlockableTrophies(
-          session: completedSession,
-          currentFlow: flow.currentFlow,
-          activeBookCount: activeBookCount,
-        );
-      } catch (e) {
-        debugPrint('Erreur checkUnlockableTrophies (non bloquante): $e');
       }
 
       // Afficher les badges standard débloqués
@@ -327,17 +300,6 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
         }
       }
 
-      // Afficher les trophées débloquables nouvellement gagnés
-      if (newUnlockableTrophies.isNotEmpty && mounted) {
-        for (final t in newUnlockableTrophies) {
-          await showDialog(
-            context: context,
-            barrierDismissible: false,
-            builder: (context) => TrophyUnlockedDialog(trophy: t),
-          );
-        }
-      }
-
       // Vérifier si c'est la première session → afficher suggestion contacts
       if (mounted) {
         final contactsService = ContactsService();
@@ -351,7 +313,6 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
             MaterialPageRoute(
               builder: (context) => ContactsSuggestionPage(
                 session: completedSession,
-                trophy: trophy,
                 isBookCompleted: false,
               ),
             ),
@@ -364,7 +325,6 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
             MaterialPageRoute(
               builder: (context) => ReadingSessionSummaryPage(
                 session: completedSession,
-                trophy: trophy,
               ),
             ),
             (route) => route.isFirst,
@@ -372,26 +332,12 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
         }
       }
     } catch (e) {
+      debugPrint('Erreur _endSession: $e');
+      if (!mounted) return;
       setState(() {
         _isProcessing = false;
-        _errorMessage = 'Erreur: $e';
+        _errorMessage = AppLocalizations.of(context)!.endSessionError;
       });
-    }
-  }
-
-  Future<int> _getActiveBookCount() async {
-    try {
-      final userId = Supabase.instance.client.auth.currentUser?.id;
-      if (userId == null) return 0;
-      final response = await Supabase.instance.client
-          .from('user_books')
-          .select('id')
-          .eq('user_id', userId)
-          .eq('status', 'reading');
-      return (response as List).length;
-    } catch (e) {
-      debugPrint('Erreur _getActiveBookCount: $e');
-      return 0;
     }
   }
 
@@ -471,9 +417,6 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
           debugPrint('Erreur createBookFinishedActivity (non bloquante): $e');
         }
 
-        // Sélectionner le trophée contextuel
-        final trophy = _trophyService.selectTrophy(completedSession);
-
         // Vérifier et attribuer les badges (non bloquant)
         List<dynamic> newBadges = [];
         try {
@@ -502,20 +445,6 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
           newFlowBadges = await _flowService.checkAndAwardFlowBadges();
         } catch (e) {
           debugPrint('Erreur checkAndAwardFlowBadges (non bloquante): $e');
-        }
-
-        // Vérifier et attribuer les trophées débloquables (non bloquant)
-        List<Trophy> newUnlockableTrophies = [];
-        try {
-          final flow = await _flowService.getUserFlow();
-          final activeBookCount = await _getActiveBookCount();
-          newUnlockableTrophies = await _trophyService.checkUnlockableTrophies(
-            session: completedSession,
-            currentFlow: flow.currentFlow,
-            activeBookCount: activeBookCount,
-          );
-        } catch (e) {
-          debugPrint('Erreur checkUnlockableTrophies (non bloquante): $e');
         }
 
         if (!mounted) return;
@@ -552,17 +481,6 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
               context: context,
               barrierDismissible: false,
               builder: (context) => _FlowBadgeDialog(badgeLevel: badgeLevel as FlowBadgeLevel),
-            );
-          }
-        }
-
-        // Afficher les trophées débloquables nouvellement gagnés
-        if (newUnlockableTrophies.isNotEmpty && mounted) {
-          for (final t in newUnlockableTrophies) {
-            await showDialog(
-              context: context,
-              barrierDismissible: false,
-              builder: (context) => TrophyUnlockedDialog(trophy: t),
             );
           }
         }
@@ -637,7 +555,6 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
             MaterialPageRoute(
               builder: (context) => ContactsSuggestionPage(
                 session: completedSession,
-                trophy: trophy,
                 book: book,
                 isBookCompleted: true,
               ),
@@ -658,10 +575,12 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
           );
                 }
       } catch (e) {
+        debugPrint('Erreur _finishBook: $e');
+        if (!mounted) return;
         setState(() {
           _isProcessing = false;
           _showFinishBookAnimation = false;
-          _errorMessage = 'Erreur: $e';
+          _errorMessage = AppLocalizations.of(context)!.endSessionError;
         });
       }
     }

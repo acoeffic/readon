@@ -10,27 +10,14 @@ import 'challenge_service.dart';
 import 'live_activity_service.dart';
 import 'ocr_service.dart';
 import 'offline_session_queue.dart';
+import 'session_pause_service.dart';
 
-/// État de pause d'une session (partagé entre toutes les instances du service,
-/// car les pauses/reprises ne sont pas persistées en base : on ajuste `end_time`
-/// au moment de `endSession` pour que la durée calculée reste correcte.
-class _PauseTracker {
-  /// Secondes cumulées de pause pour une session (clé = sessionId).
-  static final Map<String, int> totalPausedSeconds = {};
-  /// Timestamp du début de la pause courante, si la session est en pause.
-  static final Map<String, DateTime> pausedAt = {};
-
-  /// Secondes accumulées en lecture effective (utilisé par la Live Activity).
-  static int effectiveSecondsForSession(DateTime startTime, String sessionId) {
-    final now = DateTime.now();
-    int total = now.difference(startTime).inSeconds;
-    total -= totalPausedSeconds[sessionId] ?? 0;
-    final currentPause = pausedAt[sessionId];
-    if (currentPause != null) {
-      total -= now.difference(currentPause).inSeconds;
-    }
-    return total < 0 ? 0 : total;
-  }
+/// Effective reading time helper: total elapsed since [startTime] minus the
+/// cumulative pause duration persisted by [SessionPauseService].
+Future<int> _effectiveSecondsFor(DateTime startTime) async {
+  final pause = await SessionPauseService().getTotalPauseDuration();
+  final secs = DateTime.now().difference(startTime).inSeconds - pause.inSeconds;
+  return secs < 0 ? 0 : secs;
 }
 
 class ReadingSessionService {
@@ -40,6 +27,18 @@ class ReadingSessionService {
   final OfflineSessionQueue _offlineQueue = OfflineSessionQueue();
   final BooksService _booksService = BooksService();
   final LiveActivityService _liveActivity = LiveActivityService();
+
+  /// Compteur bumpé chaque fois qu'une session active change (créée,
+  /// terminée, annulée). Permet à la coquille de navigation principale de
+  /// rafraîchir la bannière « En train de lire » sans dépendre du flux de
+  /// pop des routes (utile quand la fin de lecture fait
+  /// `pushAndRemoveUntil` puis revient à l'accueil).
+  static final ValueNotifier<int> activeSessionsVersion =
+      ValueNotifier<int>(0);
+
+  static void _notifyActiveSessionsChanged() {
+    activeSessionsVersion.value++;
+  }
   
   /// Démarrer une nouvelle session de lecture
   /// Soit [imagePath] est fourni (OCR extraira le numéro de page),
@@ -75,11 +74,13 @@ class ReadingSessionService {
           throw Exception('Une session de lecture est déjà en cours pour ce livre.');
         }
 
-        return await _offlineQueue.queueStartSession(
+        final result = await _offlineQueue.queueStartSession(
           bookId: bookId,
           startPage: pageNumber,
           startImagePath: imagePath,
         );
+        _notifyActiveSessionsChanged();
+        return result;
       }
 
       // Vérifier qu'il n'y a pas déjà une session active (tous livres confondus)
@@ -117,6 +118,7 @@ class ReadingSessionService {
         debugPrint('Live Activity start a échoué (non bloquant): $e');
       });
 
+      _notifyActiveSessionsChanged();
       return session;
     } catch (e) {
       debugPrint('Erreur startSession: $e');
@@ -155,8 +157,7 @@ class ReadingSessionService {
     } catch (_) {}
 
     // Réinitialise les compteurs de pause pour cette session.
-    _PauseTracker.totalPausedSeconds.remove(session.id);
-    _PauseTracker.pausedAt.remove(session.id);
+    await SessionPauseService().clearAll();
 
     await _liveActivity.start(
       sessionId: session.id,
@@ -183,10 +184,12 @@ class ReadingSessionService {
   /// Met en pause une session : gèle le timer de la Live Activity et
   /// commence à accumuler la durée de pause côté client.
   Future<void> pauseSession(String sessionId, {required DateTime startTime}) async {
-    if (_PauseTracker.pausedAt.containsKey(sessionId)) return; // déjà en pause
-    _PauseTracker.pausedAt[sessionId] = DateTime.now();
+    final pauseService = SessionPauseService();
+    final already = await pauseService.getPausedAt();
+    if (already != null) return; // déjà en pause
+    await pauseService.savePauseStart(DateTime.now());
 
-    final effective = _PauseTracker.effectiveSecondsForSession(startTime, sessionId);
+    final effective = await _effectiveSecondsFor(startTime);
     await _liveActivity.update(
       sessionId: sessionId,
       accumulatedSeconds: effective,
@@ -197,14 +200,9 @@ class ReadingSessionService {
   /// Reprend une session en pause : ajoute la durée écoulée au cumul de pause
   /// et redémarre le timer de la Live Activity.
   Future<void> resumeSession(String sessionId, {required DateTime startTime}) async {
-    final pausedAt = _PauseTracker.pausedAt.remove(sessionId);
-    if (pausedAt != null) {
-      final previous = _PauseTracker.totalPausedSeconds[sessionId] ?? 0;
-      _PauseTracker.totalPausedSeconds[sessionId] =
-          previous + DateTime.now().difference(pausedAt).inSeconds;
-    }
+    await SessionPauseService().finalizeCurrentPause();
 
-    final effective = _PauseTracker.effectiveSecondsForSession(startTime, sessionId);
+    final effective = await _effectiveSecondsFor(startTime);
     await _liveActivity.update(
       sessionId: sessionId,
       accumulatedSeconds: effective,
@@ -241,25 +239,22 @@ class ReadingSessionService {
 
       // Mode offline : sauvegarder localement
       if (offlineMode && activeSession != null) {
-        return await _offlineQueue.queueEndSession(
+        final result = await _offlineQueue.queueEndSession(
           activeSession: activeSession,
           endPage: pageNumber,
           endImagePath: imagePath,
         );
-      }
-
-      // Si une pause est en cours, la clôture d'abord pour comptabiliser sa durée.
-      final currentPause = _PauseTracker.pausedAt.remove(sessionId);
-      if (currentPause != null) {
-        final prev = _PauseTracker.totalPausedSeconds[sessionId] ?? 0;
-        _PauseTracker.totalPausedSeconds[sessionId] =
-            prev + DateTime.now().difference(currentPause).inSeconds;
+        _notifyActiveSessionsChanged();
+        return result;
       }
 
       // `end_time` = maintenant - cumul des pauses, pour que la durée
       // calculée (endTime - startTime) reflète uniquement la lecture effective.
-      final pausedSec = _PauseTracker.totalPausedSeconds.remove(sessionId) ?? 0;
-      final adjustedEnd = DateTime.now().subtract(Duration(seconds: pausedSec));
+      // Inclut la pause en cours, le cas échéant.
+      final pauseService = SessionPauseService();
+      final totalPause = await pauseService.getTotalPauseDuration();
+      final adjustedEnd = DateTime.now().subtract(totalPause);
+      await pauseService.clearAll();
 
       // Termine la Live Activity (no-op si pas iOS ou pas démarrée).
       await _liveActivity.end(sessionId: sessionId);
@@ -298,6 +293,7 @@ class ReadingSessionService {
         // Ne pas bloquer la fin de session si la mise à jour des défis échoue
       }
 
+      _notifyActiveSessionsChanged();
       return session;
     } catch (e) {
       debugPrint('Erreur endSession: $e');
@@ -574,14 +570,15 @@ class ReadingSessionService {
   Future<void> cancelSession(String sessionId) async {
     try {
       // Nettoie l'état de pause et ferme la Live Activity avant suppression DB.
-      _PauseTracker.totalPausedSeconds.remove(sessionId);
-      _PauseTracker.pausedAt.remove(sessionId);
+      await SessionPauseService().clearAll();
       await _liveActivity.end(sessionId: sessionId);
 
       await _supabase
           .from('reading_sessions')
           .delete()
           .eq('id', sessionId);
+
+      _notifyActiveSessionsChanged();
     } catch (e) {
       debugPrint('Erreur cancelSession: $e');
       rethrow;

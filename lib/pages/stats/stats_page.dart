@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../l10n/app_localizations.dart';
 import '../../widgets/constrained_content.dart';
 
 class StatsPage extends StatelessWidget {
@@ -6,23 +7,24 @@ class StatsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: const Text('Statistiques'),
+        title: Text(l.statsPageTitle),
       ),
       body: ConstrainedContent(
         child: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
-            children: const [
-              Icon(Icons.bar_chart, size: 64, color: Colors.grey),
-              SizedBox(height: 16),
-              Text('Statistiques de lecture'),
-              SizedBox(height: 8),
+            children: [
+              const Icon(Icons.bar_chart, size: 64, color: Colors.grey),
+              const SizedBox(height: 16),
+              Text(l.statsPageHeading),
+              const SizedBox(height: 8),
               Text(
-                'Fonctionnalité à venir',
-                style: TextStyle(color: Colors.grey),
+                l.statsPageComingSoon,
+                style: const TextStyle(color: Colors.grey),
               ),
             ],
           ),

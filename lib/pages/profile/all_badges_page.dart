@@ -2,17 +2,17 @@
 // Page complète affichant tous les badges par catégorie
 
 import 'dart:math' as math;
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import '../../services/badges_service.dart';
+import 'package:lexday/features/badges/services/badges_service.dart';
+import '../../l10n/app_localizations.dart';
 import '../../models/feature_flags.dart';
 import '../../providers/subscription_provider.dart';
 import '../../services/native_paywall_service.dart';
 import '../../theme/app_theme.dart';
-import '../../widgets/remote_badge_image.dart';
-import '../badges/badge_share_service.dart';
+import 'package:lexday/features/badges/widgets/remote_badge_image.dart';
+import 'package:lexday/features/badges/services/badge_share_service.dart';
 import '../../widgets/constrained_content.dart';
 
 class AllBadgesPage extends StatefulWidget {
@@ -148,8 +148,6 @@ class _AllBadgesPageState extends State<AllBadgesPage> {
         return 'Livres annuels';
       case 'occasion':
         return 'Occasions spéciales';
-      case 'trophy':
-        return 'Trophées';
       default:
         return category;
     }
@@ -230,6 +228,7 @@ class _AllBadgesPageState extends State<AllBadgesPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final isPremium = context.watch<SubscriptionProvider>().isPremium;
     final unlockedCount = _allBadges.where((b) => b.isUnlocked).length;
     final totalCount = _allBadges.length;
@@ -240,7 +239,7 @@ class _AllBadgesPageState extends State<AllBadgesPage> {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('Mes badges'),
+        title: Text(l.allBadgesPageTitle),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         elevation: 0,
@@ -892,7 +891,7 @@ class _BadgeCard extends StatelessWidget {
 
   bool get _isPremiumLocked => badge.isPremium && !isPremiumUser;
   bool get _isSecretHidden => badge.isSecret && !badge.isUnlocked;
-  bool get _isAnniversaryHidden => badge.category == 'anniversary' && !badge.isUnlocked;
+  bool get _isVisualHidden => !badge.isUnlocked && !badge.isSecret;
 
   @override
   Widget build(BuildContext context) {
@@ -932,51 +931,57 @@ class _BadgeCard extends StatelessWidget {
           children: [
             // Badge icon
             ClipOval(
-              child: ImageFiltered(
-                imageFilter: _isAnniversaryHidden
-                    ? ImageFilter.blur(sigmaX: 6, sigmaY: 6)
-                    : ImageFilter.blur(sigmaX: 0, sigmaY: 0),
-                child: _isSecretHidden
-                    ? Container(
-                        width: 80,
-                        height: 80,
-                        decoration: BoxDecoration(
-                          color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
-                          shape: BoxShape.circle,
+              child: _isSecretHidden
+                  ? Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Center(
+                        child: Text(
+                          '?',
+                          style: TextStyle(
+                            fontSize: 40,
+                            fontWeight: FontWeight.bold,
+                            color: secondaryTextColor,
+                          ),
                         ),
-                        child: Center(
-                          child: Text(
-                            '?',
-                            style: TextStyle(
-                              fontSize: 40,
-                              fontWeight: FontWeight.bold,
+                      ),
+                    )
+                  : _isVisualHidden
+                      ? Container(
+                          width: 80,
+                          height: 80,
+                          decoration: BoxDecoration(
+                            color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Center(
+                            child: Icon(
+                              Icons.lock_outline,
+                              size: 36,
                               color: secondaryTextColor,
                             ),
                           ),
-                        ),
-                      )
-                    : RemoteBadgeImage.fromBadge(badge, size: 80),
-              ),
+                        )
+                      : RemoteBadgeImage.fromBadge(badge, size: 80),
             ),
 
             const SizedBox(height: 10),
 
             // Badge name
-            ImageFiltered(
-              imageFilter: _isAnniversaryHidden
-                  ? ImageFilter.blur(sigmaX: 4, sigmaY: 4)
-                  : ImageFilter.blur(sigmaX: 0, sigmaY: 0),
-              child: Text(
-                _isSecretHidden ? '???' : badge.name,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: isLocked ? lockedTextColor : textColor,
-                ),
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+            Text(
+              _isSecretHidden ? '???' : badge.name,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: isLocked ? lockedTextColor : textColor,
               ),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
 
             const SizedBox(height: 4),
@@ -1183,70 +1188,75 @@ class _BadgeCard extends StatelessWidget {
 
             // Badge icon
             ClipOval(
-              child: ImageFiltered(
-                imageFilter: _isAnniversaryHidden
-                    ? ImageFilter.blur(sigmaX: 8, sigmaY: 8)
-                    : ImageFilter.blur(sigmaX: 0, sigmaY: 0),
-                child: _isSecretHidden
-                    ? Container(
-                        width: 120,
-                        height: 120,
-                        decoration: BoxDecoration(
-                          color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
-                            width: 3,
+              child: _isSecretHidden
+                  ? Container(
+                      width: 120,
+                      height: 120,
+                      decoration: BoxDecoration(
+                        color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
+                          width: 3,
+                        ),
+                      ),
+                      child: Center(
+                        child: Text(
+                          '?',
+                          style: TextStyle(
+                            fontSize: 56,
+                            fontWeight: FontWeight.bold,
+                            color: secondaryTextColor,
                           ),
                         ),
-                        child: Center(
-                          child: Text(
-                            '?',
-                            style: TextStyle(
-                              fontSize: 56,
-                              fontWeight: FontWeight.bold,
+                      ),
+                    )
+                  : _isVisualHidden
+                      ? Container(
+                          width: 120,
+                          height: 120,
+                          decoration: BoxDecoration(
+                            color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
+                              width: 3,
+                            ),
+                          ),
+                          child: Center(
+                            child: Icon(
+                              Icons.lock_outline,
+                              size: 56,
                               color: secondaryTextColor,
                             ),
                           ),
-                        ),
-                      )
-                    : RemoteBadgeImage.fromBadge(badge, size: 120),
-              ),
+                        )
+                      : RemoteBadgeImage.fromBadge(badge, size: 120),
             ),
             const SizedBox(height: 16),
 
             // Badge name
-            ImageFiltered(
-              imageFilter: _isAnniversaryHidden
-                  ? ImageFilter.blur(sigmaX: 5, sigmaY: 5)
-                  : ImageFilter.blur(sigmaX: 0, sigmaY: 0),
-              child: Text(
-                _isSecretHidden ? '??? Badge Secret' : badge.name,
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
-                textAlign: TextAlign.center,
+            Text(
+              _isSecretHidden ? '??? Badge Secret' : badge.name,
+              style: const TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
               ),
+              textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
 
             // Description
-            ImageFiltered(
-              imageFilter: _isAnniversaryHidden
-                  ? ImageFilter.blur(sigmaX: 4, sigmaY: 4)
-                  : ImageFilter.blur(sigmaX: 0, sigmaY: 0),
-              child: Text(
-                _isSecretHidden
-                    ? 'Condition cachée... Continuez à lire pour le découvrir !'
-                    : badge.description,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: secondaryTextColor,
-                  fontStyle: _isSecretHidden ? FontStyle.italic : FontStyle.normal,
-                ),
-                textAlign: TextAlign.center,
+            Text(
+              _isSecretHidden
+                  ? 'Condition cachée... Continuez à lire pour le découvrir !'
+                  : badge.description,
+              style: TextStyle(
+                fontSize: 14,
+                color: secondaryTextColor,
+                fontStyle: _isSecretHidden ? FontStyle.italic : FontStyle.normal,
               ),
+              textAlign: TextAlign.center,
             ),
             const SizedBox(height: 20),
 

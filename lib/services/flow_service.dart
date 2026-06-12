@@ -10,6 +10,33 @@ import 'access_guard.dart';
 class FlowService {
   final SupabaseClient _supabase = Supabase.instance.client;
 
+  /// Seuils de validation d'une session pour qu'elle compte vers le flow et
+  /// l'historique de régularité. Une session "trop courte" (laisser tourner
+  /// le chrono quelques secondes sans tourner de page) ne doit pas allumer
+  /// la flamme du jour.
+  static const int _minPagesRead = 1;
+  static const Duration _minDuration = Duration(minutes: 2);
+
+  bool _sessionCountsForFlow({
+    required int? startPage,
+    required int? endPage,
+    required String? startTimeIso,
+    required String? endTimeIso,
+  }) {
+    if (startPage == null ||
+        endPage == null ||
+        startTimeIso == null ||
+        endTimeIso == null) {
+      return false;
+    }
+    final pagesRead = endPage - startPage;
+    if (pagesRead < _minPagesRead) return false;
+    final duration =
+        DateTime.parse(endTimeIso).difference(DateTime.parse(startTimeIso));
+    if (duration < _minDuration) return false;
+    return true;
+  }
+
   // =====================================================
   // METHODES FLOW FREEZE
   // =====================================================
@@ -141,7 +168,7 @@ class FlowService {
       // Récupérer toutes les sessions terminées de l'utilisateur
       final response = await _supabase
           .from('reading_sessions')
-          .select('end_time')
+          .select('start_time, end_time, start_page, end_page')
           .eq('user_id', userId)
           .not('end_time', 'is', null)
           .order('end_time', ascending: false);
@@ -160,13 +187,19 @@ class FlowService {
 
       for (final session in response) {
         final endTime = session['end_time'] as String?;
-        if (endTime != null) {
-          final date = DateTime.parse(endTime).toLocal();
-          final dateKey = _dateToKey(date);
-          if (!uniqueDates.contains(dateKey)) {
-            uniqueDates.add(dateKey);
-            readDates.add(DateTime(date.year, date.month, date.day));
-          }
+        if (!_sessionCountsForFlow(
+          startPage: session['start_page'] as int?,
+          endPage: session['end_page'] as int?,
+          startTimeIso: session['start_time'] as String?,
+          endTimeIso: endTime,
+        )) {
+          continue;
+        }
+        final date = DateTime.parse(endTime!).toLocal();
+        final dateKey = _dateToKey(date);
+        if (!uniqueDates.contains(dateKey)) {
+          uniqueDates.add(dateKey);
+          readDates.add(DateTime(date.year, date.month, date.day));
         }
       }
 
@@ -205,7 +238,7 @@ class FlowService {
 
       final response = await _supabase
           .from('reading_sessions')
-          .select('end_time')
+          .select('start_time, end_time, start_page, end_page')
           .eq('user_id', userId)
           .eq('is_hidden', false)
           .not('end_time', 'is', null)
@@ -220,13 +253,19 @@ class FlowService {
 
       for (final session in response) {
         final endTime = session['end_time'] as String?;
-        if (endTime != null) {
-          final date = DateTime.parse(endTime).toLocal();
-          final dateKey = _dateToKey(date);
-          if (!uniqueDates.contains(dateKey)) {
-            uniqueDates.add(dateKey);
-            readDates.add(DateTime(date.year, date.month, date.day));
-          }
+        if (!_sessionCountsForFlow(
+          startPage: session['start_page'] as int?,
+          endPage: session['end_page'] as int?,
+          startTimeIso: session['start_time'] as String?,
+          endTimeIso: endTime,
+        )) {
+          continue;
+        }
+        final date = DateTime.parse(endTime!).toLocal();
+        final dateKey = _dateToKey(date);
+        if (!uniqueDates.contains(dateKey)) {
+          uniqueDates.add(dateKey);
+          readDates.add(DateTime(date.year, date.month, date.day));
         }
       }
 
@@ -468,7 +507,7 @@ class FlowService {
 
       final response = await _supabase
           .from('reading_sessions')
-          .select('end_time')
+          .select('start_time, end_time, start_page, end_page')
           .eq('user_id', userId)
           .not('end_time', 'is', null)
           .order('end_time', ascending: false)
@@ -478,11 +517,17 @@ class FlowService {
 
       for (final session in response as List) {
         final endTime = session['end_time'] as String?;
-        if (endTime != null) {
-          final date = DateTime.parse(endTime).toLocal();
-          final dateKey = _dateToKey(date);
-          history[dateKey] = (history[dateKey] ?? 0) + 1;
+        if (!_sessionCountsForFlow(
+          startPage: session['start_page'] as int?,
+          endPage: session['end_page'] as int?,
+          startTimeIso: session['start_time'] as String?,
+          endTimeIso: endTime,
+        )) {
+          continue;
         }
+        final date = DateTime.parse(endTime!).toLocal();
+        final dateKey = _dateToKey(date);
+        history[dateKey] = (history[dateKey] ?? 0) + 1;
       }
 
       return history;

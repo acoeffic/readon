@@ -4,23 +4,21 @@ import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/reading_session.dart';
-import '../../models/trophy.dart';
 import '../../models/book.dart';
 import '../../services/contacts_service.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/constrained_content.dart';
 import '../reading/reading_session_summary_page.dart';
 import '../reading/book_completed_summary_page.dart';
 
 class ContactsSuggestionPage extends StatefulWidget {
   final ReadingSession session;
-  final Trophy? trophy;
   final Book? book;
   final bool isBookCompleted;
 
   const ContactsSuggestionPage({
     super.key,
     required this.session,
-    this.trophy,
     this.book,
     this.isBookCompleted = false,
   });
@@ -143,7 +141,6 @@ class _ContactsSuggestionPageState extends State<ContactsSuggestionPage>
         MaterialPageRoute(
           builder: (context) => ReadingSessionSummaryPage(
             session: widget.session,
-            trophy: widget.trophy,
           ),
         ),
       );
@@ -155,13 +152,15 @@ class _ContactsSuggestionPageState extends State<ContactsSuggestionPage>
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      body: SafeArea(
-        child: switch (_step) {
-          _PageStep.congratulations => _buildCongratulations(isDark),
-          _PageStep.loading => _buildLoading(isDark),
-          _PageStep.results => _buildResults(isDark),
-          _PageStep.error => _buildError(isDark),
-        },
+      body: ConstrainedContent(
+        child: SafeArea(
+          child: switch (_step) {
+            _PageStep.congratulations => _buildCongratulations(isDark),
+            _PageStep.loading => _buildLoading(isDark),
+            _PageStep.results => _buildResults(isDark),
+            _PageStep.error => _buildError(isDark),
+          },
+        ),
       ),
     );
   }

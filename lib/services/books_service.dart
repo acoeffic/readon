@@ -271,6 +271,52 @@ class BooksService {
     }
   }
 
+  /// Récupérer les livres de l'utilisateur triés par lecture récente :
+  /// les livres avec la session de lecture la plus récente en premier,
+  /// les livres jamais lus ensuite (dans l'ordre d'ajout).
+  Future<List<Book>> getUserBooksByLastRead() async {
+    final books = await getUserBooks();
+    if (books.length < 2) return books;
+
+    try {
+      final userId = _supabase.auth.currentUser?.id;
+      if (userId == null) return books;
+
+      final sessions = await _supabase
+          .from('reading_sessions')
+          .select('book_id')
+          .eq('user_id', userId)
+          .order('start_time', ascending: false)
+          .limit(300);
+
+      // Rang de récence : première occurrence = session la plus récente.
+      final rank = <String, int>{};
+      for (final row in (sessions as List)) {
+        final id = row['book_id']?.toString();
+        if (id != null && !rank.containsKey(id)) {
+          rank[id] = rank.length;
+        }
+      }
+      if (rank.isEmpty) return books;
+
+      // Tri stable : livres lus récemment d'abord,
+      // les autres conservent l'ordre de getUserBooks().
+      final indexed = books.asMap().entries.toList();
+      indexed.sort((a, b) {
+        final ra = rank[a.value.id.toString()];
+        final rb = rank[b.value.id.toString()];
+        if (ra != null && rb != null) return ra.compareTo(rb);
+        if (ra != null) return -1;
+        if (rb != null) return 1;
+        return a.key.compareTo(b.key);
+      });
+      return indexed.map((e) => e.value).toList();
+    } catch (e) {
+      debugPrint('Erreur getUserBooksByLastRead: $e');
+      return books;
+    }
+  }
+
   /// Récupérer les livres de l'utilisateur avec pagination
   /// [limit] : nombre de livres par page (défaut 20)
   /// [offset] : décalage pour la pagination (défaut 0)
@@ -410,69 +456,63 @@ class BooksService {
       final userId = _supabase.auth.currentUser?.id;
       if (userId == null) return null;
 
-      // Récupérer les livres terminés (status = 'finished') pour les exclure
-      final finishedBooks = await _supabase
-          .from('user_books')
-          .select('book_id')
-          .eq('user_id', userId)
-          .eq('status', 'finished');
+      // 2 requêtes en parallèle : livres terminés + dernières sessions
+      final results = await Future.wait([
+        _supabase
+            .from('user_books')
+            .select('book_id')
+            .eq('user_id', userId)
+            .eq('status', 'finished'),
+        _supabase
+            .from('reading_sessions')
+            .select('book_id, end_page')
+            .eq('user_id', userId)
+            .not('end_time', 'is', null)
+            .order('created_at', ascending: false)
+            .limit(10),
+      ]);
 
-      final finishedBookIds = (finishedBooks as List)
+      final finishedBookIds = (results[0] as List)
           .map((item) => item['book_id'].toString())
           .toSet();
+      final sessions = results[1] as List;
 
-      // Récupérer les dernières sessions terminées (sans join vers books)
-      final sessions = await _supabase
-          .from('reading_sessions')
-          .select('book_id, end_page')
-          .eq('user_id', userId)
-          .not('end_time', 'is', null)
-          .order('created_at', ascending: false)
-          .limit(10);
-
-      if ((sessions as List).isEmpty) return null;
+      if (sessions.isEmpty) return null;
 
       // Trouver la première session dont le livre n'est pas terminé
+      Map<String, dynamic>? candidate;
       for (final session in sessions) {
         final bookIdRaw = session['book_id'];
         if (bookIdRaw == null) continue;
         final bookIdStr = bookIdRaw.toString();
-
-        // Vérifier si ce livre est terminé
         if (finishedBookIds.contains(bookIdStr)) continue;
-
-        // Récupérer les infos du livre séparément
-        final bookIdInt = int.tryParse(bookIdStr);
-        if (bookIdInt == null) continue;
-
-        try {
-          final bookData = await _supabase
-              .from('books')
-              .select()
-              .eq('id', bookIdInt)
-              .maybeSingle();
-
-          if (bookData == null) {
-            debugPrint('Erreur: livre non trouvé pour book_id: $bookIdStr');
-            continue;
-          }
-
-          final currentPage = (session['end_page'] as num?)?.toInt() ?? 0;
-          final book = Book.fromJson(bookData);
-
-          return {
-            'book': book,
-            'current_page': currentPage,
-            'total_pages': book.pageCount,
-          };
-        } catch (e) {
-          debugPrint('Erreur récupération livre $bookIdStr: $e');
-          continue;
-        }
+        if (int.tryParse(bookIdStr) == null) continue;
+        candidate = session as Map<String, dynamic>;
+        break;
       }
 
-      // Aucun livre en cours trouvé
-      return null;
+      if (candidate == null) return null;
+
+      final bookIdInt = int.parse(candidate['book_id'].toString());
+      final bookData = await _supabase
+          .from('books')
+          .select()
+          .eq('id', bookIdInt)
+          .maybeSingle();
+
+      if (bookData == null) {
+        debugPrint('Erreur: livre non trouvé pour book_id: $bookIdInt');
+        return null;
+      }
+
+      final currentPage = (candidate['end_page'] as num?)?.toInt() ?? 0;
+      final book = Book.fromJson(bookData);
+
+      return {
+        'book': book,
+        'current_page': currentPage,
+        'total_pages': book.pageCount,
+      };
     } catch (e) {
       debugPrint('Erreur getCurrentReadingBook: $e');
       return null;

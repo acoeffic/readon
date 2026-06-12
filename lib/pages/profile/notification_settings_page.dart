@@ -28,6 +28,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
 
   // Notifications email
   bool _notifyFriendRequestsEmail = true;
+  bool _notifyCommentsEmail = true;
 
   bool _isLoading = true;
 
@@ -56,7 +57,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
       final response = await supabase
           .from('profiles')
           .select(
-            'notifications_enabled, notification_reminder_time, notification_days, notify_friend_requests, notify_friend_requests_email',
+            'notifications_enabled, notification_reminder_time, notification_days, notify_friend_requests, notify_friend_requests_email, notify_comments_email',
           )
           .eq('id', userId)
           .maybeSingle();
@@ -92,6 +93,8 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
               response['notify_friend_requests'] ?? true;
           _notifyFriendRequestsEmail =
               response['notify_friend_requests_email'] ?? true;
+          _notifyCommentsEmail =
+              response['notify_comments_email'] ?? true;
 
           _isLoading = false;
         });
@@ -175,6 +178,15 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
       await _updateProfile({'notify_friend_requests_email': value});
     } catch (_) {
       setState(() => _notifyFriendRequestsEmail = !value);
+    }
+  }
+
+  Future<void> _toggleCommentsEmail(bool value) async {
+    setState(() => _notifyCommentsEmail = value);
+    try {
+      await _updateProfile({'notify_comments_email': value});
+    } catch (_) {
+      setState(() => _notifyCommentsEmail = !value);
     }
   }
 
@@ -313,6 +325,15 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                     subtitle: l.friendRequestEmailDesc,
                     value: _notifyFriendRequestsEmail,
                     onChanged: _toggleFriendRequestsEmail,
+                  ),
+                  const Divider(height: AppSpace.l),
+                  _SwitchRow(
+                    icon: Icons.chat_bubble_outline,
+                    iconColor: const Color(0xFFB87900),
+                    title: l.commentEmail,
+                    subtitle: l.commentEmailDesc,
+                    value: _notifyCommentsEmail,
+                    onChanged: _toggleCommentsEmail,
                   ),
                 ],
               ),

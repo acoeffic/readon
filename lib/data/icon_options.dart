@@ -23,7 +23,6 @@ const Map<String, IconData> kIconOptions = {
   'gem': LucideIcons.gem,
   'zap': LucideIcons.zap,
   'crown': LucideIcons.crown,
-  'trophy': LucideIcons.trophy,
   'target': LucideIcons.target,
   'landmark': LucideIcons.landmark,
   'search': LucideIcons.search,

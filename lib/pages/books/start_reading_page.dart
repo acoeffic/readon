@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/back_header.dart';
+import '../../widgets/constrained_content.dart';
 import '../../widgets/progress_bar.dart';
 
 class StartReadingPage extends StatelessWidget {
@@ -8,18 +10,20 @@ class StartReadingPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: AppColors.bgLight,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(AppSpace.l),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const BackHeader(title: 'Démarrer une lecture'),
+      body: ConstrainedContent(
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(AppSpace.l),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                BackHeader(title: l.startReadingPageTitle),
               const SizedBox(height: AppSpace.xl),
 
-              Text('Livre sélectionné', style: Theme.of(context).textTheme.titleMedium),
+              Text(l.startReadingSelectedBook, style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: AppSpace.s),
 
               Container(
@@ -154,6 +158,7 @@ class StartReadingPage extends StatelessWidget {
               ),
             ],
           ),
+        ),
         ),
       ),
     );

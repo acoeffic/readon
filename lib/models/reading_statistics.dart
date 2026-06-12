@@ -1,4 +1,4 @@
-import '../services/badges_service.dart';
+import 'package:lexday/features/badges/services/badges_service.dart';
 import 'reading_goal.dart';
 
 enum StatsPeriod { thisWeek, thisMonth, thisYear, allTime }

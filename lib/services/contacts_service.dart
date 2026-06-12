@@ -6,6 +6,8 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+enum SendFriendRequestResult { sent, alreadyExists, error }
+
 class ContactsService {
   final SupabaseClient _supabase = Supabase.instance.client;
 
@@ -327,13 +329,16 @@ class ContactsService {
     }
   }
 
-  /// Envoie une demande d'ami
-  Future<bool> sendFriendRequest(String targetUserId) async {
+  /// Envoie une demande d'ami avec résultat détaillé : permet à l'UI de
+  /// distinguer un envoi réussi, une relation déjà existante (à griser
+  /// silencieusement) ou une erreur (à signaler).
+  Future<SendFriendRequestResult> sendFriendRequestDetailed(
+    String targetUserId,
+  ) async {
     final user = _supabase.auth.currentUser;
-    if (user == null) return false;
+    if (user == null) return SendFriendRequestResult.error;
 
     try {
-      // Verifier s'il n'existe pas deja une relation
       final existing = await _supabase
           .from('friends')
           .select('id, status')
@@ -342,7 +347,9 @@ class ContactsService {
           )
           .limit(1);
 
-      if ((existing as List).isNotEmpty) return false;
+      if ((existing as List).isNotEmpty) {
+        return SendFriendRequestResult.alreadyExists;
+      }
 
       await _supabase.from('friends').insert({
         'requester_id': user.id,
@@ -350,10 +357,51 @@ class ContactsService {
         'status': 'pending',
       });
 
-      return true;
+      return SendFriendRequestResult.sent;
     } catch (e) {
       debugPrint('Erreur sendFriendRequest: $e');
-      return false;
+      return SendFriendRequestResult.error;
+    }
+  }
+
+  /// Wrapper booléen historique : true si la demande a été envoyée.
+  Future<bool> sendFriendRequest(String targetUserId) async {
+    final result = await sendFriendRequestDetailed(targetUserId);
+    return result == SendFriendRequestResult.sent;
+  }
+
+  /// Retourne le sous-ensemble de [userIds] avec lesquels l'utilisateur
+  /// courant a déjà une relation `friends` (pending, accepted, ...). Utilisé
+  /// pour pré-griser les boutons « Ajouter » dans les carrousels de
+  /// suggestions.
+  Future<Set<String>> getExistingRelationUserIds(
+    Iterable<String> userIds,
+  ) async {
+    final user = _supabase.auth.currentUser;
+    if (user == null) return <String>{};
+    final ids = userIds.where((id) => id.isNotEmpty).toList();
+    if (ids.isEmpty) return <String>{};
+
+    try {
+      final orConditions = ids
+          .map((id) =>
+              'and(requester_id.eq.${user.id},addressee_id.eq.$id),and(requester_id.eq.$id,addressee_id.eq.${user.id})')
+          .join(',');
+      final res = await _supabase
+          .from('friends')
+          .select('requester_id, addressee_id')
+          .or(orConditions);
+
+      final related = <String>{};
+      for (final row in (res as List)) {
+        final reqId = row['requester_id'] as String;
+        final addId = row['addressee_id'] as String;
+        related.add(reqId == user.id ? addId : reqId);
+      }
+      return related;
+    } catch (e) {
+      debugPrint('Erreur getExistingRelationUserIds: $e');
+      return <String>{};
     }
   }
 }

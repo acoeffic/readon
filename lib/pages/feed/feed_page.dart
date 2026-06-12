@@ -28,6 +28,10 @@ import '../reading/start_reading_session_page_unified.dart';
 import '../reading/active_reading_session_page.dart';
 import '../../services/suggestions_service.dart';
 import '../../models/book_suggestion.dart';
+import '../../services/goals_service.dart';
+import '../../models/reading_goal.dart';
+import '../profile/reading_goals_page.dart';
+import 'widgets/goals_progress_card.dart';
 import '../../widgets/suggestion_card.dart';
 import '../../services/trending_service.dart';
 import '../../services/groups_service.dart';
@@ -116,6 +120,11 @@ class _FeedPageState extends State<FeedPage> {
   List<BookSuggestion> suggestions = [];
   bool loading = true;
 
+  // Objectifs de lecture (hors cache feed, hydratés en arrière-plan)
+  final goalsService = GoalsService();
+  List<ReadingGoal> activeGoals = [];
+  bool _goalsLoaded = false;
+
   bool _isLoadingMore = false;
   bool _hasMore = true;
   bool _revalidating = false;
@@ -187,12 +196,31 @@ class _FeedPageState extends State<FeedPage> {
       return;
     }
     setState(() => _pymkProcessing.add(userId));
-    final ok = await _pymkContactsService.sendFriendRequest(userId);
+    final result =
+        await _pymkContactsService.sendFriendRequestDetailed(userId);
     if (!mounted) return;
     setState(() {
       _pymkProcessing.remove(userId);
-      if (ok) _pymkRequested.add(userId);
+      if (result != SendFriendRequestResult.error) {
+        _pymkRequested.add(userId);
+      }
     });
+    final l = AppLocalizations.of(context);
+    if (result == SendFriendRequestResult.sent) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l.invitationSentShort),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    } else if (result == SendFriendRequestResult.error) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l.cannotAddFriend),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   // Listes curatées
@@ -443,6 +471,10 @@ class _FeedPageState extends State<FeedPage> {
       return;
     }
 
+    // Objectifs : hors cache feed, hydratés en arrière-plan quel que soit
+    // le chemin (cache mémoire, Hive ou réseau).
+    _loadGoals();
+
     // 1️⃣ Cache mémoire (instantané, < 5 min)
     if (FeedCache.isValid) {
       setState(() => _applyCacheData(FeedCache.data!));
@@ -463,6 +495,20 @@ class _FeedPageState extends State<FeedPage> {
     await _fetchFromNetwork(showLoading: true);
   }
 
+  /// Charge les objectifs actifs avec leur progression (best-effort).
+  Future<void> _loadGoals() async {
+    try {
+      final goals = await goalsService.getActiveGoalsWithProgress();
+      if (!mounted) return;
+      setState(() {
+        activeGoals = goals;
+        _goalsLoaded = true;
+      });
+    } catch (e) {
+      debugPrint('Erreur chargement objectifs: $e');
+    }
+  }
+
   /// Revalide en arrière-plan (indicateur discret, pas de skeleton)
   Future<void> _revalidateFromNetwork() async {
     if (_revalidating) return;
@@ -474,7 +520,13 @@ class _FeedPageState extends State<FeedPage> {
     }
   }
 
-  /// Fetch réseau complet + mise à jour du state et des caches
+  /// Fetch réseau complet + mise à jour du state et des caches.
+  ///
+  /// Rendu progressif : on affiche le feed dès que `get_feed_bundle` répond
+  /// (c'est lui qui porte les activités), puis on hydrate flow / current book /
+  /// suggestions / discover / pymk au fur et à mesure que leurs requêtes
+  /// arrivent. Le cache (mémoire + Hive) est écrit une fois que tout est en
+  /// place.
   Future<void> _fetchFromNetwork({required bool showLoading}) async {
     if (showLoading) {
       setState(() {
@@ -492,85 +544,46 @@ class _FeedPageState extends State<FeedPage> {
         return;
       }
 
-      // 6 appels parallèles :
-      // - get_feed_bundle : combine feed + trending + community + friends + curated + prizes
-      // - getUserFlow, getCurrentReadingBook, getPersonalizedSuggestions : logique Dart complexe
-      // - get_suggested_readers : popularité (fallback pour comptes nouveaux)
-      // - get_people_you_may_know : multi-signal (prioritaire si non vide)
+      // Tous les appels sont lancés en parallèle sans Future.wait global :
+      // chaque future hydrate son slice de state quand elle se résout.
       final curatedIds = kCuratedLists.map((l) => l.id).toList();
-      final results = await Future.wait([
-        flowService.getUserFlow(),                                        // 0
-        booksService.getCurrentReadingBook(),                             // 1
-        suggestionsService.getPersonalizedSuggestions(limit: 5),          // 2
-        supabase.rpc('get_feed_bundle', params: {                         // 3
-          'p_feed_limit': _pageSize,
-          'p_trending_limit': 5,
-          'p_sessions_limit': 10,
-          'p_readers_limit': 10,
-          'p_badges_limit': 8,
-          'p_prizes_limit': 10,
-          'p_curated_ids': curatedIds,
-        }),
-        supabase.rpc('get_suggested_readers',                             // 4
-            params: {'p_limit': 8}),
-        _pymkService.getSuggestions(limit: 10),                           // 5
-      ]);
+      final bundleFuture = supabase.rpc('get_feed_bundle', params: {
+        'p_feed_limit': _pageSize,
+        'p_trending_limit': 5,
+        'p_sessions_limit': 10,
+        'p_readers_limit': 10,
+        'p_badges_limit': 8,
+        'p_prizes_limit': 10,
+        'p_curated_ids': curatedIds,
+      });
+      final flowFuture = flowService.getUserFlow();
+      final currentBookFuture = booksService.getCurrentReadingBook();
+      final suggestionsFuture =
+          suggestionsService.getPersonalizedSuggestions(limit: 5);
+      final discoverFuture =
+          supabase.rpc('get_suggested_readers', params: {'p_limit': 8});
+      final pymkFuture = _pymkService.getSuggestions(limit: 10);
 
-      final flow = results[0] as ReadingFlow?;
-      final currentBook = results[1] as Map<String, dynamic>?;
-      final suggestionsRes = results[2] as List<BookSuggestion>;
-      final bundle = Map<String, dynamic>.from(results[3] as Map);
-      final discoverReadersRaw = results[4];
-      var discoverReadersList = discoverReadersRaw is List
-          ? discoverReadersRaw
-              .map((e) => Map<String, dynamic>.from(e as Map))
-              .toList()
-          : <Map<String, dynamic>>[];
-      final pymkList = results[5] as List<PeopleYouMayKnow>;
+      // 🚀 First-paint : on attend uniquement le bundle (contient activités
+      // + trending + community + readers + badges + curated + prizes).
+      final bundleRaw = await bundleFuture;
+      if (!mounted) return;
 
-      // Dédupliquer popular contre PYMK : un même profil ne doit pas
-      // apparaître dans les deux carrousels stackés.
-      final pymkIds = pymkList.map((p) => p.userId).toSet();
-      discoverReadersList = discoverReadersList
-          .where(
-              (r) => !pymkIds.contains(r['user_id'] as String? ?? ''))
-          .toList();
-
-      // Top-up : on garantit au moins ~5 suggestions sociales visibles dans
-      // le feed. Si PYMK + popular en remontent moins, on complète avec des
-      // profils publics quelconques (dédupliqués contre les ids déjà connus).
-      const minSuggestions = 5;
-      final knownIds = <String>{
-        ...pymkIds,
-        ...discoverReadersList
-            .map((r) => r['user_id'] as String? ?? '')
-            .where((id) => id.isNotEmpty),
-      };
-      if (pymkList.length + discoverReadersList.length < minSuggestions) {
-        final fallback =
-            await _fetchAnyPublicProfilesFallback(limit: 10);
-        final dedup = fallback
-            .where((f) => !knownIds.contains(f['user_id'] as String? ?? ''))
-            .toList();
-        discoverReadersList = [...discoverReadersList, ...dedup];
-      }
-
+      final bundle = Map<String, dynamic>.from(bundleRaw as Map);
       final fCount = bundle['friend_count'] as int? ?? 0;
       final tier = trendingService.determineFeedTier(fCount);
-
-      // Extraire les données du bundle
-      final readerCountsRaw = bundle['curated_reader_counts'] as Map<String, dynamic>? ?? {};
-      final readerCountsRes = readerCountsRaw.map(
-        (k, v) => MapEntry(int.parse(k), v as int),
-      );
-      final savedListIdsRes = (bundle['saved_curated_ids'] as List<dynamic>? ?? [])
-          .map((e) => e as int)
-          .toSet();
+      final readerCountsRaw =
+          bundle['curated_reader_counts'] as Map<String, dynamic>? ?? {};
+      final readerCountsRes = readerCountsRaw
+          .map((k, v) => MapEntry(int.parse(k), v as int));
+      final savedListIdsRes =
+          (bundle['saved_curated_ids'] as List<dynamic>? ?? [])
+              .map((e) => e as int)
+              .toSet();
       final prizeListsRes = (bundle['prize_lists'] as List<dynamic>? ?? [])
           .map((e) => PrizeList.fromJson(Map<String, dynamic>.from(e as Map)))
           .toList();
 
-      // Utiliser les données selon le tier
       List<Map<String, dynamic>> activities = [];
       List<Map<String, dynamic>> trending = [];
       List<Map<String, dynamic>> community = [];
@@ -588,65 +601,102 @@ class _FeedPageState extends State<FeedPage> {
 
       if (tier == FeedTier.mixed || tier == FeedTier.trending) {
         trending = List<Map<String, dynamic>>.from(
-          (bundle['trending_books'] as List<dynamic>? ?? []).map((e) => Map<String, dynamic>.from(e as Map)),
+          (bundle['trending_books'] as List<dynamic>? ?? [])
+              .map((e) => Map<String, dynamic>.from(e as Map)),
         );
         community = List<Map<String, dynamic>>.from(
-          (bundle['community_sessions'] as List<dynamic>? ?? []).map((e) => Map<String, dynamic>.from(e as Map)),
+          (bundle['community_sessions'] as List<dynamic>? ?? [])
+              .map((e) => Map<String, dynamic>.from(e as Map)),
         );
         readers = List<Map<String, dynamic>>.from(
-          (bundle['active_readers'] as List<dynamic>? ?? []).map((e) => Map<String, dynamic>.from(e as Map)),
+          (bundle['active_readers'] as List<dynamic>? ?? [])
+              .map((e) => Map<String, dynamic>.from(e as Map)),
         );
         unlocks = List<Map<String, dynamic>>.from(
-          (bundle['badge_unlocks'] as List<dynamic>? ?? []).map((e) => Map<String, dynamic>.from(e as Map)),
+          (bundle['badge_unlocks'] as List<dynamic>? ?? [])
+              .map((e) => Map<String, dynamic>.from(e as Map)),
         );
       }
 
-      if (!mounted) return;
-
-      // Mélanger l'ordre des sections du feed
-      final random = Random();
-      final newOrder = [0, 1, 2, 3, 4]..shuffle(random);
+      final newOrder = [0, 1, 2, 3, 4]..shuffle(Random());
+      final hasMore = activities.length >= _pageSize;
       debugPrint('Feed tier: $tier, section order: $newOrder');
 
-      // Charger les amis en commun pour les lecteurs à découvrir (best-effort,
-      // n'empêche pas l'affichage en cas d'échec).
-      final discoverIds = discoverReadersList
-          .map((r) => r['user_id']?.toString())
-          .whereType<String>()
-          .toList();
-      final discoverMutualsRes = discoverIds.isEmpty
-          ? <String, MutualFriendsSummary>{}
-          : await _mutualFriendsService.getSummariesBatch(discoverIds);
-      if (!mounted) return;
+      // 🎨 Premier paint : on rend ce qu'on a déjà.
+      setState(() {
+        friendActivities = activities;
+        friendCount = fCount;
+        feedTier = tier;
+        trendingBooks = trending;
+        communitySessions = community;
+        activeReaders = readers;
+        badgeUnlocks = unlocks;
+        curatedReaderCounts = readerCountsRes;
+        savedCuratedListIds = savedListIdsRes;
+        prizeLists = prizeListsRes;
+        _hasMore = hasMore;
+        _feedSectionOrder = newOrder;
+        loading = false;
+      });
 
-      final hasMore = activities.length >= _pageSize;
+      // 🔄 Updates progressifs : chaque section apparaît dès que sa donnée
+      // arrive, sans bloquer le premier rendu.
+      final flowHydrated = flowFuture.then((flow) {
+        if (!mounted) return;
+        setState(() => currentFlow = flow);
+      }).catchError((Object e) {
+        debugPrint('Erreur flow background: $e');
+      });
 
-      final cacheData = FeedCacheData(
-        friendActivities: activities,
-        currentFlow: flow,
-        currentReadingBook: currentBook,
-        suggestions: suggestionsRes,
-        friendCount: fCount,
-        feedTier: tier,
-        trendingBooks: trending,
-        communitySessions: community,
-        activeReaders: readers,
-        badgeUnlocks: unlocks,
-        curatedReaderCounts: readerCountsRes,
-        savedCuratedListIds: savedListIdsRes,
-        prizeLists: prizeListsRes,
-        hasMore: hasMore,
+      final currentBookHydrated = currentBookFuture.then((book) {
+        if (!mounted) return;
+        setState(() => currentReadingBook = book);
+      }).catchError((Object e) {
+        debugPrint('Erreur currentBook background: $e');
+      });
+
+      final suggestionsHydrated = suggestionsFuture.then((sugg) {
+        if (!mounted) return;
+        setState(() => suggestions = sugg);
+      }).catchError((Object e) {
+        debugPrint('Erreur suggestions background: $e');
+      });
+
+      // Discover + PYMK : dépendent l'un de l'autre pour la dédup, puis
+      // déclenchent en parallèle mutual-friends + relations existantes.
+      final socialHydrated = _loadDiscoverAndPymk(
+        discoverFuture: discoverFuture,
+        pymkFuture: pymkFuture,
       );
 
-      // Stocker dans les deux caches (mémoire + Hive)
-      FeedCache.store(cacheData);
-      FeedCacheService.saveFeed(cacheData); // fire-and-forget
-
-      setState(() {
-        _applyCacheData(cacheData, sectionOrder: newOrder);
-        discoverReaders = discoverReadersList;
-        discoverMutuals = discoverMutualsRes;
-        peopleYouMayKnow = pymkList;
+      // 💾 Cache (mémoire + Hive) écrit une fois tout résolu — best-effort.
+      Future.wait([
+        flowHydrated,
+        currentBookHydrated,
+        suggestionsHydrated,
+        socialHydrated,
+      ]).then((_) {
+        if (!mounted) return;
+        final cacheData = FeedCacheData(
+          friendActivities: friendActivities,
+          currentFlow: currentFlow,
+          currentReadingBook: currentReadingBook,
+          suggestions: suggestions,
+          friendCount: friendCount,
+          feedTier: feedTier,
+          trendingBooks: trendingBooks,
+          communitySessions: communitySessions,
+          activeReaders: activeReaders,
+          badgeUnlocks: badgeUnlocks,
+          curatedReaderCounts: curatedReaderCounts,
+          savedCuratedListIds: savedCuratedListIds,
+          prizeLists: prizeLists,
+          hasMore: _hasMore,
+        );
+        FeedCache.store(cacheData);
+        FeedCacheService.saveFeed(cacheData); // fire-and-forget
+      }).catchError((Object e) {
+        debugPrint('Erreur cache write: $e');
       });
     } catch (e) {
       debugPrint('Erreur loadFeed: $e');
@@ -662,6 +712,85 @@ class _FeedPageState extends State<FeedPage> {
           SnackBar(content: Text(AppLocalizations.of(context).errorGeneric(e.toString()))),
         );
       }
+    }
+  }
+
+  /// Hydrate les sections sociales (discover + PYMK + mutuals + relations
+  /// existantes). Lancée en background depuis [_fetchFromNetwork] après le
+  /// first-paint.
+  Future<void> _loadDiscoverAndPymk({
+    required Future<dynamic> discoverFuture,
+    required Future<List<PeopleYouMayKnow>> pymkFuture,
+  }) async {
+    try {
+      final results = await Future.wait([discoverFuture, pymkFuture]);
+      if (!mounted) return;
+
+      final discoverReadersRaw = results[0];
+      var discoverReadersList = discoverReadersRaw is List
+          ? discoverReadersRaw
+              .map((e) => Map<String, dynamic>.from(e as Map))
+              .toList()
+          : <Map<String, dynamic>>[];
+      final pymkList = results[1] as List<PeopleYouMayKnow>;
+
+      // Dédupliquer popular contre PYMK.
+      final pymkIds = pymkList.map((p) => p.userId).toSet();
+      discoverReadersList = discoverReadersList
+          .where((r) => !pymkIds.contains(r['user_id'] as String? ?? ''))
+          .toList();
+
+      // Top-up : garantir ~5 suggestions sociales en complétant via profils
+      // publics si PYMK + popular n'en remontent pas assez.
+      const minSuggestions = 5;
+      final knownIds = <String>{
+        ...pymkIds,
+        ...discoverReadersList
+            .map((r) => r['user_id'] as String? ?? '')
+            .where((id) => id.isNotEmpty),
+      };
+      if (pymkList.length + discoverReadersList.length < minSuggestions) {
+        final fallback = await _fetchAnyPublicProfilesFallback(limit: 10);
+        final dedup = fallback
+            .where((f) => !knownIds.contains(f['user_id'] as String? ?? ''))
+            .toList();
+        discoverReadersList = [...discoverReadersList, ...dedup];
+      }
+
+      if (!mounted) return;
+      setState(() {
+        discoverReaders = discoverReadersList;
+        peopleYouMayKnow = pymkList;
+      });
+
+      // Mutual friends + relations existantes en parallèle (au lieu de
+      // séquentiel comme avant).
+      final discoverIds = discoverReadersList
+          .map((r) => r['user_id']?.toString())
+          .whereType<String>()
+          .toList();
+      final suggestedIds = <String>{
+        ...pymkList.map((p) => p.userId),
+        ...discoverReadersList
+            .map((r) => r['user_id'] as String? ?? '')
+            .where((id) => id.isNotEmpty),
+      };
+
+      final social = await Future.wait([
+        discoverIds.isEmpty
+            ? Future.value(<String, MutualFriendsSummary>{})
+            : _mutualFriendsService.getSummariesBatch(discoverIds),
+        suggestedIds.isEmpty
+            ? Future.value(<String>{})
+            : _pymkContactsService.getExistingRelationUserIds(suggestedIds),
+      ]);
+      if (!mounted) return;
+      setState(() {
+        discoverMutuals = social[0] as Map<String, MutualFriendsSummary>;
+        _pymkRequested.addAll(social[1] as Set<String>);
+      });
+    } catch (e) {
+      debugPrint('Erreur discover/pymk background: $e');
     }
   }
 
@@ -1284,9 +1413,10 @@ class _FeedPageState extends State<FeedPage> {
   }
 
   List<Widget> _buildGuestFeedContent() {
+    final l = AppLocalizations.of(context);
     return [
       // Listes pour toi
-      _SectionHeader(emoji: '✨', label: 'Listes pour toi'),
+      _SectionHeader(emoji: '✨', label: l.feedSectionListsForYou),
       const SizedBox(height: AppSpace.s),
       ..._buildCuratedListsSection(),
 
@@ -1294,7 +1424,7 @@ class _FeedPageState extends State<FeedPage> {
 
       // Tendances
       if (trendingBooks.isNotEmpty) ...[
-        _SectionHeader(emoji: '🔥', label: 'Tendances'),
+        _SectionHeader(emoji: '🔥', label: l.feedSectionTrending),
         const SizedBox(height: AppSpace.s),
         ..._buildTrendingBooksSection(),
       ],
@@ -1310,8 +1440,9 @@ class _FeedPageState extends State<FeedPage> {
 
   List<Widget> _buildPublicClubsSection() {
     if (publicClubs.isEmpty) return [];
+    final l = AppLocalizations.of(context);
     return [
-      _SectionHeader(emoji: '👥', label: 'Clubs publics à découvrir'),
+      _SectionHeader(emoji: '👥', label: l.feedSectionPublicClubs),
       const SizedBox(height: AppSpace.s),
       SizedBox(
         height: 180,
@@ -1446,6 +1577,22 @@ class _FeedPageState extends State<FeedPage> {
                     );
                   },
                 ),
+
+              // 👉 Objectifs de lecture
+              if (!loading && !isGuest && _goalsLoaded) ...[
+                GoalsProgressCard(
+                  goals: activeGoals,
+                  onTap: () async {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ReadingGoalsPage(),
+                      ),
+                    );
+                    _loadGoals();
+                  },
+                ),
+              ],
 
               const SizedBox(height: AppSpace.l),
 
@@ -1662,6 +1809,7 @@ class _GuestConversionCta extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final l = AppLocalizations.of(context);
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -1695,8 +1843,8 @@ class _GuestConversionCta extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Rejoins LexDay',
-                        style: TextStyle(
+                        l.feedGuestCtaTitle,
+                        style: const TextStyle(
                           fontSize: 17,
                           fontWeight: FontWeight.w700,
                           color: Colors.white,
@@ -1704,7 +1852,7 @@ class _GuestConversionCta extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Suis tes lectures, tes amis, tes objectifs.',
+                        l.feedGuestCtaSubtitle,
                         style: TextStyle(
                           fontSize: 13,
                           color: Colors.white.withValues(alpha: 0.9),

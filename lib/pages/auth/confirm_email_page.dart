@@ -77,7 +77,7 @@ class _ConfirmEmailPageState extends State<ConfirmEmailPage> {
     setState(() => _resending = true);
     final result = await AuthResendService.instance.resendSignupConfirmation(
       email: email,
-      emailRedirectTo: Env.authV1CallbackUrl,
+      emailRedirectTo: Env.authEmailCallbackUrl,
     );
     if (!mounted) return;
     setState(() => _resending = false);

@@ -9,6 +9,7 @@ import '../../models/user_custom_list.dart';
 import '../../pages/feed/widgets/curated_lists_carousel.dart';
 import '../../providers/subscription_provider.dart';
 import '../../services/curated_lists_service.dart';
+import '../../widgets/constrained_content.dart';
 import '../../widgets/premium_gate.dart';
 import '../../services/user_custom_lists_service.dart';
 import '../../theme/app_theme.dart';
@@ -172,13 +173,14 @@ class SavedListsTabState extends State<SavedListsTab> {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: RefreshIndicator(
-        onRefresh: _loadData,
-        child: ListView(
-          padding: const EdgeInsets.all(AppSpace.l),
-          children: [
-            // Listes personnelles
-            if (_customLists.isNotEmpty) ...[
+      body: ConstrainedContent(
+        child: RefreshIndicator(
+          onRefresh: _loadData,
+          child: ListView(
+            padding: const EdgeInsets.all(AppSpace.l),
+            children: [
+              // Listes personnelles
+              if (_customLists.isNotEmpty) ...[
               _buildSectionHeader(
                 context,
                 l.myListsSection,
@@ -243,6 +245,7 @@ class SavedListsTabState extends State<SavedListsTab> {
           ],
         ),
       ),
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: _createList,
         backgroundColor: const Color(0xFFFF6B35),
@@ -285,8 +288,9 @@ class SavedListsTabState extends State<SavedListsTab> {
     final l = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: ListView(
-        padding: const EdgeInsets.all(AppSpace.l),
+      body: ConstrainedContent(
+        child: ListView(
+          padding: const EdgeInsets.all(AppSpace.l),
         children: [
           const SizedBox(height: 24),
           Center(
@@ -348,6 +352,7 @@ class SavedListsTabState extends State<SavedListsTab> {
             onListTap: _navigateToCuratedListDetail,
           ),
         ],
+      ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _createList,

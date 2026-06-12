@@ -42,6 +42,7 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
   final reactionService = ReactionService();
   final commentsService = CommentsService();
   int _commentCount = 0;
+  bool _userHasCommented = false;
 
   Map<String, int> _reactionCounts = {};
   String? _userEmoji;
@@ -63,9 +64,15 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
 
   Future<void> _loadCommentCount() async {
     final activityId = (widget.activity['activity_id'] ?? widget.activity['id']) as int;
-    final count = await commentsService.getCommentCount(activityId);
+    final results = await Future.wait([
+      commentsService.getCommentCount(activityId),
+      commentsService.hasUserCommented(activityId),
+    ]);
     if (!mounted) return;
-    setState(() => _commentCount = count);
+    setState(() {
+      _commentCount = results[0] as int;
+      _userHasCommented = results[1] as bool;
+    });
   }
 
   void _showCommentsSheet() {
@@ -736,21 +743,47 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                        color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.grey.shade100,
+                        color: _userHasCommented
+                            ? (isDark
+                                ? const Color(0xFFFFB300).withValues(alpha: 0.22)
+                                : const Color(0xFFFFF3D6))
+                            : (isDark
+                                ? Colors.white.withValues(alpha: 0.08)
+                                : Colors.grey.shade100),
                         borderRadius: BorderRadius.circular(20),
+                        border: _userHasCommented
+                            ? Border.all(
+                                color: const Color(0xFFFFB300)
+                                    .withValues(alpha: 0.45),
+                                width: 1,
+                              )
+                            : null,
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.chat_bubble_outline, size: 18, color: muted),
+                          Icon(
+                            _userHasCommented
+                                ? Icons.chat_bubble
+                                : Icons.chat_bubble_outline,
+                            size: 18,
+                            color: _userHasCommented
+                                ? const Color(0xFFB87900)
+                                : muted,
+                          ),
                           if (_commentCount > 0) ...[
                             const SizedBox(width: 4),
                             Text(
                               '$_commentCount',
                               style: TextStyle(
                                 fontSize: 13,
-                                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
-                                fontWeight: FontWeight.w600,
+                                color: _userHasCommented
+                                    ? const Color(0xFFB87900)
+                                    : Theme.of(context)
+                                        .colorScheme
+                                        .onSurface
+                                        .withValues(alpha: 0.7),
+                                fontWeight: FontWeight.w700,
                               ),
                             ),
                           ],

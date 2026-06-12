@@ -7,6 +7,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../services/contacts_service.dart';
 import '../../services/mutual_friends_service.dart';
 import '../../services/people_you_may_know_service.dart';
@@ -129,6 +130,19 @@ class _PeopleYouMayKnowPageState extends State<PeopleYouMayKnowPage> {
         _popularReaders = filteredReaders;
         _loading = false;
       });
+
+      // Pré-charge les relations existantes pour pré-griser les boutons
+      // « Ajouter » des utilisateurs déjà invités/amis (sinon retap → erreur).
+      final ids = <String>{
+        ...pymk.map((p) => p.userId),
+        ...filteredReaders
+            .map((r) => r['user_id'] as String? ?? '')
+            .where((id) => id.isNotEmpty),
+      };
+      final related =
+          await _contactsService.getExistingRelationUserIds(ids);
+      if (!mounted || related.isEmpty) return;
+      setState(() => _requested.addAll(related));
     } catch (_) {
       if (!mounted) return;
       setState(() => _loading = false);
@@ -138,12 +152,29 @@ class _PeopleYouMayKnowPageState extends State<PeopleYouMayKnowPage> {
   Future<void> _follow(String userId) async {
     if (_requested.contains(userId) || _processing.contains(userId)) return;
     setState(() => _processing.add(userId));
-    final ok = await _contactsService.sendFriendRequest(userId);
+    final result =
+        await _contactsService.sendFriendRequestDetailed(userId);
     if (!mounted) return;
     setState(() {
       _processing.remove(userId);
-      if (ok) _requested.add(userId);
+      if (result != SendFriendRequestResult.error) _requested.add(userId);
     });
+    final l = AppLocalizations.of(context);
+    if (result == SendFriendRequestResult.sent) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l.invitationSentShort),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    } else if (result == SendFriendRequestResult.error) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l.cannotAddFriend),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   @override
@@ -156,7 +187,7 @@ class _PeopleYouMayKnowPageState extends State<PeopleYouMayKnowPage> {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('À découvrir'),
+        title: Text(AppLocalizations.of(context).peopleYouMayKnowPageTitle),
         elevation: 0,
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       ),
@@ -180,6 +211,7 @@ class _PeopleYouMayKnowPageState extends State<PeopleYouMayKnowPage> {
                               requestedIds: _requested,
                               processingIds: _processing,
                               onFollow: _follow,
+                              showSeeAll: false,
                             )
                           else
                             DiscoverReadersSection(
@@ -418,7 +450,9 @@ class _PymkRow extends StatelessWidget {
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
                       child: Text(
-                        isRequested ? 'Envoyé' : '+ Suivre',
+                        isRequested
+                            ? 'Envoyé'
+                            : '+ ${AppLocalizations.of(context).addButton}',
                         style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w700,

@@ -135,19 +135,42 @@ class LiveActivityService {
 
   // -------- Cover helpers --------
 
+  // User-Agent type Safari iOS : Google Books / Amazon / OpenLibrary refusent
+  // souvent les requêtes sans UA "navigateur" (403 ou 0 byte). C'est le même
+  // UA que celui utilisé par `CachedBookCover` côté app, ce qui explique
+  // qu'une cover s'affiche en app mais échoue sur la Live Activity quand
+  // on faisait un `http.get` brut.
+  static const _browserHeaders = {
+    'User-Agent':
+        'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) '
+        'AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 '
+        'Mobile/15E148 Safari/604.1',
+  };
+
   Future<String> _resolveCover(String? url) async {
-    if (url == null || url.isEmpty) return '';
+    if (url == null || url.isEmpty) {
+      debugPrint('LiveActivity._resolveCover: url null/empty');
+      return '';
+    }
     if (_cachedCoverUrl == url && _cachedCoverBase64 != null) {
       return _cachedCoverBase64!;
     }
     try {
       final res = await http
-          .get(Uri.parse(url))
+          .get(Uri.parse(url), headers: _browserHeaders)
           .timeout(const Duration(seconds: 8));
-      if (res.statusCode != 200) return '';
+      if (res.statusCode != 200) {
+        debugPrint('LiveActivity._resolveCover: HTTP ${res.statusCode} for $url');
+        return '';
+      }
+      if (res.bodyBytes.isEmpty) {
+        debugPrint('LiveActivity._resolveCover: empty body for $url');
+        return '';
+      }
       final encoded = base64Encode(res.bodyBytes);
       _cachedCoverUrl = url;
       _cachedCoverBase64 = encoded;
+      debugPrint('LiveActivity._resolveCover: ${res.bodyBytes.length} bytes from $url');
       return encoded;
     } catch (e) {
       debugPrint('LiveActivity._resolveCover error: $e');

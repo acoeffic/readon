@@ -103,3 +103,13 @@ dependencies {
     // Polyfill JDK pour le core library desugaring (cf. compileOptions ci-dessus)
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }
+
+// home_widget 0.9.0 tire androidx.glance 1.3.0-alpha01, qui exige compileSdk 37 +
+// AGP 9.1. On force Glance à sa dernière version stable (1.1.1), compatible avec
+// compileSdk 36 / AGP 8.9.1. Cela évite aussi de tirer androidx.compose.remote.
+configurations.all {
+    resolutionStrategy {
+        force("androidx.glance:glance:1.1.1")
+        force("androidx.glance:glance-appwidget:1.1.1")
+    }
+}

@@ -325,16 +325,31 @@ class MonthlyWrappedService {
     try {
       final response = await _supabase
           .from('reading_sessions')
-          .select('end_time')
+          .select('start_time, end_time, start_page, end_page')
           .eq('user_id', userId)
           .not('end_time', 'is', null)
           .gte('start_time', startIso)
           .lt('start_time', endIso);
 
-      // Collect unique days that had reading activity
+      // Collect unique days that had reading activity (mêmes seuils que
+      // FlowService : >=1 page lue ET >=2 min de chrono).
       final readDays = <int>{};
       for (final s in response as List) {
-        final date = DateTime.parse(s['end_time'] as String).toLocal();
+        final startPage = s['start_page'] as int?;
+        final endPage = s['end_page'] as int?;
+        final startIsoStr = s['start_time'] as String?;
+        final endIsoStr = s['end_time'] as String?;
+        if (startPage == null ||
+            endPage == null ||
+            startIsoStr == null ||
+            endIsoStr == null) {
+          continue;
+        }
+        if (endPage - startPage < 1) continue;
+        final duration = DateTime.parse(endIsoStr)
+            .difference(DateTime.parse(startIsoStr));
+        if (duration < const Duration(minutes: 2)) continue;
+        final date = DateTime.parse(endIsoStr).toLocal();
         readDays.add(date.day);
       }
 

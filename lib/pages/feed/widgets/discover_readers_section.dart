@@ -35,19 +35,52 @@ class _DiscoverReadersSectionState extends State<DiscoverReadersSection> {
   final Set<String> _requested = {};
   final Set<String> _processing = {};
 
+  @override
+  void initState() {
+    super.initState();
+    _prefetchExistingRelations();
+  }
+
+  @override
+  void didUpdateWidget(covariant DiscoverReadersSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.readers, widget.readers)) {
+      _prefetchExistingRelations();
+    }
+  }
+
+  Future<void> _prefetchExistingRelations() async {
+    final ids = widget.readers
+        .map((r) => r['user_id'] as String? ?? '')
+        .where((id) => id.isNotEmpty);
+    if (ids.isEmpty) return;
+    final related = await _contactsService.getExistingRelationUserIds(ids);
+    if (!mounted || related.isEmpty) return;
+    setState(() => _requested.addAll(related));
+  }
+
   Future<void> _follow(String userId) async {
     if (_requested.contains(userId) || _processing.contains(userId)) return;
     setState(() => _processing.add(userId));
-    final ok = await _contactsService.sendFriendRequest(userId);
+    final result =
+        await _contactsService.sendFriendRequestDetailed(userId);
     if (!mounted) return;
     setState(() {
       _processing.remove(userId);
-      if (ok) _requested.add(userId);
+      if (result != SendFriendRequestResult.error) _requested.add(userId);
     });
-    if (!ok) {
+    final l = AppLocalizations.of(context);
+    if (result == SendFriendRequestResult.sent) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(AppLocalizations.of(context).actionImpossible),
+          content: Text(l.invitationSentShort),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    } else if (result == SendFriendRequestResult.error) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l.cannotAddFriend),
           duration: const Duration(seconds: 2),
         ),
       );
@@ -268,7 +301,9 @@ class _ReaderCard extends StatelessWidget {
                         ),
                       ),
                       child: Text(
-                        isRequested ? 'En attente' : '+ Suivre',
+                        isRequested
+                            ? 'En attente'
+                            : '+ ${AppLocalizations.of(context).addButton}',
                         style: const TextStyle(
                           fontSize: 12.5,
                           fontWeight: FontWeight.w700,

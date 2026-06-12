@@ -3,8 +3,8 @@
 
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import '../services/badges_service.dart';
-import 'remote_badge_image.dart';
+import 'package:lexday/features/badges/services/badges_service.dart';
+import 'package:lexday/features/badges/widgets/remote_badge_image.dart';
 
 class BadgesGrid extends StatelessWidget {
   final List<UserBadge> badges;

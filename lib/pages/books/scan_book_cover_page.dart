@@ -10,6 +10,8 @@ import '../../services/ocr_service.dart';
 import '../../services/google_books_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/cached_book_cover.dart';
+import '../../widgets/constrained_content.dart';
+import 'manual_book_search_page.dart';
 
 /// Mode de scan actif
 enum ScanMode {
@@ -358,48 +360,17 @@ class _ScanBookCoverPageState extends State<ScanBookCoverPage>
     }
   }
 
-  /// Recherche manuelle
+  /// Recherche manuelle — délègue à une page plein écran dédiée.
+  /// Si l'utilisateur sélectionne un livre, on pop directement vers l'appelant
+  /// (ex: le FAB) avec ce livre, comme pour un scan réussi.
   Future<void> _manualSearch() async {
-    final controller = TextEditingController();
-
-    final query = await showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Recherche manuelle'),
-        content: TextField(
-          controller: controller,
-          decoration: const InputDecoration(
-            labelText: 'Titre, auteur ou ISBN',
-            hintText: 'Ex: Harry Potter Rowling',
-          ),
-          autofocus: true,
-          onSubmitted: (value) => Navigator.pop(context, value),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Annuler'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, controller.text),
-            child: const Text('Rechercher'),
-          ),
-        ],
+    final selected = await Navigator.of(context).push<GoogleBook>(
+      MaterialPageRoute(
+        builder: (_) => const ManualBookSearchPage(),
       ),
     );
-
-    if (query != null && query.isNotEmpty) {
-      // Vérifier si c'est un ISBN
-      final cleanQuery = query.replaceAll(RegExp(r'[\s\-]'), '');
-      if (cleanQuery.length == 13 &&
-          (cleanQuery.startsWith('978') || cleanQuery.startsWith('979'))) {
-        await _searchByISBN(cleanQuery);
-      } else if (cleanQuery.length == 10 && RegExp(r'^\d{9}[\dXx]$').hasMatch(cleanQuery)) {
-        await _searchByISBN(cleanQuery);
-      } else {
-        await _searchOnGoogleBooks(query);
-      }
-    }
+    if (!mounted || selected == null) return;
+    Navigator.of(context).pop(selected);
   }
 
   /// Réessayer le scan
@@ -431,18 +402,20 @@ class _ScanBookCoverPageState extends State<ScanBookCoverPage>
           ),
         ],
       ),
-      body: Column(
-        children: [
-          // Mode selector
-          _buildModeSelector(),
+      body: ConstrainedContent(
+        child: Column(
+          children: [
+            // Mode selector
+            _buildModeSelector(),
 
-          // Main content
-          Expanded(
-            child: _currentMode == ScanMode.barcode
-                ? _buildBarcodeScanner()
-                : _buildOCRScanner(),
-          ),
-        ],
+            // Main content
+            Expanded(
+              child: _currentMode == ScanMode.barcode
+                  ? _buildBarcodeScanner()
+                  : _buildOCRScanner(),
+            ),
+          ],
+        ),
       ),
     );
   }

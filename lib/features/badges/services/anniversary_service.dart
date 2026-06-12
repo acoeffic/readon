@@ -101,7 +101,7 @@ class AnniversaryService {
         // Sessions de lecture complètes (12 derniers mois)
         _supabase
             .from('reading_sessions')
-            .select('start_time, end_time')
+            .select('start_time, end_time, start_page, end_page')
             .eq('user_id', userId)
             .not('end_time', 'is', null)
             .gte('start_time', twelveMonthsAgo),
@@ -134,7 +134,9 @@ class AnniversaryService {
         return (sessionCounts[bookId] ?? 0) >= 3;
       }).length;
 
-      // Calculer heures et best flow depuis les sessions
+      // Calculer heures et best flow depuis les sessions. Seules les
+      // sessions « valides » (>=1 page lue ET >=2 min) comptent pour la
+      // série de jours consécutifs, comme dans FlowService.
       final sessions = results[1] as List;
       int totalMinutes = 0;
       final activeDates = <String>{};
@@ -142,8 +144,16 @@ class AnniversaryService {
       for (final s in sessions) {
         final st = DateTime.parse(s['start_time'] as String);
         final et = DateTime.parse(s['end_time'] as String);
-        totalMinutes += et.difference(st).inMinutes;
-        activeDates.add('${st.year}-${st.month.toString().padLeft(2, '0')}-${st.day.toString().padLeft(2, '0')}');
+        final duration = et.difference(st);
+        totalMinutes += duration.inMinutes;
+        final startPage = s['start_page'] as int?;
+        final endPage = s['end_page'] as int?;
+        final pagesRead = (startPage != null && endPage != null)
+            ? endPage - startPage
+            : 0;
+        if (pagesRead < 1 || duration < const Duration(minutes: 2)) continue;
+        activeDates.add(
+            '${st.year}-${st.month.toString().padLeft(2, '0')}-${st.day.toString().padLeft(2, '0')}');
       }
 
       final hoursRead = totalMinutes ~/ 60;

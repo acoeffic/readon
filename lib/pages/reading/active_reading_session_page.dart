@@ -74,15 +74,14 @@ class _ActiveReadingSessionPageState extends State<ActiveReadingSessionPage>
 
   Future<void> _restorePauseState() async {
     final pausedAt = await _pauseService.getPausedAt();
-    if (pausedAt == null) return;
     final accumulated = await _pauseService.getAccumulatedPauseDuration();
-    if (mounted) {
-      setState(() {
-        _isPaused = true;
-        _pauseStartTime = pausedAt;
-        _totalPauseDuration = accumulated;
-      });
-    }
+    if (!mounted) return;
+    if (pausedAt == null && accumulated == Duration.zero) return;
+    setState(() {
+      _isPaused = pausedAt != null;
+      _pauseStartTime = pausedAt;
+      _totalPauseDuration = accumulated;
+    });
   }
 
   @override
@@ -101,11 +100,10 @@ class _ActiveReadingSessionPageState extends State<ActiveReadingSessionPage>
 
   Future<void> _syncPauseStateOnResume() async {
     final pausedAt = await _pauseService.getPausedAt();
+    final accumulated = await _pauseService.getAccumulatedPauseDuration();
     if (!mounted) return;
     if (pausedAt != null && !_isPaused) {
       // Auto-pause was triggered by main_navigation — sync in-memory state.
-      final accumulated = await _pauseService.getAccumulatedPauseDuration();
-      if (!mounted) return;
       setState(() {
         _isPaused = true;
         _pauseStartTime = pausedAt;
@@ -114,10 +112,13 @@ class _ActiveReadingSessionPageState extends State<ActiveReadingSessionPage>
             accumulated;
       });
     } else if (!_isPaused) {
-      // No pause — recalculate elapsed to account for time spent in background.
+      // No pause — recalculate elapsed to account for time spent in background
+      // and any accumulated pause that may have been persisted (e.g. by the
+      // Live Activity buttons).
       setState(() {
+        _totalPauseDuration = accumulated;
         _elapsed = DateTime.now().difference(widget.activeSession.startTime) -
-            _totalPauseDuration;
+            accumulated;
       });
     }
   }
@@ -152,7 +153,8 @@ class _ActiveReadingSessionPageState extends State<ActiveReadingSessionPage>
     });
   }
 
-  void _togglePause() {
+  Future<void> _togglePause() async {
+    final wasPaused = _isPaused;
     setState(() {
       if (_isPaused) {
         if (_pauseStartTime != null) {
@@ -166,19 +168,28 @@ class _ActiveReadingSessionPageState extends State<ActiveReadingSessionPage>
         _isPaused = true;
       }
     });
-    // Persist pause state so it survives background/foreground transitions.
-    if (_isPaused && _pauseStartTime != null) {
-      _pauseService.savePause(
-        pausedAt: _pauseStartTime!,
-        alreadyAccumulated: _totalPauseDuration,
+    // Persist pause state via ReadingSessionService — which writes to
+    // SessionPauseService (SoT for endSession's duration calculation) AND
+    // updates the iOS Live Activity timer.
+    final service = ReadingSessionService();
+    if (wasPaused) {
+      await service.resumeSession(
+        widget.activeSession.id,
+        startTime: widget.activeSession.startTime,
       );
     } else {
-      _pauseService.clearPause();
+      await service.pauseSession(
+        widget.activeSession.id,
+        startTime: widget.activeSession.startTime,
+      );
     }
   }
 
   Future<void> _endSession() async {
-    await _pauseService.clearPause();
+    // Don't clear pause state here — ReadingSessionService.endSession()
+    // reads it to compute the adjusted end_time, then clears it itself.
+    // If the user backs out of EndReadingSessionPage without confirming,
+    // the pause state remains intact for the next attempt.
     if (!mounted) return;
     await Navigator.push(
       context,
@@ -217,7 +228,7 @@ class _ActiveReadingSessionPageState extends State<ActiveReadingSessionPage>
       } catch (e) {
         debugPrint('cancelSession failed: $e');
       }
-      await _pauseService.clearPause();
+      await _pauseService.clearAll();
       if (!mounted) return;
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (context) => const MainNavigation()),
@@ -1441,12 +1452,17 @@ class _AnnotationBottomSheetState extends State<_AnnotationBottomSheet> {
                   TextField(
                     controller: _contentController,
                     maxLines: 4,
+                    style: const TextStyle(
+                      color: Color(0xFF2D2D2D),
+                      fontSize: 15,
+                    ),
                     decoration: InputDecoration(
                       hintText: _mode == _AnnotationMode.photo
                           ? l.hintExtractedText
                           : _mode == _AnnotationMode.voice
                               ? l.hintTranscription
                               : l.hintAnnotation,
+                      hintStyle: TextStyle(color: Colors.grey.shade600),
                     filled: true,
                     fillColor: Colors.white,
                     border: OutlineInputBorder(
@@ -1471,8 +1487,13 @@ class _AnnotationBottomSheetState extends State<_AnnotationBottomSheet> {
                 TextField(
                   controller: _pageController,
                   keyboardType: TextInputType.number,
+                  style: const TextStyle(
+                    color: Color(0xFF2D2D2D),
+                    fontSize: 15,
+                  ),
                   decoration: InputDecoration(
                     hintText: l.pageHint,
+                    hintStyle: TextStyle(color: Colors.grey.shade600),
                     prefixIcon:
                         const Icon(Icons.bookmark_outline, size: 20),
                     filled: true,

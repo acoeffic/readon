@@ -63,6 +63,14 @@
   "resetEmailSent": "Email de réinitialisation envoyé. Vérifie ta boîte mail.",
   "passwordMin8Chars": "Le mot de passe doit contenir au moins 8 caractères",
   "passwordRequirements": "Le mot de passe doit contenir majuscule, minuscule et chiffre",
+  "resetNewPasswordTitle": "Nouveau mot de passe",
+  "resetNewPasswordHeading": "Choisis un nouveau mot de passe",
+  "resetNewPasswordSubtitle": "Saisis ton nouveau mot de passe ci-dessous.",
+  "newPasswordLabel": "Nouveau mot de passe",
+  "confirmPasswordLabel": "Confirme le mot de passe",
+  "passwordsDoNotMatch": "Les mots de passe ne correspondent pas",
+  "updatePasswordButton": "Mettre à jour le mot de passe",
+  "passwordUpdatedSuccess": "Mot de passe mis à jour.",
   "mustAcceptTerms": "Vous devez accepter les conditions d'utilisation",
   "accountCreatedCheckEmail": "Compte créé, vérifie tes emails.",
   "createAccountTitle": "Créer un compte",
@@ -1142,6 +1150,7 @@
   "sessionVisible": "Session visible dans les classements",
   "errorModifying": "Erreur lors de la modification",
   "errorDeleting": "Erreur lors de la suppression",
+  "endSessionError": "Impossible de terminer la session pour le moment. Réessaie dans un instant.",
 
   "loadingError": "Erreur de chargement",
   "pagesReadByMonth": "Pages lues par mois",
@@ -1172,6 +1181,8 @@
   "emailSectionDescription": "Choisis les notifications que tu veux recevoir par email.",
   "friendRequestEmail": "Demandes d'ami par email",
   "friendRequestEmailDesc": "Recevoir un email quand quelqu'un t'envoie une demande d'ami",
+  "commentEmail": "Commentaires par email",
+  "commentEmailDesc": "Recevoir un email quand quelqu'un commente une de tes lectures",
   "pushSection": "Notifications push",
   "pushSectionDescription": "Notifications sur ton appareil.",
   "settingsSaved": "Préférences enregistrées",
@@ -1672,5 +1683,50 @@
   "totalPagesSaveBtn": "Enregistrer",
   "totalPagesSaved": "Nombre de pages enregistré ✓",
   "totalPagesSaveError": "Impossible d'enregistrer. Réessaie.",
-  "totalPagesInvalid": "Entre un nombre valide (> 0)."
+  "totalPagesInvalid": "Entre un nombre valide (> 0).",
+
+  "statsPageTitle": "Statistiques",
+  "statsPageHeading": "Statistiques de lecture",
+  "statsPageComingSoon": "Fonctionnalité à venir",
+
+  "allBadgesPageTitle": "Mes badges",
+  "peopleYouMayKnowPageTitle": "À découvrir",
+
+  "addBookPageTitle": "Ajouter un livre",
+  "addBookSearchHeading": "Recherche Google Books",
+  "addBookSearchHint": "Titre, auteur ou ISBN",
+  "addBookSaveBtn": "Enregistrer",
+
+  "startReadingPageTitle": "Démarrer une lecture",
+  "startReadingSelectedBook": "Livre sélectionné",
+
+  "feedSectionListsForYou": "Listes pour toi",
+  "feedSectionTrending": "Tendances",
+  "feedSectionPublicClubs": "Clubs publics à découvrir",
+  "feedGuestCtaTitle": "Rejoins LexDay",
+  "feedGuestCtaSubtitle": "Suis tes lectures, tes amis, tes objectifs.",
+
+  "termsOfServiceTitle": "Conditions d'utilisation",
+  "privacyPolicyTitle": "Politique de confidentialité",
+  "legalNoticeTitle": "Mentions légales",
+
+  "onboardingHabitQuestion": "Comment lis-tu\nle plus souvent ?",
+  "onboardingHabitEreaderLabel": "Liseuse",
+  "onboardingHabitEreaderSubtitle": "Kindle, Kobo...",
+  "onboardingHabitPaperLabel": "Papier",
+  "onboardingHabitPaperSubtitle": "Livres physiques",
+  "onboardingHabitMixLabel": "Un mix",
+  "onboardingHabitMixSubtitle": "Les deux !",
+
+  "autoFreezeUsedTitle": "Ton flow a été protégé !",
+  "autoFreezeUsedBody": "Un freeze automatique a sauvé ta série de {days} jours. Lis quelques pages aujourd'hui pour la faire continuer.",
+  "@autoFreezeUsedBody": {
+    "placeholders": {
+      "days": {"type": "int"}
+    }
+  },
+  "autoFreezeUsedCta": "Continuer ma série",
+
+  "feedGoalsCardTitle": "Mes objectifs",
+  "feedGoalsCta": "Fixe-toi un objectif de lecture"
 }

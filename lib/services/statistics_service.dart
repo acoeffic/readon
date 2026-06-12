@@ -3,7 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/book.dart';
 import '../models/reading_statistics.dart';
 import '../models/reading_goal.dart';
-import 'badges_service.dart';
+import 'package:lexday/features/badges/services/badges_service.dart';
 import 'books_service.dart';
 import 'goals_service.dart';
 import 'flow_service.dart';

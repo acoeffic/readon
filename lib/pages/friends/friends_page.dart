@@ -207,7 +207,6 @@ class _FriendsPageState extends State<FriendsPage> {
                   itemBuilder: (context, index) {
                     final f = _friends[index];
                     final name = f['display_name'] as String? ?? 'Utilisateur';
-                    final email = f['email'] as String? ?? '';
                     final friendId = f['id'] as String? ?? '';
 
                     return GestureDetector(
@@ -246,19 +245,7 @@ class _FriendsPageState extends State<FriendsPage> {
                           const SizedBox(width: AppSpace.m),
 
                           Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(name, style: Theme.of(context).textTheme.titleMedium),
-                                const SizedBox(height: AppSpace.xs),
-                                Text(
-                                  email,
-                                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    color: AppColors.textSecondary,
-                                  ),
-                                ),
-                              ],
-                            ),
+                            child: Text(name, style: Theme.of(context).textTheme.titleMedium),
                           ),
 
                           IconButton(

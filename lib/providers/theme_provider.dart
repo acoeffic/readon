@@ -7,7 +7,7 @@ import '../theme/theme_variant.dart';
 class ThemeProvider with ChangeNotifier {
   static const String _themeKey = 'theme_mode_v2';
   static const String _variantKey = 'theme_variant_v1';
-  ThemeMode _themeMode = ThemeMode.system;
+  ThemeMode _themeMode = ThemeMode.light;
   ThemeVariantPalette _variant = ThemeVariants.sage;
 
   ThemeProvider() {
@@ -34,7 +34,7 @@ class ThemeProvider with ChangeNotifier {
     if (stored != null) {
       _themeMode = ThemeMode.values.firstWhere(
         (m) => m.name == stored,
-        orElse: () => ThemeMode.system,
+        orElse: () => ThemeMode.light,
       );
     } else {
       // Migrate from old boolean key

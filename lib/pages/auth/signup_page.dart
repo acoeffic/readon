@@ -106,7 +106,7 @@ class _SignUpPageState extends State<SignUpPage> {
 
     final result = await AuthResendService.instance.resendSignupConfirmation(
       email: email,
-      emailRedirectTo: Env.authV1CallbackUrl,
+      emailRedirectTo: Env.authEmailCallbackUrl,
     );
 
     if (!mounted) return;
@@ -147,7 +147,7 @@ class _SignUpPageState extends State<SignUpPage> {
     try {
       await Supabase.instance.client.auth.resetPasswordForEmail(
         email,
-        redirectTo: Env.authCallbackUrl,
+        redirectTo: Env.authEmailCallbackUrl,
       );
 
       if (!mounted) return;
@@ -227,7 +227,7 @@ class _SignUpPageState extends State<SignUpPage> {
       final res = await supabase.auth.signUp(
         email: email,
         password: password,
-        emailRedirectTo: Env.authV1CallbackUrl,
+        emailRedirectTo: Env.authEmailCallbackUrl,
         data: {'display_name': name},
       );
 
