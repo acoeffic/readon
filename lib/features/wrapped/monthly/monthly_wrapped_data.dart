@@ -107,12 +107,16 @@ class TopBookData {
   final String author;
   final int totalMinutes;
   final String? coverUrl;
+  final String? isbn;
+  final String? googleId;
 
   const TopBookData({
     required this.title,
     required this.author,
     required this.totalMinutes,
     this.coverUrl,
+    this.isbn,
+    this.googleId,
   });
 
   /// Formatted reading time, e.g. "8h30"

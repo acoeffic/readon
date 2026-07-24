@@ -16,6 +16,7 @@ import '../../widgets/require_account_sheet.dart';
 import '../feed/widgets/feed_header.dart';
 import 'widgets/friend_activity_card.dart';
 import 'widgets/book_finished_card.dart';
+import 'widgets/book_rated_card.dart';
 import '../feed/widgets/flow_card.dart';
 import '../../services/contacts_service.dart';
 import '../../services/flow_service.dart';
@@ -41,6 +42,7 @@ import '../../widgets/generated_club_cover.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../services/feed_cache.dart';
 import '../../services/feed_cache_service.dart';
+import '../../services/feed_social_loader.dart';
 import '../../services/mutual_friends_service.dart';
 import '../../services/people_you_may_know_service.dart';
 import 'widgets/trending_welcome_card.dart';
@@ -141,7 +143,6 @@ class _FeedPageState extends State<FeedPage> {
   // "Lecteurs à découvrir" — section permanente de discovery
   List<Map<String, dynamic>> discoverReaders = [];
   Map<String, MutualFriendsSummary> discoverMutuals = {};
-  final MutualFriendsService _mutualFriendsService = MutualFriendsService();
 
   // "Tu pourrais connaître" — multi-signal (Phase 2). Prioritaire sur
   // discoverReaders quand non-vide ; fallback sur discoverReaders sinon.
@@ -157,39 +158,6 @@ class _FeedPageState extends State<FeedPage> {
   /// Fallback ultime quand aucune source de suggestions sociale ne remonte
   /// quoi que ce soit (PYMK vide + RPC popular vide). On lit directement
   /// `profiles` pour avoir au moins quelques visages à afficher.
-  Future<List<Map<String, dynamic>>> _fetchAnyPublicProfilesFallback({
-    int limit = 10,
-  }) async {
-    try {
-      final user = supabase.auth.currentUser;
-      if (user == null) return [];
-      // is_profile_private peut être NULL → on accepte NULL ou FALSE,
-      // ce que .eq(false) seul n'inclut pas en PostgreSQL.
-      final res = await supabase
-          .from('profiles')
-          .select('id, display_name, avatar_url')
-          .or('is_profile_private.is.null,is_profile_private.eq.false')
-          .neq('id', user.id)
-          .limit(limit);
-      final list = (res as List)
-          .map((e) => {
-                'user_id': e['id']?.toString() ?? '',
-                'display_name':
-                    e['display_name']?.toString() ?? 'Un lecteur',
-                'avatar_url': e['avatar_url']?.toString(),
-                'books_finished': 0,
-                'current_flow': 0,
-              })
-          .where((m) => (m['user_id'] as String).isNotEmpty)
-          .toList();
-      debugPrint('🔎 fallback profiles fetched: ${list.length}');
-      return list;
-    } catch (e) {
-      debugPrint('❌ fallback profiles error: $e');
-      return [];
-    }
-  }
-
   Future<void> _followPymkUser(String userId) async {
     if (_pymkRequested.contains(userId) ||
         _pymkProcessing.contains(userId)) {
@@ -427,6 +395,10 @@ class _FeedPageState extends State<FeedPage> {
         savedCuratedListIds: savedCuratedListIds,
         prizeLists: prizeLists,
         hasMore: _hasMore,
+        discoverReaders: discoverReaders,
+        peopleYouMayKnow: peopleYouMayKnow,
+        discoverMutuals: discoverMutuals,
+        requestedIds: _pymkRequested,
       );
       FeedCache.store(updatedCache);
       FeedCacheService.saveFeed(updatedCache); // fire-and-forget
@@ -458,6 +430,12 @@ class _FeedPageState extends State<FeedPage> {
     savedCuratedListIds = c.savedCuratedListIds;
     prizeLists = c.prizeLists;
     _hasMore = c.hasMore;
+    discoverReaders = c.discoverReaders;
+    peopleYouMayKnow = c.peopleYouMayKnow;
+    discoverMutuals = c.discoverMutuals;
+    _pymkRequested
+      ..clear()
+      ..addAll(c.requestedIds);
     if (sectionOrder != null) _feedSectionOrder = sectionOrder;
     loading = false;
   }
@@ -692,6 +670,10 @@ class _FeedPageState extends State<FeedPage> {
           savedCuratedListIds: savedCuratedListIds,
           prizeLists: prizeLists,
           hasMore: _hasMore,
+          discoverReaders: discoverReaders,
+          peopleYouMayKnow: peopleYouMayKnow,
+          discoverMutuals: discoverMutuals,
+          requestedIds: _pymkRequested,
         );
         FeedCache.store(cacheData);
         FeedCacheService.saveFeed(cacheData); // fire-and-forget
@@ -722,76 +704,17 @@ class _FeedPageState extends State<FeedPage> {
     required Future<dynamic> discoverFuture,
     required Future<List<PeopleYouMayKnow>> pymkFuture,
   }) async {
-    try {
-      final results = await Future.wait([discoverFuture, pymkFuture]);
-      if (!mounted) return;
-
-      final discoverReadersRaw = results[0];
-      var discoverReadersList = discoverReadersRaw is List
-          ? discoverReadersRaw
-              .map((e) => Map<String, dynamic>.from(e as Map))
-              .toList()
-          : <Map<String, dynamic>>[];
-      final pymkList = results[1] as List<PeopleYouMayKnow>;
-
-      // Dédupliquer popular contre PYMK.
-      final pymkIds = pymkList.map((p) => p.userId).toSet();
-      discoverReadersList = discoverReadersList
-          .where((r) => !pymkIds.contains(r['user_id'] as String? ?? ''))
-          .toList();
-
-      // Top-up : garantir ~5 suggestions sociales en complétant via profils
-      // publics si PYMK + popular n'en remontent pas assez.
-      const minSuggestions = 5;
-      final knownIds = <String>{
-        ...pymkIds,
-        ...discoverReadersList
-            .map((r) => r['user_id'] as String? ?? '')
-            .where((id) => id.isNotEmpty),
-      };
-      if (pymkList.length + discoverReadersList.length < minSuggestions) {
-        final fallback = await _fetchAnyPublicProfilesFallback(limit: 10);
-        final dedup = fallback
-            .where((f) => !knownIds.contains(f['user_id'] as String? ?? ''))
-            .toList();
-        discoverReadersList = [...discoverReadersList, ...dedup];
-      }
-
-      if (!mounted) return;
-      setState(() {
-        discoverReaders = discoverReadersList;
-        peopleYouMayKnow = pymkList;
-      });
-
-      // Mutual friends + relations existantes en parallèle (au lieu de
-      // séquentiel comme avant).
-      final discoverIds = discoverReadersList
-          .map((r) => r['user_id']?.toString())
-          .whereType<String>()
-          .toList();
-      final suggestedIds = <String>{
-        ...pymkList.map((p) => p.userId),
-        ...discoverReadersList
-            .map((r) => r['user_id'] as String? ?? '')
-            .where((id) => id.isNotEmpty),
-      };
-
-      final social = await Future.wait([
-        discoverIds.isEmpty
-            ? Future.value(<String, MutualFriendsSummary>{})
-            : _mutualFriendsService.getSummariesBatch(discoverIds),
-        suggestedIds.isEmpty
-            ? Future.value(<String>{})
-            : _pymkContactsService.getExistingRelationUserIds(suggestedIds),
-      ]);
-      if (!mounted) return;
-      setState(() {
-        discoverMutuals = social[0] as Map<String, MutualFriendsSummary>;
-        _pymkRequested.addAll(social[1] as Set<String>);
-      });
-    } catch (e) {
-      debugPrint('Erreur discover/pymk background: $e');
-    }
+    final social = await FeedSocialLoader.load(
+      discoverFuture: discoverFuture,
+      pymkFuture: pymkFuture,
+    );
+    if (!mounted) return;
+    setState(() {
+      discoverReaders = social.discoverReaders;
+      peopleYouMayKnow = social.peopleYouMayKnow;
+      discoverMutuals = social.discoverMutuals;
+      _pymkRequested.addAll(social.requestedIds);
+    });
   }
 
   void _openCommunitySession(Map<String, dynamic> data) {
@@ -1380,6 +1303,7 @@ class _FeedPageState extends State<FeedPage> {
   Widget _buildActivityCard(Map<String, dynamic> activity) {
     final type = activity['type'] as String?;
     final payload = activity['payload'] as Map<String, dynamic>?;
+    if (type == 'book_rated') return BookRatedCard(activity: activity);
     final isBookFinished =
         type == 'book_finished' || payload?['book_finished'] == true;
     if (isBookFinished) return BookFinishedCard(activity: activity);

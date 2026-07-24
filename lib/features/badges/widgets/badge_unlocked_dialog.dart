@@ -174,13 +174,19 @@ class _BadgeUnlockedDialogState extends State<BadgeUnlockedDialog>
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(28, 0, 28, 24),
                     child: ElevatedButton.icon(
-                      onPressed: () {
+                      onPressed: () async {
                         HapticFeedback.mediumImpact();
-                        Navigator.of(context).pop();
-                        showBadgeShareSheet(
+                        // Ne PAS pop avant : le context serait détruit et la
+                        // sheet ne s'ouvrirait jamais (l'écran sous-jacent
+                        // apparaîtrait à la place). On ouvre la sheet
+                        // par-dessus le dialogue, puis on ferme le dialogue.
+                        await showBadgeShareSheet(
                           context: context,
                           badge: widget.badge,
                         );
+                        if (context.mounted) {
+                          Navigator.of(context).pop();
+                        }
                       },
                       icon: const Icon(Icons.ios_share_rounded, size: 18),
                       label: const Text(

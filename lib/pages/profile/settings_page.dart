@@ -618,6 +618,12 @@ if (!allowedExtensions.contains(fileExtension)) {
           .update({'display_name': cleaned})
           .eq('id', user.id);
 
+      // Synchroniser les metadata auth pour que le trigger handle_new_user
+      // ne réintroduise pas l'ancien nom à la prochaine connexion
+      await supabase.auth.updateUser(
+        UserAttributes(data: {'display_name': cleaned}),
+      );
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

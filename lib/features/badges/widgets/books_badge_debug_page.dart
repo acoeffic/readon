@@ -95,7 +95,7 @@ const _allTimeBadges = [
   _BookBadgeData(
     id: 'time_1h',
     name: 'Une Heure de Magie',
-    description: '1h de lecture cumulée',
+    description: '1h de lecture cumulée, toutes sessions confondues',
     icon: '⌛',
     requirement: 60,
     tier: 'bronze',

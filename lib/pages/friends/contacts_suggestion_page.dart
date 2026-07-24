@@ -71,6 +71,7 @@ class _ContactsSuggestionPageState extends State<ContactsSuggestionPage>
         final permanentlyDenied =
             await _contactsService.isContactsPermissionPermanentlyDenied();
 
+        if (!mounted) return;
         setState(() {
           _step = _PageStep.error;
           _errorMessage = permanentlyDenied

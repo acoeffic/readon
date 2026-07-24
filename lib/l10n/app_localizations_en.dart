@@ -1835,6 +1835,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get theirBadges => 'Their badges';
 
   @override
+  String get theirBooks => 'Their books';
+
+  @override
+  String get finishedBooksSection => 'Finished';
+
+  @override
+  String get noBooksYet => 'No books yet';
+
+  @override
   String get removeFriend => 'Remove friend';
 
   @override
@@ -2061,6 +2070,47 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get museClassic => 'A classic to discover';
+
+  @override
+  String get museAssistantLabel => 'Literary assistant';
+
+  @override
+  String get museHeroSubtitle => 'A book, a question, a craving…';
+
+  @override
+  String get museComposerHint => 'What are you looking for today?';
+
+  @override
+  String get museComposerSubhint => 'Title, author, question…';
+
+  @override
+  String get museModeChat => 'Chat';
+
+  @override
+  String get museModeSearch => 'Find a book';
+
+  @override
+  String get museChipFavorite => 'Current favorite';
+
+  @override
+  String get museFavoritePrompt => 'What\'s your current favorite read?';
+
+  @override
+  String get museSectionRecent => 'Recent';
+
+  @override
+  String get museSectionConversations => 'Conversations';
+
+  @override
+  String get museSeeAll => 'See all';
+
+  @override
+  String get museContinueConversation => 'Continue conversation';
+
+  @override
+  String museSearchPrefix(String query) {
+    return 'I\'m looking for a book: $query';
+  }
 
   @override
   String freeMessagesUsed(int max) {
@@ -2793,6 +2843,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get beFirstToComment => 'Be the first to comment!';
 
   @override
+  String get replyAction => 'Reply';
+
+  @override
+  String replyingTo(String name) {
+    return 'Replying to $name';
+  }
+
+  @override
   String get send => 'Send';
 
   @override
@@ -2803,6 +2861,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get noBookstoresFound => 'No bookstores found nearby';
+
+  @override
+  String get bookstoresLoadError =>
+      'Couldn\'t load bookstores. Check your connection and try again.';
 
   @override
   String get openNow => 'Open';
@@ -2889,6 +2951,11 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String commentedYourReading(String name, String bookTitle) {
     return '$name commented on your reading of $bookTitle';
+  }
+
+  @override
+  String repliedYourComment(String name, String bookTitle) {
+    return '$name replied to your comment on $bookTitle';
   }
 
   @override
@@ -3591,4 +3658,217 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get feedGoalsCta => 'Set a reading goal';
+
+  @override
+  String get rateBookSheetTitle => 'Rate this book';
+
+  @override
+  String rateBookSheetTitleWithBook(String title) {
+    return 'You finished \"$title\"!';
+  }
+
+  @override
+  String get rateBookSheetSubtitle => 'What did you think of it?';
+
+  @override
+  String get bookRatingSaved => 'Rating saved!';
+
+  @override
+  String get bookRatingError => 'Couldn\'t save your rating';
+
+  @override
+  String get yourRating => 'My rating';
+
+  @override
+  String get rateThisBook => 'Rate this book';
+
+  @override
+  String get rateBookRefine => 'Add more details';
+
+  @override
+  String get criteriaWriting => 'Writing';
+
+  @override
+  String get criteriaStory => 'Story';
+
+  @override
+  String get criteriaPace => 'Pace';
+
+  @override
+  String get criteriaDifficulty => 'Difficulty';
+
+  @override
+  String get criteriaLevelWeak => 'Meh';
+
+  @override
+  String get criteriaLevelGood => 'Good';
+
+  @override
+  String get criteriaLevelExcellent => 'Excellent';
+
+  @override
+  String get paceSlow => 'Slow';
+
+  @override
+  String get paceBalanced => 'Balanced';
+
+  @override
+  String get paceFast => 'Gripping';
+
+  @override
+  String get difficultyEasy => 'Easy';
+
+  @override
+  String get difficultyMedium => 'Medium';
+
+  @override
+  String get difficultyHard => 'Demanding';
+
+  @override
+  String get emotionTagsLabel => 'This book was…';
+
+  @override
+  String get emotionMoving => 'Moving';
+
+  @override
+  String get emotionFunny => 'Funny';
+
+  @override
+  String get emotionInstructive => 'Instructive';
+
+  @override
+  String get emotionComforting => 'Comforting';
+
+  @override
+  String get emotionDisturbing => 'Disturbing';
+
+  @override
+  String get emotionGripping => 'Captivating';
+
+  @override
+  String get emotionInspiring => 'Inspiring';
+
+  @override
+  String get emotionDark => 'Dark';
+
+  @override
+  String get emotionPoetic => 'Poetic';
+
+  @override
+  String get emotionMindBlowing => 'Mind-blowing';
+
+  @override
+  String get reviewHint => 'Your thoughts in a few words…';
+
+  @override
+  String get wouldRecommendLabel => 'I\'d recommend it';
+
+  @override
+  String get wouldRereadLabel => 'I\'d reread it';
+
+  @override
+  String get shareWithFriends => 'Share with my friends';
+
+  @override
+  String get feedRatedBook => 'rated a book';
+
+  @override
+  String get feedRecommendedBadge => 'Recommended';
+
+  @override
+  String get filterAbandoned => 'Abandoned';
+
+  @override
+  String get abandonedBooks => 'Abandoned books';
+
+  @override
+  String get noAbandonedBooks => 'No abandoned books';
+
+  @override
+  String get abandonBookAction => 'Give up this book';
+
+  @override
+  String get abandonBookConfirmTitle => 'Give up this book?';
+
+  @override
+  String get abandonBookConfirmBody =>
+      'You can pick it up again later from your library.';
+
+  @override
+  String get abandonBookConfirmYes => 'Yes, I\'m stopping';
+
+  @override
+  String get abandonSheetTitle => 'You\'re giving up this book';
+
+  @override
+  String get abandonSheetSubtitle => 'Rate it anyway? It\'s optional.';
+
+  @override
+  String get watchCatchupTitle => 'Reading from your Watch';
+
+  @override
+  String watchCatchupBody(int minutes) {
+    return '$minutes min recorded from your Apple Watch. Fill in the pages to update your progress.';
+  }
+
+  @override
+  String get watchCatchupStartPage => 'Start page';
+
+  @override
+  String get watchCatchupEndPage => 'End page';
+
+  @override
+  String get watchCatchupScan => 'Scan the page';
+
+  @override
+  String get watchCatchupSave => 'Save';
+
+  @override
+  String get watchCatchupSkip => 'Skip';
+
+  @override
+  String get watchCatchupEnterPages => 'Enter the start and end pages.';
+
+  @override
+  String get watchCatchupOcrFailed =>
+      'Page number not detected, try again or type it in.';
+
+  @override
+  String get watchCatchupError => 'Couldn\'t save. Try again.';
+
+  @override
+  String get addPastSessionButton => 'Add a past reading';
+
+  @override
+  String get addPastSessionTitle => 'Past reading';
+
+  @override
+  String get addPastSessionDuration => 'How long did you read?';
+
+  @override
+  String get addPastSessionCustomDuration => 'Duration (minutes)';
+
+  @override
+  String get addPastSessionToday => 'Today';
+
+  @override
+  String get addPastSessionSave => 'Save reading';
+
+  @override
+  String get addPastSessionSaved => 'Reading saved!';
+
+  @override
+  String get addPastSessionEnterDuration => 'Enter how long you read.';
+
+  @override
+  String get addPastSessionBackdatedInfo =>
+      'This reading will count in your stats but not toward your flame.';
+
+  @override
+  String get addPastSessionTooShortWarning =>
+      'Under 2 min or no pages: this reading won\'t count toward your flame.';
+
+  @override
+  String get addPastSessionActiveSessionError =>
+      'Finish your current session on this book first.';
 }

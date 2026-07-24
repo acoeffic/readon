@@ -1,0 +1,17 @@
+appId: fr.lexday.app
+name: auth_login
+tags:
+  - auth
+# Vérifie la connexion email/password. Pré-requis : compte de test créé.
+# clearState + clearKeychain garantit un démarrage déconnecté → l'app route
+# vers LoginPage, donc pas besoin de gérer une éventuelle session active par
+# déconnexion (qui dépendait de libellés FR fragiles).
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- runFlow: ../../subflows/handle_system_dialogs.yaml
+
+# On est sur l'écran de login (état propre) → on se connecte.
+- runFlow: ../../subflows/login_subflow.yaml
+- assertVisible: "Feed"

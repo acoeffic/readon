@@ -16,6 +16,12 @@ abstract final class Env {
   // ── Google Places / Maps ─────────────────────────────────
   static const googlePlacesApiKey = String.fromEnvironment('GOOGLE_PLACES_API_KEY');
 
+  /// Empreinte SHA-1 du certificat de signature Android (format hexadécimal
+  /// majuscules avec deux-points, ex: `AB:CD:...`). Nécessaire uniquement si
+  /// la clé Places est restreinte aux apps Android : elle est jointe avec le
+  /// package aux appels REST. Laisser vide si la clé n'est pas app-restreinte.
+  static const androidCertSha1 = String.fromEnvironment('ANDROID_CERT_SHA1');
+
   // ── RevenueCat ─────────────────────────────────────────────
   static const revenueCatApiKeyIOS = String.fromEnvironment('REVENUECAT_API_KEY_IOS');
   static const revenueCatApiKeyAndroid = String.fromEnvironment('REVENUECAT_API_KEY_ANDROID');

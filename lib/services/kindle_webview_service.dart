@@ -101,6 +101,31 @@ class KindleWebViewService {
   static const String _cacheKey = 'kindle_reading_data';
   static const String _lastSyncKey = 'kindle_last_sync';
 
+  /// Titres promotionnels/par défaut fournis par Amazon dans toute bibliothèque
+  /// Kindle. On les exclut de l'import pour qu'ils n'apparaissent jamais dans
+  /// la bibliothèque LexDay. Comparaison insensible à la casse et aux accents.
+  static const List<String> _ignoredBookTitles = [
+    'explore what kindle can do',
+    'welcome to kindle',
+    'kindle user\'s guide',
+    'kindle users guide',
+    'the kindle user\'s guide',
+    'guide d\'utilisation kindle',
+    'guide de l\'utilisateur kindle',
+    'bienvenue sur kindle',
+  ];
+
+  /// Renvoie true si le livre est un titre promotionnel Amazon à ignorer.
+  static bool isIgnoredBook(String? title) {
+    if (title == null) return false;
+    final normalized = title.trim().toLowerCase();
+    if (normalized.isEmpty) return false;
+    for (final ignored in _ignoredBookTitles) {
+      if (normalized == ignored || normalized.contains(ignored)) return true;
+    }
+    return false;
+  }
+
   /// Script de debug : capture le contenu textuel de la page pour analyse
   static const String debugScript = '''
     (function() {
@@ -928,15 +953,18 @@ class KindleWebViewService {
       final json = jsonDecode(cleaned) as Map<String, dynamic>;
       final booksList = json['books'] as List<dynamic>? ?? [];
       debugPrint('Kindle Library: ${booksList.length} livres extraits');
-      return booksList.map((b) {
-        final map = b as Map<String, dynamic>;
-        return KindleBookProgress(
-          title: map['title'] as String? ?? 'Unknown',
-          author: map['author'] as String?,
-          percentComplete: map['percentComplete'] as int?,
-          coverUrl: map['coverUrl'] as String?,
-        );
-      }).toList();
+      return booksList
+          .map((b) {
+            final map = b as Map<String, dynamic>;
+            return KindleBookProgress(
+              title: map['title'] as String? ?? 'Unknown',
+              author: map['author'] as String?,
+              percentComplete: map['percentComplete'] as int?,
+              coverUrl: map['coverUrl'] as String?,
+            );
+          })
+          .where((b) => !isIgnoredBook(b.title))
+          .toList();
     } catch (e) {
       debugPrint('Error parsing Kindle Library: $e');
       return [];
@@ -971,15 +999,18 @@ class KindleWebViewService {
       }
       final json = jsonDecode(cleaned) as Map<String, dynamic>;
       final booksList = json['books'] as List<dynamic>? ?? [];
-      return booksList.map((b) {
-        final map = b as Map<String, dynamic>;
-        return KindleBookProgress(
-          title: map['title'] as String? ?? 'Unknown',
-          author: map['author'] as String?,
-          percentComplete: map['percentComplete'] as int?,
-          lastReadDate: '$year',
-        );
-      }).toList();
+      return booksList
+          .map((b) {
+            final map = b as Map<String, dynamic>;
+            return KindleBookProgress(
+              title: map['title'] as String? ?? 'Unknown',
+              author: map['author'] as String?,
+              percentComplete: map['percentComplete'] as int?,
+              lastReadDate: '$year',
+            );
+          })
+          .where((b) => !isIgnoredBook(b.title))
+          .toList();
     } catch (e) {
       debugPrint('Error parsing books for $year: $e');
       return [];
@@ -1070,7 +1101,21 @@ class KindleWebViewService {
         return null;
       }
 
-      return KindleReadingData.fromJson(json);
+      final data = KindleReadingData.fromJson(json);
+      // Exclure les titres promotionnels Amazon des livres remontés par insights.
+      final filteredBooks =
+          data.books.where((b) => !isIgnoredBook(b.title)).toList();
+      return KindleReadingData(
+        booksReadThisYear: data.booksReadThisYear,
+        currentStreak: data.currentStreak,
+        weeksStreak: data.weeksStreak,
+        daysStreak: data.daysStreak,
+        longestStreak: data.longestStreak,
+        totalDaysRead: data.totalDaysRead,
+        totalMinutesRead: data.totalMinutesRead,
+        lastSyncDate: data.lastSyncDate,
+        books: filteredBooks,
+      );
     } catch (e) {
       debugPrint('Error parsing Kindle data: $e');
       return null;

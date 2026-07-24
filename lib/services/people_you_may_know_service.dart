@@ -27,6 +27,19 @@ PymkReasonType? _reasonTypeFromString(String? raw) {
   return null;
 }
 
+String _reasonTypeToString(PymkReasonType type) {
+  switch (type) {
+    case PymkReasonType.mutualFriends:
+      return 'mutual_friends';
+    case PymkReasonType.commonBooks:
+      return 'common_books';
+    case PymkReasonType.commonGroups:
+      return 'common_groups';
+    case PymkReasonType.commonGenres:
+      return 'common_genres';
+  }
+}
+
 /// Raison ponctuelle d'une suggestion (signal × valeur).
 @immutable
 class PymkReason {
@@ -34,6 +47,11 @@ class PymkReason {
   final int count;
 
   const PymkReason({required this.type, required this.count});
+
+  Map<String, dynamic> toJson() => {
+        'type': _reasonTypeToString(type),
+        'count': count,
+      };
 
   /// Phrase courte localisée pour la carte ("3 amis en commun").
   String label() {
@@ -156,6 +174,24 @@ class PeopleYouMayKnow {
       mutualAvatars: avatars,
     );
   }
+
+  Map<String, dynamic> toJson() => {
+        'user_id': userId,
+        'display_name': displayName,
+        'avatar_url': avatarUrl,
+        'reading_habit': readingHabit,
+        'books_finished': booksFinished,
+        'current_flow': currentFlow,
+        'current_book_title': currentBookTitle,
+        'current_book_cover': currentBookCover,
+        'score': score,
+        'mutual_friends_count': mutualFriendsCount,
+        'common_books_count': commonBooksCount,
+        'common_groups_count': commonGroupsCount,
+        'common_genres_count': commonGenresCount,
+        'reasons': reasons.map((r) => r.toJson()).toList(),
+        'mutual_avatars': mutualAvatars.map((a) => a.toJson()).toList(),
+      };
 }
 
 class PeopleYouMayKnowService {

@@ -1,0 +1,33 @@
+appId: fr.lexday.app
+name: handle_system_dialogs
+# Popup système iOS de permission notifications. Elle apparait toujours à la 1re
+# ouverture (après clearState) mais à un timing variable : une simple
+# vérification unique la ratait une fois sur deux (flaky). On l'ATTEND donc
+# explicitement avant de la fermer.
+# NB : les libellés sont en français car la langue SYSTÈME du simulateur est FR
+# (indépendant de la locale de l'app).
+---
+# La popup est imprévisible : parfois présente, parfois absente, à timing
+# variable. On l'ATTEND (jusqu'à 12s) sans échouer si elle ne vient pas
+# (optional), puis on ne la tape QUE si elle est effectivement là.
+- extendedWaitUntil:
+    visible: "Autoriser"
+    timeout: 12000
+    optional: true
+- runFlow:
+    when:
+      visible: "Autoriser"
+    commands:
+      - tapOn: "Autoriser"
+
+# Popups secondaires éventuelles (contacts, etc.) — optionnelles, pas d'attente.
+- runFlow:
+    when:
+      visible: "Allow"
+    commands:
+      - tapOn: "Allow"
+- runFlow:
+    when:
+      visible: "OK"
+    commands:
+      - tapOn: "OK"

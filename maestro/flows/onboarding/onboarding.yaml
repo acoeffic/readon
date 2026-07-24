@@ -1,0 +1,37 @@
+appId: fr.lexday.app
+name: onboarding
+tags:
+  - onboarding
+# ⚠️ La vraie page d'onboarding (lib/pages/onboarding/) n'est atteignable qu'avec
+# un compte signé dont `profiles.onboarding_completed = false` côté Supabase.
+# Depuis un clearState seul, l'app route vers LoginPage. Ce flow teste donc le
+# chemin "1re ouverture → mode invité → feed" qui valide :
+#   - launch + popup notifications gérée
+#   - rendu de l'écran de login
+#   - bascule en guest mode
+#   - arrivée sur le main nav
+#
+# Pour tester réellement les widgets d'onboarding (step_welcome, step_reading_habit,
+# etc.) il faut un compte de test fixture créé via Supabase avec
+# `onboarding_completed=false` — utilise ce compte dans login_subflow et chaîne
+# avec les taps sur "Commencer" / "Papier" / "Suivant" / "Passer cette étape".
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- runFlow: ../../subflows/handle_system_dialogs.yaml
+
+# Écran de login visible (post-launch, sans session)
+- extendedWaitUntil:
+    visible: "Continuer sans compte"
+    timeout: 20000
+- assertVisible: "Continuer sans compte"
+- assertVisible: "Continue Reading"
+
+# Mode invité → main nav
+- tapOn: "Continuer sans compte"
+- extendedWaitUntil:
+    visible: "Feed"
+    timeout: 15000
+- assertVisible: "Feed"
+- assertVisible: "Mon espace"

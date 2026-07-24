@@ -21,6 +21,7 @@ class _NearbyBookstoresPageState extends State<NearbyBookstoresPage> {
   bool _isLoading = true;
   bool _isLoadingMore = false;
   List<NearbyBookstore> _bookstores = [];
+  String? _errorMessage;
   LatLng? _userPosition;
   GoogleMapController? _mapController;
   int? _selectedIndex;
@@ -74,6 +75,7 @@ class _NearbyBookstoresPageState extends State<NearbyBookstoresPage> {
     setState(() {
       _bookstores = result.bookstores;
       _nextPageToken = result.nextPageToken;
+      _errorMessage = result.errorMessage;
       _isLoading = false;
     });
   }
@@ -196,12 +198,41 @@ class _NearbyBookstoresPageState extends State<NearbyBookstoresPage> {
                         ? Center(
                             child: Padding(
                               padding: const EdgeInsets.all(32),
-                              child: Text(
-                                l10n.noBookstoresFound,
-                                textAlign: TextAlign.center,
-                                style: theme.textTheme.bodyLarge?.copyWith(
-                                  color: theme.colorScheme.onSurfaceVariant,
-                                ),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (_errorMessage != null)
+                                    Icon(
+                                      Icons.error_outline_rounded,
+                                      color: theme.colorScheme.error,
+                                      size: 40,
+                                    ),
+                                  if (_errorMessage != null)
+                                    const SizedBox(height: 12),
+                                  Text(
+                                    _errorMessage != null
+                                        ? l10n.bookstoresLoadError
+                                        : l10n.noBookstoresFound,
+                                    textAlign: TextAlign.center,
+                                    style: theme.textTheme.bodyLarge?.copyWith(
+                                      color: theme.colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                  if (_errorMessage != null) ...[
+                                    const SizedBox(height: 16),
+                                    OutlinedButton.icon(
+                                      onPressed: () {
+                                        setState(() {
+                                          _isLoading = true;
+                                          _errorMessage = null;
+                                        });
+                                        _loadBookstores();
+                                      },
+                                      icon: const Icon(Icons.refresh_rounded),
+                                      label: Text(l10n.retry),
+                                    ),
+                                  ],
+                                ],
                               ),
                             ),
                           )

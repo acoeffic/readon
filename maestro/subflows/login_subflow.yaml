@@ -1,0 +1,40 @@
+appId: fr.lexday.app
+name: login_subflow
+# Pré-requis : l'écran de connexion (login_page.dart) est visible.
+# Variables : TEST_EMAIL, TEST_PASSWORD (chargées via --env)
+#
+# NB : on cible les champs via leur libellé visible ("EMAIL"/"PASSWORD",
+# identiques en FR et EN) avec le selector relatif `below:`, et NON via
+# Semantics(identifier:). Sur iOS, l'identifier des TextField de cette app
+# n'est pas exposé à Maestro (les sélecteurs `id:` ne matchent pas), alors
+# que le texte l'est. Voir aussi le flow onboarding qui matche par texte.
+---
+# Cold start après clearState → l'écran de login met quelques secondes à
+# apparaître. On attend le bouton de connexion comme marqueur d'écran prêt.
+- extendedWaitUntil:
+    visible: "Continue Reading"
+    timeout: 20000
+
+# hideKeyboard est instable sur iOS et la page n'a pas de tap-to-dismiss. Les
+# champs étant mono-ligne, la touche entrée déclenche l'action "done" de Flutter
+# qui referme le clavier — indispensable car clavier ouvert masque le champ
+# suivant (password sous email) puis le bouton de connexion.
+
+# Champ email = l'élément juste sous le libellé "EMAIL".
+- tapOn:
+    below: "EMAIL"
+- inputText: ${TEST_EMAIL}
+- pressKey: Enter
+
+# Champ password = l'élément juste sous le libellé "PASSWORD".
+- tapOn:
+    below: "PASSWORD"
+- inputText: ${TEST_PASSWORD}
+- pressKey: Enter
+
+- tapOn: "Continue Reading"
+
+# Confirme qu'on a atterri sur la nav principale.
+- extendedWaitUntil:
+    visible: "Feed"
+    timeout: 15000

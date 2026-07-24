@@ -1,0 +1,38 @@
+appId: fr.lexday.app
+name: feed
+tags:
+  - social
+# Ouvre le feed, vérifie le header d'activité, scroll, et tape sur un élément
+# pour ouvrir un détail.
+# Pré-requis : compte connecté + activité ou flow visible dans le feed.
+---
+# clearState + clearKeychain → l'app route toujours vers LoginPage (pas de
+# session persistée), donc login_subflow trouve login_email_field de façon fiable.
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- runFlow: ../../subflows/handle_system_dialogs.yaml
+- runFlow: ../../subflows/login_subflow.yaml
+
+# Tab Feed (au cas où on serait sur un autre onglet)
+- tapOn: "Feed"
+- assertVisible: "Feed"
+
+# Header d'activité visible (sinon empty state visible aussi acceptable)
+- runFlow:
+    when:
+      visible: "Activité de tes amis"
+    commands:
+      - assertVisible: "Activité de tes amis"
+
+# Scroll dans le feed
+- scroll
+- scroll
+
+# Si un flow card est visible, on l'ouvre
+- tapOn:
+    text: "Flow actif"
+    optional: true
+- tapOn:
+    text: "Voir mon flow"
+    optional: true

@@ -264,7 +264,22 @@ function isValidIsbn(isbn: string | null): boolean {
 
 // ── Main handler ────────────────────────────────────────────────
 
-serve(async (_req: Request) => {
+serve(async (req: Request) => {
+  // Réservé au cron (pg_cron envoie la service_role en Bearer). Sans ce check,
+  // n'importe quel porteur de la clé anon pouvait déclencher un martèlement des
+  // API externes + écritures massives sur `books`.
+  const token = (req.headers.get("authorization") ?? "").replace("Bearer ", "");
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const cronSecret = Deno.env.get("CRON_SECRET");
+  const authorized = (serviceRoleKey && token === serviceRoleKey) ||
+    (cronSecret && token === cronSecret);
+  if (!authorized) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
   try {
     // Fetch books with missing or low-quality covers.
     // We process ALL books (not just user-specific) since this is a global job.

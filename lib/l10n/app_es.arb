@@ -956,6 +956,9 @@
   "recentActivity": "Actividad reciente",
   "noRecentActivity": "Sin actividad reciente",
   "theirBadges": "Sus insignias",
+  "theirBooks": "Sus lecturas",
+  "finishedBooksSection": "Terminados",
+  "noBooksYet": "Ningún libro por ahora",
   "removeFriend": "Eliminar de amigos",
   "cancelRequest": "Cancelar solicitud",
   "addFriend": "Añadir como amigo",
@@ -1059,6 +1062,24 @@
   "museRecommendNovel": "Recomiéndame una novela",
   "museSimilarBook": "Un libro similar al último",
   "museClassic": "Un clásico por descubrir",
+  "museAssistantLabel": "Asistente literario",
+  "museHeroSubtitle": "Un libro, una pregunta, un deseo…",
+  "museComposerHint": "¿Qué buscas hoy?",
+  "museComposerSubhint": "Título, autor, pregunta…",
+  "museModeChat": "Conversar",
+  "museModeSearch": "Buscar un libro",
+  "museChipFavorite": "Favorito del momento",
+  "museFavoritePrompt": "¿Cuál es tu favorito del momento?",
+  "museSectionRecent": "Reciente",
+  "museSectionConversations": "Conversaciones",
+  "museSeeAll": "Ver todo",
+  "museContinueConversation": "Continuar la conversación",
+  "museSearchPrefix": "Busco un libro: {query}",
+  "@museSearchPrefix": {
+    "placeholders": {
+      "query": {"type": "String"}
+    }
+  },
   "freeMessagesUsed": "Has usado tus {max} mensajes gratuitos este mes",
   "@freeMessagesUsed": {
     "placeholders": {
@@ -1424,10 +1445,20 @@
   "commentPending": "Pendiente",
   "noCommentsYet": "Aún no hay comentarios",
   "beFirstToComment": "¡Sé el primero en comentar!",
+  "replyAction": "Responder",
+  "replyingTo": "Respondiendo a {name}",
+  "@replyingTo": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "send": "Enviar",
   "reactionPremiumOnly": "Reacción reservada para miembros Premium",
   "nearbyBookstores": "Librerías cercanas",
   "noBookstoresFound": "No se encontraron librerías cercanas",
+  "bookstoresLoadError": "No se pudieron cargar las librerías. Comprueba tu conexión e inténtalo de nuevo.",
   "openNow": "Abierto",
   "closed": "Cerrado",
   "navigate": "Navegar",
@@ -1485,6 +1516,17 @@
   },
   "commentedYourReading": "{name} comentó tu lectura de {bookTitle}",
   "@commentedYourReading": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "bookTitle": {
+        "type": "String"
+      }
+    }
+  },
+  "repliedYourComment": "{name} respondió a tu comentario sobre {bookTitle}",
+  "@repliedYourComment": {
     "placeholders": {
       "name": {
         "type": "String"
@@ -1872,5 +1914,81 @@
   "autoFreezeUsedCta": "Continuar mi racha",
 
   "feedGoalsCardTitle": "Mis objetivos",
-  "feedGoalsCta": "Fíjate un objetivo de lectura"
+  "feedGoalsCta": "Fíjate un objetivo de lectura",
+
+  "rateBookSheetTitle": "Puntúa este libro",
+  "rateBookSheetTitleWithBook": "¡Has terminado «{title}»!",
+  "@rateBookSheetTitleWithBook": {
+    "placeholders": {
+      "title": {"type": "String"}
+    }
+  },
+  "rateBookSheetSubtitle": "¿Qué te pareció?",
+  "bookRatingSaved": "¡Puntuación guardada!",
+  "bookRatingError": "No se pudo guardar la puntuación",
+  "yourRating": "Mi puntuación",
+  "rateThisBook": "Puntuar este libro",
+  "rateBookRefine": "Añade más detalles",
+  "criteriaWriting": "Escritura",
+  "criteriaStory": "Historia",
+  "criteriaPace": "Ritmo",
+  "criteriaDifficulty": "Dificultad",
+  "criteriaLevelWeak": "Regular",
+  "criteriaLevelGood": "Bien",
+  "criteriaLevelExcellent": "Excelente",
+  "paceSlow": "Lento",
+  "paceBalanced": "Equilibrado",
+  "paceFast": "Trepidante",
+  "difficultyEasy": "Fácil",
+  "difficultyMedium": "Medio",
+  "difficultyHard": "Exigente",
+  "emotionTagsLabel": "Este libro fue…",
+  "emotionMoving": "Conmovedor",
+  "emotionFunny": "Divertido",
+  "emotionInstructive": "Instructivo",
+  "emotionComforting": "Reconfortante",
+  "emotionDisturbing": "Perturbador",
+  "emotionGripping": "Apasionante",
+  "emotionInspiring": "Inspirador",
+  "emotionDark": "Oscuro",
+  "emotionPoetic": "Poético",
+  "emotionMindBlowing": "Alucinante",
+  "reviewHint": "Tu opinión en pocas palabras…",
+  "wouldRecommendLabel": "Lo recomiendo",
+  "wouldRereadLabel": "Lo releería",
+  "shareWithFriends": "Compartir con mis amigos",
+  "feedRatedBook": "puntuó un libro",
+  "feedRecommendedBadge": "Recomendado",
+  "filterAbandoned": "Abandonados",
+  "abandonedBooks": "Libros abandonados",
+  "noAbandonedBooks": "Ningún libro abandonado",
+  "abandonBookAction": "Abandonar este libro",
+  "abandonBookConfirmTitle": "¿Abandonar este libro?",
+  "abandonBookConfirmBody": "Podrás retomarlo más tarde desde tu biblioteca.",
+  "abandonBookConfirmYes": "Sí, lo dejo",
+  "abandonSheetTitle": "Vas a abandonar este libro",
+  "abandonSheetSubtitle": "¿Una nota igualmente? Es opcional.",
+
+  "watchCatchupTitle": "Lectura desde tu Watch",
+  "watchCatchupBody": "{minutes} min registrados desde tu Apple Watch. Completa las páginas para actualizar tu progreso.",
+  "watchCatchupStartPage": "Página de inicio",
+  "watchCatchupEndPage": "Página final",
+  "watchCatchupScan": "Escanear la página",
+  "watchCatchupSave": "Guardar",
+  "watchCatchupSkip": "Ignorar",
+  "watchCatchupEnterPages": "Indica las páginas de inicio y final.",
+  "watchCatchupOcrFailed": "Número de página no detectado, inténtalo de nuevo o escríbelo.",
+  "watchCatchupError": "No se pudo guardar. Inténtalo de nuevo.",
+
+  "addPastSessionButton": "Añadir una lectura pasada",
+  "addPastSessionTitle": "Lectura pasada",
+  "addPastSessionDuration": "¿Cuánto tiempo leíste?",
+  "addPastSessionCustomDuration": "Duración (minutos)",
+  "addPastSessionToday": "Hoy",
+  "addPastSessionSave": "Guardar la lectura",
+  "addPastSessionSaved": "¡Lectura guardada!",
+  "addPastSessionEnterDuration": "Indica cuánto tiempo leíste.",
+  "addPastSessionBackdatedInfo": "Esta lectura contará en tus estadísticas pero no para tu llama.",
+  "addPastSessionTooShortWarning": "Menos de 2 min o ninguna página: esta lectura no contará para tu llama.",
+  "addPastSessionActiveSessionError": "Termina primero tu sesión en curso de este libro."
 }

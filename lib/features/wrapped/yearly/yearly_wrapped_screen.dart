@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:audio_session/audio_session.dart';
 import 'package:just_audio/just_audio.dart';
 import '../../../config/env.dart';
 import 'yearly_wrapped_data.dart';
@@ -66,12 +68,21 @@ class _YearlyWrappedScreenState extends State<YearlyWrappedScreen> {
 
   Future<void> _initAudio() async {
     try {
+      // Catégorie `playback` : la musique joue même en mode silencieux
+      // (sinon coupée par le switch iOS). Cf. monthly_wrapped_screen.
+      final session = await AudioSession.instance;
+      await session.configure(const AudioSessionConfiguration.music());
+      await session.setActive(true);
+
       final randomTrack =
           _ambientTracks[Random().nextInt(_ambientTracks.length)];
       await _audioPlayer.setUrl(randomTrack);
       await _audioPlayer.setLoopMode(LoopMode.one);
       await _audioPlayer.setVolume(0);
-      await _audioPlayer.play();
+      // NE PAS await : play() ne complète qu'à la fin de la lecture
+      // (jamais avec LoopMode.one) → un await bloquerait le fade-in
+      // et le volume resterait à 0.
+      unawaited(_audioPlayer.play());
       // Fade in: 0 → 0.3 over ~2 seconds
       await _fadeIn();
     } catch (e) {
@@ -99,6 +110,9 @@ class _YearlyWrappedScreenState extends State<YearlyWrappedScreen> {
         await Future.delayed(stepDuration);
       }
       await _audioPlayer.stop();
+      try {
+        await (await AudioSession.instance).setActive(false);
+      } catch (_) {}
     } catch (_) {}
   }
 

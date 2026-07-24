@@ -874,6 +874,9 @@
   "recentActivity": "Activité récente",
   "noRecentActivity": "Aucune activité récente",
   "theirBadges": "Ses badges",
+  "theirBooks": "Ses lectures",
+  "finishedBooksSection": "Terminés",
+  "noBooksYet": "Aucun livre pour le moment",
   "removeFriend": "Retirer des amis",
   "cancelRequest": "Annuler la demande",
   "addFriend": "Ajouter en ami",
@@ -973,6 +976,24 @@
   "museRecommendNovel": "Recommande-moi un roman",
   "museSimilarBook": "Un livre similaire à mon dernier",
   "museClassic": "Un classique à découvrir",
+  "museAssistantLabel": "Assistant littéraire",
+  "museHeroSubtitle": "Un livre, une question, une envie…",
+  "museComposerHint": "Que cherches-tu aujourd'hui ?",
+  "museComposerSubhint": "Titre, auteur, question…",
+  "museModeChat": "Discuter",
+  "museModeSearch": "Chercher un livre",
+  "museChipFavorite": "Coup de cœur du moment",
+  "museFavoritePrompt": "Quel est ton coup de cœur du moment ?",
+  "museSectionRecent": "Récente",
+  "museSectionConversations": "Conversations",
+  "museSeeAll": "Tout voir",
+  "museContinueConversation": "Continuer la conversation",
+  "museSearchPrefix": "Je cherche un livre : {query}",
+  "@museSearchPrefix": {
+    "placeholders": {
+      "query": {"type": "String"}
+    }
+  },
   "freeMessagesUsed": "Tu as utilisé tes {max} messages gratuits ce mois-ci",
   "@freeMessagesUsed": {
     "placeholders": {
@@ -1331,12 +1352,20 @@
   "commentPending": "En attente",
   "noCommentsYet": "Aucun commentaire pour le moment",
   "beFirstToComment": "Sois le premier à commenter !",
+  "replyAction": "Répondre",
+  "replyingTo": "Réponse à {name}",
+  "@replyingTo": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
   "send": "Envoyer",
 
   "reactionPremiumOnly": "Réaction réservée aux membres Premium",
 
   "nearbyBookstores": "Librairies proches",
   "noBookstoresFound": "Aucune librairie trouvée à proximité",
+  "bookstoresLoadError": "Impossible de charger les librairies. Vérifiez votre connexion et réessayez.",
   "openNow": "Ouvert",
   "closed": "Fermé",
   "navigate": "Itinéraire",
@@ -1385,6 +1414,13 @@
   },
   "commentedYourReading": "{name} a commenté votre lecture de {bookTitle}",
   "@commentedYourReading": {
+    "placeholders": {
+      "name": {"type": "String"},
+      "bookTitle": {"type": "String"}
+    }
+  },
+  "repliedYourComment": "{name} a répondu à votre commentaire sur {bookTitle}",
+  "@repliedYourComment": {
     "placeholders": {
       "name": {"type": "String"},
       "bookTitle": {"type": "String"}
@@ -1728,5 +1764,86 @@
   "autoFreezeUsedCta": "Continuer ma série",
 
   "feedGoalsCardTitle": "Mes objectifs",
-  "feedGoalsCta": "Fixe-toi un objectif de lecture"
+  "feedGoalsCta": "Fixe-toi un objectif de lecture",
+
+  "rateBookSheetTitle": "Noter ce livre",
+  "rateBookSheetTitleWithBook": "Tu as terminé « {title} » !",
+  "@rateBookSheetTitleWithBook": {
+    "placeholders": {
+      "title": {"type": "String"}
+    }
+  },
+  "rateBookSheetSubtitle": "Qu'en as-tu pensé ?",
+  "bookRatingSaved": "Note enregistrée !",
+  "bookRatingError": "Impossible d'enregistrer la note",
+  "yourRating": "Ma note",
+  "rateThisBook": "Noter ce livre",
+  "rateBookRefine": "Affiner ton avis",
+  "criteriaWriting": "Écriture",
+  "criteriaStory": "Histoire",
+  "criteriaPace": "Rythme",
+  "criteriaDifficulty": "Difficulté",
+  "criteriaLevelWeak": "Bof",
+  "criteriaLevelGood": "Bien",
+  "criteriaLevelExcellent": "Excellent",
+  "paceSlow": "Lent",
+  "paceBalanced": "Équilibré",
+  "paceFast": "Haletant",
+  "difficultyEasy": "Facile",
+  "difficultyMedium": "Moyen",
+  "difficultyHard": "Exigeant",
+  "emotionTagsLabel": "Ce livre était…",
+  "emotionMoving": "Bouleversant",
+  "emotionFunny": "Drôle",
+  "emotionInstructive": "Instructif",
+  "emotionComforting": "Réconfortant",
+  "emotionDisturbing": "Dérangeant",
+  "emotionGripping": "Captivant",
+  "emotionInspiring": "Inspirant",
+  "emotionDark": "Sombre",
+  "emotionPoetic": "Poétique",
+  "emotionMindBlowing": "Renversant",
+  "reviewHint": "Ton avis en quelques mots…",
+  "wouldRecommendLabel": "Je le recommande",
+  "wouldRereadLabel": "Je le relirais",
+  "shareWithFriends": "Partager avec mes amis",
+  "feedRatedBook": "a noté un livre",
+  "feedRecommendedBadge": "Recommandé",
+  "filterAbandoned": "Abandonnés",
+  "abandonedBooks": "Livres abandonnés",
+  "noAbandonedBooks": "Aucun livre abandonné",
+  "abandonBookAction": "Abandonner ce livre",
+  "abandonBookConfirmTitle": "Abandonner ce livre ?",
+  "abandonBookConfirmBody": "Tu pourras le reprendre plus tard depuis ta bibliothèque.",
+  "abandonBookConfirmYes": "Oui, j'arrête",
+  "abandonSheetTitle": "Tu abandonnes ce livre",
+  "abandonSheetSubtitle": "Une note quand même ? C'est optionnel.",
+
+  "watchCatchupTitle": "Lecture depuis ta Watch",
+  "watchCatchupBody": "{minutes} min enregistrées depuis ton Apple Watch. Complète les pages pour mettre à jour ta progression.",
+  "@watchCatchupBody": {
+    "placeholders": {
+      "minutes": {"type": "int"}
+    }
+  },
+  "watchCatchupStartPage": "Page de début",
+  "watchCatchupEndPage": "Page de fin",
+  "watchCatchupScan": "Scanner la page",
+  "watchCatchupSave": "Enregistrer",
+  "watchCatchupSkip": "Ignorer",
+  "watchCatchupEnterPages": "Indique les pages de début et de fin.",
+  "watchCatchupOcrFailed": "Numéro de page non détecté, réessaie ou saisis-le à la main.",
+  "watchCatchupError": "Enregistrement impossible. Réessaie.",
+
+  "addPastSessionButton": "Ajouter une lecture passée",
+  "addPastSessionTitle": "Lecture passée",
+  "addPastSessionDuration": "Combien de temps as-tu lu ?",
+  "addPastSessionCustomDuration": "Durée (minutes)",
+  "addPastSessionToday": "Aujourd'hui",
+  "addPastSessionSave": "Enregistrer la lecture",
+  "addPastSessionSaved": "Lecture enregistrée !",
+  "addPastSessionEnterDuration": "Indique la durée de ta lecture.",
+  "addPastSessionBackdatedInfo": "Cette lecture comptera dans tes stats mais pas pour ta flamme.",
+  "addPastSessionTooShortWarning": "Moins de 2 min ou aucune page : cette lecture ne comptera pas pour ta flamme.",
+  "addPastSessionActiveSessionError": "Termine d'abord ta session en cours sur ce livre."
 }

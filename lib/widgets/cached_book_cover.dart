@@ -61,6 +61,44 @@ class CachedBookCover extends StatefulWidget {
   static Future<String?> fetchAmazonCover(String isbn) =>
       _CachedBookCoverState.fetchAmazonCover(isbn);
 
+  /// Runs the exact same resolution + validation chain as the widget,
+  /// without needing a widget instance. Results are cached in
+  /// [_resolvedCache] (same key as the widget), so a book whose cover is
+  /// already displayed in the app resolves instantly.
+  ///
+  /// Used by the Live Activity and the home-screen widget, so they show
+  /// the same cover as the app instead of the raw DB URL (which can be a
+  /// Google Books gray placeholder).
+  static Future<List<String>> resolveCoverUrls({
+    String? imageUrl,
+    String? isbn,
+    String? googleId,
+    String? title,
+    String? author,
+  }) =>
+      _CachedBookCoverState._resolveChainStatic(
+        imageUrl: imageUrl,
+        isbn: isbn,
+        googleId: googleId,
+        title: title,
+        author: author,
+      );
+
+  /// Heuristiques anti-placeholder sur les octets téléchargés, alignées sur
+  /// celles de la chaîne de validation :
+  /// - < 2 Ko : GIF 1×1 Amazon, réponses vides ;
+  /// - Google Books < 10 Ko ou PNG grayscale : placeholder gris "no preview".
+  /// Utilisé par la Live Activity et le widget écran d'accueil avant
+  /// d'embarquer une image.
+  static bool looksLikeRealCover(String url, List<int> bytes) {
+    if (bytes.length < 2000) return false;
+    if (url.contains('books.google.com')) {
+      if (bytes.length < _CachedBookCoverState._minGbCoverBytes) return false;
+      if (_CachedBookCoverState._isGrayscalePng(bytes)) return false;
+    }
+    return true;
+  }
+
   /// Public wrapper — convert ISBN-13 (978 prefix) to ISBN-10.
   static String? isbn13ToIsbn10(String isbn13) =>
       _CachedBookCoverState.isbn13ToIsbn10(isbn13);
@@ -106,9 +144,9 @@ class _CachedBookCoverState extends State<CachedBookCover> {
   static int _bnfConsecutiveFailures = 0;
   static DateTime? _bnfSkipUntil;
 
-  /// Session cache: ISBN → iTunes cover URL (null = no cover found).
-  /// Not static — clears on widget rebuild to avoid stale results.
-  final Map<String, String?> _itunesCache = {};
+  // Note : le cache iTunes par ISBN est désormais local à chaque exécution
+  // de `_resolveChainStatic` (même sémantique que l'ancien cache d'instance :
+  // pas de "pas de couverture" périmé mémorisé entre deux résolutions).
 
   /// Static cache: ISBN-10 → Amazon cover URL (null = no cover found).
   static final Map<String, String?> _amazonCache = {};
@@ -148,27 +186,47 @@ class _CachedBookCoverState extends State<CachedBookCover> {
     }
   }
 
-  String get _cacheKey =>
-      '${widget.imageUrl}|${widget.isbn}|${widget.googleId}';
-
   Future<void> _resolveChain() async {
-    // Return cached result if the same book was already resolved.
-    final cached = CachedBookCover._resolvedCache[_cacheKey];
-    if (cached != null) {
-      if (mounted) {
-        setState(() {
-          _urls = cached;
-          _resolving = false;
-        });
-      }
-      return;
+    final validated = await _resolveChainStatic(
+      imageUrl: widget.imageUrl,
+      isbn: widget.isbn,
+      googleId: widget.googleId,
+      title: widget.title,
+      author: widget.author,
+    );
+    if (mounted) {
+      setState(() {
+        _urls = validated;
+        _resolving = false;
+      });
     }
+  }
 
-    final candidates = _buildCandidateUrls();
+  /// Cœur de la chaîne de résolution, sans dépendance au widget.
+  /// Exposé publiquement via [CachedBookCover.resolveCoverUrls].
+  static Future<List<String>> _resolveChainStatic({
+    String? imageUrl,
+    String? isbn,
+    String? googleId,
+    String? title,
+    String? author,
+  }) async {
+    // Return cached result if the same book was already resolved.
+    final cacheKey = '$imageUrl|$isbn|$googleId';
+    final cached = CachedBookCover._resolvedCache[cacheKey];
+    if (cached != null) return cached;
+
+    final candidates = _buildCandidateUrls(
+      imageUrl: imageUrl,
+      isbn: isbn,
+      googleId: googleId,
+    );
     final validated = <String>[];
-    final cleanIsbn = _cleanIsbn(widget.isbn) ??
-        _extractIsbnFromOlUrl(widget.imageUrl);
+    final cleanIsbn = _cleanIsbn(isbn) ?? _extractIsbnFromOlUrl(imageUrl);
     final hasValidIsbn = _isValidIsbn(cleanIsbn);
+    // Cache iTunes par ISBN, local à cette résolution (même durée de vie
+    // que l'ancien cache d'instance).
+    final itunesCache = <String, String?>{};
     bool itunesInserted = false;
 
     for (final url in candidates) {
@@ -199,7 +257,7 @@ class _CachedBookCoverState extends State<CachedBookCover> {
           itunesInserted = true;
           final amazonUrl = await fetchAmazonCover(cleanIsbn!);
           if (amazonUrl != null) validated.add(amazonUrl);
-          final itunesUrl = await _fetchItunesCover(cleanIsbn);
+          final itunesUrl = await _fetchItunesCover(cleanIsbn, itunesCache);
           if (itunesUrl != null) validated.add(itunesUrl);
         }
         // HEAD-check Open Library URLs to filter out "image not available" placeholders.
@@ -217,7 +275,7 @@ class _CachedBookCoverState extends State<CachedBookCover> {
     if (!itunesInserted && hasValidIsbn) {
       final amazonUrl = await fetchAmazonCover(cleanIsbn!);
       if (amazonUrl != null) validated.add(amazonUrl);
-      final itunesUrl = await _fetchItunesCover(cleanIsbn);
+      final itunesUrl = await _fetchItunesCover(cleanIsbn, itunesCache);
       if (itunesUrl != null) validated.add(itunesUrl);
     }
 
@@ -230,29 +288,20 @@ class _CachedBookCoverState extends State<CachedBookCover> {
     // Google Books API search is DISABLED here to save quota.
     // But iTunes search by title+author is free (no Google quota) — use it
     // as a last resort when we have fewer than 2 validated URLs.
-    if (validated.isEmpty && widget.title != null && widget.title!.isNotEmpty) {
-      final itunesUrl = await _fetchItunesCoverByTitle(
-        widget.title!,
-        widget.author,
-      );
+    if (validated.isEmpty && title != null && title.isNotEmpty) {
+      final itunesUrl = await _fetchItunesCoverByTitle(title, author);
       if (itunesUrl != null) validated.add(itunesUrl);
     }
 
     debugPrint(
-      '📖 CachedBookCover [${widget.title}] '
-      'isbn=${widget.isbn} googleId=${widget.googleId} '
+      '📖 CachedBookCover [$title] '
+      'isbn=$isbn googleId=$googleId '
       'resolved ${validated.length} URLs: $validated',
     );
 
     // Cache the result so other instances of the same book skip the chain.
-    CachedBookCover._resolvedCache[_cacheKey] = validated;
-
-    if (mounted) {
-      setState(() {
-        _urls = validated;
-        _resolving = false;
-      });
-    }
+    CachedBookCover._resolvedCache[cacheKey] = validated;
+    return validated;
   }
 
   static bool _isGoogleBooksUrl(String url) =>
@@ -650,9 +699,13 @@ class _CachedBookCoverState extends State<CachedBookCover> {
   /// Look up a book cover via the iTunes Search API by ISBN.
   /// Tries FR store first, then US store as fallback.
   /// Returns a high-res artwork URL or null if not found.
-  Future<String?> _fetchItunesCover(String isbn) async {
-    final cached = _itunesCache[isbn];
-    if (_itunesCache.containsKey(isbn)) return cached;
+  /// [itunesCache] est fourni par l'appelant (durée de vie = une résolution).
+  static Future<String?> _fetchItunesCover(
+    String isbn,
+    Map<String, String?> itunesCache,
+  ) async {
+    final cached = itunesCache[isbn];
+    if (itunesCache.containsKey(isbn)) return cached;
 
     for (final country in ['fr', 'us']) {
       try {
@@ -671,14 +724,14 @@ class _CachedBookCoverState extends State<CachedBookCover> {
         if (artwork == null) continue;
         // Upgrade to high resolution.
         final url = artwork.replaceAll('100x100bb', '600x600bb');
-        _itunesCache[isbn] = url;
+        itunesCache[isbn] = url;
         return url;
       } catch (_) {
         // Try next country.
       }
     }
 
-    _itunesCache[isbn] = null;
+    itunesCache[isbn] = null;
     return null;
   }
 
@@ -686,7 +739,7 @@ class _CachedBookCoverState extends State<CachedBookCover> {
   /// Uses Jaccard similarity to avoid returning covers for wrong books.
   static final Map<String, String?> _itunesTitleCache = {};
 
-  Future<String?> _fetchItunesCoverByTitle(String title, String? author) async {
+  static Future<String?> _fetchItunesCoverByTitle(String title, String? author) async {
     final cacheKey = '$title|$author';
     if (_itunesTitleCache.containsKey(cacheKey)) return _itunesTitleCache[cacheKey];
 
@@ -776,21 +829,25 @@ class _CachedBookCoverState extends State<CachedBookCover> {
   }
 
   /// Builds the ordered list of candidate cover URLs — purely synchronous.
-  /// Google Books URLs in this list will be HEAD-validated by [_resolveChain].
-  List<String> _buildCandidateUrls() {
+  /// Google Books URLs in this list will be HEAD-validated by
+  /// [_resolveChainStatic].
+  static List<String> _buildCandidateUrls({
+    String? imageUrl,
+    String? isbn,
+    String? googleId,
+  }) {
     final urls = <String>[];
-    final cleanIsbn = _cleanIsbn(widget.isbn);
-    final primary = _normalizeUrl(widget.imageUrl);
+    final cleanIsbn = _cleanIsbn(isbn);
+    final primary = _normalizeUrl(imageUrl);
     final primaryIsOl =
         primary != null && primary.contains('covers.openlibrary.org');
-    final hasGoogleId =
-        widget.googleId != null && widget.googleId!.isNotEmpty;
+    final hasGoogleId = googleId != null && googleId.isNotEmpty;
 
     // Google Books deterministic thumbnail URL (no API call needed).
     String? gbUrl;
     if (hasGoogleId) {
       gbUrl = 'https://books.google.com/books/content'
-          '?id=${widget.googleId}'
+          '?id=$googleId'
           '&printsec=frontcover&img=1&zoom=3&source=gbs_api';
     }
 
@@ -799,7 +856,7 @@ class _CachedBookCoverState extends State<CachedBookCover> {
     if (primary != null && !primaryIsOl) {
       // Primary is a Google Books URL or other trusted source → use it first.
       urls.add(primary);
-      if (gbUrl != null && !primary.contains(widget.googleId!)) {
+      if (gbUrl != null && !primary.contains(googleId!)) {
         urls.add(gbUrl);
       }
     } else if (gbUrl != null) {

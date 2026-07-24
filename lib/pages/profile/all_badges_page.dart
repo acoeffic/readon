@@ -39,12 +39,14 @@ class _AllBadgesPageState extends State<AllBadgesPage> {
     setState(() => _isLoading = true);
     try {
       final badges = await badgesService.getUserBadges();
+      if (!mounted) return;
       setState(() {
         _allBadges = badges;
         _isLoading = false;
       });
     } catch (e) {
       debugPrint('Erreur _loadBadges: $e');
+      if (!mounted) return;
       setState(() => _isLoading = false);
     }
   }

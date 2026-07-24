@@ -1855,6 +1855,15 @@ class AppLocalizationsFr extends AppLocalizations {
   String get theirBadges => 'Ses badges';
 
   @override
+  String get theirBooks => 'Ses lectures';
+
+  @override
+  String get finishedBooksSection => 'Terminés';
+
+  @override
+  String get noBooksYet => 'Aucun livre pour le moment';
+
+  @override
   String get removeFriend => 'Retirer des amis';
 
   @override
@@ -2089,6 +2098,47 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get museClassic => 'Un classique à découvrir';
+
+  @override
+  String get museAssistantLabel => 'Assistant littéraire';
+
+  @override
+  String get museHeroSubtitle => 'Un livre, une question, une envie…';
+
+  @override
+  String get museComposerHint => 'Que cherches-tu aujourd\'hui ?';
+
+  @override
+  String get museComposerSubhint => 'Titre, auteur, question…';
+
+  @override
+  String get museModeChat => 'Discuter';
+
+  @override
+  String get museModeSearch => 'Chercher un livre';
+
+  @override
+  String get museChipFavorite => 'Coup de cœur du moment';
+
+  @override
+  String get museFavoritePrompt => 'Quel est ton coup de cœur du moment ?';
+
+  @override
+  String get museSectionRecent => 'Récente';
+
+  @override
+  String get museSectionConversations => 'Conversations';
+
+  @override
+  String get museSeeAll => 'Tout voir';
+
+  @override
+  String get museContinueConversation => 'Continuer la conversation';
+
+  @override
+  String museSearchPrefix(String query) {
+    return 'Je cherche un livre : $query';
+  }
 
   @override
   String freeMessagesUsed(int max) {
@@ -2826,6 +2876,14 @@ class AppLocalizationsFr extends AppLocalizations {
   String get beFirstToComment => 'Sois le premier à commenter !';
 
   @override
+  String get replyAction => 'Répondre';
+
+  @override
+  String replyingTo(String name) {
+    return 'Réponse à $name';
+  }
+
+  @override
   String get send => 'Envoyer';
 
   @override
@@ -2836,6 +2894,10 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get noBookstoresFound => 'Aucune librairie trouvée à proximité';
+
+  @override
+  String get bookstoresLoadError =>
+      'Impossible de charger les librairies. Vérifiez votre connexion et réessayez.';
 
   @override
   String get openNow => 'Ouvert';
@@ -2923,6 +2985,11 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String commentedYourReading(String name, String bookTitle) {
     return '$name a commenté votre lecture de $bookTitle';
+  }
+
+  @override
+  String repliedYourComment(String name, String bookTitle) {
+    return '$name a répondu à votre commentaire sur $bookTitle';
   }
 
   @override
@@ -3631,4 +3698,217 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get feedGoalsCta => 'Fixe-toi un objectif de lecture';
+
+  @override
+  String get rateBookSheetTitle => 'Noter ce livre';
+
+  @override
+  String rateBookSheetTitleWithBook(String title) {
+    return 'Tu as terminé « $title » !';
+  }
+
+  @override
+  String get rateBookSheetSubtitle => 'Qu\'en as-tu pensé ?';
+
+  @override
+  String get bookRatingSaved => 'Note enregistrée !';
+
+  @override
+  String get bookRatingError => 'Impossible d\'enregistrer la note';
+
+  @override
+  String get yourRating => 'Ma note';
+
+  @override
+  String get rateThisBook => 'Noter ce livre';
+
+  @override
+  String get rateBookRefine => 'Affiner ton avis';
+
+  @override
+  String get criteriaWriting => 'Écriture';
+
+  @override
+  String get criteriaStory => 'Histoire';
+
+  @override
+  String get criteriaPace => 'Rythme';
+
+  @override
+  String get criteriaDifficulty => 'Difficulté';
+
+  @override
+  String get criteriaLevelWeak => 'Bof';
+
+  @override
+  String get criteriaLevelGood => 'Bien';
+
+  @override
+  String get criteriaLevelExcellent => 'Excellent';
+
+  @override
+  String get paceSlow => 'Lent';
+
+  @override
+  String get paceBalanced => 'Équilibré';
+
+  @override
+  String get paceFast => 'Haletant';
+
+  @override
+  String get difficultyEasy => 'Facile';
+
+  @override
+  String get difficultyMedium => 'Moyen';
+
+  @override
+  String get difficultyHard => 'Exigeant';
+
+  @override
+  String get emotionTagsLabel => 'Ce livre était…';
+
+  @override
+  String get emotionMoving => 'Bouleversant';
+
+  @override
+  String get emotionFunny => 'Drôle';
+
+  @override
+  String get emotionInstructive => 'Instructif';
+
+  @override
+  String get emotionComforting => 'Réconfortant';
+
+  @override
+  String get emotionDisturbing => 'Dérangeant';
+
+  @override
+  String get emotionGripping => 'Captivant';
+
+  @override
+  String get emotionInspiring => 'Inspirant';
+
+  @override
+  String get emotionDark => 'Sombre';
+
+  @override
+  String get emotionPoetic => 'Poétique';
+
+  @override
+  String get emotionMindBlowing => 'Renversant';
+
+  @override
+  String get reviewHint => 'Ton avis en quelques mots…';
+
+  @override
+  String get wouldRecommendLabel => 'Je le recommande';
+
+  @override
+  String get wouldRereadLabel => 'Je le relirais';
+
+  @override
+  String get shareWithFriends => 'Partager avec mes amis';
+
+  @override
+  String get feedRatedBook => 'a noté un livre';
+
+  @override
+  String get feedRecommendedBadge => 'Recommandé';
+
+  @override
+  String get filterAbandoned => 'Abandonnés';
+
+  @override
+  String get abandonedBooks => 'Livres abandonnés';
+
+  @override
+  String get noAbandonedBooks => 'Aucun livre abandonné';
+
+  @override
+  String get abandonBookAction => 'Abandonner ce livre';
+
+  @override
+  String get abandonBookConfirmTitle => 'Abandonner ce livre ?';
+
+  @override
+  String get abandonBookConfirmBody =>
+      'Tu pourras le reprendre plus tard depuis ta bibliothèque.';
+
+  @override
+  String get abandonBookConfirmYes => 'Oui, j\'arrête';
+
+  @override
+  String get abandonSheetTitle => 'Tu abandonnes ce livre';
+
+  @override
+  String get abandonSheetSubtitle => 'Une note quand même ? C\'est optionnel.';
+
+  @override
+  String get watchCatchupTitle => 'Lecture depuis ta Watch';
+
+  @override
+  String watchCatchupBody(int minutes) {
+    return '$minutes min enregistrées depuis ton Apple Watch. Complète les pages pour mettre à jour ta progression.';
+  }
+
+  @override
+  String get watchCatchupStartPage => 'Page de début';
+
+  @override
+  String get watchCatchupEndPage => 'Page de fin';
+
+  @override
+  String get watchCatchupScan => 'Scanner la page';
+
+  @override
+  String get watchCatchupSave => 'Enregistrer';
+
+  @override
+  String get watchCatchupSkip => 'Ignorer';
+
+  @override
+  String get watchCatchupEnterPages => 'Indique les pages de début et de fin.';
+
+  @override
+  String get watchCatchupOcrFailed =>
+      'Numéro de page non détecté, réessaie ou saisis-le à la main.';
+
+  @override
+  String get watchCatchupError => 'Enregistrement impossible. Réessaie.';
+
+  @override
+  String get addPastSessionButton => 'Ajouter une lecture passée';
+
+  @override
+  String get addPastSessionTitle => 'Lecture passée';
+
+  @override
+  String get addPastSessionDuration => 'Combien de temps as-tu lu ?';
+
+  @override
+  String get addPastSessionCustomDuration => 'Durée (minutes)';
+
+  @override
+  String get addPastSessionToday => 'Aujourd\'hui';
+
+  @override
+  String get addPastSessionSave => 'Enregistrer la lecture';
+
+  @override
+  String get addPastSessionSaved => 'Lecture enregistrée !';
+
+  @override
+  String get addPastSessionEnterDuration => 'Indique la durée de ta lecture.';
+
+  @override
+  String get addPastSessionBackdatedInfo =>
+      'Cette lecture comptera dans tes stats mais pas pour ta flamme.';
+
+  @override
+  String get addPastSessionTooShortWarning =>
+      'Moins de 2 min ou aucune page : cette lecture ne comptera pas pour ta flamme.';
+
+  @override
+  String get addPastSessionActiveSessionError =>
+      'Termine d\'abord ta session en cours sur ce livre.';
 }

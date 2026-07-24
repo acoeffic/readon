@@ -11,6 +11,7 @@ import '../models/reading_flow.dart';
 import '../widgets/cached_book_cover.dart';
 import 'books_service.dart';
 import 'flow_service.dart';
+import 'watch_control_service.dart';
 
 class WidgetService {
   static const String _appGroupId = 'group.fr.lexday.app';
@@ -26,6 +27,16 @@ class WidgetService {
   // Cache pour éviter de re-télécharger la même couverture
   String? _cachedCoverUrl;
   String? _cachedCoverBase64;
+
+  // User-Agent type Safari iOS : Google Books / Amazon / OpenLibrary
+  // refusent souvent les requêtes sans UA "navigateur" (403 ou 0 byte).
+  // Même UA que CachedBookCover et LiveActivityService.
+  static const _browserHeaders = {
+    'User-Agent':
+        'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) '
+        'AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 '
+        'Mobile/15E148 Safari/604.1',
+  };
 
   /// Initialiser le widget (à appeler au démarrage)
   Future<void> initialize() async {
@@ -52,14 +63,14 @@ class WidgetService {
       // Données du livre en cours
       String bookTitle = 'Aucun livre';
       String bookAuthor = '';
-      String bookCoverUrl = '';
+      List<String> coverCandidates = const [];
       double progressPercent = 0.0;
 
       if (currentBookData != null) {
         final book = currentBookData['book'] as Book;
         bookTitle = book.title;
         bookAuthor = book.author ?? '';
-        bookCoverUrl = await _resolveBestCoverUrl(book);
+        coverCandidates = await _resolveCoverCandidates(book);
 
         final currentPage = currentBookData['current_page'] as int? ?? 0;
         final totalPages = currentBookData['total_pages'] as int? ?? 0;
@@ -71,8 +82,12 @@ class WidgetService {
       // Streak (flow)
       final streak = flow.currentFlow;
 
-      // Télécharger et encoder la couverture en base64 (avec cache)
-      final coverBase64 = await _fetchCoverAsBase64(bookCoverUrl);
+      // Télécharger et encoder la première vraie couverture en base64
+      // (avec cache, en filtrant les images placeholder).
+      final coverBase64 = await _fetchCoverAsBase64(coverCandidates);
+      final bookCoverUrl = coverBase64.isNotEmpty
+          ? (_cachedCoverUrl ?? '')
+          : (coverCandidates.isNotEmpty ? coverCandidates.first : '');
 
       // Envoyer les données au widget
       await Future.wait([
@@ -88,69 +103,69 @@ class WidgetService {
       // Rafraîchir le widget iOS
       await HomeWidget.updateWidget(name: _iOSWidgetName);
 
+      // Pousse le même état vers l'app Apple Watch (no-op hors iOS / sans Watch).
+      WatchControlService().pushState();
+
       debugPrint('✅ Widget mis à jour: $bookTitle ($todayMinutes min, flow $streak)');
     } catch (e) {
       debugPrint('❌ Erreur updateWidget: $e');
     }
   }
 
-  /// Résout la meilleure URL de couverture disponible (Google Books > Amazon
-  /// via ISBN-10 > URL stockée), dans le même esprit que la chaîne utilisée
-  /// par CachedBookCover. Fait un best-effort sans bloquer trop longtemps.
-  Future<String> _resolveBestCoverUrl(Book book) async {
-    // 1. Cache in-memory déjà résolu par CachedBookCover (si le livre a
-    //    été affiché dans l'app, la bonne URL y est).
-    final cached = CachedBookCover.resolvedUrl(
-      imageUrl: book.coverUrl,
-      isbn: book.isbn,
-      googleId: book.googleId,
-    );
-    if (cached != null && cached.isNotEmpty) return cached;
-
-    // 2. URL déterministe Google Books via googleId (pas d'appel réseau).
-    if (book.googleId != null && book.googleId!.isNotEmpty) {
-      return 'https://books.google.com/books/content'
-          '?id=${book.googleId}'
-          '&printsec=frontcover&img=1&zoom=3&source=gbs_api';
-    }
-
-    // 3. Amazon via ISBN (best-effort, timeout court).
-    if (book.isbn != null && book.isbn!.isNotEmpty) {
-      try {
-        final amazonUrl = await CachedBookCover.fetchAmazonCover(book.isbn!)
-            .timeout(const Duration(seconds: 3));
-        if (amazonUrl != null) return amazonUrl;
-      } catch (_) {}
-    }
-
-    // 4. URL brute stockée en dernier recours.
-    return book.coverUrl ?? '';
+  /// Résout la chaîne complète de couvertures validées pour [book] — la même
+  /// que celle utilisée par CachedBookCover dans l'app et par la Live
+  /// Activity (Google Books / Amazon / iTunes / OpenLibrary / BnF...).
+  /// Passe par le cache statique partagé : instantané si la couverture est
+  /// déjà affichée dans l'app.
+  Future<List<String>> _resolveCoverCandidates(Book book) async {
+    try {
+      final urls = await CachedBookCover.resolveCoverUrls(
+        imageUrl: book.coverUrl,
+        isbn: book.isbn,
+        googleId: book.googleId,
+        title: book.title,
+        author: book.author,
+      ).timeout(const Duration(seconds: 8));
+      if (urls.isNotEmpty) return urls;
+    } catch (_) {}
+    // Dernier recours : URL brute de la DB (_fetchCoverAsBase64 filtre de
+    // toute façon les images placeholder).
+    return [
+      if (book.coverUrl != null && book.coverUrl!.isNotEmpty) book.coverUrl!,
+    ];
   }
 
-  /// Télécharger la couverture et la convertir en base64 pour le widget
-  /// Utilise un cache pour éviter de re-télécharger la même image
-  Future<String> _fetchCoverAsBase64(String coverUrl) async {
-    if (coverUrl.isEmpty) return '';
+  /// Télécharge la première vraie couverture de la liste et la convertit en
+  /// base64 pour le widget. Rejette les images placeholder (GIF 1×1 Amazon,
+  /// PNG gris Google Books). Utilise un cache pour éviter de re-télécharger.
+  Future<String> _fetchCoverAsBase64(List<String> coverUrls) async {
+    for (final coverUrl in coverUrls) {
+      if (coverUrl.isEmpty) continue;
 
-    // Cache hit : pas besoin de re-télécharger
-    if (_cachedCoverUrl == coverUrl && _cachedCoverBase64 != null) {
-      return _cachedCoverBase64!;
+      // Cache hit : pas besoin de re-télécharger
+      if (_cachedCoverUrl == coverUrl && _cachedCoverBase64 != null) {
+        return _cachedCoverBase64!;
+      }
+
+      try {
+        final response = await http
+            .get(Uri.parse(coverUrl), headers: _browserHeaders)
+            .timeout(const Duration(seconds: 8));
+        if (response.statusCode != 200) continue;
+        if (!CachedBookCover.looksLikeRealCover(coverUrl, response.bodyBytes)) {
+          debugPrint('WidgetService: placeholder rejeté pour $coverUrl');
+          continue;
+        }
+
+        final base64 = base64Encode(response.bodyBytes);
+        _cachedCoverUrl = coverUrl;
+        _cachedCoverBase64 = base64;
+        return base64;
+      } catch (e) {
+        debugPrint('Erreur _fetchCoverAsBase64 ($coverUrl): $e');
+      }
     }
-
-    try {
-      final response = await http
-          .get(Uri.parse(coverUrl))
-          .timeout(const Duration(seconds: 8));
-      if (response.statusCode != 200) return '';
-
-      final base64 = base64Encode(response.bodyBytes);
-      _cachedCoverUrl = coverUrl;
-      _cachedCoverBase64 = base64;
-      return base64;
-    } catch (e) {
-      debugPrint('Erreur _fetchCoverAsBase64: $e');
-      return '';
-    }
+    return '';
   }
 
   /// Calculer les minutes de lecture du jour

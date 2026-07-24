@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LexDay</title>
+<style>
+  body {
+    margin: 0;
+    background: #F0E8D8;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    text-align: center;
+  }
+  .card {
+    background: #FAF3E8;
+    border-radius: 16px;
+    padding: 48px 32px;
+    max-width: 380px;
+    margin: 16px;
+    border: 1px solid rgba(107,152,141,0.15);
+  }
+  h1 { font-size: 20px; font-weight: 500; color: #1a1a1a; margin: 20px 0 8px; }
+  p  { font-size: 14px; color: #777; margin: 0 0 28px; line-height: 1.6; }
+  .btn {
+    display: inline-block;
+    background: #6B988D;
+    color: #FAF3E8;
+    text-decoration: none;
+    font-size: 15px;
+    font-weight: 500;
+    padding: 14px 36px;
+    border-radius: 50px;
+  }
+  .store {
+    display: block;
+    margin-top: 16px;
+    font-size: 13px;
+    color: #6B988D;
+    text-decoration: none;
+  }
+  img.logo { width: 48px; height: 48px; border-radius: 10px; }
+</style>
+</head>
+<body>
+<div class="card">
+  <img class="logo" src="https://nzbhmshkcwudzydeahrq.supabase.co/storage/v1/object/public/asset/email/logo.png" alt="LexDay">
+  <h1>Ouverture de LexDay…</h1>
+  <p>Si l'application ne s'ouvre pas automatiquement, appuie sur le bouton ci-dessous.</p>
+  <a id="open" class="btn" href="#">Ouvrir LexDay</a>
+  <a id="store" class="store" href="#" hidden>Télécharger l'application</a>
+</div>
+
+<script>
+(function () {
+  var PACKAGE = 'com.acoeffic.lexday';
+  var PLAY_URL = 'https://play.google.com/store/apps/details?id=' + PACKAGE;
+
+  // Cible : ?to=friends/requests → lexday://friends/requests
+  // Whitelist stricte des caractères pour éviter toute injection dans
+  // l'URL intent:// (l'app ignore de toute façon les hosts inconnus).
+  var to = new URLSearchParams(location.search).get('to') || 'feed';
+  if (!/^[a-zA-Z0-9/_-]+$/.test(to)) to = 'feed';
+
+  var isAndroid = /android/i.test(navigator.userAgent);
+
+  var appUrl;
+  if (isAndroid) {
+    // intent:// : contrairement à lexday://, Chrome Android l'accepte même
+    // en redirection automatique, et bascule sur browser_fallback_url
+    // (Play Store) si l'app n'est pas installée.
+    appUrl = 'intent://' + to + '#Intent'
+      + ';scheme=lexday'
+      + ';package=' + PACKAGE
+      + ';S.browser_fallback_url=' + encodeURIComponent(PLAY_URL)
+      + ';end';
+  } else {
+    appUrl = 'lexday://' + to;
+  }
+
+  var openBtn = document.getElementById('open');
+  openBtn.href = appUrl;
+
+  if (isAndroid) {
+    var storeLink = document.getElementById('store');
+    storeLink.href = PLAY_URL;
+    storeLink.hidden = false;
+  }
+
+  // Tentative automatique. Sur iOS/desktop un échec est silencieux (le
+  // bouton reste le filet de sécurité) ; sur Android l'intent:// gère
+  // lui-même le fallback Play Store.
+  setTimeout(function () { location.href = appUrl; }, 100);
+})();
+</script>
+</body>
+</html>

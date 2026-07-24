@@ -57,6 +57,9 @@ class _ActiveReadingSessionPageState extends State<ActiveReadingSessionPage>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    // Reflète en direct une pause/reprise venue d'ailleurs (Apple Watch,
+    // Live Activity) pendant que la page est affichée.
+    ReadingSessionService.pauseStateVersion.addListener(_onPauseStateChanged);
     _restorePauseState().then((_) {
       if (!_isPaused) {
         _elapsed = DateTime.now().difference(widget.activeSession.startTime) -
@@ -87,6 +90,8 @@ class _ActiveReadingSessionPageState extends State<ActiveReadingSessionPage>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    ReadingSessionService.pauseStateVersion
+        .removeListener(_onPauseStateChanged);
     _timer?.cancel();
     super.dispose();
   }
@@ -94,21 +99,35 @@ class _ActiveReadingSessionPageState extends State<ActiveReadingSessionPage>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      _syncPauseStateOnResume();
+      _syncPauseState();
     }
   }
 
-  Future<void> _syncPauseStateOnResume() async {
+  void _onPauseStateChanged() => _syncPauseState();
+
+  /// Aligne l'état local sur SessionPauseService (source de vérité), quelle
+  /// que soit l'origine du changement : bouton de la page, Apple Watch,
+  /// Live Activity, ou auto-pause de main_navigation.
+  Future<void> _syncPauseState() async {
     final pausedAt = await _pauseService.getPausedAt();
     final accumulated = await _pauseService.getAccumulatedPauseDuration();
     if (!mounted) return;
     if (pausedAt != null && !_isPaused) {
-      // Auto-pause was triggered by main_navigation — sync in-memory state.
+      // Pause déclenchée hors de cette page — sync in-memory state.
       setState(() {
         _isPaused = true;
         _pauseStartTime = pausedAt;
         _totalPauseDuration = accumulated;
         _elapsed = pausedAt.difference(widget.activeSession.startTime) -
+            accumulated;
+      });
+    } else if (pausedAt == null && _isPaused) {
+      // Reprise déclenchée hors de cette page.
+      setState(() {
+        _isPaused = false;
+        _pauseStartTime = null;
+        _totalPauseDuration = accumulated;
+        _elapsed = DateTime.now().difference(widget.activeSession.startTime) -
             accumulated;
       });
     } else if (!_isPaused) {
@@ -1451,7 +1470,9 @@ class _AnnotationBottomSheetState extends State<_AnnotationBottomSheet> {
                 if (_mode != _AnnotationMode.voice || _hasRecording) ...[
                   TextField(
                     controller: _contentController,
-                    maxLines: 4,
+                    minLines: 4,
+                    maxLines: 10,
+                    keyboardType: TextInputType.multiline,
                     style: const TextStyle(
                       color: Color(0xFF2D2D2D),
                       fontSize: 15,

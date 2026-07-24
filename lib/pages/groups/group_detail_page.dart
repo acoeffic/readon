@@ -58,6 +58,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
     setState(() => _isLoading = true);
     try {
       final group = await _groupsService.getGroup(widget.groupId);
+      if (!mounted) return;
       setState(() {
         _group = group;
         _isLoading = false;
@@ -66,12 +67,11 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
         _loadPendingRequestsCount();
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() => _isLoading = false);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur: $e')),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erreur: $e')),
+      );
     }
   }
 
@@ -141,11 +141,13 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
       final activities = await _groupsService.getGroupActivities(
         groupId: widget.groupId,
       );
+      if (!mounted) return;
       setState(() {
         _activities = activities;
         _isLoadingActivities = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() => _isLoadingActivities = false);
     }
   }
@@ -154,11 +156,13 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
     setState(() => _isLoadingChallenges = true);
     try {
       final challenges = await _challengeService.getActiveChallenges(widget.groupId);
+      if (!mounted) return;
       setState(() {
         _challenges = challenges;
         _isLoadingChallenges = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() => _isLoadingChallenges = false);
     }
   }

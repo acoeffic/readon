@@ -487,9 +487,13 @@ class _ExpandableFABState extends State<_ExpandableFAB> with TickerProviderState
               ),
             ),
           ),
-        GestureDetector(
-          onTap: _toggle,
-          child: _buildMainLiquidGlassButton(isDark, context.appColors.primary),
+        Semantics(
+          identifier: 'start_session_fab',
+          button: true,
+          child: GestureDetector(
+            onTap: _toggle,
+            child: _buildMainLiquidGlassButton(isDark, context.appColors.primary),
+          ),
         ),
       ],
     );
@@ -775,13 +779,16 @@ class _UnifiedBookSelectorSheetState extends State<_UnifiedBookSelectorSheet> {
             ],
           ),
           const SizedBox(height: 16),
-          TextField(
-            decoration: InputDecoration(
-              hintText: AppLocalizations.of(context).searchEllipsis,
-              prefixIcon: const Icon(Icons.search),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          Semantics(
+            identifier: 'book_search_field',
+            child: TextField(
+              decoration: InputDecoration(
+                hintText: AppLocalizations.of(context).searchEllipsis,
+                prefixIcon: const Icon(Icons.search),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              onChanged: (value) => setState(() => _searchQuery = value),
             ),
-            onChanged: (value) => setState(() => _searchQuery = value),
           ),
           const SizedBox(height: 16),
           Expanded(

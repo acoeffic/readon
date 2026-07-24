@@ -25,6 +25,7 @@ class _CommentsSheetState extends State<CommentsSheet> {
   List<Comment> _comments = [];
   bool _isLoading = true;
   bool _isSending = false;
+  Comment? _replyingTo;
 
   String get _currentUserId =>
       Supabase.instance.client.auth.currentUser?.id ?? '';
@@ -46,9 +47,38 @@ class _CommentsSheetState extends State<CommentsSheet> {
     final comments = await _commentsService.getComments(widget.activityId);
     if (!mounted) return;
     setState(() {
-      _comments = comments;
+      _comments = _sortThreaded(comments);
       _isLoading = false;
     });
+  }
+
+  /// Ordonne les commentaires en threads : les commentaires racine par ordre
+  /// chronologique, chacun suivi de ses réponses (chronologiques).
+  List<Comment> _sortThreaded(List<Comment> comments) {
+    final byId = {for (final c in comments) c.id: c};
+
+    String rootOf(Comment c) {
+      var current = c;
+      final seen = <String>{};
+      while (current.parentId != null &&
+          byId.containsKey(current.parentId) &&
+          seen.add(current.id)) {
+        current = byId[current.parentId]!;
+      }
+      return current.id;
+    }
+
+    final grouped = <String, List<Comment>>{};
+    final rootOrder = <String>[];
+    for (final c in comments) {
+      final root = rootOf(c);
+      if (!grouped.containsKey(root)) {
+        grouped[root] = [];
+        rootOrder.add(root);
+      }
+      grouped[root]!.add(c);
+    }
+    return [for (final root in rootOrder) ...grouped[root]!];
   }
 
   Future<void> _sendComment() async {
@@ -64,6 +94,7 @@ class _CommentsSheetState extends State<CommentsSheet> {
     final comment = await _commentsService.addComment(
       activityId: widget.activityId,
       content: content,
+      parentId: _replyingTo?.id,
     );
 
     if (!mounted) return;
@@ -71,7 +102,8 @@ class _CommentsSheetState extends State<CommentsSheet> {
     if (comment != null) {
       _controller.clear();
       setState(() {
-        _comments.add(comment);
+        _comments = _sortThreaded([..._comments, comment]);
+        _replyingTo = null;
         _isSending = false;
       });
       final l10n = AppLocalizations.of(context);
@@ -176,6 +208,9 @@ class _CommentsSheetState extends State<CommentsSheet> {
                         ),
             ),
 
+            // Bandeau "Réponse à X"
+            if (_replyingTo != null) _buildReplyBanner(isDark, l10n),
+
             // Input bar
             _buildInputBar(isDark, l10n),
             SizedBox(height: keyboardHeight),
@@ -233,7 +268,12 @@ class _CommentsSheetState extends State<CommentsSheet> {
       // propres commentaires (rien à signaler).
       onLongPress: isOwn ? null : () => _showCommentActions(comment, l10n),
       child: Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      padding: EdgeInsets.only(
+        left: comment.isReply ? 52 : 16,
+        right: 16,
+        top: 6,
+        bottom: 6,
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -299,6 +339,31 @@ class _CommentsSheetState extends State<CommentsSheet> {
                     height: 1.3,
                   ),
                 ),
+                if (comment.isApproved) ...[
+                  const SizedBox(height: 2),
+                  InkWell(
+                    onTap: () {
+                      setState(() => _replyingTo = comment);
+                      _focusNode.requestFocus();
+                    },
+                    borderRadius: BorderRadius.circular(4),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 2, vertical: 2),
+                      child: Text(
+                        l10n.replyAction,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: 0.45),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -361,6 +426,64 @@ class _CommentsSheetState extends State<CommentsSheet> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildReplyBanner(bool isDark, AppLocalizations l10n) {
+    final replyingTo = _replyingTo;
+    if (replyingTo == null) return const SizedBox.shrink();
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: isDark ? 0.12 : 0.06),
+        border: Border(
+          top: BorderSide(
+            color: Theme.of(context).dividerColor,
+            width: 0.5,
+          ),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.reply_rounded,
+            size: 16,
+            color: AppColors.primary,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              l10n.replyingTo(replyingTo.displayName),
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withValues(alpha: 0.7),
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          InkWell(
+            onTap: () => setState(() => _replyingTo = null),
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: const EdgeInsets.all(4),
+              child: Icon(
+                Icons.close_rounded,
+                size: 18,
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withValues(alpha: 0.5),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

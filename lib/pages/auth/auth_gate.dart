@@ -40,6 +40,7 @@
         if (mounted) {
           final guest = context.read<GuestModeProvider>();
           if (!guest.initialized) await guest.load();
+          if (!mounted) return;
           if (guest.isGuest) {
             setState(() {
               _destination = const MainNavigation();
@@ -48,6 +49,7 @@
             return;
           }
         }
+        if (!mounted) return;
         setState(() {
           _destination = const LoginPage();
           _loading = false;

@@ -14,9 +14,10 @@ class GoogleBooksService {
   static String get _apiKey => Env.googleBooksApiKey;
 
   /// Clé SharedPreferences pour le cache persistant ISBN → coverUrl
-  /// Bumped to v3 to invalidate entries polluted by searchByISBN returning
-  /// non-matching books (full-text search rather than exact lookup).
-  static const String _coverCacheKey = 'google_books_cover_cache_v3';
+  /// Bumped to v4 : purge des entrées polluées par les ISBN erronés du
+  /// catalogue des listes recommandées (la couverture d'un AUTRE livre était
+  /// cachée sous l'ISBN d'une entrée curated via cacheBook).
+  static const String _coverCacheKey = 'google_books_cover_cache_v4';
 
   /// Cache en mémoire : ISBN → GoogleBook (évite les appels API répétés)
   static final Map<String, GoogleBook> _isbnCache = {};

@@ -22,6 +22,8 @@ class FlowService {
     required int? endPage,
     required String? startTimeIso,
     required String? endTimeIso,
+    bool isManual = false,
+    String? createdAtIso,
   }) {
     if (startPage == null ||
         endPage == null ||
@@ -34,6 +36,18 @@ class FlowService {
     final duration =
         DateTime.parse(endTimeIso).difference(DateTime.parse(startTimeIso));
     if (duration < _minDuration) return false;
+    // Session manuelle antidatée ("Ajouter une lecture passée" pour un jour
+    // antérieur) : compte pour les stats/feed/défis mais pas pour la flamme,
+    // sinon on pourrait réparer son streak a posteriori.
+    if (isManual && createdAtIso != null) {
+      final end = DateTime.parse(endTimeIso).toLocal();
+      final created = DateTime.parse(createdAtIso).toLocal();
+      if (end.year != created.year ||
+          end.month != created.month ||
+          end.day != created.day) {
+        return false;
+      }
+    }
     return true;
   }
 
@@ -168,7 +182,7 @@ class FlowService {
       // Récupérer toutes les sessions terminées de l'utilisateur
       final response = await _supabase
           .from('reading_sessions')
-          .select('start_time, end_time, start_page, end_page')
+          .select('start_time, end_time, start_page, end_page, is_manual, created_at')
           .eq('user_id', userId)
           .not('end_time', 'is', null)
           .order('end_time', ascending: false);
@@ -192,6 +206,8 @@ class FlowService {
           endPage: session['end_page'] as int?,
           startTimeIso: session['start_time'] as String?,
           endTimeIso: endTime,
+          isManual: session['is_manual'] as bool? ?? false,
+          createdAtIso: session['created_at'] as String?,
         )) {
           continue;
         }
@@ -238,7 +254,7 @@ class FlowService {
 
       final response = await _supabase
           .from('reading_sessions')
-          .select('start_time, end_time, start_page, end_page')
+          .select('start_time, end_time, start_page, end_page, is_manual, created_at')
           .eq('user_id', userId)
           .eq('is_hidden', false)
           .not('end_time', 'is', null)
@@ -258,6 +274,8 @@ class FlowService {
           endPage: session['end_page'] as int?,
           startTimeIso: session['start_time'] as String?,
           endTimeIso: endTime,
+          isManual: session['is_manual'] as bool? ?? false,
+          createdAtIso: session['created_at'] as String?,
         )) {
           continue;
         }
@@ -507,7 +525,7 @@ class FlowService {
 
       final response = await _supabase
           .from('reading_sessions')
-          .select('start_time, end_time, start_page, end_page')
+          .select('start_time, end_time, start_page, end_page, is_manual, created_at')
           .eq('user_id', userId)
           .not('end_time', 'is', null)
           .order('end_time', ascending: false)
@@ -522,6 +540,8 @@ class FlowService {
           endPage: session['end_page'] as int?,
           startTimeIso: session['start_time'] as String?,
           endTimeIso: endTime,
+          isManual: session['is_manual'] as bool? ?? false,
+          createdAtIso: session['created_at'] as String?,
         )) {
           continue;
         }

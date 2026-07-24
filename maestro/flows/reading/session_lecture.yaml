@@ -1,0 +1,57 @@
+appId: fr.lexday.app
+name: session_lecture
+tags:
+  - reading
+# Démarre une session de lecture depuis le feed via le FAB → Ma bibliothèque,
+# recherche d'un livre, saisie d'un nombre de pages, lancement, et vérification
+# d'arrivée sur l'écran de session active.
+# Pré-requis : compte connecté + au moins 1 livre en bibliothèque.
+# Variables : TEST_BOOK_QUERY (titre partiel d'un livre déjà en biblio).
+---
+# clearState + clearKeychain → l'app route toujours vers LoginPage (pas de
+# session persistée), donc login_subflow trouve login_email_field de façon fiable.
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- runFlow: ../../subflows/handle_system_dialogs.yaml
+- runFlow: ../../subflows/login_subflow.yaml
+- assertVisible: "Feed"
+
+# Ouvre le FAB liquid glass
+- tapOn:
+    id: "start_session_fab"
+- assertVisible: "Ma bibliothèque"
+- tapOn: "Ma bibliothèque"
+
+# Sheet de sélection de livre
+- assertVisible:
+    id: "book_search_field"
+- tapOn:
+    id: "book_search_field"
+- inputText: ${TEST_BOOK_QUERY}
+- hideKeyboard
+
+# Première carte de résultat (le titre filtré apparaît comme texte).
+- tapOn:
+    text: ${TEST_BOOK_QUERY}
+    index: 0
+
+# Page "Démarrer" — on saisit le n° de page
+- extendedWaitUntil:
+    visible:
+      id: "manual_page_input"
+    timeout: 8000
+- tapOn:
+    id: "manual_page_input"
+- inputText: "42"
+- hideKeyboard
+
+# Lancement de la session
+- assertVisible: "Lancer la session"
+- tapOn: "Lancer la session"
+
+# Page de session active visible
+- extendedWaitUntil:
+    visible: "NOUVELLE SESSION"
+    timeout: 10000
+- assertVisible: "NOUVELLE SESSION"

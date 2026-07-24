@@ -12,6 +12,7 @@ import '../../services/subscription_service.dart';
 import '../../services/monthly_notification_service.dart';
 import '../../services/deep_link_service.dart';
 import '../../services/widget_service.dart';
+import '../../services/watch_control_service.dart';
 import '../auth/auth_gate.dart';
 
 const _logoAsset = 'assets/images/logo_lexday.svg';
@@ -139,6 +140,8 @@ class _SplashScreenState extends State<SplashScreen>
       await WidgetService().initialize();
       // La mise à jour avec les vraies données se fera après l'auth
       // (via AuthGate ou la page d'accueil)
+      // Démarre le pont Apple Watch (no-op hors iOS / sans Watch appairée).
+      WatchControlService().start();
     }
 
     // Initialize deep link handling (Notion OAuth + book links)

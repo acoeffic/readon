@@ -9,6 +9,8 @@ import '../models/reading_flow.dart';
 import '../models/book_suggestion.dart';
 import '../models/book.dart';
 import '../models/prize_list.dart';
+import '../services/mutual_friends_service.dart';
+import '../services/people_you_may_know_service.dart';
 import '../services/trending_service.dart';
 import 'feed_cache.dart';
 
@@ -97,6 +99,13 @@ class FeedCacheService {
       'savedCuratedListIds': data.savedCuratedListIds.toList(),
       'prizeLists': data.prizeLists.map((p) => p.toJson()).toList(),
       'hasMore': data.hasMore,
+      'discoverReaders': data.discoverReaders,
+      'peopleYouMayKnow':
+          data.peopleYouMayKnow.map((p) => p.toJson()).toList(),
+      'discoverMutuals': data.discoverMutuals.map(
+        (k, v) => MapEntry(k, v.toJson()),
+      ),
+      'requestedIds': data.requestedIds.toList(),
     };
   }
 
@@ -133,6 +142,25 @@ class FeedCacheService {
               .toList() ??
           [],
       hasMore: json['hasMore'] as bool? ?? true,
+      discoverReaders: _castListOfMaps(json['discoverReaders']),
+      peopleYouMayKnow: (json['peopleYouMayKnow'] as List<dynamic>?)
+              ?.map((e) =>
+                  PeopleYouMayKnow.fromJson(Map<String, dynamic>.from(e as Map)))
+              .toList() ??
+          [],
+      discoverMutuals:
+          (json['discoverMutuals'] as Map<String, dynamic>?)?.map(
+                (k, v) => MapEntry(
+                  k,
+                  MutualFriendsSummary.fromJson(
+                      Map<String, dynamic>.from(v as Map)),
+                ),
+              ) ??
+              {},
+      requestedIds: (json['requestedIds'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toSet() ??
+          {},
     );
   }
 

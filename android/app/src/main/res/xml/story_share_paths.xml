@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- Expose cacheDir/story_share/ via le FileProvider pour le partage
+         vers les Stories Instagram / Facebook. -->
+    <cache-path name="story_share" path="story_share/" />
+</paths>

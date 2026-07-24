@@ -39,6 +39,15 @@ class ReadingSessionService {
   static void _notifyActiveSessionsChanged() {
     activeSessionsVersion.value++;
   }
+
+  /// Compteur bumpé à chaque pause/reprise de session, quelle que soit son
+  /// origine (bouton iPhone, Apple Watch, Live Activity). Permet à la page de
+  /// session en cours et au pont Watch de refléter l'état en direct.
+  static final ValueNotifier<int> pauseStateVersion = ValueNotifier<int>(0);
+
+  static void _notifyPauseStateChanged() {
+    pauseStateVersion.value++;
+  }
   
   /// Démarrer une nouvelle session de lecture
   /// Soit [imagePath] est fourni (OCR extraira le numéro de page),
@@ -113,6 +122,28 @@ class ReadingSessionService {
 
       final session = ReadingSession.fromJson(response);
 
+      // Reprendre un livre abandonné le repasse en lecture (non bloquant)
+      try {
+        final bookIdInt = int.tryParse(bookId);
+        if (bookIdInt != null) {
+          final userBook = await _supabase
+              .from('user_books')
+              .select('status')
+              .eq('user_id', _supabase.auth.currentUser!.id)
+              .eq('book_id', bookIdInt)
+              .maybeSingle();
+          if (userBook?['status'] == 'abandoned') {
+            await _supabase
+                .from('user_books')
+                .update({'status': 'reading'})
+                .eq('user_id', _supabase.auth.currentUser!.id)
+                .eq('book_id', bookIdInt);
+          }
+        }
+      } catch (e) {
+        debugPrint('Erreur reprise livre abandonné (non bloquante): $e');
+      }
+
       // Démarre la Live Activity iOS (no-op ailleurs).
       _startLiveActivityFor(session).catchError((e) {
         debugPrint('Live Activity start a échoué (non bloquant): $e');
@@ -136,23 +167,35 @@ class ReadingSessionService {
     // Infos livre (best-effort, on ne bloque pas le démarrage si ça échoue).
     String title = '';
     String author = '';
-    String? coverUrl;
+    List<String> coverUrls = const [];
     try {
       final bookIdInt = int.tryParse(session.bookId);
       if (bookIdInt != null) {
         final Book book = await _booksService.getBookById(bookIdInt);
         title = book.title;
         author = book.author ?? '';
-        // Utilise la même URL que celle effectivement affichée par l'app
-        // (CachedBookCover a pu la résoudre via sa chaîne de fallback :
-        //  Google Books / Amazon / OpenLibrary / BnF...). Fallback sur l'URL
-        //  brute de la DB si rien n'a encore été résolu.
-        coverUrl = CachedBookCover.resolvedUrl(
-              imageUrl: book.coverUrl,
-              isbn: book.isbn,
-              googleId: book.googleId,
-            ) ??
-            book.coverUrl;
+        // Résout la même chaîne validée que CachedBookCover (Google Books /
+        // Amazon / iTunes / OpenLibrary / BnF...). Le résultat passe par le
+        // cache statique partagé : si la couverture est déjà affichée dans
+        // l'app, c'est instantané. L'URL brute de la DB ne suffit pas : pour
+        // certains livres, Google Books renvoie son placeholder gris, qui
+        // s'affichait tel quel sur la Live Activity.
+        try {
+          coverUrls = await CachedBookCover.resolveCoverUrls(
+            imageUrl: book.coverUrl,
+            isbn: book.isbn,
+            googleId: book.googleId,
+            title: title,
+            author: author,
+          ).timeout(const Duration(seconds: 8));
+        } catch (_) {}
+        // Dernier recours : URL brute de la DB (LiveActivityService filtre
+        // de toute façon les images placeholder).
+        if (coverUrls.isEmpty &&
+            book.coverUrl != null &&
+            book.coverUrl!.isNotEmpty) {
+          coverUrls = [book.coverUrl!];
+        }
       }
     } catch (_) {}
 
@@ -163,7 +206,7 @@ class ReadingSessionService {
       sessionId: session.id,
       bookTitle: title.isEmpty ? 'Lecture en cours' : title,
       bookAuthor: author,
-      coverUrl: coverUrl,
+      coverUrls: coverUrls,
       accumulatedSeconds: 0,
       isPaused: false,
     );
@@ -195,6 +238,7 @@ class ReadingSessionService {
       accumulatedSeconds: effective,
       isPaused: true,
     );
+    _notifyPauseStateChanged();
   }
 
   /// Reprend une session en pause : ajoute la durée écoulée au cumul de pause
@@ -208,6 +252,7 @@ class ReadingSessionService {
       accumulatedSeconds: effective,
       isPaused: false,
     );
+    _notifyPauseStateChanged();
   }
   
   /// Terminer une session de lecture active
@@ -248,6 +293,30 @@ class ReadingSessionService {
         return result;
       }
 
+      // Session démarrée hors ligne (id temp `offline_…`) et on est maintenant
+      // en ligne : aucune ligne Supabase n'existe encore, donc l'UPDATE de fin
+      // ne trouverait rien (« Session introuvable »). On pousse d'abord le
+      // démarrage en attente pour obtenir un vrai id, puis on termine
+      // normalement. Si l'insert échoue (hors ligne réel), on met la fin en
+      // file d'attente comme en mode offline.
+      var effectiveSessionId = sessionId;
+      if (sessionId.startsWith('offline_')) {
+        final realId = await _offlineQueue.flushStartAndGetRealId(sessionId);
+        if (realId != null) {
+          effectiveSessionId = realId;
+        } else if (activeSession != null) {
+          final result = await _offlineQueue.queueEndSession(
+            activeSession: activeSession,
+            endPage: pageNumber,
+            endImagePath: imagePath,
+          );
+          _notifyActiveSessionsChanged();
+          return result;
+        } else {
+          throw Exception('Session hors ligne introuvable.');
+        }
+      }
+
       // `end_time` = maintenant - cumul des pauses, pour que la durée
       // calculée (endTime - startTime) reflète uniquement la lecture effective.
       // Inclut la pause en cours, le cas échéant.
@@ -271,7 +340,7 @@ class ReadingSessionService {
       final response = await _supabase
           .from('reading_sessions')
           .update(updateData)
-          .eq('id', sessionId)
+          .eq('id', effectiveSessionId)
           .eq('user_id', _supabase.auth.currentUser!.id)
           .select()
           .maybeSingle();
@@ -497,6 +566,159 @@ class ReadingSessionService {
           .eq('user_id', userId);
     } catch (e) {
       debugPrint('Erreur toggleSessionHidden: $e');
+      rethrow;
+    }
+  }
+
+  /// Enregistrer une lecture passée, saisie manuellement a posteriori
+  /// ("Ajouter une lecture passée" : chrono oublié).
+  ///
+  /// Insert-then-update obligatoire : le trigger feed d'activités est
+  /// AFTER UPDATE only, avec garde sur la transition end_time NULL → NOT NULL.
+  /// Un INSERT avec end_time déjà rempli ne créerait pas l'activité feed.
+  ///
+  /// [endTime] est borné à [maintenant - 1 an, maintenant]. Une session
+  /// antidatée (endTime un autre jour qu'aujourd'hui) compte pour les
+  /// stats/feed/défis mais pas pour la flamme (voir FlowService).
+  /// Ne démarre pas de Live Activity (sessions temps réel uniquement).
+  Future<ReadingSession> insertPastSession({
+    required String bookId,
+    required int startPage,
+    required int endPage,
+    required Duration duration,
+    DateTime? endTime,
+  }) async {
+    try {
+      final userId = _supabase.auth.currentUser?.id;
+      if (userId == null) throw Exception('Non connecté');
+      if (endPage < startPage) {
+        throw ArgumentError('endPage doit être >= startPage');
+      }
+      if (duration <= Duration.zero) {
+        throw ArgumentError('duration doit être positive');
+      }
+
+      // Borner la date de fin : pas de futur, pas plus d'un an en arrière.
+      final now = DateTime.now();
+      var effectiveEnd = endTime ?? now;
+      if (effectiveEnd.isAfter(now)) effectiveEnd = now;
+      final oneYearAgo = now.subtract(const Duration(days: 365));
+      if (effectiveEnd.isBefore(oneYearAgo)) effectiveEnd = oneYearAgo;
+
+      // start_time = end_time - durée, tronqué à minuit du même jour pour que
+      // la session ne chevauche pas la veille (la flamme ne regarde que
+      // end_time, mais les stats horaires restent cohérentes).
+      var effectiveStart = effectiveEnd.subtract(duration);
+      final midnight =
+          DateTime(effectiveEnd.year, effectiveEnd.month, effectiveEnd.day);
+      if (effectiveStart.isBefore(midnight)) effectiveStart = midnight;
+
+      // 1) Ligne ouverte (le trigger feed ne se déclenche pas sur INSERT).
+      final inserted = await _supabase
+          .from('reading_sessions')
+          .insert({
+            'book_id': bookId,
+            'user_id': userId,
+            'start_page': startPage,
+            'start_time': effectiveStart.toUtc().toIso8601String(),
+            'is_manual': true,
+          })
+          .select()
+          .single();
+      final sessionId = inserted['id'] as String;
+
+      // 2) Fermeture immédiate : transition end_time NULL → NOT NULL, qui
+      // déclenche le trigger feed (dédup par session_id côté SQL).
+      final response = await _supabase
+          .from('reading_sessions')
+          .update({
+            'end_page': endPage,
+            'end_time': effectiveEnd.toUtc().toIso8601String(),
+          })
+          .eq('id', sessionId)
+          .eq('user_id', userId)
+          .select()
+          .single();
+
+      final session = ReadingSession.fromJson(response);
+
+      // Répercuter sur les défis (comme endSession), sans bloquer.
+      try {
+        await _challengeService.updateProgressAfterSession(
+          bookId: session.bookId,
+          pagesRead: session.pagesRead,
+          durationMinutes: session.durationMinutes,
+        );
+      } catch (_) {}
+
+      _notifyActiveSessionsChanged();
+      return session;
+    } catch (e) {
+      debugPrint('Erreur insertPastSession: $e');
+      rethrow;
+    }
+  }
+
+  /// Corriger les pages d'une session déjà terminée.
+  ///
+  /// Utilisé par le rattrapage des sessions pilotées depuis l'Apple Watch,
+  /// terminées sans page de fin fiable. Répercute le delta de pages sur la
+  /// progression des défis (la durée a déjà été comptée à la fin de session).
+  /// La page courante du livre étant dérivée du `end_page` de la dernière
+  /// session, la progression du livre est corrigée automatiquement.
+  Future<ReadingSession> updateSessionPages({
+    required String sessionId,
+    int? startPage,
+    int? endPage,
+  }) async {
+    try {
+      final userId = _supabase.auth.currentUser?.id;
+      if (userId == null) throw Exception('Non connecté');
+
+      final updateData = <String, dynamic>{};
+      if (startPage != null) updateData['start_page'] = startPage;
+      if (endPage != null) updateData['end_page'] = endPage;
+      if (updateData.isEmpty) {
+        throw ArgumentError('startPage ou endPage requis');
+      }
+
+      // Pages lues avant correction, pour le delta des défis.
+      final before = await _supabase
+          .from('reading_sessions')
+          .select()
+          .eq('id', sessionId)
+          .eq('user_id', userId)
+          .maybeSingle();
+      if (before == null) throw Exception('Session introuvable.');
+      final oldSession = ReadingSession.fromJson(before);
+
+      final response = await _supabase
+          .from('reading_sessions')
+          .update(updateData)
+          .eq('id', sessionId)
+          .eq('user_id', userId)
+          .select()
+          .maybeSingle();
+      if (response == null) throw Exception('Session introuvable.');
+      final session = ReadingSession.fromJson(response);
+
+      final deltaPages = session.pagesRead - oldSession.pagesRead;
+      if (deltaPages != 0) {
+        try {
+          await _challengeService.updateProgressAfterSession(
+            bookId: session.bookId,
+            pagesRead: deltaPages,
+            durationMinutes: 0,
+          );
+        } catch (_) {
+          // Ne pas bloquer la correction si la mise à jour des défis échoue.
+        }
+      }
+
+      _notifyActiveSessionsChanged();
+      return session;
+    } catch (e) {
+      debugPrint('Erreur updateSessionPages: $e');
       rethrow;
     }
   }

@@ -163,7 +163,8 @@ class SubscriptionService {
   Future<bool> purchasePackage(Package package) async {
     if (isDevPremium) return true;
     try {
-      final customerInfo = await Purchases.purchasePackage(package);
+      final result = await Purchases.purchasePackage(package);
+      final customerInfo = result.customerInfo;
       final isPremium =
           customerInfo.entitlements.active.containsKey(entitlementId);
 

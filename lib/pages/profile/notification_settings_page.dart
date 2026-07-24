@@ -63,6 +63,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
           .maybeSingle();
 
       if (response != null) {
+        if (!mounted) return;
         setState(() {
           _notificationsEnabled = response['notifications_enabled'] ?? true;
 
@@ -103,6 +104,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
       }
     } catch (e) {
       debugPrint('Erreur chargement paramètres: $e');
+      if (!mounted) return;
       setState(() => _isLoading = false);
     }
   }
@@ -159,7 +161,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
       await _updateProfile({'notifications_enabled': value, 'timezone': tz});
       await _syncLocalReminders();
     } catch (_) {
-      setState(() => _notificationsEnabled = !value);
+      if (mounted) setState(() => _notificationsEnabled = !value);
     }
   }
 
@@ -168,7 +170,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
     try {
       await _updateProfile({'notify_friend_requests': value});
     } catch (_) {
-      setState(() => _notifyFriendRequests = !value);
+      if (mounted) setState(() => _notifyFriendRequests = !value);
     }
   }
 
@@ -177,7 +179,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
     try {
       await _updateProfile({'notify_friend_requests_email': value});
     } catch (_) {
-      setState(() => _notifyFriendRequestsEmail = !value);
+      if (mounted) setState(() => _notifyFriendRequestsEmail = !value);
     }
   }
 
@@ -186,7 +188,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
     try {
       await _updateProfile({'notify_comments_email': value});
     } catch (_) {
-      setState(() => _notifyCommentsEmail = !value);
+      if (mounted) setState(() => _notifyCommentsEmail = !value);
     }
   }
 
@@ -211,6 +213,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
 
     if (newTime == null) return;
 
+    if (!mounted) return;
     setState(() => _reminderTime = newTime);
 
     final timeString =
@@ -241,6 +244,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
       await _updateProfile({'notification_days': daysList, 'timezone': tz});
       await _syncLocalReminders();
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _selectedDays[index] = !_selectedDays[index];
       });

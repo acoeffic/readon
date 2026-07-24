@@ -39,11 +39,13 @@ class _ChallengeDetailPageState extends State<ChallengeDetailPage> {
     setState(() => _isLoading = true);
     try {
       final participants = await _challengeService.getParticipants(widget.challenge.id);
+      if (!mounted) return;
       setState(() {
         _participants = participants;
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() => _isLoading = false);
     }
   }
@@ -53,23 +55,21 @@ class _ChallengeDetailPageState extends State<ChallengeDetailPage> {
     try {
       if (_userJoined) {
         await _challengeService.leaveChallenge(widget.challenge.id);
+        if (!mounted) return;
         setState(() => _userJoined = false);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(AppLocalizations.of(context).leftChallenge)),
-          );
-        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context).leftChallenge)),
+        );
       } else {
         await _challengeService.joinChallenge(widget.challenge.id);
+        if (!mounted) return;
         setState(() => _userJoined = true);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(AppLocalizations.of(context).joinedChallenge),
-              backgroundColor: Colors.green,
-            ),
-          );
-        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context).joinedChallenge),
+            backgroundColor: Colors.green,
+          ),
+        );
       }
       _loadParticipants();
     } catch (e) {
@@ -79,7 +79,7 @@ class _ChallengeDetailPageState extends State<ChallengeDetailPage> {
         );
       }
     } finally {
-      setState(() => _isJoining = false);
+      if (mounted) setState(() => _isJoining = false);
     }
   }
 

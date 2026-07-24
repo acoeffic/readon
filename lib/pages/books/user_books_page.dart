@@ -16,6 +16,7 @@ import '../../services/user_custom_lists_service.dart';
 import '../../models/reading_session.dart';
 import '../reading/start_reading_session_page_unified.dart';
 import '../reading/active_reading_session_page.dart';
+import '../reading/add_past_session_page.dart';
 import '../reading/end_reading_session_page.dart';
 import '../reading/book_finished_share_service.dart';
 import '../reading/book_completed_summary_page.dart';
@@ -27,8 +28,12 @@ import '../../widgets/constrained_content.dart';
 import '../../theme/app_theme.dart';
 import '../bookstores/nearby_bookstores_page.dart';
 import '../../models/annotation_model.dart';
+import '../../models/book_rating.dart';
 import '../../models/feature_flags.dart';
 import '../../models/reading_sheet.dart';
+import '../../services/book_ratings_service.dart';
+import '../../widgets/rate_book_sheet.dart';
+import '../../widgets/star_rating.dart';
 import '../../services/annotation_service.dart';
 import '../../services/ai_service.dart';
 import '../../services/notion_service.dart';
@@ -87,6 +92,9 @@ class _UserBooksPageState extends State<UserBooksPage> {
 
   List<Map<String, dynamic>> get _finishedBooksData =>
       _filteredBooks.where((item) => item['status'] == 'finished').toList();
+
+  List<Map<String, dynamic>> get _abandonedBooksData =>
+      _filteredBooks.where((item) => item['status'] == 'abandoned').toList();
 
   bool get _isDark => Theme.of(context).brightness == Brightness.dark;
 
@@ -384,6 +392,7 @@ class _UserBooksPageState extends State<UserBooksPage> {
       ('all', l10n.filterAll),
       ('reading', l10n.filterReading),
       ('finished', l10n.filterRead),
+      if (_abandonedBooksData.isNotEmpty) ('abandoned', l10n.filterAbandoned),
       ('lists', l10n.filterMyLists),
     ];
 
@@ -439,6 +448,8 @@ class _UserBooksPageState extends State<UserBooksPage> {
         return _buildReadingSectionFull(l10n);
       case 'finished':
         return _buildFinishedSectionFull(l10n);
+      case 'abandoned':
+        return _buildAbandonedSectionFull(l10n);
       case 'lists':
         return _buildListsSectionFull(l10n);
       default:
@@ -710,6 +721,57 @@ class _UserBooksPageState extends State<UserBooksPage> {
       else
         _buildFinishedList(_finishedBooksData),
     ];
+  }
+
+  List<Widget> _buildAbandonedSectionFull(AppLocalizations l10n) {
+    if (_abandonedBooksData.isEmpty) {
+      return [
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.all(40),
+            child: Center(
+              child: Text(l10n.noAbandonedBooks,
+                  style: TextStyle(
+                      fontFamily: 'Inter',
+                      color: _isDark
+                          ? AppColors.textSecondaryDark
+                          : AppColors.textSecondary)),
+            ),
+          ),
+        ),
+      ];
+    }
+    return [
+      _sectionHeader(
+        title: l10n.abandonedBooks,
+        count: _abandonedBooksData.length,
+      ),
+      _buildAbandonedGrid(_abandonedBooksData),
+    ];
+  }
+
+  Widget _buildAbandonedGrid(List<Map<String, dynamic>> books) {
+    return SliverPadding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      sliver: SliverGrid(
+        delegate: SliverChildBuilderDelegate(
+          (context, i) {
+            final book = books[i]['book'] as Book;
+            return GestureDetector(
+              onTap: () => _navigateToBook(book),
+              child: _buildBookCover(book, double.infinity, double.infinity),
+            );
+          },
+          childCount: books.length,
+        ),
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: Responsive.isWide(context) ? 6 : 3,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+          childAspectRatio: 0.65,
+        ),
+      ),
+    );
   }
 
   Widget _buildFinishedGrid(List<Map<String, dynamic>> books) {
@@ -1098,6 +1160,8 @@ class _BookDetailPageState extends State<BookDetailPage> {
   final UserCustomListsService _customListsService = UserCustomListsService();
   final AnnotationService _annotationService = AnnotationService();
   final AiService _aiService = AiService();
+  final BookRatingsService _ratingsService = BookRatingsService();
+  BookRating? _myRating;
   ReadingSession? _activeSession;
   BookReadingStats? _stats;
   List<Annotation> _annotations = [];
@@ -1236,6 +1300,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
           .getAnnotationsForBook(widget.book.id.toString());
       final remainingSummaries = await _aiService.getRemainingAiSummaries();
       final cachedSheet = await _aiService.getCachedReadingSheet(widget.book.id);
+      final myRating = await _ratingsService.getMyRating(widget.book.id);
 
       // Refresh cover URL from DB (may have been enriched in background)
       String? freshCoverUrl = widget.book.coverUrl;
@@ -1256,6 +1321,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
         _annotations = annotations;
         _remainingAiSummaries = remainingSummaries;
         _readingSheet = cachedSheet;
+        _myRating = myRating;
         _bookStatus = status;
         _currentGenre = widget.book.genre;
         _isHidden = hidden;
@@ -1290,6 +1356,21 @@ class _BookDetailPageState extends State<BookDetailPage> {
       );
       _loadSessionData();
     }
+  }
+
+  /// "Ajouter une lecture passée" : session saisie a posteriori (chrono
+  /// oublié). La page de départ est pré-remplie à la page courante connue.
+  Future<void> _addPastSession() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AddPastSessionPage(
+          book: widget.book,
+          initialStartPage: _stats?.currentPage,
+        ),
+      ),
+    );
+    if (result == true) _loadSessionData();
   }
 
   Future<void> _endReadingSession() async {
@@ -1555,6 +1636,19 @@ class _BookDetailPageState extends State<BookDetailPage> {
         } catch (e) {
           debugPrint('Erreur checkAndAwardBadges (non bloquante): $e');
         }
+
+        // Proposer de noter le livre (skippable)
+        if (mounted) {
+          final rating = await showRateBookSheet(
+            context,
+            bookId: widget.book.id,
+            bookTitle: widget.book.title,
+            existing: _myRating,
+          );
+          if (rating != null && mounted) {
+            setState(() => _myRating = rating);
+          }
+        }
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -1565,11 +1659,71 @@ class _BookDetailPageState extends State<BookDetailPage> {
     }
   }
 
+  Future<void> _markAsAbandoned() async {
+    final l10n = AppLocalizations.of(context);
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.abandonBookConfirmTitle),
+        content: Text(l10n.abandonBookConfirmBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(l10n.cancel),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.shade400,
+              foregroundColor: Colors.white,
+            ),
+            child: Text(l10n.abandonBookConfirmYes),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      await _booksService.updateBookStatus(widget.book.id, 'abandoned');
+      if (!mounted) return;
+      setState(() => _bookStatus = 'abandoned');
+
+      // % lu depuis la dernière page connue
+      int? percent;
+      final currentPage = _stats?.currentPage;
+      final pageCount = widget.book.pageCount;
+      if (currentPage != null && pageCount != null && pageCount > 0) {
+        percent = ((currentPage / pageCount) * 100).clamp(0, 100).round();
+      }
+
+      // Note optionnelle (jamais publiée pour un abandon)
+      final rating = await showRateBookSheet(
+        context,
+        bookId: widget.book.id,
+        bookTitle: widget.book.title,
+        existing: _myRating,
+        abandonMode: true,
+        abandonedAtPercent: percent,
+      );
+      if (rating != null && mounted) {
+        setState(() => _myRating = rating);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
   String _formatDuration(DateTime startTime) {
     final duration = DateTime.now().difference(startTime);
     final hours = duration.inHours;
     final minutes = duration.inMinutes % 60;
-    
+
     if (hours > 0) {
       return '${hours}h ${minutes}min';
     }
@@ -1605,6 +1759,10 @@ class _BookDetailPageState extends State<BookDetailPage> {
             _buildBookHeader(),
             if (!_isLoading && _bookStatus != null) _buildReadingSessionSection(),
             if (_stats != null && _stats!.sessionsCount > 0) _buildStatsSection(),
+            if (!_isLoading &&
+                widget.sharedByUserId == null &&
+                (_isBookFinished || _bookStatus == 'abandoned'))
+              _buildRatingSection(),
             if (!_isLoading && widget.sharedByUserId == null) _buildAnnotationsSection(),
             if (!_isLoading && widget.sharedByUserId == null && _annotations.length >= 3) _buildReadingSheetSection(),
             if (widget.book.description != null) _buildDescriptionSection(),
@@ -1954,6 +2112,17 @@ class _BookDetailPageState extends State<BookDetailPage> {
                   ),
                   const SizedBox(height: 12),
                   OutlinedButton.icon(
+                    onPressed: _addPastSession,
+                    icon: const Icon(Icons.history),
+                    label:
+                        Text(AppLocalizations.of(context).addPastSessionButton),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.all(16),
+                      foregroundColor: Theme.of(context).primaryColor,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
                     onPressed: _markAsFinished,
                     icon: const Icon(Icons.check_circle_outline),
                     label: const Text('Marquer comme terminé'),
@@ -1963,6 +2132,20 @@ class _BookDetailPageState extends State<BookDetailPage> {
                       side: BorderSide(color: Colors.amber.shade600),
                     ),
                   ),
+                  if (_bookStatus == 'reading') ...[
+                    const SizedBox(height: 4),
+                    TextButton.icon(
+                      onPressed: _markAsAbandoned,
+                      icon: const Icon(Icons.stop_circle_outlined, size: 18),
+                      label: Text(AppLocalizations.of(context).abandonBookAction),
+                      style: TextButton.styleFrom(
+                        foregroundColor: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withValues(alpha: 0.5),
+                      ),
+                    ),
+                  ],
                 ] else ...[
                   Container(
                     padding: const EdgeInsets.all(12),
@@ -3078,7 +3261,9 @@ class _BookDetailPageState extends State<BookDetailPage> {
           children: [
             TextField(
               controller: contentController,
-              maxLines: 4,
+              minLines: 4,
+              maxLines: 10,
+              keyboardType: TextInputType.multiline,
               decoration: const InputDecoration(
                 hintText: 'Contenu',
               ),
@@ -3135,6 +3320,88 @@ class _BookDetailPageState extends State<BookDetailPage> {
             ),
             child: const Text('Sauvegarder'),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRatingSection() {
+    final l10n = AppLocalizations.of(context);
+
+    Future<void> openSheet() async {
+      final isAbandoned = _bookStatus == 'abandoned';
+      final rating = await showRateBookSheet(
+        context,
+        bookId: widget.book.id,
+        bookTitle: widget.book.title,
+        existing: _myRating,
+        abandonMode: isAbandoned,
+        abandonedAtPercent: isAbandoned ? _myRating?.abandonedAtPercent : null,
+      );
+      if (rating != null && mounted) {
+        setState(() => _myRating = rating);
+      }
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            l10n.yourRating,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 12),
+          if (_myRating != null)
+            InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: openSheet,
+              child: Row(
+                children: [
+                  StarRating(rating: _myRating!.rating, size: 28),
+                  const SizedBox(width: 8),
+                  Text(
+                    _myRating!.rating.toStringAsFixed(
+                        _myRating!.rating.truncateToDouble() ==
+                                _myRating!.rating
+                            ? 0
+                            : 1),
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const Spacer(),
+                  Icon(
+                    Icons.edit_outlined,
+                    size: 18,
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.4),
+                  ),
+                ],
+              ),
+            )
+          else
+            OutlinedButton.icon(
+              onPressed: openSheet,
+              icon: const Icon(Icons.star_border_rounded),
+              label: Text(l10n.rateThisBook),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.primary,
+                side: const BorderSide(color: AppColors.primary),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
         ],
       ),
     );

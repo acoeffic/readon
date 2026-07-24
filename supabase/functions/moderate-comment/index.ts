@@ -28,6 +28,29 @@ function jsonResponse(body: Record<string, unknown>, status = 200) {
   });
 }
 
+// Appelée uniquement par le trigger SQL `trigger_moderate_comment`, qui
+// présente la clé service_role (Vault) en Bearer. Comparer présence d'un
+// header ne suffit pas : la clé anon de l'app en fournit un. On exige donc
+// le service_role exact. Avec `verify_jwt = false` (config.toml), c'est ce
+// check qui protège la fonction.
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let mismatch = 0;
+  for (let i = 0; i < a.length; i++) {
+    mismatch |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return mismatch === 0;
+}
+
+function isServiceRole(req: Request): boolean {
+  const token = (req.headers.get("authorization") ?? "").replace(
+    /^Bearer\s+/i,
+    "",
+  );
+  return token.length > 0 &&
+    timingSafeEqual(token, SUPABASE_SERVICE_ROLE_KEY!);
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -37,8 +60,7 @@ serve(async (req) => {
     return jsonResponse({ error: "Method not allowed" }, 405);
   }
 
-  const authHeader = req.headers.get("authorization");
-  if (!authHeader) {
+  if (!isServiceRole(req)) {
     return jsonResponse({ error: "Non autorisé" }, 401);
   }
 

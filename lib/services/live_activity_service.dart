@@ -12,6 +12,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 
+import '../widgets/cached_book_cover.dart';
+
 typedef LiveActivityCommandHandler = Future<void> Function(
   String command,
   String sessionId,
@@ -47,17 +49,21 @@ class LiveActivityService {
   }
 
   /// Démarre une Live Activity pour une session de lecture.
+  ///
+  /// [coverUrls] : liste ordonnée de candidates (typiquement la chaîne
+  /// validée par `CachedBookCover.resolveCoverUrls`). La première qui
+  /// télécharge une vraie image (pas un placeholder) est utilisée.
   Future<void> start({
     required String sessionId,
     required String bookTitle,
     String bookAuthor = '',
-    String? coverUrl,
+    List<String> coverUrls = const [],
     int accumulatedSeconds = 0,
     bool isPaused = false,
   }) async {
     if (!_isIOS) return;
     try {
-      final coverBase64 = await _resolveCover(coverUrl);
+      final coverBase64 = await _resolveCover(coverUrls);
       await _channel.invokeMethod('start', {
         'sessionId': sessionId,
         'bookTitle': bookTitle,
@@ -147,34 +153,41 @@ class LiveActivityService {
         'Mobile/15E148 Safari/604.1',
   };
 
-  Future<String> _resolveCover(String? url) async {
-    if (url == null || url.isEmpty) {
-      debugPrint('LiveActivity._resolveCover: url null/empty');
-      return '';
-    }
-    if (_cachedCoverUrl == url && _cachedCoverBase64 != null) {
-      return _cachedCoverBase64!;
-    }
-    try {
-      final res = await http
-          .get(Uri.parse(url), headers: _browserHeaders)
-          .timeout(const Duration(seconds: 8));
-      if (res.statusCode != 200) {
-        debugPrint('LiveActivity._resolveCover: HTTP ${res.statusCode} for $url');
-        return '';
+  /// Essaie chaque URL dans l'ordre et retourne le base64 de la première
+  /// vraie couverture. Rejette les images placeholder (GIF 1×1 Amazon,
+  /// PNG gris Google Books) qui sinon s'affichent comme un rectangle gris
+  /// sur la Live Activity.
+  Future<String> _resolveCover(List<String> urls) async {
+    for (final url in urls) {
+      if (url.isEmpty) continue;
+      if (_cachedCoverUrl == url && _cachedCoverBase64 != null) {
+        return _cachedCoverBase64!;
       }
-      if (res.bodyBytes.isEmpty) {
-        debugPrint('LiveActivity._resolveCover: empty body for $url');
-        return '';
+      try {
+        final res = await http
+            .get(Uri.parse(url), headers: _browserHeaders)
+            .timeout(const Duration(seconds: 8));
+        if (res.statusCode != 200) {
+          debugPrint('LiveActivity._resolveCover: HTTP ${res.statusCode} for $url');
+          continue;
+        }
+        if (!CachedBookCover.looksLikeRealCover(url, res.bodyBytes)) {
+          debugPrint(
+            'LiveActivity._resolveCover: placeholder rejeté '
+            '(${res.bodyBytes.length} bytes) for $url',
+          );
+          continue;
+        }
+        final encoded = base64Encode(res.bodyBytes);
+        _cachedCoverUrl = url;
+        _cachedCoverBase64 = encoded;
+        debugPrint('LiveActivity._resolveCover: ${res.bodyBytes.length} bytes from $url');
+        return encoded;
+      } catch (e) {
+        debugPrint('LiveActivity._resolveCover error for $url: $e');
       }
-      final encoded = base64Encode(res.bodyBytes);
-      _cachedCoverUrl = url;
-      _cachedCoverBase64 = encoded;
-      debugPrint('LiveActivity._resolveCover: ${res.bodyBytes.length} bytes from $url');
-      return encoded;
-    } catch (e) {
-      debugPrint('LiveActivity._resolveCover error: $e');
-      return '';
     }
+    debugPrint('LiveActivity._resolveCover: aucune couverture valide (${urls.length} candidates)');
+    return '';
   }
 }

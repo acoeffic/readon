@@ -130,7 +130,20 @@ async function enrichWithOpenLibrary(
   }
 }
 
-serve(async (_req) => {
+serve(async (req) => {
+  // Réservé au cron. Le job pg_cron a été mis à jour pour envoyer la
+  // service_role (au lieu de la clé anon), donc on exige ce token exact.
+  const token = (req.headers.get("authorization") ?? "").replace("Bearer ", "");
+  const cronSecret = Deno.env.get("CRON_SECRET");
+  const authorized = (token === SUPABASE_SERVICE_ROLE_KEY) ||
+    (cronSecret && token === cronSecret);
+  if (!authorized) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
   try {
     // Fetch active prize configs
     const { data: prizes, error: prizesError } = await supabase

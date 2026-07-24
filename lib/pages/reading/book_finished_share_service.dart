@@ -11,6 +11,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../models/book.dart';
 import '../../models/reading_session.dart';
 import '../../features/wrapped/share/share_format.dart';
+import '../../features/wrapped/share/story_share_service.dart';
 import '../../services/lexday_sync_service.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/app_constants.dart';
@@ -76,6 +77,22 @@ class BookFinishedShareService {
   }) async {
     final text = buildShareText(book, stats);
 
+    // Instagram : vrai partage Story (image préchargée en fond). Fallback
+    // feuille native si l'app n'est pas installée / non supportée.
+    if (destination == ShareDestination.instagram) {
+      final result =
+          await StoryShareService().shareToInstagramStory(imageBytes);
+      if (result == StoryShareResult.shared) return;
+
+      final file = await _saveTempFile(imageBytes, book.id);
+      await Share.shareXFiles(
+        [XFile(file.path)],
+        text: text,
+        sharePositionOrigin: sharePositionOrigin,
+      );
+      return;
+    }
+
     // Destinations that go directly to the native share sheet
     if (destination == ShareDestination.whatsapp ||
         destination == ShareDestination.message ||
@@ -89,27 +106,9 @@ class BookFinishedShareService {
       return;
     }
 
-    // Try deep-linking into the target app
-    final scheme = destination.urlScheme;
-    if (scheme != null) {
-      final uri = Uri.parse(scheme);
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-        return;
-      }
-    }
-
-    // App not installed — open web version in browser
-    final webUrl = destination.webFallbackUrl;
-    if (webUrl != null) {
-      await launchUrl(
-        Uri.parse(webUrl),
-        mode: LaunchMode.externalApplication,
-      );
-      return;
-    }
-
-    // Last resort — native share sheet
+    // Toutes les autres destinations : feuille de partage native AVEC l'image.
+    // On n'ouvre plus l'app via un simple scheme (qui n'attache pas l'image et
+    // laissait l'utilisateur devant une app vide).
     final file = await _saveTempFile(imageBytes, book.id);
     await Share.shareXFiles(
       [XFile(file.path)],
@@ -254,6 +253,18 @@ class _BookFinishedShareSheetState extends State<_BookFinishedShareSheet> {
           if (!mounted) return;
           Navigator.pop(context);
           return;
+        }
+
+        // Instagram : vidéo en fond de Story. Si ça échoue, on retombe sur
+        // le partage image ci-dessous.
+        if (destination == ShareDestination.instagram) {
+          final result = await StoryShareService()
+              .shareVideoToInstagramStory(_videoFile!.path);
+          if (result == StoryShareResult.shared) {
+            if (!mounted) return;
+            Navigator.pop(context);
+            return;
+          }
         }
       }
 

@@ -89,6 +89,8 @@ class MonthlyWrappedService {
         author: info?['author'] as String? ?? '',
         totalMinutes: topEntry.value,
         coverUrl: info?['cover_url'] as String?,
+        isbn: info?['isbn'] as String?,
+        googleId: info?['google_id'] as String?,
       );
     }
 
@@ -170,7 +172,7 @@ class MonthlyWrappedService {
 
       final books = await _supabase
           .from('books')
-          .select('id, title, author, cover_url')
+          .select('id, title, author, cover_url, isbn, google_id')
           .inFilter('id', bookIdsInt);
 
       final booksById = <String, Map<String, dynamic>>{};
@@ -180,6 +182,8 @@ class MonthlyWrappedService {
           'title': b['title'],
           'author': b['author'],
           'cover_url': b['cover_url'],
+          'isbn': b['isbn'],
+          'google_id': b['google_id'],
         };
       }
 

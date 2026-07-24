@@ -24,6 +24,7 @@ enum ShareFormat {
 /// The [format] is determined automatically based on the destination.
 /// Each destination maps to a URL scheme for deep linking.
 enum ShareDestination {
+  instagram,
   whatsapp,
   linkedin,
   twitter,
@@ -34,6 +35,7 @@ enum ShareDestination {
   more;
 
   String get label => switch (this) {
+        instagram => 'Instagram',
         whatsapp => 'WhatsApp',
         linkedin => 'LinkedIn',
         twitter => 'X',
@@ -46,6 +48,7 @@ enum ShareDestination {
 
   /// Brand icon for each destination.
   IconData get iconData => switch (this) {
+        instagram => FontAwesomeIcons.instagram,
         whatsapp => FontAwesomeIcons.whatsapp,
         linkedin => FontAwesomeIcons.linkedin,
         twitter => FontAwesomeIcons.xTwitter,
@@ -58,6 +61,7 @@ enum ShareDestination {
 
   /// Brand color for each destination.
   Color get brandColor => switch (this) {
+        instagram => const Color(0xFFE1306C),
         whatsapp => const Color(0xFF25D366),
         linkedin => const Color(0xFF0A66C2),
         twitter => const Color(0xFF000000),
@@ -69,6 +73,7 @@ enum ShareDestination {
       };
 
   ShareFormat get format => switch (this) {
+        instagram => ShareFormat.story,
         whatsapp => ShareFormat.story,
         linkedin => ShareFormat.square,
         twitter => ShareFormat.square,
@@ -82,6 +87,8 @@ enum ShareDestination {
   /// URL scheme used to open the target app via deep link.
   /// Returns `null` for destinations that use the native share sheet directly.
   String? get urlScheme => switch (this) {
+        // Instagram passe par le partage Story natif (pas un simple scheme).
+        instagram => null,
         whatsapp => null,
         linkedin => 'linkedin://app',
         twitter => 'twitter://post',
@@ -95,6 +102,7 @@ enum ShareDestination {
   /// Web fallback URL when the app is not installed.
   /// Returns `null` for destinations that don't have a web fallback.
   String? get webFallbackUrl => switch (this) {
+        instagram => null,
         whatsapp => null,
         linkedin => 'https://www.linkedin.com',
         twitter => 'https://x.com',

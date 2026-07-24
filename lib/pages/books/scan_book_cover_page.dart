@@ -114,6 +114,7 @@ class _ScanBookCoverPageState extends State<ScanBookCoverPage>
       final book = await _googleBooksService.searchByISBN(isbn);
 
       if (book != null) {
+        if (!mounted) return;
         setState(() {
           _searchResults = [book];
           _isSearching = false;
@@ -121,6 +122,7 @@ class _ScanBookCoverPageState extends State<ScanBookCoverPage>
       } else {
         // Pas trouvé par ISBN, essayer recherche générique
         final results = await _googleBooksService.searchBooks(isbn);
+        if (!mounted) return;
         setState(() {
           _searchResults = results;
           _isSearching = false;
@@ -130,6 +132,7 @@ class _ScanBookCoverPageState extends State<ScanBookCoverPage>
         });
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _isSearching = false;
         _errorMessage = 'Erreur de recherche: $e';
@@ -175,6 +178,7 @@ class _ScanBookCoverPageState extends State<ScanBookCoverPage>
       if (photo == null) return;
       await _processImage(photo);
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _errorMessage = 'Erreur lors de la capture: $e';
       });
@@ -191,6 +195,7 @@ class _ScanBookCoverPageState extends State<ScanBookCoverPage>
       if (photo == null) return;
       await _processImage(photo);
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _errorMessage = 'Erreur lors de la sélection: $e';
       });
@@ -212,6 +217,7 @@ class _ScanBookCoverPageState extends State<ScanBookCoverPage>
       final isbn = await _ocrService.extractISBN(photo.path);
 
       if (isbn != null) {
+        if (!mounted) return;
         setState(() {
           _detectedISBN = isbn;
           _successMessage = 'ISBN détecté: $isbn';
@@ -224,6 +230,7 @@ class _ScanBookCoverPageState extends State<ScanBookCoverPage>
       // 2. Sinon, extraire le texte de la couverture
       final text = await _ocrService.extractAllText(photo.path);
 
+      if (!mounted) return;
       setState(() {
         _extractedText = text;
         _isProcessing = false;
@@ -239,6 +246,7 @@ class _ScanBookCoverPageState extends State<ScanBookCoverPage>
       // 3. Rechercher sur Google Books
       await _searchOnGoogleBooks(text);
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _isProcessing = false;
         _errorMessage = 'Erreur OCR: $e';
@@ -342,6 +350,7 @@ class _ScanBookCoverPageState extends State<ScanBookCoverPage>
         }
       }
 
+      if (!mounted) return;
       setState(() {
         _searchResults = results;
         _isSearching = false;
@@ -353,6 +362,7 @@ class _ScanBookCoverPageState extends State<ScanBookCoverPage>
         });
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _isSearching = false;
         _errorMessage = 'Erreur de recherche: $e';

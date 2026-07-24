@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../../theme/app_theme.dart';
 import '../../../widgets/cached_book_cover.dart';
 import '../../../widgets/cached_profile_avatar.dart';
+import '../../friends/friend_profile_page.dart';
 
 class CommunitySessionCard extends StatelessWidget {
   final Map<String, dynamic> session;
@@ -25,6 +26,21 @@ class CommunitySessionCard extends StatelessWidget {
     } catch (e) {
       return 'Récemment';
     }
+  }
+
+  void _openProfile(BuildContext context) {
+    final userId = session['user_id'] as String?;
+    if (userId == null) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => FriendProfilePage(
+          userId: userId,
+          initialName: session['display_name'] as String?,
+          initialAvatar: session['avatar_url'] as String?,
+        ),
+      ),
+    );
   }
 
   @override
@@ -71,37 +87,44 @@ class CommunitySessionCard extends StatelessWidget {
             // Header: Avatar + Nom + Temps + Badge communaute
             Row(
               children: [
-                CachedProfileAvatar(
-                  imageUrl: avatarUrl,
-                  userName: displayName,
-                  radius: 18,
-                  backgroundColor: AppColors.primary.withValues(alpha: 0.2),
-                  textColor: AppColors.primary.withValues(alpha: 0.9),
-                  fontSize: 14,
+                GestureDetector(
+                  onTap: () => _openProfile(context),
+                  child: CachedProfileAvatar(
+                    imageUrl: avatarUrl,
+                    userName: displayName,
+                    radius: 18,
+                    backgroundColor: AppColors.primary.withValues(alpha: 0.2),
+                    textColor: AppColors.primary.withValues(alpha: 0.9),
+                    fontSize: 14,
+                  ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        displayName,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
+                  child: GestureDetector(
+                    onTap: () => _openProfile(context),
+                    behavior: HitTestBehavior.opaque,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          displayName,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
                         ),
-                      ),
-                      Text(
-                        _getTimeAgo(createdAt),
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withValues(alpha: 0.6),
+                        Text(
+                          _getTimeAgo(createdAt),
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withValues(alpha: 0.6),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
                 // Badge communaute

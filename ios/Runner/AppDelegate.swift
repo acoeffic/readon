@@ -12,6 +12,8 @@ import ActivityKit
   private let liveActivityChannelName = "fr.lexday.app/reading_live_activity"
   /// Channel pour présenter le paywall natif SubscriptionStoreView.
   private let paywallChannelName = "fr.lexday.app/paywall"
+  /// Channel pour le pont Apple Watch (état + commandes de session).
+  private let watchChannelName = "fr.lexday.app/watch"
 
   override func application(
     _ application: UIApplication,
@@ -29,6 +31,10 @@ import ActivityKit
     // With FirebaseAppDelegateProxyEnabled = false, we must explicitly
     // register for remote notifications so APNs tokens are delivered.
     application.registerForRemoteNotifications()
+
+    // Active le pont Apple Watch pour écouter les commandes de la Watch
+    // même avant que le moteur Flutter ne soit prêt.
+    WatchConnectivityManager.shared.activate()
 
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
@@ -53,6 +59,40 @@ import ActivityKit
     }
     if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "SubscriptionPaywallChannel") {
       setupPaywallChannel(messenger: registrar.messenger())
+    }
+    if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "WatchBridgeChannel") {
+      setupWatchChannel(messenger: registrar.messenger())
+    }
+    if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "StoryShareChannel") {
+      setupStoryShareChannel(messenger: registrar.messenger())
+    }
+  }
+
+  // MARK: - Apple Watch MethodChannel
+
+  private func setupWatchChannel(messenger: FlutterBinaryMessenger) {
+    let channel = FlutterMethodChannel(name: watchChannelName, binaryMessenger: messenger)
+    channel.setMethodCallHandler { call, result in
+      switch call.method {
+      case "isSupported":
+        result(WatchConnectivityManager.shared.isSupported)
+
+      case "pushState":
+        let args = call.arguments as? [String: Any]
+        let isReading = args?["isReading"] as? Bool ?? false
+        let isPaused = args?["isPaused"] as? Bool ?? false
+        let sessionId = args?["sessionId"] as? String ?? ""
+        WatchConnectivityManager.shared.pushState(
+          isReading: isReading, isPaused: isPaused, sessionId: sessionId
+        )
+        result(true)
+
+      case "pollCommand":
+        result(WatchConnectivityManager.shared.consumePendingCommand())
+
+      default:
+        result(FlutterMethodNotImplemented)
+      }
     }
   }
 
@@ -324,6 +364,102 @@ extension UIImage {
     let renderer = UIGraphicsImageRenderer(size: newSize)
     return renderer.image { _ in
       draw(in: CGRect(origin: .zero, size: newSize))
+    }
+  }
+}
+
+// MARK: - Partage Story Instagram / Facebook
+//
+// On écrit l'image/vidéo dans le pasteboard avec les clés « sharedSticker »
+// que le composer de Story lit au démarrage, puis on ouvre
+// `instagram-stories://share` (resp. `facebook-stories://share`).
+//
+// ⚠️ `source_application` DOIT être un Facebook App ID valide, sinon Instagram
+// ignore l'ouverture. Les schemes `instagram-stories` / `facebook-stories`
+// doivent être déclarés dans LSApplicationQueriesSchemes (Info.plist).
+
+extension AppDelegate {
+
+  func setupStoryShareChannel(messenger: FlutterBinaryMessenger) {
+    let channel = FlutterMethodChannel(
+      name: "fr.lexday.app/story_share",
+      binaryMessenger: messenger
+    )
+    channel.setMethodCallHandler { call, result in
+      let args = call.arguments as? [String: Any]
+      let target = args?["target"] as? String ?? "instagram"
+      let source = (args?["sourceApplication"] as? String)
+        ?? Bundle.main.bundleIdentifier
+        ?? ""
+
+      switch call.method {
+      case "shareToStory":
+        guard
+          let imageData = (args?["backgroundImage"] as? FlutterStandardTypedData)?.data
+        else {
+          result("error")
+          return
+        }
+        AppDelegate.shareToStory(
+          target: target,
+          assetData: imageData,
+          isVideo: false,
+          sourceApplication: source,
+          result: result
+        )
+
+      case "shareVideoToStory":
+        guard
+          let path = args?["videoPath"] as? String,
+          let videoData = try? Data(contentsOf: URL(fileURLWithPath: path))
+        else {
+          result("error")
+          return
+        }
+        AppDelegate.shareToStory(
+          target: target,
+          assetData: videoData,
+          isVideo: true,
+          sourceApplication: source,
+          result: result
+        )
+
+      default:
+        result(FlutterMethodNotImplemented)
+      }
+    }
+  }
+
+  private static func shareToStory(
+    target: String,
+    assetData: Data,
+    isVideo: Bool,
+    sourceApplication: String,
+    result: @escaping FlutterResult
+  ) {
+    let isFacebook = (target == "facebook")
+    let scheme = isFacebook ? "facebook-stories://share" : "instagram-stories://share"
+    let prefix = isFacebook ? "com.facebook.sharedSticker" : "com.instagram.sharedSticker"
+    let assetKey = isVideo
+      ? "\(prefix).backgroundVideo"
+      : "\(prefix).backgroundImage"
+
+    guard
+      let url = URL(string: "\(scheme)?source_application=\(sourceApplication)"),
+      UIApplication.shared.canOpenURL(url)
+    else {
+      result("not_installed")
+      return
+    }
+
+    let items: [String: Any] = [assetKey: assetData]
+    let options: [UIPasteboard.OptionsKey: Any] = [
+      .expirationDate: Date().addingTimeInterval(60 * 5)
+    ]
+    UIPasteboard.general.setItems([items], options: options)
+
+    UIApplication.shared.open(url, options: [:]) { success in
+      result(success ? "shared" : "error")
     }
   }
 }

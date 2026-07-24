@@ -3412,6 +3412,24 @@ abstract class AppLocalizations {
   /// **'Ses badges'**
   String get theirBadges;
 
+  /// No description provided for @theirBooks.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ses lectures'**
+  String get theirBooks;
+
+  /// No description provided for @finishedBooksSection.
+  ///
+  /// In fr, this message translates to:
+  /// **'Terminés'**
+  String get finishedBooksSection;
+
+  /// No description provided for @noBooksYet.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun livre pour le moment'**
+  String get noBooksYet;
+
   /// No description provided for @removeFriend.
   ///
   /// In fr, this message translates to:
@@ -3819,6 +3837,84 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Un classique à découvrir'**
   String get museClassic;
+
+  /// No description provided for @museAssistantLabel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Assistant littéraire'**
+  String get museAssistantLabel;
+
+  /// No description provided for @museHeroSubtitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Un livre, une question, une envie…'**
+  String get museHeroSubtitle;
+
+  /// No description provided for @museComposerHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Que cherches-tu aujourd\'hui ?'**
+  String get museComposerHint;
+
+  /// No description provided for @museComposerSubhint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Titre, auteur, question…'**
+  String get museComposerSubhint;
+
+  /// No description provided for @museModeChat.
+  ///
+  /// In fr, this message translates to:
+  /// **'Discuter'**
+  String get museModeChat;
+
+  /// No description provided for @museModeSearch.
+  ///
+  /// In fr, this message translates to:
+  /// **'Chercher un livre'**
+  String get museModeSearch;
+
+  /// No description provided for @museChipFavorite.
+  ///
+  /// In fr, this message translates to:
+  /// **'Coup de cœur du moment'**
+  String get museChipFavorite;
+
+  /// No description provided for @museFavoritePrompt.
+  ///
+  /// In fr, this message translates to:
+  /// **'Quel est ton coup de cœur du moment ?'**
+  String get museFavoritePrompt;
+
+  /// No description provided for @museSectionRecent.
+  ///
+  /// In fr, this message translates to:
+  /// **'Récente'**
+  String get museSectionRecent;
+
+  /// No description provided for @museSectionConversations.
+  ///
+  /// In fr, this message translates to:
+  /// **'Conversations'**
+  String get museSectionConversations;
+
+  /// No description provided for @museSeeAll.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tout voir'**
+  String get museSeeAll;
+
+  /// No description provided for @museContinueConversation.
+  ///
+  /// In fr, this message translates to:
+  /// **'Continuer la conversation'**
+  String get museContinueConversation;
+
+  /// No description provided for @museSearchPrefix.
+  ///
+  /// In fr, this message translates to:
+  /// **'Je cherche un livre : {query}'**
+  String museSearchPrefix(String query);
 
   /// No description provided for @freeMessagesUsed.
   ///
@@ -5134,6 +5230,18 @@ abstract class AppLocalizations {
   /// **'Sois le premier à commenter !'**
   String get beFirstToComment;
 
+  /// No description provided for @replyAction.
+  ///
+  /// In fr, this message translates to:
+  /// **'Répondre'**
+  String get replyAction;
+
+  /// No description provided for @replyingTo.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réponse à {name}'**
+  String replyingTo(String name);
+
   /// No description provided for @send.
   ///
   /// In fr, this message translates to:
@@ -5157,6 +5265,12 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Aucune librairie trouvée à proximité'**
   String get noBookstoresFound;
+
+  /// No description provided for @bookstoresLoadError.
+  ///
+  /// In fr, this message translates to:
+  /// **'Impossible de charger les librairies. Vérifiez votre connexion et réessayez.'**
+  String get bookstoresLoadError;
 
   /// No description provided for @openNow.
   ///
@@ -5295,6 +5409,12 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'{name} a commenté votre lecture de {bookTitle}'**
   String commentedYourReading(String name, String bookTitle);
+
+  /// No description provided for @repliedYourComment.
+  ///
+  /// In fr, this message translates to:
+  /// **'{name} a répondu à votre commentaire sur {bookTitle}'**
+  String repliedYourComment(String name, String bookTitle);
 
   /// No description provided for @prizeSelections.
   ///
@@ -6513,6 +6633,414 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Fixe-toi un objectif de lecture'**
   String get feedGoalsCta;
+
+  /// No description provided for @rateBookSheetTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Noter ce livre'**
+  String get rateBookSheetTitle;
+
+  /// No description provided for @rateBookSheetTitleWithBook.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tu as terminé « {title} » !'**
+  String rateBookSheetTitleWithBook(String title);
+
+  /// No description provided for @rateBookSheetSubtitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Qu\'en as-tu pensé ?'**
+  String get rateBookSheetSubtitle;
+
+  /// No description provided for @bookRatingSaved.
+  ///
+  /// In fr, this message translates to:
+  /// **'Note enregistrée !'**
+  String get bookRatingSaved;
+
+  /// No description provided for @bookRatingError.
+  ///
+  /// In fr, this message translates to:
+  /// **'Impossible d\'enregistrer la note'**
+  String get bookRatingError;
+
+  /// No description provided for @yourRating.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ma note'**
+  String get yourRating;
+
+  /// No description provided for @rateThisBook.
+  ///
+  /// In fr, this message translates to:
+  /// **'Noter ce livre'**
+  String get rateThisBook;
+
+  /// No description provided for @rateBookRefine.
+  ///
+  /// In fr, this message translates to:
+  /// **'Affiner ton avis'**
+  String get rateBookRefine;
+
+  /// No description provided for @criteriaWriting.
+  ///
+  /// In fr, this message translates to:
+  /// **'Écriture'**
+  String get criteriaWriting;
+
+  /// No description provided for @criteriaStory.
+  ///
+  /// In fr, this message translates to:
+  /// **'Histoire'**
+  String get criteriaStory;
+
+  /// No description provided for @criteriaPace.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rythme'**
+  String get criteriaPace;
+
+  /// No description provided for @criteriaDifficulty.
+  ///
+  /// In fr, this message translates to:
+  /// **'Difficulté'**
+  String get criteriaDifficulty;
+
+  /// No description provided for @criteriaLevelWeak.
+  ///
+  /// In fr, this message translates to:
+  /// **'Bof'**
+  String get criteriaLevelWeak;
+
+  /// No description provided for @criteriaLevelGood.
+  ///
+  /// In fr, this message translates to:
+  /// **'Bien'**
+  String get criteriaLevelGood;
+
+  /// No description provided for @criteriaLevelExcellent.
+  ///
+  /// In fr, this message translates to:
+  /// **'Excellent'**
+  String get criteriaLevelExcellent;
+
+  /// No description provided for @paceSlow.
+  ///
+  /// In fr, this message translates to:
+  /// **'Lent'**
+  String get paceSlow;
+
+  /// No description provided for @paceBalanced.
+  ///
+  /// In fr, this message translates to:
+  /// **'Équilibré'**
+  String get paceBalanced;
+
+  /// No description provided for @paceFast.
+  ///
+  /// In fr, this message translates to:
+  /// **'Haletant'**
+  String get paceFast;
+
+  /// No description provided for @difficultyEasy.
+  ///
+  /// In fr, this message translates to:
+  /// **'Facile'**
+  String get difficultyEasy;
+
+  /// No description provided for @difficultyMedium.
+  ///
+  /// In fr, this message translates to:
+  /// **'Moyen'**
+  String get difficultyMedium;
+
+  /// No description provided for @difficultyHard.
+  ///
+  /// In fr, this message translates to:
+  /// **'Exigeant'**
+  String get difficultyHard;
+
+  /// No description provided for @emotionTagsLabel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce livre était…'**
+  String get emotionTagsLabel;
+
+  /// No description provided for @emotionMoving.
+  ///
+  /// In fr, this message translates to:
+  /// **'Bouleversant'**
+  String get emotionMoving;
+
+  /// No description provided for @emotionFunny.
+  ///
+  /// In fr, this message translates to:
+  /// **'Drôle'**
+  String get emotionFunny;
+
+  /// No description provided for @emotionInstructive.
+  ///
+  /// In fr, this message translates to:
+  /// **'Instructif'**
+  String get emotionInstructive;
+
+  /// No description provided for @emotionComforting.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réconfortant'**
+  String get emotionComforting;
+
+  /// No description provided for @emotionDisturbing.
+  ///
+  /// In fr, this message translates to:
+  /// **'Dérangeant'**
+  String get emotionDisturbing;
+
+  /// No description provided for @emotionGripping.
+  ///
+  /// In fr, this message translates to:
+  /// **'Captivant'**
+  String get emotionGripping;
+
+  /// No description provided for @emotionInspiring.
+  ///
+  /// In fr, this message translates to:
+  /// **'Inspirant'**
+  String get emotionInspiring;
+
+  /// No description provided for @emotionDark.
+  ///
+  /// In fr, this message translates to:
+  /// **'Sombre'**
+  String get emotionDark;
+
+  /// No description provided for @emotionPoetic.
+  ///
+  /// In fr, this message translates to:
+  /// **'Poétique'**
+  String get emotionPoetic;
+
+  /// No description provided for @emotionMindBlowing.
+  ///
+  /// In fr, this message translates to:
+  /// **'Renversant'**
+  String get emotionMindBlowing;
+
+  /// No description provided for @reviewHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ton avis en quelques mots…'**
+  String get reviewHint;
+
+  /// No description provided for @wouldRecommendLabel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Je le recommande'**
+  String get wouldRecommendLabel;
+
+  /// No description provided for @wouldRereadLabel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Je le relirais'**
+  String get wouldRereadLabel;
+
+  /// No description provided for @shareWithFriends.
+  ///
+  /// In fr, this message translates to:
+  /// **'Partager avec mes amis'**
+  String get shareWithFriends;
+
+  /// No description provided for @feedRatedBook.
+  ///
+  /// In fr, this message translates to:
+  /// **'a noté un livre'**
+  String get feedRatedBook;
+
+  /// No description provided for @feedRecommendedBadge.
+  ///
+  /// In fr, this message translates to:
+  /// **'Recommandé'**
+  String get feedRecommendedBadge;
+
+  /// No description provided for @filterAbandoned.
+  ///
+  /// In fr, this message translates to:
+  /// **'Abandonnés'**
+  String get filterAbandoned;
+
+  /// No description provided for @abandonedBooks.
+  ///
+  /// In fr, this message translates to:
+  /// **'Livres abandonnés'**
+  String get abandonedBooks;
+
+  /// No description provided for @noAbandonedBooks.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun livre abandonné'**
+  String get noAbandonedBooks;
+
+  /// No description provided for @abandonBookAction.
+  ///
+  /// In fr, this message translates to:
+  /// **'Abandonner ce livre'**
+  String get abandonBookAction;
+
+  /// No description provided for @abandonBookConfirmTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Abandonner ce livre ?'**
+  String get abandonBookConfirmTitle;
+
+  /// No description provided for @abandonBookConfirmBody.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tu pourras le reprendre plus tard depuis ta bibliothèque.'**
+  String get abandonBookConfirmBody;
+
+  /// No description provided for @abandonBookConfirmYes.
+  ///
+  /// In fr, this message translates to:
+  /// **'Oui, j\'arrête'**
+  String get abandonBookConfirmYes;
+
+  /// No description provided for @abandonSheetTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tu abandonnes ce livre'**
+  String get abandonSheetTitle;
+
+  /// No description provided for @abandonSheetSubtitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Une note quand même ? C\'est optionnel.'**
+  String get abandonSheetSubtitle;
+
+  /// No description provided for @watchCatchupTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Lecture depuis ta Watch'**
+  String get watchCatchupTitle;
+
+  /// No description provided for @watchCatchupBody.
+  ///
+  /// In fr, this message translates to:
+  /// **'{minutes} min enregistrées depuis ton Apple Watch. Complète les pages pour mettre à jour ta progression.'**
+  String watchCatchupBody(int minutes);
+
+  /// No description provided for @watchCatchupStartPage.
+  ///
+  /// In fr, this message translates to:
+  /// **'Page de début'**
+  String get watchCatchupStartPage;
+
+  /// No description provided for @watchCatchupEndPage.
+  ///
+  /// In fr, this message translates to:
+  /// **'Page de fin'**
+  String get watchCatchupEndPage;
+
+  /// No description provided for @watchCatchupScan.
+  ///
+  /// In fr, this message translates to:
+  /// **'Scanner la page'**
+  String get watchCatchupScan;
+
+  /// No description provided for @watchCatchupSave.
+  ///
+  /// In fr, this message translates to:
+  /// **'Enregistrer'**
+  String get watchCatchupSave;
+
+  /// No description provided for @watchCatchupSkip.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ignorer'**
+  String get watchCatchupSkip;
+
+  /// No description provided for @watchCatchupEnterPages.
+  ///
+  /// In fr, this message translates to:
+  /// **'Indique les pages de début et de fin.'**
+  String get watchCatchupEnterPages;
+
+  /// No description provided for @watchCatchupOcrFailed.
+  ///
+  /// In fr, this message translates to:
+  /// **'Numéro de page non détecté, réessaie ou saisis-le à la main.'**
+  String get watchCatchupOcrFailed;
+
+  /// No description provided for @watchCatchupError.
+  ///
+  /// In fr, this message translates to:
+  /// **'Enregistrement impossible. Réessaie.'**
+  String get watchCatchupError;
+
+  /// No description provided for @addPastSessionButton.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajouter une lecture passée'**
+  String get addPastSessionButton;
+
+  /// No description provided for @addPastSessionTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Lecture passée'**
+  String get addPastSessionTitle;
+
+  /// No description provided for @addPastSessionDuration.
+  ///
+  /// In fr, this message translates to:
+  /// **'Combien de temps as-tu lu ?'**
+  String get addPastSessionDuration;
+
+  /// No description provided for @addPastSessionCustomDuration.
+  ///
+  /// In fr, this message translates to:
+  /// **'Durée (minutes)'**
+  String get addPastSessionCustomDuration;
+
+  /// No description provided for @addPastSessionToday.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aujourd\'hui'**
+  String get addPastSessionToday;
+
+  /// No description provided for @addPastSessionSave.
+  ///
+  /// In fr, this message translates to:
+  /// **'Enregistrer la lecture'**
+  String get addPastSessionSave;
+
+  /// No description provided for @addPastSessionSaved.
+  ///
+  /// In fr, this message translates to:
+  /// **'Lecture enregistrée !'**
+  String get addPastSessionSaved;
+
+  /// No description provided for @addPastSessionEnterDuration.
+  ///
+  /// In fr, this message translates to:
+  /// **'Indique la durée de ta lecture.'**
+  String get addPastSessionEnterDuration;
+
+  /// No description provided for @addPastSessionBackdatedInfo.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cette lecture comptera dans tes stats mais pas pour ta flamme.'**
+  String get addPastSessionBackdatedInfo;
+
+  /// No description provided for @addPastSessionTooShortWarning.
+  ///
+  /// In fr, this message translates to:
+  /// **'Moins de 2 min ou aucune page : cette lecture ne comptera pas pour ta flamme.'**
+  String get addPastSessionTooShortWarning;
+
+  /// No description provided for @addPastSessionActiveSessionError.
+  ///
+  /// In fr, this message translates to:
+  /// **'Termine d\'abord ta session en cours sur ce livre.'**
+  String get addPastSessionActiveSessionError;
 }
 
 class _AppLocalizationsDelegate

@@ -270,6 +270,54 @@ class OfflineSessionQueue {
     return synced;
   }
 
+  /// Pousse immédiatement UN démarrage offline en attente vers Supabase et
+  /// retourne son vrai `id`. Utilisé quand on termine une session démarrée
+  /// hors ligne (id temp `offline_…`) alors qu'on est de nouveau en ligne :
+  /// sans ligne Supabase, l'UPDATE de fin ne trouverait rien.
+  ///
+  /// Retourne le vrai id en cas de succès, ou `null` si le démarrage n'est pas
+  /// en file (déjà synchronisé) ou si l'insert échoue (hors ligne réel).
+  Future<String?> flushStartAndGetRealId(String tempId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final starts = _getList(prefs, _startKey);
+    final idx = starts.indexWhere((e) => e['temp_id'] == tempId);
+    if (idx == -1) return null;
+
+    final entry = starts[idx];
+    try {
+      final insertData = <String, dynamic>{
+        'book_id': entry['book_id'],
+        'start_page': entry['start_page'],
+        'start_time': entry['start_time'],
+        'user_id': entry['user_id'],
+      };
+      if (entry['start_image_path'] != null) {
+        insertData['start_image_path'] = entry['start_image_path'];
+      }
+      if (entry['reading_for'] != null) {
+        insertData['reading_for'] = entry['reading_for'];
+      }
+
+      final response = await _supabase
+          .from('reading_sessions')
+          .insert(insertData)
+          .select()
+          .single();
+
+      final realId = response['id'] as String;
+
+      // Retire ce démarrage de la file et remappe les fins qui le référencent.
+      starts.removeAt(idx);
+      await prefs.setString(_startKey, jsonEncode(starts));
+      await _updateEndSessionIds({tempId: realId});
+
+      return realId;
+    } catch (e) {
+      debugPrint('Erreur flushStartAndGetRealId: $e');
+      return null;
+    }
+  }
+
   /// Supprime une session offline démarrée (pour annulation)
   Future<void> removeOfflineStartSession(String tempId) async {
     final prefs = await SharedPreferences.getInstance();

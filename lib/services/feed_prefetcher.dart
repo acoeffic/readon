@@ -11,6 +11,7 @@ import '../models/reading_flow.dart';
 import '../services/books_service.dart';
 import '../services/feed_cache.dart';
 import '../services/feed_cache_service.dart';
+import '../services/feed_social_loader.dart';
 import '../services/flow_service.dart';
 import '../services/suggestions_service.dart';
 import '../services/trending_service.dart';
@@ -47,12 +48,17 @@ class FeedPrefetcher {
           'p_prizes_limit': 10,
           'p_curated_ids': curatedIds,
         }),
+        // Sections sociales (discover + PYMK + mutuals + relations) : mêmes
+        // appels que _fetchFromNetwork pour que le feed soit entièrement
+        // cache-served au premier paint.
+        FeedSocialLoader.load(),
       ]);
 
       final flow = results[0] as ReadingFlow?;
       final currentBook = results[1] as Map<String, dynamic>?;
       final suggestions = results[2] as List<BookSuggestion>;
       final bundle = Map<String, dynamic>.from(results[3] as Map);
+      final social = results[4] as FeedSocialData;
 
       final fCount = bundle['friend_count'] as int? ?? 0;
       final tier = TrendingService().determineFeedTier(fCount);
@@ -98,6 +104,10 @@ class FeedPrefetcher {
                 PrizeList.fromJson(Map<String, dynamic>.from(e as Map)))
             .toList(),
         hasMore: activities.length >= 15,
+        discoverReaders: social.discoverReaders,
+        peopleYouMayKnow: social.peopleYouMayKnow,
+        discoverMutuals: social.discoverMutuals,
+        requestedIds: social.requestedIds,
       );
 
       FeedCache.store(cacheData);

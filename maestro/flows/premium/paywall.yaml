@@ -1,0 +1,50 @@
+appId: fr.lexday.app
+name: paywall
+tags:
+  - premium
+# Vérifie l'affichage du paywall (offres mensuel + annuel).
+# IMPORTANT : NE PAS déclencher l'achat — RevenueCat est en CONFIGURATION_ERROR
+# tant que la 1re soumission App Store n'est pas passée. Le test s'arrête à
+# l'affichage des prix de fallback.
+#
+# Le paywall est trigger par PaywallController.maybeShowOnAppOpen au démarrage
+# pour les comptes non-premium. Si l'utilisateur a déjà skip aujourd'hui, il
+# peut aussi être ouvert depuis Mon espace.
+---
+# clearState + clearKeychain → l'app route toujours vers LoginPage (pas de
+# session persistée), donc login_subflow trouve login_email_field de façon fiable.
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- runFlow: ../../subflows/handle_system_dialogs.yaml
+- runFlow: ../../subflows/login_subflow.yaml
+
+# Ouverture depuis Mon espace > Premium (chemin déterministe).
+- tapOn: "Mon espace"
+- scroll
+- tapOn:
+    text: "Premium"
+    optional: true
+- tapOn:
+    text: "LexDay Premium"
+    optional: true
+- tapOn:
+    text: "Passer à Premium"
+    optional: true
+
+# Paywall visible
+- extendedWaitUntil:
+    visible: "LexDay Premium"
+    timeout: 8000
+
+# Les deux offres doivent être affichées
+- assertVisible: "Annuel"
+- assertVisible: "Mensuel"
+
+# Prix de fallback affichés (toujours visibles même si RevenueCat échoue)
+- assertVisible:
+    text: "/mois"
+    index: 0
+
+# STOP — on ne tape ni sur "S'abonner" ni sur "Commencer l'essai gratuit"
+# (RevenueCat CONFIGURATION_ERROR ferait planter le test).

@@ -1,0 +1,4 @@
+# Workspace Maestro — inclut tous les flows des sous-dossiers (auth/, clubs/, …).
+# Sans ce fichier, `maestro test maestro/flows` ne voit que les flows à la racine.
+flows:
+  - "**"

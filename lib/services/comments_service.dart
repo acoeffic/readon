@@ -7,6 +7,7 @@ class Comment {
   final String id;
   final int activityId;
   final String authorId;
+  final String? parentId;
   final String content;
   final String status;
   final DateTime createdAt;
@@ -19,6 +20,7 @@ class Comment {
     required this.id,
     required this.activityId,
     required this.authorId,
+    this.parentId,
     required this.content,
     this.status = 'pending',
     required this.createdAt,
@@ -33,6 +35,7 @@ class Comment {
       id: json['id'] as String,
       activityId: json['activity_id'] as int,
       authorId: json['author_id'] as String,
+      parentId: json['parent_id'] as String?,
       content: json['content'] as String,
       status: json['status'] as String? ?? 'pending',
       createdAt: DateTime.parse(json['created_at'] as String),
@@ -42,6 +45,8 @@ class Comment {
       authorAvatar: json['author_avatar'] as String?,
     );
   }
+
+  bool get isReply => parentId != null;
 
   bool get isPending => status == 'pending';
   bool get isApproved => status == 'approved';
@@ -101,10 +106,12 @@ class CommentsService {
     }
   }
 
-  /// Ajouter un commentaire (status sera 'pending', la Edge Function modère)
+  /// Ajouter un commentaire (status sera 'pending', la Edge Function modère).
+  /// [parentId] : id du commentaire auquel on répond (null = commentaire racine).
   Future<Comment?> addComment({
     required int activityId,
     required String content,
+    String? parentId,
   }) async {
     try {
       final userId = _supabase.auth.currentUser?.id;
@@ -121,6 +128,7 @@ class CommentsService {
             'activity_id': activityId,
             'author_id': userId,
             'content': content.trim(),
+            if (parentId != null) 'parent_id': parentId,
           })
           .select()
           .single();

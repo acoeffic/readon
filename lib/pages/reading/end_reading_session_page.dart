@@ -29,6 +29,7 @@ import '../friends/contacts_suggestion_page.dart';
 import '../chat/ai_chat_page.dart';
 import '../../services/widget_service.dart';
 import '../../widgets/constrained_content.dart';
+import '../../widgets/rate_book_sheet.dart';
 
 const _kBgColor = Color(0xFFFAF3E8);
 const _kSageGreen = Color(0xFF6B988D);
@@ -119,6 +120,7 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
 
       await _processImage(photo);
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _errorMessage = AppLocalizations.of(context)!.errorCapture(e.toString());
       });
@@ -140,6 +142,7 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
 
       await _processImage(photo);
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _errorMessage = AppLocalizations.of(context)!.errorSelection(e.toString());
       });
@@ -156,6 +159,7 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
       final ocrService = OCRService();
       final pageNumber = await ocrService.extractPageNumber(photo.path);
 
+      if (!mounted) return;
       setState(() {
         _detectedPageNumber = pageNumber;
         _isProcessing = false;
@@ -178,6 +182,7 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
         });
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _isProcessing = false;
         _errorMessage = AppLocalizations.of(context)!.ocrError(e.toString());
@@ -384,11 +389,17 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
         // Utiliser le pageCount du livre si aucune page n'a été saisie.
         // _book est chargé async par _loadBook() ; widget.book n'est passé
         // que dans certains call sites — on retombe sur _book sinon.
-        final pageNumber = _detectedPageNumber
+        // ⚠️ page_count peut valoir 0 (inconnu) : on garantit toujours
+        // end_page >= start_page, sinon la contrainte CHECK
+        // reading_sessions_check (end_page >= start_page) échoue et la
+        // session ne peut pas être terminée.
+        final startPage = widget.activeSession.startPage;
+        var pageNumber = _detectedPageNumber
             ?? _manualPageNumber
             ?? _book?.pageCount
             ?? widget.book?.pageCount
-            ?? widget.activeSession.startPage;
+            ?? startPage;
+        if (pageNumber < startPage) pageNumber = startPage;
 
         // Terminer la session avec le livre marqué comme terminé
         final completedSession = await _sessionService.endSession(
@@ -495,6 +506,19 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
           }
         }
 
+        // Proposer de noter le livre (skippable)
+        if (mounted && bookIdInt != null) {
+          try {
+            await showRateBookSheet(
+              context,
+              bookId: bookIdInt,
+              bookTitle: book?.title,
+            );
+          } catch (e) {
+            debugPrint('Erreur showRateBookSheet (non bloquante): $e');
+          }
+        }
+
         // Proposer Muse pour la prochaine lecture
         if (mounted) {
           final bookTitle = book?.title ?? 'ce livre';
@@ -564,16 +588,23 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
         } else {
           if (!hasCompleted) await contactsService.markFirstSessionCompleted();
           if (!mounted) return;
+          // La session est déjà terminée côté serveur ; si le livre n'a pas pu
+          // être récupéré, on retombe sur le résumé de session classique plutôt
+          // que de crasher sur un force-unwrap (book!).
           Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(
-              builder: (context) => BookCompletedSummaryPage(
-                book: book!,
-                lastSession: completedSession,
-              ),
+              builder: (context) => book != null
+                  ? BookCompletedSummaryPage(
+                      book: book,
+                      lastSession: completedSession,
+                    )
+                  : ReadingSessionSummaryPage(
+                      session: completedSession,
+                    ),
             ),
             (route) => route.isFirst,
           );
-                }
+        }
       } catch (e) {
         debugPrint('Erreur _finishBook: $e');
         if (!mounted) return;

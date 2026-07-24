@@ -1,0 +1,36 @@
+appId: fr.lexday.app
+name: club
+tags:
+  - clubs
+# Navigation vers l'onglet Clubs, vérification de la liste, ouverture d'un club.
+# Pré-requis : compte connecté.
+---
+# clearState + clearKeychain → l'app route toujours vers LoginPage (pas de
+# session persistée), donc login_subflow trouve login_email_field de façon fiable.
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- runFlow: ../../subflows/handle_system_dialogs.yaml
+- runFlow: ../../subflows/login_subflow.yaml
+
+# Onglet "Club" dans la bottom nav
+- tapOn: "Club"
+- extendedWaitUntil:
+    visible: "Clubs de lecture"
+    timeout: 8000
+- assertVisible: "Clubs de lecture"
+- assertVisible: "Mes clubs"
+- assertVisible: "Découvrir"
+
+# Bascule sur l'onglet "Découvrir" pour voir des clubs publics
+- tapOn: "Découvrir"
+
+# Si un club public existe → on l'ouvre. Sinon empty state, c'est OK.
+- runFlow:
+    when:
+      notVisible: "Aucun groupe"
+    commands:
+      - tapOn:
+          text: "membre"
+          index: 0
+          optional: true

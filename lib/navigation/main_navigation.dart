@@ -21,7 +21,9 @@ import '../providers/subscription_provider.dart';
 import '../widgets/require_account_sheet.dart';
 import '../features/badges/services/anniversary_service.dart';
 import '../features/badges/widgets/anniversary_unlock_overlay.dart';
+import '../pages/notifications/notifications_page.dart';
 import '../services/books_service.dart';
+import '../services/deep_link_service.dart';
 import '../services/kindle_auto_sync_service.dart';
 import '../services/monthly_notification_service.dart';
 import '../services/onboarding_tutorial_service.dart';
@@ -30,6 +32,8 @@ import '../services/push_notification_service.dart';
 import '../services/session_pause_service.dart';
 import '../services/freeze_celebration_service.dart';
 import '../services/flow_service.dart';
+import '../services/watch_session_draft_service.dart';
+import '../widgets/watch_session_catchup_dialog.dart';
 import '../services/wrapped_banner_service.dart';
 import '../pages/reading/end_reading_session_page.dart';
 import '../features/wrapped/monthly/monthly_wrapped_screen.dart';
@@ -63,6 +67,11 @@ class _MainNavigationState extends State<MainNavigation>
 
   // Stale session recovery: show modal once per foreground cycle
   bool _staleModalShown = false;
+  // Rattrapage de session Watch : une seule fois par cycle foreground
+  bool _watchCatchupShown = false;
+  // Ne pas afficher la modale « tu as fini de lire ? » pour une brève sortie
+  // (consultation d'une notif, etc.) — seulement après une absence prolongée.
+  static const _staleSessionMinAbsence = Duration(minutes: 30);
   final _pauseService = SessionPauseService();
 
   // Onboarding tutorial (showcase coach marks)
@@ -92,6 +101,9 @@ class _MainNavigationState extends State<MainNavigation>
     WidgetsBinding.instance.addObserver(this);
     ReadingSessionService.activeSessionsVersion
         .addListener(_onActiveSessionsChanged);
+    // Liens profonds internes (ex: lexday://friends/requests) reçus app
+    // ouverte : naviguer immédiatement.
+    DeepLinkService.onRoute = _handleDeepLinkRoute;
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       _checkAnniversary();
       _checkKindleAutoSync();
@@ -99,6 +111,7 @@ class _MainNavigationState extends State<MainNavigation>
       _setupSyncListener();
       _enrichMissingCovers();
       _consumePendingNotification();
+      _consumePendingDeepLink();
       _updateHomeWidget();
       // Paywall avant le tutoriel : la sheet native iOS sinon recouvre les
       // overlays showcase et casse leur positionnement à la fermeture.
@@ -106,7 +119,31 @@ class _MainNavigationState extends State<MainNavigation>
       if (!mounted) return;
       _maybeStartOnboardingTutorial();
       _checkAutoFreezeCelebration();
+      _maybeShowWatchSessionCatchup();
     });
+  }
+
+  /// Une session terminée depuis l'Apple Watch n'a pas de page de fin fiable
+  /// (pas de saisie ni de photo au poignet) : proposer de la compléter ici.
+  /// Si l'utilisateur ignore, la session reste valide en "temps seul".
+  Future<void> _maybeShowWatchSessionCatchup() async {
+    if (_watchCatchupShown) return;
+    try {
+      final draft = await WatchSessionDraftService().getPending();
+      if (draft == null || !mounted) return;
+      // Une session est active (relancée depuis la Watch ou l'iPhone) : ne pas
+      // empiler avec la bannière/modale de session en cours.
+      if (_activeSession != null) return;
+
+      _watchCatchupShown = true;
+      await showDialog<void>(
+        context: context,
+        builder: (_) => WatchSessionCatchupDialog(draft: draft),
+      );
+      _updateHomeWidget();
+    } catch (e) {
+      debugPrint('Erreur _maybeShowWatchSessionCatchup: $e');
+    }
   }
 
   /// Si le cron serveur a protégé le streak avec un auto-freeze depuis la
@@ -209,6 +246,9 @@ class _MainNavigationState extends State<MainNavigation>
 
   @override
   void dispose() {
+    if (DeepLinkService.onRoute == _handleDeepLinkRoute) {
+      DeepLinkService.onRoute = null;
+    }
     _activeSessionTimer?.cancel();
     ReadingSessionService.activeSessionsVersion
         .removeListener(_onActiveSessionsChanged);
@@ -228,6 +268,7 @@ class _MainNavigationState extends State<MainNavigation>
   Future<void> _onAppPaused() async {
     // Reset so the modal shows again next time the app comes to the foreground.
     _staleModalShown = false;
+    _watchCatchupShown = false;
 
     if (_activeSession == null) return;
 
@@ -251,17 +292,20 @@ class _MainNavigationState extends State<MainNavigation>
     final backgroundedAt = await _pauseService.getBackgroundedAt();
     await _pauseService.clearBackgroundedAt();
 
+    final absence = backgroundedAt != null
+        ? DateTime.now().difference(backgroundedAt)
+        : null;
+
     // Auto-pause if the session has been running unattended for >= 4 hours
     // and was not already manually paused.
-    if (backgroundedAt != null && _activeSession != null) {
-      final absence = DateTime.now().difference(backgroundedAt);
+    if (absence != null && _activeSession != null) {
       if (absence >= const Duration(hours: 4)) {
         final alreadyPaused = await _pauseService.getPausedAt();
         if (alreadyPaused == null) {
           // Preserve any previously accumulated pause duration — only mark
           // the start of this new auto-pause (backdated to when the app
           // went to background).
-          await _pauseService.savePauseStart(backgroundedAt);
+          await _pauseService.savePauseStart(backgroundedAt!);
         }
       }
     }
@@ -270,16 +314,20 @@ class _MainNavigationState extends State<MainNavigation>
     _checkKindleAutoSync();
     // Refresh active session, then show recovery modal if needed.
     await _checkActiveSession();
-    _maybeShowStaleSessionModal();
+    _maybeShowStaleSessionModal(absence);
+    _maybeShowWatchSessionCatchup();
     _refreshSubscription();
     MonthlyNotificationService().scheduleNextMonthlyNotification();
     _updateHomeWidget();
   }
 
-  void _maybeShowStaleSessionModal() {
+  void _maybeShowStaleSessionModal(Duration? absence) {
     if (!mounted) return;
     if (_staleModalShown) return;
     if (_activeSession == null || _activeSessionBook == null) return;
+    // Sortie trop brève (ou inconnue) → on laisse la session reprendre
+    // silencieusement sans demander « tu as fini de lire ? ».
+    if (absence == null || absence < _staleSessionMinAbsence) return;
 
     _staleModalShown = true;
 
@@ -375,6 +423,32 @@ class _MainNavigationState extends State<MainNavigation>
           ),
         );
       });
+    }
+  }
+
+  /// Cold start via un deep link (ex: lien email « demande d'ami ») : la
+  /// route a été mise en attente par DeepLinkService car le splash allait
+  /// écraser toute page poussée. On la consomme une fois le Scaffold monté.
+  void _consumePendingDeepLink() {
+    final route = DeepLinkService.pendingRoute;
+    if (route == null) return;
+    DeepLinkService.pendingRoute = null;
+
+    // Petit délai pour laisser le Scaffold se monter complètement avant de
+    // pousser une nouvelle route (même logique que _consumePendingNotification).
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (!mounted) return;
+      _handleDeepLinkRoute(route);
+    });
+  }
+
+  void _handleDeepLinkRoute(String route) {
+    if (!mounted) return;
+    switch (route) {
+      case 'notifications':
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const NotificationsPage()),
+        );
     }
   }
 

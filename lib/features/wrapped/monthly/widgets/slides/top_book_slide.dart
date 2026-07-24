@@ -1,6 +1,6 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../../monthly_wrapped_data.dart';
+import '../../../../../widgets/cached_book_cover.dart';
 import '../fade_up_animation.dart';
 
 /// Slide 3 – Top book of the month + unlocked badges.
@@ -86,8 +86,11 @@ class _BookCard extends StatelessWidget {
         ),
         child: Column(
           children: [
-            // Book cover or fallback emoji
-            _BookCover(url: book.coverUrl, accent: theme.accent),
+            // Book cover — resolved via the app's full fallback chain
+            // (stored URL → Google Books → Amazon/iTunes/OpenLibrary/BnF),
+            // so a missing cover_url still shows a real cover when the book
+            // has an ISBN or Google Books id.
+            _BookCover(book: book, accent: theme.accent),
             const SizedBox(height: 16),
             Text(
               book.title,
@@ -140,16 +143,20 @@ class _BookCard extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class _BookCover extends StatelessWidget {
-  final String? url;
+  final TopBookData book;
   final Color accent;
 
-  const _BookCover({required this.url, required this.accent});
+  const _BookCover({required this.book, required this.accent});
 
   @override
   Widget build(BuildContext context) {
-    if (url == null || url!.isEmpty) {
-      return const Text('\uD83D\uDCD6', style: TextStyle(fontSize: 48));
-    }
+    final emojiFallback = Container(
+      height: 160,
+      width: 110,
+      alignment: Alignment.center,
+      color: Colors.white.withValues(alpha: 0.06),
+      child: const Text('\uD83D\uDCD6', style: TextStyle(fontSize: 32)),
+    );
 
     return Container(
       height: 160,
@@ -170,23 +177,17 @@ class _BookCover extends StatelessWidget {
         ],
       ),
       clipBehavior: Clip.antiAlias,
-      child: CachedNetworkImage(
-        imageUrl: url!,
+      child: CachedBookCover(
+        imageUrl: book.coverUrl,
+        isbn: book.isbn,
+        googleId: book.googleId,
+        title: book.title,
+        author: book.author,
+        width: 110,
+        height: 160,
         fit: BoxFit.cover,
-        memCacheWidth: (110 * 3).toInt(),
-        memCacheHeight: (160 * 3).toInt(),
-        placeholder: (_, __) => Container(
-          color: Colors.white.withValues(alpha: 0.06),
-          child: const Center(
-            child: Text('\uD83D\uDCD6', style: TextStyle(fontSize: 32)),
-          ),
-        ),
-        errorWidget: (_, __, ___) => Container(
-          color: Colors.white.withValues(alpha: 0.06),
-          child: const Center(
-            child: Text('\uD83D\uDCD6', style: TextStyle(fontSize: 32)),
-          ),
-        ),
+        placeholder: emojiFallback,
+        errorWidget: emojiFallback,
       ),
     );
   }

@@ -28,6 +28,22 @@ enabled = true
 verify_jwt = false
 entrypoint = "./functions/revenuecat-webhook/index.ts"
 
+# Appelée uniquement par le trigger SQL `send_comment_email_on_approve`,
+# qui présente la clé service_role (Vault) en Bearer. L'auth est faite
+# dans le code (comparaison service_role) — verify_jwt désactivé pour ne
+# pas laisser passer la clé anon via le gateway.
+[functions.send-comment-email]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/send-comment-email/index.ts"
+
+# Appelée uniquement par le trigger SQL `trigger_moderate_comment`
+# (Bearer service_role via Vault). Auth service_role vérifiée en code.
+[functions.moderate-comment]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/moderate-comment/index.ts"
+
 # Pont HTTPS pour OAuth Notion. Notion redirige le user vers cette
 # URL puis on 302 vers le custom scheme `lexday://notion/callback`.
 # Pas d'auth Supabase possible (le browser du user n'a pas de JWT).

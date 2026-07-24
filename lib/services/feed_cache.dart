@@ -4,6 +4,8 @@
 import '../models/reading_flow.dart';
 import '../models/book_suggestion.dart';
 import '../models/prize_list.dart';
+import '../services/mutual_friends_service.dart';
+import '../services/people_you_may_know_service.dart';
 import '../services/trending_service.dart';
 
 class FeedCacheData {
@@ -22,6 +24,12 @@ class FeedCacheData {
   final List<PrizeList> prizeLists;
   final bool hasMore;
 
+  // Sections sociales (discover readers + people-you-may-know).
+  final List<Map<String, dynamic>> discoverReaders;
+  final List<PeopleYouMayKnow> peopleYouMayKnow;
+  final Map<String, MutualFriendsSummary> discoverMutuals;
+  final Set<String> requestedIds;
+
   FeedCacheData({
     required this.friendActivities,
     required this.currentFlow,
@@ -37,6 +45,10 @@ class FeedCacheData {
     required this.savedCuratedListIds,
     required this.prizeLists,
     required this.hasMore,
+    this.discoverReaders = const [],
+    this.peopleYouMayKnow = const [],
+    this.discoverMutuals = const {},
+    this.requestedIds = const {},
   });
 }
 

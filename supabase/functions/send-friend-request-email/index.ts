@@ -1,6 +1,18 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+// Échappe les valeurs contrôlées par l'utilisateur (display_name) avant de les
+// injecter dans le HTML de l'e-mail. La modération de pseudo ne filtre pas le
+// markup → sans ça, injection de liens/HTML possible dans un e-mail LexDay.
+function escapeHtml(input: string): string {
+  return input
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 serve(async (req) => {
   try {
     const payload = await req.json();
@@ -40,6 +52,12 @@ serve(async (req) => {
       return new Response("No email found", { status: 200 });
     }
 
+    const senderName = escapeHtml(sender.display_name ?? "Un lecteur");
+    const recipientName = escapeHtml(recipient.display_name ?? "Lecteur");
+    const senderInitial = escapeHtml(
+      (sender.display_name?.charAt(0) ?? "?").toUpperCase(),
+    );
+
     const htmlContent = `
 <!DOCTYPE html>
 <html lang="fr">
@@ -55,14 +73,14 @@ serve(async (req) => {
 
   <tr><td style="background:#FAF3E8;padding:36px 32px 28px;border-left:1px solid rgba(107,152,141,0.15);border-right:1px solid rgba(107,152,141,0.15);">
     <p style="font-size:13px;font-weight:500;color:#6B988D;letter-spacing:0.08em;text-transform:uppercase;margin:0 0 10px 0;">Nouvelle demande d'ami</p>
-    <h1 style="font-size:26px;font-weight:400;color:#1a1a1a;margin:0 0 24px 0;line-height:1.3;">${sender.display_name} veut<br>te suivre sur LexDay</h1>
+    <h1 style="font-size:26px;font-weight:400;color:#1a1a1a;margin:0 0 24px 0;line-height:1.3;">${senderName} veut<br>te suivre sur LexDay</h1>
 
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;border:0.5px solid rgba(0,0,0,0.07);margin-bottom:28px;">
       <tr><td style="padding:18px 20px;">
         <table cellpadding="0" cellspacing="0"><tr>
-          <td style="width:52px;height:52px;border-radius:50%;background:#6B988D;text-align:center;vertical-align:middle;font-size:20px;font-weight:500;color:#FAF3E8;">${sender.display_name.charAt(0).toUpperCase()}</td>
+          <td style="width:52px;height:52px;border-radius:50%;background:#6B988D;text-align:center;vertical-align:middle;font-size:20px;font-weight:500;color:#FAF3E8;">${senderInitial}</td>
           <td style="padding-left:16px;">
-            <div style="font-size:16px;font-weight:500;color:#1a1a1a;">${sender.display_name}</div>
+            <div style="font-size:16px;font-weight:500;color:#1a1a1a;">${senderName}</div>
             <div style="font-size:13px;color:#999;margin-top:2px;">souhaite suivre tes lectures</div>
           </td>
         </tr></table>
@@ -70,7 +88,7 @@ serve(async (req) => {
     </table>
 
     <p style="font-size:15px;color:#555;line-height:1.7;margin:0 0 28px 0;">
-      Salut <strong style="color:#1a1a1a;">${recipient.display_name}</strong>&nbsp;! Accepte la demande pour partager vos lectures, commenter vos sessions et vous motiver mutuellement.
+      Salut <strong style="color:#1a1a1a;">${recipientName}</strong>&nbsp;! Accepte la demande pour partager vos lectures, commenter vos sessions et vous motiver mutuellement.
     </p>
 
     <p style="text-align:center;margin:0 0 12px 0;">

@@ -27,6 +27,12 @@ class MutualFriendAvatar {
       avatarUrl: json['avatar_url']?.toString(),
     );
   }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'display_name': displayName,
+        'avatar_url': avatarUrl,
+      };
 }
 
 /// Synthèse d'amis communs : compteur + jusqu'à 3 mini-profils.
@@ -40,6 +46,27 @@ class MutualFriendsSummary {
   static const empty = MutualFriendsSummary(count: 0, avatars: []);
 
   bool get isEmpty => count == 0;
+
+  factory MutualFriendsSummary.fromJson(Map<String, dynamic> json) {
+    final avatarsRaw = json['avatars'];
+    final avatars = <MutualFriendAvatar>[];
+    if (avatarsRaw is List) {
+      for (final a in avatarsRaw) {
+        if (a is Map) {
+          avatars.add(MutualFriendAvatar.fromJson(Map<String, dynamic>.from(a)));
+        }
+      }
+    }
+    return MutualFriendsSummary(
+      count: (json['count'] as num?)?.toInt() ?? 0,
+      avatars: avatars,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'count': count,
+        'avatars': avatars.map((a) => a.toJson()).toList(),
+      };
 }
 
 class MutualFriendsService {

@@ -1,6 +1,7 @@
 // lib/pages/auth/login_page.dart
 
 import 'dart:convert';
+import 'dart:io' show Platform;
 import 'dart:math';
 
 import 'package:crypto/crypto.dart';
@@ -179,9 +180,13 @@ class _LoginPageState extends State<LoginPage> {
       );
 
       // Stocker le nom Apple dans les metadata Supabase (disponible uniquement à la 1ère connexion)
+      // Ne pas écraser un display_name déjà défini (ex: modifié dans les paramètres)
+      final existingName = Supabase.instance.client.auth.currentUser
+          ?.userMetadata?['display_name'] as String?;
       final givenName = credential.givenName;
       final familyName = credential.familyName;
-      if (givenName != null || familyName != null) {
+      if ((existingName == null || existingName.isEmpty) &&
+          (givenName != null || familyName != null)) {
         final displayName =
             [givenName, familyName].where((s) => s != null).join(' ');
         if (displayName.isNotEmpty) {
@@ -217,7 +222,9 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> _signInWithGoogle() async {
     try {
       final googleSignIn = GoogleSignIn(
-        clientId: Env.googleIosClientId,
+        // clientId iOS uniquement — sur Android c'est le client OAuth Android
+        // (package + SHA-1) déclaré dans Google Cloud qui est utilisé.
+        clientId: Platform.isIOS ? Env.googleIosClientId : null,
         serverClientId: Env.googleWebClientId,
       );
       final googleUser = await googleSignIn.signIn();
@@ -235,8 +242,13 @@ class _LoginPageState extends State<LoginPage> {
       );
 
       // Stocker le vrai nom Google dans les metadata Supabase
+      // Ne pas écraser un display_name déjà défini (ex: modifié dans les paramètres)
+      final existingGoogleName = Supabase.instance.client.auth.currentUser
+          ?.userMetadata?['display_name'] as String?;
       final displayName = googleUser.displayName;
-      if (displayName != null && displayName.isNotEmpty) {
+      if ((existingGoogleName == null || existingGoogleName.isEmpty) &&
+          displayName != null &&
+          displayName.isNotEmpty) {
         await Supabase.instance.client.auth.updateUser(
           UserAttributes(data: {'display_name': displayName}),
         );
@@ -462,7 +474,9 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                TextField(
+                Semantics(
+                  identifier: 'login_email_field',
+                  child: TextField(
                   controller: emailController,
                   keyboardType: TextInputType.emailAddress,
                   decoration: InputDecoration(
@@ -491,6 +505,7 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                   ),
                 ),
+                ),
 
                 const SizedBox(height: 20),
 
@@ -506,7 +521,9 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                TextField(
+                Semantics(
+                  identifier: 'login_password_field',
+                  child: TextField(
                   controller: passwordController,
                   obscureText: true,
                   decoration: InputDecoration(
@@ -534,6 +551,7 @@ class _LoginPageState extends State<LoginPage> {
                       borderSide: const BorderSide(color: AppColors.primary, width: 2),
                     ),
                   ),
+                ),
                 ),
 
                 // Forgot password

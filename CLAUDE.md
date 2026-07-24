@@ -18,11 +18,12 @@
 
 ## Internationalisation (i18n)
 
-- L'app supporte **français** et **anglais** via Flutter `gen-l10n`
+- L'app supporte **français**, **anglais** et **espagnol** via Flutter `gen-l10n`
 - Les fichiers de traduction sont dans `lib/l10n/` :
   - `app_fr.arb` — chaînes françaises (template)
   - `app_en.arb` — traductions anglaises
-- **Toute nouvelle chaîne de texte** visible par l'utilisateur doit être ajoutée dans les deux fichiers `.arb` et référencée via `AppLocalizations` :
+  - `app_es.arb` — traductions espagnoles
+- **Toute nouvelle chaîne de texte** visible par l'utilisateur doit être ajoutée dans les trois fichiers `.arb` et référencée via `AppLocalizations` :
   ```dart
   import '../../l10n/app_localizations.dart';
 

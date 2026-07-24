@@ -10,6 +10,25 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// PostgREST cape chaque SELECT à 1000 lignes. Sans pagination, au-delà de
+// 1000 lignes le reste est silencieusement ignoré (utilisateurs jamais
+// notifiés, ou lecteurs actifs notifiés à tort). Ce helper parcourt toutes
+// les pages via .range(). La factory doit fournir un .order(...) stable.
+async function fetchAllRows<T>(
+  makeQuery: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: unknown }>,
+  pageSize = 1000,
+): Promise<T[]> {
+  const rows: T[] = []
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await makeQuery(from, from + pageSize - 1)
+    if (error) throw error
+    if (!data || data.length === 0) break
+    rows.push(...data)
+    if (data.length < pageSize) break
+  }
+  return rows
+}
+
 // ── FCM v1 auth ──
 
 const FCM_SERVICE_ACCOUNT = JSON.parse(Deno.env.get('FCM_SERVICE_ACCOUNT')!)
@@ -272,32 +291,38 @@ serve(async (req) => {
 
     console.log(`🚀 Rappels de flow — fenêtre ${nowUtcHours}:${String(nowUtcMinutes).padStart(2, '0')} UTC`)
 
-    const { data: profiles, error: profilesError } = await supabase
-      .from('profiles')
-      .select('id, display_name, fcm_token, notification_reminder_time, notification_days, timezone')
-      .eq('notifications_enabled', true)
-      .not('fcm_token', 'is', null)
+    const profiles = await fetchAllRows<Profile>((from, to) =>
+      supabase
+        .from('profiles')
+        .select('id, display_name, fcm_token, notification_reminder_time, notification_days, timezone')
+        .eq('notifications_enabled', true)
+        .not('fcm_token', 'is', null)
+        .order('id', { ascending: true })
+        .range(from, to)
+    )
 
-    if (profilesError) throw profilesError
-
-    if (!profiles || profiles.length === 0) {
+    if (profiles.length === 0) {
       return new Response(
         JSON.stringify({ success: true, sent: 0 }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // Sessions d'aujourd'hui (pour exclure ceux qui ont déjà lu)
-    const { data: todayReadings, error: readingsError } = await supabase
-      .from('reading_sessions')
-      .select('user_id')
-      .gte('end_time', `${today}T00:00:00`)
-      .lte('end_time', `${today}T23:59:59`)
-      .not('end_time', 'is', null)
+    // Sessions d'aujourd'hui (pour exclure ceux qui ont déjà lu) — paginé
+    // aussi : un jour chargé peut dépasser 1000 sessions, ce qui laisserait
+    // des lecteurs actifs se faire notifier à tort.
+    const todayReadings = await fetchAllRows<{ user_id: string }>((from, to) =>
+      supabase
+        .from('reading_sessions')
+        .select('user_id')
+        .gte('end_time', `${today}T00:00:00`)
+        .lte('end_time', `${today}T23:59:59`)
+        .not('end_time', 'is', null)
+        .order('user_id', { ascending: true })
+        .range(from, to)
+    )
 
-    if (readingsError) throw readingsError
-
-    const usersWhoReadToday = new Set(todayReadings?.map(r => r.user_id) || [])
+    const usersWhoReadToday = new Set(todayReadings.map(r => r.user_id))
 
     // Filtrer : bon jour + pas encore lu + heure dans la fenêtre
     const usersToNotify = (profiles as Profile[]).filter((p) => {

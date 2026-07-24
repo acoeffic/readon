@@ -53,17 +53,17 @@ class _GroupsPageState extends State<GroupsPage> {
     setState(() => _isLoadingMyGroups = true);
     try {
       final groups = await _groupsService.getUserGroups();
+      if (!mounted) return;
       setState(() {
         _myGroups = groups;
         _isLoadingMyGroups = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() => _isLoadingMyGroups = false);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur: $e')),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erreur: $e')),
+      );
     }
   }
 
@@ -71,17 +71,17 @@ class _GroupsPageState extends State<GroupsPage> {
     setState(() => _isLoadingPublic = true);
     try {
       final groups = await _groupsService.getPublicGroups();
+      if (!mounted) return;
       setState(() {
         _publicGroups = groups;
         _isLoadingPublic = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() => _isLoadingPublic = false);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur: $e')),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erreur: $e')),
+      );
     }
   }
 
@@ -217,9 +217,11 @@ class _GroupsPageState extends State<GroupsPage> {
                   : _buildPublicGroupsTab(),
             ),
 
-            // Bottom create button
+            // Bottom create button — extra bottom clearance so the centered
+            // docked FAB (60px, protrudes ~34px above the nav bar) doesn't
+            // overlap it.
             Padding(
-              padding: const EdgeInsets.fromLTRB(AppSpace.l, AppSpace.s, AppSpace.l, AppSpace.m),
+              padding: const EdgeInsets.fromLTRB(AppSpace.l, AppSpace.s, AppSpace.l, 44),
               child: SizedBox(
                 width: double.infinity,
                 height: 52,

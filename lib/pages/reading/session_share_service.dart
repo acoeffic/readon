@@ -10,6 +10,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../models/reading_session.dart';
 import '../../features/wrapped/share/share_format.dart';
+import '../../features/wrapped/share/story_share_service.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/app_constants.dart';
 import 'session_share_card.dart';
@@ -70,6 +71,22 @@ class SessionShareService {
     final text =
         'Je viens de lire ${session.pagesRead} pages \uD83D\uDCDA #LexDay\n$kAppStoreUrl';
 
+    // Instagram : vrai partage Story (image préchargée en fond). Fallback
+    // feuille native si l'app n'est pas installée / non supportée.
+    if (destination == ShareDestination.instagram) {
+      final result =
+          await StoryShareService().shareToInstagramStory(imageBytes);
+      if (result == StoryShareResult.shared) return;
+
+      final file = await _saveTempFile(imageBytes, session.id);
+      await Share.shareXFiles(
+        [XFile(file.path)],
+        text: text,
+        sharePositionOrigin: sharePositionOrigin,
+      );
+      return;
+    }
+
     // Destinations that go directly to the native share sheet
     if (destination == ShareDestination.whatsapp ||
         destination == ShareDestination.message ||
@@ -83,27 +100,9 @@ class SessionShareService {
       return;
     }
 
-    // Try deep-linking into the target app
-    final scheme = destination.urlScheme;
-    if (scheme != null) {
-      final uri = Uri.parse(scheme);
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-        return;
-      }
-    }
-
-    // App not installed — open web version in browser
-    final webUrl = destination.webFallbackUrl;
-    if (webUrl != null) {
-      await launchUrl(
-        Uri.parse(webUrl),
-        mode: LaunchMode.externalApplication,
-      );
-      return;
-    }
-
-    // Last resort — native share sheet
+    // Toutes les autres destinations : feuille de partage native AVEC l'image.
+    // On n'ouvre plus l'app via un simple scheme (qui n'attache pas l'image et
+    // laissait l'utilisateur devant une app vide).
     final file = await _saveTempFile(imageBytes, session.id);
     await Share.shareXFiles(
       [XFile(file.path)],

@@ -38,6 +38,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
     setState(() => _isLoading = true);
     try {
       final notifications = await notificationsService.getNotifications();
+      if (!mounted) return;
       setState(() {
         _notifications = notifications;
         _isLoading = false;
@@ -45,6 +46,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
       await notificationsService.markAllAsRead();
     } catch (e) {
       debugPrint('Erreur _loadNotifications: $e');
+      if (!mounted) return;
       setState(() => _isLoading = false);
     }
   }
@@ -174,7 +176,8 @@ class _NotificationsPageState extends State<NotificationsPage> {
   void _onNotificationTap(AppNotification notification) {
     HapticFeedback.selectionClick();
 
-    if (notification.type == NotificationType.comment &&
+    if ((notification.type == NotificationType.comment ||
+            notification.type == NotificationType.commentReply) &&
         notification.activityId > 0) {
       showModalBottomSheet(
         context: context,
@@ -583,6 +586,8 @@ class _NotificationCard extends StatelessWidget {
         return const Color(0xFFE85B6E); // coral red — heart
       case NotificationType.comment:
         return AppColors.sageGreen;
+      case NotificationType.commentReply:
+        return AppColors.sageGreen;
       case NotificationType.friendRequest:
         return AppColors.gold;
       case NotificationType.groupJoinRequest:
@@ -596,6 +601,8 @@ class _NotificationCard extends StatelessWidget {
         return Icons.favorite_rounded;
       case NotificationType.comment:
         return Icons.chat_bubble_rounded;
+      case NotificationType.commentReply:
+        return Icons.reply_rounded;
       case NotificationType.friendRequest:
         return Icons.person_add_alt_1_rounded;
       case NotificationType.groupJoinRequest:
@@ -611,6 +618,9 @@ class _NotificationCard extends StatelessWidget {
         return l10n.likedYourReading(notification.fromUserName, bookTitle);
       case NotificationType.comment:
         return l10n.commentedYourReading(
+            notification.fromUserName, bookTitle);
+      case NotificationType.commentReply:
+        return l10n.repliedYourComment(
             notification.fromUserName, bookTitle);
       case NotificationType.friendRequest:
         return l10n.sentYouFriendRequest(notification.fromUserName);
@@ -636,7 +646,8 @@ class _NotificationCard extends StatelessWidget {
     final isUnread = !notification.isRead;
     final isTappable = onTap != null &&
         (notification.type == NotificationType.like ||
-            notification.type == NotificationType.comment);
+            notification.type == NotificationType.comment ||
+            notification.type == NotificationType.commentReply);
 
     // ── Couleurs / styles différenciés lu vs non-lu ──────────────────────
     // Non-lu : fond teinté sage, ombre, accent gauche épais, chip "Nouveau"
@@ -781,7 +792,9 @@ class _NotificationCard extends StatelessWidget {
                             ),
 
                       // Quoted comment
-                      if (notification.type == NotificationType.comment &&
+                      if ((notification.type == NotificationType.comment ||
+                              notification.type ==
+                                  NotificationType.commentReply) &&
                           notification.commentContent != null) ...[
                         const SizedBox(height: 10),
                         _QuotedComment(

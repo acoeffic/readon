@@ -874,6 +874,9 @@
   "recentActivity": "Recent activity",
   "noRecentActivity": "No recent activity",
   "theirBadges": "Their badges",
+  "theirBooks": "Their books",
+  "finishedBooksSection": "Finished",
+  "noBooksYet": "No books yet",
   "removeFriend": "Remove friend",
   "cancelRequest": "Cancel request",
   "addFriend": "Add friend",
@@ -973,6 +976,24 @@
   "museRecommendNovel": "Recommend me a novel",
   "museSimilarBook": "A book similar to my last one",
   "museClassic": "A classic to discover",
+  "museAssistantLabel": "Literary assistant",
+  "museHeroSubtitle": "A book, a question, a craving…",
+  "museComposerHint": "What are you looking for today?",
+  "museComposerSubhint": "Title, author, question…",
+  "museModeChat": "Chat",
+  "museModeSearch": "Find a book",
+  "museChipFavorite": "Current favorite",
+  "museFavoritePrompt": "What's your current favorite read?",
+  "museSectionRecent": "Recent",
+  "museSectionConversations": "Conversations",
+  "museSeeAll": "See all",
+  "museContinueConversation": "Continue conversation",
+  "museSearchPrefix": "I'm looking for a book: {query}",
+  "@museSearchPrefix": {
+    "placeholders": {
+      "query": {"type": "String"}
+    }
+  },
   "freeMessagesUsed": "You've used your {max} free messages this month",
   "@freeMessagesUsed": {
     "placeholders": {
@@ -1331,12 +1352,20 @@
   "commentPending": "Pending",
   "noCommentsYet": "No comments yet",
   "beFirstToComment": "Be the first to comment!",
+  "replyAction": "Reply",
+  "replyingTo": "Replying to {name}",
+  "@replyingTo": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
   "send": "Send",
 
   "reactionPremiumOnly": "Reaction reserved for Premium members",
 
   "nearbyBookstores": "Nearby Bookstores",
   "noBookstoresFound": "No bookstores found nearby",
+  "bookstoresLoadError": "Couldn't load bookstores. Check your connection and try again.",
   "openNow": "Open",
   "closed": "Closed",
   "navigate": "Navigate",
@@ -1385,6 +1414,13 @@
   },
   "commentedYourReading": "{name} commented on your reading of {bookTitle}",
   "@commentedYourReading": {
+    "placeholders": {
+      "name": {"type": "String"},
+      "bookTitle": {"type": "String"}
+    }
+  },
+  "repliedYourComment": "{name} replied to your comment on {bookTitle}",
+  "@repliedYourComment": {
     "placeholders": {
       "name": {"type": "String"},
       "bookTitle": {"type": "String"}
@@ -1723,5 +1759,81 @@
   "autoFreezeUsedCta": "Keep my streak going",
 
   "feedGoalsCardTitle": "My goals",
-  "feedGoalsCta": "Set a reading goal"
+  "feedGoalsCta": "Set a reading goal",
+
+  "rateBookSheetTitle": "Rate this book",
+  "rateBookSheetTitleWithBook": "You finished \"{title}\"!",
+  "@rateBookSheetTitleWithBook": {
+    "placeholders": {
+      "title": {"type": "String"}
+    }
+  },
+  "rateBookSheetSubtitle": "What did you think of it?",
+  "bookRatingSaved": "Rating saved!",
+  "bookRatingError": "Couldn't save your rating",
+  "yourRating": "My rating",
+  "rateThisBook": "Rate this book",
+  "rateBookRefine": "Add more details",
+  "criteriaWriting": "Writing",
+  "criteriaStory": "Story",
+  "criteriaPace": "Pace",
+  "criteriaDifficulty": "Difficulty",
+  "criteriaLevelWeak": "Meh",
+  "criteriaLevelGood": "Good",
+  "criteriaLevelExcellent": "Excellent",
+  "paceSlow": "Slow",
+  "paceBalanced": "Balanced",
+  "paceFast": "Gripping",
+  "difficultyEasy": "Easy",
+  "difficultyMedium": "Medium",
+  "difficultyHard": "Demanding",
+  "emotionTagsLabel": "This book was…",
+  "emotionMoving": "Moving",
+  "emotionFunny": "Funny",
+  "emotionInstructive": "Instructive",
+  "emotionComforting": "Comforting",
+  "emotionDisturbing": "Disturbing",
+  "emotionGripping": "Captivating",
+  "emotionInspiring": "Inspiring",
+  "emotionDark": "Dark",
+  "emotionPoetic": "Poetic",
+  "emotionMindBlowing": "Mind-blowing",
+  "reviewHint": "Your thoughts in a few words…",
+  "wouldRecommendLabel": "I'd recommend it",
+  "wouldRereadLabel": "I'd reread it",
+  "shareWithFriends": "Share with my friends",
+  "feedRatedBook": "rated a book",
+  "feedRecommendedBadge": "Recommended",
+  "filterAbandoned": "Abandoned",
+  "abandonedBooks": "Abandoned books",
+  "noAbandonedBooks": "No abandoned books",
+  "abandonBookAction": "Give up this book",
+  "abandonBookConfirmTitle": "Give up this book?",
+  "abandonBookConfirmBody": "You can pick it up again later from your library.",
+  "abandonBookConfirmYes": "Yes, I'm stopping",
+  "abandonSheetTitle": "You're giving up this book",
+  "abandonSheetSubtitle": "Rate it anyway? It's optional.",
+
+  "watchCatchupTitle": "Reading from your Watch",
+  "watchCatchupBody": "{minutes} min recorded from your Apple Watch. Fill in the pages to update your progress.",
+  "watchCatchupStartPage": "Start page",
+  "watchCatchupEndPage": "End page",
+  "watchCatchupScan": "Scan the page",
+  "watchCatchupSave": "Save",
+  "watchCatchupSkip": "Skip",
+  "watchCatchupEnterPages": "Enter the start and end pages.",
+  "watchCatchupOcrFailed": "Page number not detected, try again or type it in.",
+  "watchCatchupError": "Couldn't save. Try again.",
+
+  "addPastSessionButton": "Add a past reading",
+  "addPastSessionTitle": "Past reading",
+  "addPastSessionDuration": "How long did you read?",
+  "addPastSessionCustomDuration": "Duration (minutes)",
+  "addPastSessionToday": "Today",
+  "addPastSessionSave": "Save reading",
+  "addPastSessionSaved": "Reading saved!",
+  "addPastSessionEnterDuration": "Enter how long you read.",
+  "addPastSessionBackdatedInfo": "This reading will count in your stats but not toward your flame.",
+  "addPastSessionTooShortWarning": "Under 2 min or no pages: this reading won't count toward your flame.",
+  "addPastSessionActiveSessionError": "Finish your current session on this book first."
 }

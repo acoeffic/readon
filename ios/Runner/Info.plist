@@ -50,6 +50,8 @@
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
 		<string>instagram</string>
+		<string>instagram-stories</string>
+		<string>facebook-stories</string>
 		<string>snssdk1233</string>
 		<string>twitter</string>
 		<string>linkedin</string>

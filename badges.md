@@ -1,6 +1,6 @@
 # Badges ReadOn - Catalogue complet
 
-> **147 badges** au total | 19 categories | 86 gratuits | 56 premium | 5 a definir
+> **151 badges** au total | 20 categories | 90 gratuits | 56 premium | 5 a definir
 
 ---
 
@@ -331,6 +331,19 @@
 
 ---
 
+## 20. Notation (`ratings`) — 4 badges
+
+> Tous gratuits. Declenchement : via `check_and_award_badges` apres l'enregistrement d'une note (table `book_ratings`). Voir NOTATION_LIVRES_SPEC.md.
+
+| ID | Icone | Nom | Objectif | Premium | Declencheur |
+|---|---|---|---|---|---|
+| `first_rating` | ⭐ | Premiere Note | 1 note | Non | Noter son 1er livre |
+| `ratings_10` | 🌟 | Critique Confirme | 10 notes | Non | Noter 10 livres |
+| `reviews_10` | ✍️ | Plume Critique | 10 avis | Non | Ecrire 10 avis texte |
+| `eclectic_5` | 🎨 | Fin Palais | 5 genres | Non | Noter >= 4 etoiles dans 5 genres differents |
+
+---
+
 ## Resume
 
 | Categorie | Nombre | Premium | Gratuit |
@@ -353,6 +366,7 @@
 | Anniversaire | 5 | 2 | 3 |
 | Comeback | 2 | 0 | 2 |
 | Genre Masters | 9 | 4* | 0* |
-| **Total** | **143** | **54*** | **84*** |
+| Notation | 4 | 0 | 4 |
+| **Total** | **147** | **54*** | **88*** |
 
-*5 Genre Masters a definir (conditions/premium en attente). Total catalogue : 147 badges (143 actifs + 5 TODO + 4 DB-only deja documentes).
+*5 Genre Masters a definir (conditions/premium en attente). Total catalogue : 151 badges (147 actifs + 5 TODO + 4 DB-only deja documentes).

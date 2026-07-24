@@ -9,6 +9,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../models/book.dart';
 import '../../models/reading_sheet.dart';
 import '../../features/wrapped/share/share_format.dart';
+import '../../features/wrapped/share/story_share_service.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/app_constants.dart';
 import 'reading_sheet_share_card.dart';
@@ -102,6 +103,22 @@ class ReadingSheetShareService {
   }) async {
     final text = buildShareText(book, readingSheet);
 
+    // Instagram : vrai partage Story (image préchargée en fond). Fallback
+    // feuille native si l'app n'est pas installée / non supportée.
+    if (destination == ShareDestination.instagram) {
+      final result =
+          await StoryShareService().shareToInstagramStory(imageBytes);
+      if (result == StoryShareResult.shared) return;
+
+      final file = await _saveTempFile(imageBytes, book.id);
+      await Share.shareXFiles(
+        [XFile(file.path)],
+        text: text,
+        sharePositionOrigin: sharePositionOrigin,
+      );
+      return;
+    }
+
     if (destination == ShareDestination.whatsapp ||
         destination == ShareDestination.message ||
         destination == ShareDestination.more) {
@@ -114,24 +131,9 @@ class ReadingSheetShareService {
       return;
     }
 
-    final scheme = destination.urlScheme;
-    if (scheme != null) {
-      final uri = Uri.parse(scheme);
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-        return;
-      }
-    }
-
-    final webUrl = destination.webFallbackUrl;
-    if (webUrl != null) {
-      await launchUrl(
-        Uri.parse(webUrl),
-        mode: LaunchMode.externalApplication,
-      );
-      return;
-    }
-
+    // Toutes les autres destinations : feuille de partage native AVEC l'image.
+    // On n'ouvre plus l'app via un simple scheme (qui n'attache pas l'image et
+    // laissait l'utilisateur devant une app vide).
     final file = await _saveTempFile(imageBytes, book.id);
     await Share.shareXFiles(
       [XFile(file.path)],

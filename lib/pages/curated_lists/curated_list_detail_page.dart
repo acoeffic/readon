@@ -69,11 +69,19 @@ class _CuratedListDetailPageState extends State<CuratedListDetailPage> {
     }
   }
 
+  /// Clé de cache propre à une entrée curated : certains ISBN du catalogue
+  /// sont erronés (parfois le même ISBN pour deux titres différents), donc on
+  /// ne cache JAMAIS un résultat de fallback sous l'ISBN seul — cela
+  /// polluerait le cache partagé pour les autres listes/pages.
+  static String _entryCacheKey(CuratedBookEntry book) =>
+      'curated|${book.isbn}|${_normalizeForMatch(book.title)}';
+
   Future<void> _loadGoogleBooksData() async {
     // Phase 1 : Afficher immédiatement les couvertures depuis le cache persistant
     for (final book in widget.list.books) {
       if (!mounted) return;
-      final cachedUrl = _googleBooksService.getCachedCoverUrl(book.isbn);
+      final cachedUrl =
+          _googleBooksService.getCachedCoverUrl(_entryCacheKey(book));
       if (cachedUrl != null) {
         setState(() {
           _googleBooks[book.isbn] = GoogleBook(
@@ -99,7 +107,19 @@ class _CuratedListDetailPageState extends State<CuratedListDetailPage> {
         GoogleBook? result;
 
         // 1) Recherche par ISBN (utilise le cache interne du service)
+        //    IMPORTANT : certains ISBN du catalogue sont erronés et pointent
+        //    vers un AUTRE livre bien réel → on valide le résultat contre le
+        //    titre/auteur attendus, sinon on le rejette et on passe aux
+        //    fallbacks par titre.
         result = await _googleBooksService.searchByISBN(book.isbn);
+        if (result != null &&
+            _bestMatchForCuratedBook([result], book.title, book.author) ==
+                null) {
+          debugPrint(
+              'ISBN ${book.isbn} ne correspond pas à "${book.title}" '
+              '(Google renvoie "${result.title}") — fallback titre/auteur');
+          result = null;
+        }
 
         // 2) Fallback : titre + auteur (opérateurs intitle/inauthor)
         //    IMPORTANT : valider que le résultat correspond bien au livre attendu
@@ -131,9 +151,10 @@ class _CuratedListDetailPageState extends State<CuratedListDetailPage> {
           isbns: [book.isbn],
         );
 
-        // Mettre en cache le résultat (sauf les fallbacks sans couverture)
+        // Mettre en cache le résultat (sauf les fallbacks sans couverture),
+        // sous une clé propre à l'entrée — jamais sous l'ISBN brut.
         if (result.coverUrl != null) {
-          _googleBooksService.cacheBook(book.isbn, result);
+          _googleBooksService.cacheBook(_entryCacheKey(book), result);
         }
 
         if (mounted) {
@@ -173,7 +194,16 @@ class _CuratedListDetailPageState extends State<CuratedListDetailPage> {
     double bestScore = 0;
 
     for (final r in results) {
-      var score = _jaccardSimilarity(normTitle, _normalizeForMatch(r.title));
+      final normResultTitle = _normalizeForMatch(r.title);
+      var score = _jaccardSimilarity(normTitle, normResultTitle);
+
+      // Titre attendu entièrement contenu dans le titre résultat (ou
+      // l'inverse) : cas fréquent des sous-titres ("Sapiens" vs "Sapiens :
+      // Une brève histoire de l'humanité") que Jaccard pénalise trop.
+      if (_containsAllWords(normResultTitle, normTitle) ||
+          _containsAllWords(normTitle, normResultTitle)) {
+        score += 0.5;
+      }
 
       // Bonus/pénalité auteur
       final authorScore = _jaccardSimilarity(
@@ -208,6 +238,14 @@ class _CuratedListDetailPageState extends State<CuratedListDetailPage> {
         .replaceAll('ç', 'c')
         .replaceAll('œ', 'oe').replaceAll('æ', 'ae')
         .trim();
+  }
+
+  /// True si tous les mots (>1 char) de [needle] sont présents dans [haystack].
+  static bool _containsAllWords(String haystack, String needle) {
+    final hay = haystack.split(RegExp(r'\s+')).where((w) => w.length > 1).toSet();
+    final need = needle.split(RegExp(r'\s+')).where((w) => w.length > 1).toSet();
+    if (need.isEmpty) return false;
+    return hay.containsAll(need);
   }
 
   static double _jaccardSimilarity(String a, String b) {
@@ -283,8 +321,14 @@ class _CuratedListDetailPageState extends State<CuratedListDetailPage> {
     try {
       GoogleBook? googleBook;
 
-      // 1) ISBN
+      // 1) ISBN — validé contre titre/auteur (les ISBN du catalogue peuvent
+      //    pointer vers un autre livre réel)
       googleBook = await _googleBooksService.searchByISBN(book.isbn);
+      if (googleBook != null &&
+          _bestMatchForCuratedBook([googleBook], book.title, book.author) ==
+              null) {
+        googleBook = null;
+      }
 
       // 2) titre + auteur
       if (googleBook == null) {
@@ -292,7 +336,7 @@ class _CuratedListDetailPageState extends State<CuratedListDetailPage> {
           book.title,
           book.author,
         );
-        if (results.isNotEmpty) googleBook = results.first;
+        googleBook = _bestMatchForCuratedBook(results, book.title, book.author);
       }
 
       // 3) recherche libre simplifiée
@@ -301,7 +345,7 @@ class _CuratedListDetailPageState extends State<CuratedListDetailPage> {
             book.title.replaceAll("'", ' ').replaceAll("'", ' ');
         final results = await _googleBooksService
             .searchBooks('$simplifiedTitle ${book.author}');
-        if (results.isNotEmpty) googleBook = results.first;
+        googleBook = _bestMatchForCuratedBook(results, book.title, book.author);
       }
 
       // 4) objet minimal Open Library

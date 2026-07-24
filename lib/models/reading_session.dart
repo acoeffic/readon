@@ -19,8 +19,23 @@ class ReadingSession {
   /// Who the user is reading for/to (e.g. "daughter", "son", "friend", "grandmother")
   final String? readingFor;
 
+  /// Session saisie manuellement a posteriori ("Ajouter une lecture passée"),
+  /// par opposition à une session trackée en temps réel (chrono/Watch).
+  final bool isManual;
+
   // Computed fields
   int get pagesRead => endPage != null ? endPage! - startPage : 0;
+
+  /// Session manuelle antidatée (saisie un autre jour que sa date de fin) —
+  /// compte pour les stats/feed/défis mais est exclue du calcul de la flamme,
+  /// pour ne pas permettre de réparer un streak a posteriori.
+  bool get isBackdated {
+    if (!isManual || endTime == null) return false;
+    final e = endTime!; // déjà en heure locale (fromJson)
+    return e.year != createdAt.year ||
+        e.month != createdAt.month ||
+        e.day != createdAt.day;
+  }
   
   int get durationMinutes {
     if (endTime == null) return 0;
@@ -44,6 +59,7 @@ class ReadingSession {
     this.endImagePath,
     this.isHidden = false,
     this.readingFor,
+    this.isManual = false,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -63,6 +79,7 @@ class ReadingSession {
       endImagePath: json['end_image_path'] as String?,
       isHidden: json['is_hidden'] as bool? ?? false,
       readingFor: json['reading_for'] as String?,
+      isManual: json['is_manual'] as bool? ?? false,
       createdAt: DateTime.parse(json['created_at'] as String).toLocal(),
       updatedAt: DateTime.parse(json['updated_at'] as String).toLocal(),
     );
@@ -81,6 +98,7 @@ class ReadingSession {
       'end_image_path': endImagePath,
       'is_hidden': isHidden,
       if (readingFor != null) 'reading_for': readingFor,
+      'is_manual': isManual,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
     };
@@ -98,6 +116,7 @@ class ReadingSession {
     String? endImagePath,
     bool? isHidden,
     String? readingFor,
+    bool? isManual,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -113,6 +132,7 @@ class ReadingSession {
       endImagePath: endImagePath ?? this.endImagePath,
       isHidden: isHidden ?? this.isHidden,
       readingFor: readingFor ?? this.readingFor,
+      isManual: isManual ?? this.isManual,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

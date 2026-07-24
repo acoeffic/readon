@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:audio_session/audio_session.dart';
 import 'package:just_audio/just_audio.dart';
 import '../../../config/env.dart';
 import '../../../services/lexday_sync_service.dart';
@@ -81,6 +83,14 @@ class _MonthlyWrappedScreenState extends State<MonthlyWrappedScreen> {
 
   Future<void> _initAudio() async {
     try {
+      // iOS : sans configurer la session, la catégorie par défaut est
+      // `soloAmbient` → coupée par le switch silencieux (l'utilisateur
+      // n'entend rien s'il est en mode silencieux). `playback` fait jouer
+      // la musique comme une story Instagram/Spotify, silencieux ou non.
+      final session = await AudioSession.instance;
+      await session.configure(const AudioSessionConfiguration.music());
+      await session.setActive(true);
+
       final randomTrack =
           _ambientTracks[Random().nextInt(_ambientTracks.length)];
       debugPrint('🔊 AUDIO: loading $randomTrack');
@@ -89,8 +99,11 @@ class _MonthlyWrappedScreenState extends State<MonthlyWrappedScreen> {
       await _audioPlayer.setLoopMode(LoopMode.one);
       await _audioPlayer.setVolume(0);
       debugPrint('🔊 AUDIO: calling play()');
-      await _audioPlayer.play();
-      debugPrint('🔊 AUDIO: play() returned, state=${_audioPlayer.playerState}');
+      // NE PAS await : avec just_audio, play() ne complète que lorsque la
+      // lecture se termine — jamais avec LoopMode.one. Un await ici bloque
+      // le fade-in et le volume reste à 0 (aucun son audible).
+      unawaited(_audioPlayer.play());
+      debugPrint('🔊 AUDIO: play() started, state=${_audioPlayer.playerState}');
       // Fade in: 0 → 0.5 over ~1.5 s
       for (int i = 1; i <= 15; i++) {
         if (!mounted) {
@@ -115,6 +128,10 @@ class _MonthlyWrappedScreenState extends State<MonthlyWrappedScreen> {
         await Future.delayed(const Duration(milliseconds: 100));
       }
       await _audioPlayer.stop();
+      // Rend la session pour que la musique de l'utilisateur (Spotify…) reprenne.
+      try {
+        await (await AudioSession.instance).setActive(false);
+      } catch (_) {}
     } catch (_) {}
   }
 

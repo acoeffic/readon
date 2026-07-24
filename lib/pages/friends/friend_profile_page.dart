@@ -11,6 +11,7 @@ import '../../services/moderation_service.dart';
 import '../../services/mutual_friends_service.dart';
 import '../../pages/sessions/session_detail_page.dart';
 import '../../widgets/badges_grid.dart';
+import '../../widgets/cached_book_cover.dart';
 import '../../widgets/cached_profile_avatar.dart';
 import '../../widgets/constrained_content.dart';
 import '../../widgets/mutual_friends_badge.dart';
@@ -48,6 +49,7 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
   int _currentFlow = 0;
   int _friendCount = 0;
   List<Map<String, dynamic>> _recentSessions = [];
+  List<Map<String, dynamic>> _books = [];
   List<UserBadge> _badges = [];
   String? _friendshipStatus; // 'accepted', 'pending', null
   bool _isProfilePrivate = false;
@@ -78,6 +80,7 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
         _loadStats(),
         _loadFlow(),
         _loadRecentSessions(),
+        _loadBooks(),
         _loadBadges(),
       ]);
     }
@@ -168,6 +171,24 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
     }
   }
 
+  Future<void> _loadBooks() async {
+    try {
+      final response = await supabase.rpc(
+        'get_friend_books',
+        params: {'p_user_id': widget.userId},
+      );
+
+      if (response != null && mounted) {
+        final books = (response as List)
+            .map((b) => Map<String, dynamic>.from(b as Map))
+            .toList();
+        setState(() => _books = books);
+      }
+    } catch (e) {
+      debugPrint('Erreur _loadBooks: $e');
+    }
+  }
+
   Future<void> _loadBadges() async {
     try {
       final badges = await badgesService.getUserBadgesById(widget.userId);
@@ -180,7 +201,13 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
   Future<void> _loadFriendshipStatus() async {
     try {
       final currentUserId = supabase.auth.currentUser?.id;
-      if (currentUserId == null) return;
+      if (currentUserId == null) {
+        // Anonyme : un profil public reste visible, un profil privé non.
+        if (mounted) {
+          setState(() => _canViewDetails = !_isProfilePrivate);
+        }
+        return;
+      }
 
       final result = await supabase
           .from('friends')
@@ -492,6 +519,10 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
                       _buildStats(l),
                       const SizedBox(height: AppSpace.l),
 
+                      // --- BOOKS (en cours + terminés) ---
+                      _buildBooksSection(l),
+                      const SizedBox(height: AppSpace.l),
+
                       // --- RECENT ACTIVITY ---
                       _buildRecentActivity(l),
                       const SizedBox(height: AppSpace.l),
@@ -635,6 +666,94 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
           isOwn: false,
         ),
       ),
+    );
+  }
+
+  Widget _buildBooksSection(AppLocalizations l) {
+    final reading =
+        _books.where((b) => b['status'] == 'reading').toList();
+    final finished =
+        _books.where((b) => b['status'] == 'finished').toList();
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSpace.l),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(AppRadius.l),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            l.theirBooks,
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: AppSpace.m),
+          if (_books.isEmpty)
+            Text(
+              l.noBooksYet,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                fontStyle: FontStyle.italic,
+              ),
+            )
+          else ...[
+            if (reading.isNotEmpty) ...[
+              _buildBooksSubtitle(l.currentlyReading),
+              const SizedBox(height: AppSpace.s),
+              _buildBooksGrid(reading),
+            ],
+            if (finished.isNotEmpty) ...[
+              if (reading.isNotEmpty) const SizedBox(height: AppSpace.m),
+              _buildBooksSubtitle(l.finishedBooksSection),
+              const SizedBox(height: AppSpace.s),
+              _buildBooksGrid(finished),
+            ],
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBooksSubtitle(String text) {
+    return Text(
+      text.toUpperCase(),
+      style: TextStyle(
+        fontSize: 11,
+        fontWeight: FontWeight.w600,
+        letterSpacing: 0.8,
+        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+      ),
+    );
+  }
+
+  Widget _buildBooksGrid(List<Map<String, dynamic>> books) {
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        crossAxisSpacing: AppSpace.m,
+        mainAxisSpacing: AppSpace.m,
+        childAspectRatio: 2 / 3,
+      ),
+      itemCount: books.length,
+      itemBuilder: (context, index) {
+        final book = books[index];
+        return LayoutBuilder(
+          builder: (context, constraints) => CachedBookCover(
+            imageUrl: book['book_cover_url'] as String?,
+            isbn: book['book_isbn'] as String?,
+            googleId: book['book_google_id'] as String?,
+            title: book['book_title'] as String?,
+            author: book['book_author'] as String?,
+            width: constraints.maxWidth,
+            height: constraints.maxHeight,
+            borderRadius: BorderRadius.circular(AppRadius.s),
+          ),
+        );
+      },
     );
   }
 

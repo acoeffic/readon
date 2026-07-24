@@ -43,6 +43,16 @@
                 <category android:name="android.intent.category.BROWSABLE"/>
                 <data android:scheme="lexday" android:host="auth" android:pathPrefix="/callback"/>
             </intent-filter>
+            <!-- Deep links génériques lexday:// (friends/requests, book, groups,
+                 referral, start-session…). Sans ce filtre catch-all, seuls les
+                 hosts listés ci-dessus ouvrent l'app sur Android — les liens
+                 email (page /redirect) ne faisaient donc rien. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="lexday"/>
+            </intent-filter>
         </activity>
         <!-- Google Maps API key -->
         <meta-data
@@ -64,6 +74,17 @@
                 <action android:name="com.htc.intent.action.QUICKBOOT_POWERON"/>
             </intent-filter>
         </receiver>
+        <!-- FileProvider dédié au partage vers les Stories (Instagram/Facebook).
+             Authority distincte de celle de share_plus pour éviter tout conflit. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.storyshare.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/story_share_paths" />
+        </provider>
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and
@@ -75,5 +96,9 @@
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
+        <!-- Visibilité des apps cibles pour resolveActivity/grantUriPermission
+             (partage Story) sur Android 11+. -->
+        <package android:name="com.instagram.android" />
+        <package android:name="com.facebook.katana" />
     </queries>
 </manifest>

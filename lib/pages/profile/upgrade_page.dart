@@ -137,6 +137,7 @@ class _UpgradePageState extends State<UpgradePage> {
       if (mounted) {
         if (success) {
           await context.read<SubscriptionProvider>().onPurchaseCompleted();
+          if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(AppLocalizations.of(context).subscriptionRestored),

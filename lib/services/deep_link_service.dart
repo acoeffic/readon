@@ -12,6 +12,7 @@ import '../pages/reading/start_reading_session_page_unified.dart';
 import 'books_service.dart';
 import 'notion_service.dart';
 import 'monthly_notification_service.dart';
+import 'referral_service.dart';
 
 class DeepLinkService {
   static final DeepLinkService _instance = DeepLinkService._internal();
@@ -25,6 +26,16 @@ class DeepLinkService {
 
   static GlobalKey<NavigatorState> get navigatorKey =>
       MonthlyNotificationService.navigatorKey;
+
+  /// Route interne en attente quand la navigation n'est pas prête (cold
+  /// start : le splash fait un pushReplacement vers AuthGate, une page
+  /// poussée avant serait écrasée). Consommée par MainNavigation une fois
+  /// monté (voir _consumePendingDeepLink).
+  static String? pendingRoute;
+
+  /// Enregistré par MainNavigation quand il est monté : les liens reçus
+  /// app déjà ouverte naviguent immédiatement.
+  static void Function(String route)? onRoute;
 
   void init() {
     if (kIsWeb) return;
@@ -99,6 +110,15 @@ class DeepLinkService {
       return;
     }
 
+    // lexday://friends/requests — lien email « demande d'ami » (la page
+    // https://www.lexday.fr/redirect?to=friends/requests rebondit vers ce
+    // scheme). On amène l'utilisateur sur la page des notifications, où il
+    // peut accepter/refuser la demande.
+    if (uri.host == 'friends') {
+      _routeTo('notifications');
+      return;
+    }
+
     // lexday://groups
     if (uri.host == 'groups') {
       final nav = navigatorKey.currentState;
@@ -107,6 +127,37 @@ class DeepLinkService {
         MaterialPageRoute(builder: (_) => const GroupsPage()),
       );
       return;
+    }
+
+    // lexday://referral?code=ABC123 (lien de parrainage)
+    if (uri.host == 'referral') {
+      final code = uri.queryParameters['code'];
+      if (code != null && code.isNotEmpty) {
+        _handleReferral(code);
+      }
+      return;
+    }
+  }
+
+  /// Navigue vers une route interne si MainNavigation est monté, sinon la
+  /// met en attente pour qu'il la consomme après son montage (cold start).
+  void _routeTo(String route) {
+    final handler = onRoute;
+    if (handler != null) {
+      handler(route);
+    } else {
+      pendingRoute = route;
+    }
+  }
+
+  /// Mémorise le code de parrainage. S'il est déjà connecté, on l'applique
+  /// tout de suite ; sinon il sera appliqué après l'authentification
+  /// (voir ReferralService.applyPendingCode, appelé depuis AuthGate).
+  Future<void> _handleReferral(String code) async {
+    final service = ReferralService();
+    await service.storePendingCode(code);
+    if (Supabase.instance.client.auth.currentUser != null) {
+      await service.applyPendingCode();
     }
   }
 

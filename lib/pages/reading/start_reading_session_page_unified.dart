@@ -17,6 +17,7 @@ import '../../widgets/cached_book_cover.dart';
 import '../../widgets/constrained_content.dart';
 import '../../providers/connectivity_provider.dart';
 import 'active_reading_session_page.dart';
+import 'add_past_session_page.dart';
 
 const _kBgColor = Color(0xFFFAF3E8);
 const _kSageGreen = Color(0xFF6B988D);
@@ -414,6 +415,24 @@ class _StartReadingSessionPageUnifiedState extends State<StartReadingSessionPage
     );
     if (selected != null && mounted) {
       setState(() => _readingFor = selected);
+    }
+  }
+
+  /// Chrono oublié : ouvre la saisie manuelle d'une lecture déjà effectuée.
+  /// Si une lecture a été enregistrée, on ferme la page Démarrer (l'objectif
+  /// "enregistrer ma lecture" est atteint).
+  Future<void> _openAddPastSession() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AddPastSessionPage(
+          book: widget.book,
+          initialStartPage: _lastPage,
+        ),
+      ),
+    );
+    if (result == true && mounted) {
+      Navigator.of(context).pop();
     }
   }
 
@@ -890,7 +909,9 @@ class _StartReadingSessionPageUnifiedState extends State<StartReadingSessionPage
                                 ]
                               : [],
                         ),
-                        child: TextField(
+                        child: Semantics(
+                          identifier: 'manual_page_input',
+                          child: TextField(
                           key: const ValueKey('manual_page_input'),
                           controller: _manualPageController,
                           focusNode: _pageFocusNode,
@@ -926,6 +947,7 @@ class _StartReadingSessionPageUnifiedState extends State<StartReadingSessionPage
                             });
                           },
                           onTap: () => setState(() {}),
+                        ),
                         ),
                       ),
 
@@ -1235,6 +1257,19 @@ class _StartReadingSessionPageUnifiedState extends State<StartReadingSessionPage
                         ),
                       ),
                     ],
+                    // Chrono oublié : enregistrer une lecture déjà effectuée.
+                    const SizedBox(height: 10),
+                    GestureDetector(
+                      onTap: _isProcessing ? null : _openAddPastSession,
+                      child: Text(
+                        '🕐 ${l.addPastSessionButton}',
+                        style: GoogleFonts.dmSans(
+                          fontSize: 14,
+                          color: _kSageGreen.withValues(alpha: 0.8),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),

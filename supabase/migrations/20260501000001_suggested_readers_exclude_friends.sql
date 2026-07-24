@@ -1,11 +1,6 @@
 -- get_suggested_readers : exclure les amis existants (status accepted) et
 -- les demandes en cours (status pending) pour qu'on ne propose pas des
 -- profils déjà connectés. Boost mineur des profils ayant des amis communs.
---
--- Drop préalable car on ajoute une colonne `mutual_count` au RETURNS TABLE
--- (Postgres refuse de changer la signature en CREATE OR REPLACE seul).
-
-DROP FUNCTION IF EXISTS get_suggested_readers(TEXT, INTEGER) CASCADE;
 
 CREATE OR REPLACE FUNCTION get_suggested_readers(
   p_reading_habit TEXT DEFAULT NULL,

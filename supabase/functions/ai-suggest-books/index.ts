@@ -16,6 +16,11 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+// Chaque appel déclenche une requête gpt-4o (coûteuse). On plafonne les
+// utilisateurs gratuits comme pour ai-chat / summarize-passage. Premium =
+// illimité. Suivi via la table `ai_usage` (feature = "suggest_books").
+const MAX_FREE_MONTHLY_SUGGESTIONS = 5;
+
 function jsonResponse(body: Record<string, unknown>, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -86,6 +91,39 @@ serve(async (req) => {
   try {
     const body = await req.json();
     const limit = Math.min(body.limit ?? 5, 10);
+
+    // --- Premium check & monthly quota (avant tout appel OpenAI) ---
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("is_premium")
+      .eq("id", user.id)
+      .single();
+
+    const isPremium = profile?.is_premium === true;
+
+    if (!isPremium) {
+      const startOfMonth = new Date();
+      startOfMonth.setDate(1);
+      startOfMonth.setHours(0, 0, 0, 0);
+
+      const { count: usageCount } = await supabase
+        .from("ai_usage")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("feature", "suggest_books")
+        .gte("used_at", startOfMonth.toISOString());
+
+      if ((usageCount ?? 0) >= MAX_FREE_MONTHLY_SUGGESTIONS) {
+        return jsonResponse(
+          {
+            error: "limit_reached",
+            message:
+              "Tu as atteint la limite de suggestions ce mois-ci. Passe premium pour des recommandations illimitées !",
+          },
+          429,
+        );
+      }
+    }
 
     // Fetch all data in parallel
     const [
@@ -276,6 +314,13 @@ serve(async (req) => {
       console.error("OpenAI error:", error);
       return jsonResponse({ error: "Erreur du service IA" }, 502);
     }
+
+    // Requête gpt-4o consommée : on enregistre l'usage (compté pour le
+    // plafond gratuit, ignoré pour les premium mais tracé quand même).
+    await supabase.from("ai_usage").insert({
+      user_id: user.id,
+      feature: "suggest_books",
+    });
 
     const openaiData = await openaiResponse.json();
     const content = openaiData.choices?.[0]?.message?.content ?? "[]";

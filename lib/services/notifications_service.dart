@@ -7,6 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 enum NotificationType {
   like,
   comment,
+  commentReply,
   friendRequest,
   groupJoinRequest;
 
@@ -16,6 +17,8 @@ enum NotificationType {
         return NotificationType.like;
       case 'comment':
         return NotificationType.comment;
+      case 'comment_reply':
+        return NotificationType.commentReply;
       case 'friend_request':
         return NotificationType.friendRequest;
       case 'group_join_request':
@@ -80,6 +83,8 @@ class AppNotification {
         return '$fromUserName a aimé votre lecture de $bookTitle';
       case NotificationType.comment:
         return '$fromUserName a commenté votre lecture de $bookTitle';
+      case NotificationType.commentReply:
+        return '$fromUserName a répondu à votre commentaire sur $bookTitle';
       case NotificationType.friendRequest:
         return '$fromUserName vous a envoyé une demande d\'ami';
       case NotificationType.groupJoinRequest:

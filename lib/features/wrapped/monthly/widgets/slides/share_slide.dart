@@ -5,6 +5,7 @@ import 'package:path_provider/path_provider.dart';
 import '../../monthly_wrapped_data.dart';
 import '../../../share/monthly_share_service.dart';
 import '../../../share/share_format.dart';
+import '../../../share/story_share_service.dart';
 import '../../../../../services/lexday_sync_service.dart';
 import '../fade_up_animation.dart';
 
@@ -21,6 +22,7 @@ class ShareSlide extends StatefulWidget {
 
 class _ShareSlideState extends State<ShareSlide> {
   final _service = MonthlyShareService();
+  final _storyService = StoryShareService();
   String? _loadingAction; // tracks which action is in progress
   File? _videoFile;
   bool _hasVideo = false;
@@ -101,7 +103,55 @@ class _ShareSlideState extends State<ShareSlide> {
     _reset();
   }
 
-  /// Opens a specific social app (save temp + URL scheme, no gallery dependency).
+  /// Vrai partage Story Instagram : l'image est préchargée en fond du composer
+  /// (via pasteboard iOS / Intent Android). Si l'app n'est pas installée ou que
+  /// la plateforme ne le supporte pas, on retombe sur la feuille de partage
+  /// native — jamais d'app ouverte à vide.
+  Future<void> _shareToInstagramStory() async {
+    if (_loadingAction != null) return;
+    setState(() => _loadingAction = 'Instagram');
+
+    try {
+      final bytes = await _service.captureCard(
+        data: data,
+        format: ShareFormat.story,
+      );
+      if (!mounted || bytes == null || bytes.isEmpty) {
+        _reset();
+        _showSnackBar("Impossible de generer l'image");
+        return;
+      }
+
+      // Si une vidéo pré-rendue est dispo, on la partage en fond de Story
+      // (plus impactant que l'image). Sinon on partage l'image.
+      final StoryShareResult result;
+      if (_hasVideo && _videoFile != null) {
+        result = await _storyService.shareVideoToInstagramStory(_videoFile!.path);
+      } else {
+        result = await _storyService.shareToInstagramStory(bytes);
+      }
+      if (!mounted) return;
+
+      if (result != StoryShareResult.shared) {
+        // Fallback : feuille de partage native avec l'image (ou la vidéo).
+        await _service.shareGeneric(
+          imageBytes: bytes,
+          year: data.year,
+          month: data.month,
+          videoFile: _hasVideo ? _videoFile : null,
+          sharePositionOrigin: _shareOrigin(),
+        );
+      }
+    } catch (e) {
+      if (mounted) _showSnackBar('Erreur : $e');
+    }
+    _reset();
+  }
+
+  /// Partage l'image via la feuille de partage native (l'utilisateur y choisit
+  /// l'app cible, et l'image est bien jointe). On n'ouvre plus l'app via un
+  /// simple scheme, qui n'emportait pas l'image et ouvrait une app vide.
+  /// [urlScheme] / [webFallbackUrl] sont conservés pour compat des appels.
   Future<void> _shareToApp(String appName, String urlScheme, ShareFormat format, {String? webFallbackUrl}) async {
     if (_loadingAction != null) return;
     setState(() => _loadingAction = appName);
@@ -117,20 +167,13 @@ class _ShareSlideState extends State<ShareSlide> {
         return;
       }
 
-      final opened = await _service.shareToApp(
+      await _service.shareGeneric(
         imageBytes: bytes,
-        urlScheme: urlScheme,
         year: data.year,
         month: data.month,
         videoFile: _hasVideo ? _videoFile : null,
-        webFallbackUrl: webFallbackUrl,
         sharePositionOrigin: _shareOrigin(),
       );
-      if (!mounted) return;
-
-      if (opened) {
-        _showSnackBar('Ouverture de $appName...');
-      }
     } catch (e) {
       if (mounted) _showSnackBar('Erreur : $e');
     }
@@ -285,12 +328,7 @@ class _ShareSlideState extends State<ShareSlide> {
               _AppLink(
                 label: 'Instagram',
                 isLoading: _loadingAction == 'Instagram',
-                onTap: () => _shareToApp(
-                  'Instagram',
-                  'instagram://app',
-                  ShareFormat.story,
-                  webFallbackUrl: 'https://www.instagram.com',
-                ),
+                onTap: _shareToInstagramStory,
               ),
               const SizedBox(width: 24),
               _AppLink(
@@ -409,6 +447,7 @@ class _ShareButton extends StatelessWidget {
                 )
               : Text(
                   'Partager mon Wrapped ${_withFrenchPrefix(monthName)}',
+                  textAlign: TextAlign.center,
                   style: const TextStyle(
                     fontFamily: 'Poppins',
                     fontSize: 18,

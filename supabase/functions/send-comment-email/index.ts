@@ -11,6 +11,32 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
+// Cette fonction est appelée uniquement par le trigger SQL
+// `send_comment_email_on_approve`, qui présente la clé service_role
+// (stockée dans Vault) en Bearer. On refuse tout autre appelant :
+// avec `verify_jwt = false` (voir config.toml), le gateway ne filtre
+// plus rien, donc l'auth se fait ici. La clé anon embarquée dans l'app
+// ne matche pas la service_role → relais e-mail fermé.
+const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let mismatch = 0;
+  for (let i = 0; i < a.length; i++) {
+    mismatch |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return mismatch === 0;
+}
+
+function isAuthorized(req: Request): boolean {
+  if (!SERVICE_ROLE_KEY) return false;
+  const token = (req.headers.get("authorization") ?? "").replace(
+    /^Bearer\s+/i,
+    "",
+  );
+  return token.length > 0 && timingSafeEqual(token, SERVICE_ROLE_KEY);
+}
+
 interface CommentEmailPayload {
   to_email: string;
   to_name: string;
@@ -35,6 +61,9 @@ function truncate(input: string, max: number): string {
 }
 
 serve(async (req) => {
+  if (!isAuthorized(req)) {
+    return new Response("Unauthorized", { status: 401 });
+  }
   try {
     const payload = (await req.json()) as CommentEmailPayload;
 

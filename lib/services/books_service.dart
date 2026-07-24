@@ -463,12 +463,15 @@ class BooksService {
             .select('book_id')
             .eq('user_id', userId)
             .eq('status', 'finished'),
+        // Tri par end_time (pas created_at) : une lecture passée saisie
+        // manuellement (is_manual, antidatée) ne doit pas devenir la session
+        // "courante" et faire reculer la page du livre.
         _supabase
             .from('reading_sessions')
             .select('book_id, end_page')
             .eq('user_id', userId)
             .not('end_time', 'is', null)
-            .order('created_at', ascending: false)
+            .order('end_time', ascending: false)
             .limit(10),
       ]);
 
