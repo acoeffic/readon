@@ -214,6 +214,42 @@ abstract class AppLocalizations {
   /// **'Kindle synchronisé automatiquement'**
   String get kindleSyncedAutomatically;
 
+  /// No description provided for @kindleSessionExpired.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ta connexion Kindle a expiré, reconnecte-toi pour continuer la synchronisation'**
+  String get kindleSessionExpired;
+
+  /// No description provided for @kindleReconnect.
+  ///
+  /// In fr, this message translates to:
+  /// **'Reconnecter'**
+  String get kindleReconnect;
+
+  /// No description provided for @kindleStopSyncing.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ne plus synchroniser'**
+  String get kindleStopSyncing;
+
+  /// No description provided for @kindleSyncDisabled.
+  ///
+  /// In fr, this message translates to:
+  /// **'Synchro Kindle désactivée. Tu peux la réactiver dans les réglages.'**
+  String get kindleSyncDisabled;
+
+  /// No description provided for @sessionSourceKindle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Lu sur Kindle · durée estimée'**
+  String get sessionSourceKindle;
+
+  /// No description provided for @kindleSessionsAdded.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =1{Ta lecture Kindle a été ajoutée} other{{count} lectures Kindle ajoutées}}'**
+  String kindleSessionsAdded(int count);
+
   /// No description provided for @enterEmailToReset.
   ///
   /// In fr, this message translates to:
@@ -3838,6 +3874,18 @@ abstract class AppLocalizations {
   /// **'Un classique à découvrir'**
   String get museClassic;
 
+  /// No description provided for @museGiftChip.
+  ///
+  /// In fr, this message translates to:
+  /// **'🎁 Un livre à offrir'**
+  String get museGiftChip;
+
+  /// No description provided for @museGiftPrefill.
+  ///
+  /// In fr, this message translates to:
+  /// **'Quel livre pourrais-je offrir à '**
+  String get museGiftPrefill;
+
   /// No description provided for @museAssistantLabel.
   ///
   /// In fr, this message translates to:
@@ -3975,6 +4023,18 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Ajouter à une liste'**
   String get addToList;
+
+  /// No description provided for @addToThisList.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajouter à la liste'**
+  String get addToThisList;
+
+  /// No description provided for @seeAllAuthorBooks.
+  ///
+  /// In fr, this message translates to:
+  /// **'Voir tous ses livres'**
+  String get seeAllAuthorBooks;
 
   /// No description provided for @noPersonalList.
   ///
@@ -4251,6 +4311,60 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Visible uniquement par toi'**
   String get privateListDescription;
+
+  /// No description provided for @listShareMakePublicTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rendre la liste publique ?'**
+  String get listShareMakePublicTitle;
+
+  /// No description provided for @listShareMakePublicMessage.
+  ///
+  /// In fr, this message translates to:
+  /// **'Pour partager « {title} », la liste doit être publique. Toute personne avec le lien pourra la voir.'**
+  String listShareMakePublicMessage(String title);
+
+  /// No description provided for @makePublicButton.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rendre publique'**
+  String get makePublicButton;
+
+  /// No description provided for @listShareLinkOption.
+  ///
+  /// In fr, this message translates to:
+  /// **'Partager le lien'**
+  String get listShareLinkOption;
+
+  /// No description provided for @listShareLinkSubtitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Page web consultable sans l\'app'**
+  String get listShareLinkSubtitle;
+
+  /// No description provided for @listShareImageOption.
+  ///
+  /// In fr, this message translates to:
+  /// **'Partager en image'**
+  String get listShareImageOption;
+
+  /// No description provided for @listShareImageSubtitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Une carte pour Instagram ou TikTok'**
+  String get listShareImageSubtitle;
+
+  /// No description provided for @listShareText.
+  ///
+  /// In fr, this message translates to:
+  /// **'📚 Ma liste « {title} » sur LexDay :\n{url}'**
+  String listShareText(String title, String url);
+
+  /// No description provided for @listByOwner.
+  ///
+  /// In fr, this message translates to:
+  /// **'Liste de {name}'**
+  String listByOwner(String name);
 
   /// No description provided for @addBooksTitle.
   ///
@@ -5128,6 +5242,66 @@ abstract class AppLocalizations {
   /// **'Démarrer'**
   String get startSessionTitle;
 
+  /// No description provided for @startFromBeginning.
+  ///
+  /// In fr, this message translates to:
+  /// **'Commencer au début'**
+  String get startFromBeginning;
+
+  /// No description provided for @addBookManuallyCta.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajouter « {query} » manuellement'**
+  String addBookManuallyCta(String query);
+
+  /// No description provided for @titleAuthorRequired.
+  ///
+  /// In fr, this message translates to:
+  /// **'Titre et auteur requis'**
+  String get titleAuthorRequired;
+
+  /// No description provided for @cameraPermissionDenied.
+  ///
+  /// In fr, this message translates to:
+  /// **'Accès à la caméra refusé'**
+  String get cameraPermissionDenied;
+
+  /// No description provided for @cameraPermissionHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Autorise la caméra dans les réglages pour scanner, ou cherche le livre par son titre.'**
+  String get cameraPermissionHint;
+
+  /// No description provided for @searchByTitleButton.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rechercher par titre'**
+  String get searchByTitleButton;
+
+  /// No description provided for @scanBookCta.
+  ///
+  /// In fr, this message translates to:
+  /// **'Scanner un livre'**
+  String get scanBookCta;
+
+  /// No description provided for @endActiveSessionCta.
+  ///
+  /// In fr, this message translates to:
+  /// **'Terminer la session en cours'**
+  String get endActiveSessionCta;
+
+  /// No description provided for @referralSection.
+  ///
+  /// In fr, this message translates to:
+  /// **'Parrainage'**
+  String get referralSection;
+
+  /// No description provided for @referralInvite.
+  ///
+  /// In fr, this message translates to:
+  /// **'Inviter un ami · 14 jours offerts'**
+  String get referralInvite;
+
   /// No description provided for @whatPageAreYouAt.
   ///
   /// In fr, this message translates to:
@@ -5566,6 +5740,12 @@ abstract class AppLocalizations {
   /// **'Autre'**
   String get readingForOther;
 
+  /// No description provided for @readingForAddPrompt.
+  ///
+  /// In fr, this message translates to:
+  /// **'Lu pour quelqu\'un ?'**
+  String get readingForAddPrompt;
+
   /// No description provided for @readingForDisplay.
   ///
   /// In fr, this message translates to:
@@ -5925,6 +6105,12 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Bibliothèque illimitée'**
   String get freeIncludedLibrary;
+
+  /// No description provided for @freeIncludedStats.
+  ///
+  /// In fr, this message translates to:
+  /// **'Statistiques & suivi de lecture complets'**
+  String get freeIncludedStats;
 
   /// No description provided for @freeIncludedFeed.
   ///
@@ -6405,6 +6591,12 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Tu peux aussi coller un ISBN (10 ou 13 chiffres)'**
   String get manualSearchTipIsbn;
+
+  /// No description provided for @manualSearchTrendingTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tendances en ce moment'**
+  String get manualSearchTrendingTitle;
 
   /// No description provided for @manualSearchNoResults.
   ///
@@ -7041,6 +7233,1044 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Termine d\'abord ta session en cours sur ce livre.'**
   String get addPastSessionActiveSessionError;
+
+  /// No description provided for @scanIsbnDetected.
+  ///
+  /// In fr, this message translates to:
+  /// **'ISBN détecté : {code}'**
+  String scanIsbnDetected(String code);
+
+  /// No description provided for @scanNoBookForIsbn.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun livre trouvé pour cet ISBN. Essayez le scan de couverture.'**
+  String get scanNoBookForIsbn;
+
+  /// No description provided for @scanSearchError.
+  ///
+  /// In fr, this message translates to:
+  /// **'Erreur de recherche : {error}'**
+  String scanSearchError(String error);
+
+  /// No description provided for @scanNoTextDetected.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun texte détecté sur la couverture.'**
+  String get scanNoTextDetected;
+
+  /// No description provided for @scanNoBookFound.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun livre trouvé. Essayez la recherche manuelle.'**
+  String get scanNoBookFound;
+
+  /// No description provided for @scanIsbnTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Scanner ISBN'**
+  String get scanIsbnTitle;
+
+  /// No description provided for @scanCoverTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Scanner couverture'**
+  String get scanCoverTitle;
+
+  /// No description provided for @manualSearchTooltip.
+  ///
+  /// In fr, this message translates to:
+  /// **'Recherche manuelle'**
+  String get manualSearchTooltip;
+
+  /// No description provided for @coverLabel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Couverture'**
+  String get coverLabel;
+
+  /// No description provided for @scanPaused.
+  ///
+  /// In fr, this message translates to:
+  /// **'Scanner en pause'**
+  String get scanPaused;
+
+  /// No description provided for @scanPointCamera.
+  ///
+  /// In fr, this message translates to:
+  /// **'Pointez la caméra vers le code-barres ISBN'**
+  String get scanPointCamera;
+
+  /// No description provided for @scanBarcodeHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'(au dos du livre, commence par 978 ou 979)'**
+  String get scanBarcodeHint;
+
+  /// No description provided for @scanNoBarcodeHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Pas de code-barres ? Utilisez l\'onglet \"Couverture\"'**
+  String get scanNoBarcodeHint;
+
+  /// No description provided for @scanAnalyzingCover.
+  ///
+  /// In fr, this message translates to:
+  /// **'Analyse de la couverture...'**
+  String get scanAnalyzingCover;
+
+  /// No description provided for @scanScannedCover.
+  ///
+  /// In fr, this message translates to:
+  /// **'Couverture scannée :'**
+  String get scanScannedCover;
+
+  /// No description provided for @scanDetectedText.
+  ///
+  /// In fr, this message translates to:
+  /// **'Texte détecté'**
+  String get scanDetectedText;
+
+  /// No description provided for @scanPhotographCover.
+  ///
+  /// In fr, this message translates to:
+  /// **'Photographiez la couverture'**
+  String get scanPhotographCover;
+
+  /// No description provided for @scanCoverExplain.
+  ///
+  /// In fr, this message translates to:
+  /// **'On détecte le titre et trouve le livre'**
+  String get scanCoverExplain;
+
+  /// No description provided for @scanStepDetection.
+  ///
+  /// In fr, this message translates to:
+  /// **'Détection'**
+  String get scanStepDetection;
+
+  /// No description provided for @scanStepSearch.
+  ///
+  /// In fr, this message translates to:
+  /// **'Recherche'**
+  String get scanStepSearch;
+
+  /// No description provided for @scanIsbnAutoDetect.
+  ///
+  /// In fr, this message translates to:
+  /// **'Si l\'ISBN est visible, il sera détecté automatiquement'**
+  String get scanIsbnAutoDetect;
+
+  /// No description provided for @scanResults.
+  ///
+  /// In fr, this message translates to:
+  /// **'Résultats :'**
+  String get scanResults;
+
+  /// No description provided for @bookAddedShort.
+  ///
+  /// In fr, this message translates to:
+  /// **'{title} ajouté'**
+  String bookAddedShort(String title);
+
+  /// No description provided for @emptyLibraryUseSearch.
+  ///
+  /// In fr, this message translates to:
+  /// **'Utilise l\'onglet Rechercher pour trouver et ajouter des livres.'**
+  String get emptyLibraryUseSearch;
+
+  /// No description provided for @searchBookByTitleAuthorHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Recherche un livre par titre ou auteur'**
+  String get searchBookByTitleAuthorHint;
+
+  /// No description provided for @chooseCoverTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Choisir une couverture'**
+  String get chooseCoverTitle;
+
+  /// No description provided for @noCoversAvailable.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucune couverture disponible'**
+  String get noCoversAvailable;
+
+  /// No description provided for @coversComingSoon.
+  ///
+  /// In fr, this message translates to:
+  /// **'La bibliothèque sera bientôt enrichie.'**
+  String get coversComingSoon;
+
+  /// No description provided for @bookHiddenFromOthers.
+  ///
+  /// In fr, this message translates to:
+  /// **'Livre masqué des autres utilisateurs'**
+  String get bookHiddenFromOthers;
+
+  /// No description provided for @bookVisibleToOthers.
+  ///
+  /// In fr, this message translates to:
+  /// **'Livre visible pour les autres utilisateurs'**
+  String get bookVisibleToOthers;
+
+  /// No description provided for @errorUpdating.
+  ///
+  /// In fr, this message translates to:
+  /// **'Erreur lors de la mise à jour'**
+  String get errorUpdating;
+
+  /// No description provided for @markBookFinishedQuestion.
+  ///
+  /// In fr, this message translates to:
+  /// **'Marquer ce livre comme terminé ?'**
+  String get markBookFinishedQuestion;
+
+  /// No description provided for @bookMarkedFinished.
+  ///
+  /// In fr, this message translates to:
+  /// **'Livre marqué comme terminé !'**
+  String get bookMarkedFinished;
+
+  /// No description provided for @bookHiddenTooltip.
+  ///
+  /// In fr, this message translates to:
+  /// **'Livre masqué aux autres'**
+  String get bookHiddenTooltip;
+
+  /// No description provided for @hideBookTooltip.
+  ///
+  /// In fr, this message translates to:
+  /// **'Masquer ce livre'**
+  String get hideBookTooltip;
+
+  /// No description provided for @kindleBook.
+  ///
+  /// In fr, this message translates to:
+  /// **'Livre Kindle'**
+  String get kindleBook;
+
+  /// No description provided for @scannedBook.
+  ///
+  /// In fr, this message translates to:
+  /// **'Livre scanné'**
+  String get scannedBook;
+
+  /// No description provided for @addGenre.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajouter un genre'**
+  String get addGenre;
+
+  /// No description provided for @sessionStartedAtPage.
+  ///
+  /// In fr, this message translates to:
+  /// **'Commencée à la page {page}'**
+  String sessionStartedAtPage(int page);
+
+  /// No description provided for @sinceDuration.
+  ///
+  /// In fr, this message translates to:
+  /// **'Depuis {duration}'**
+  String sinceDuration(String duration);
+
+  /// No description provided for @endThisReading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Terminer cette lecture'**
+  String get endThisReading;
+
+  /// No description provided for @progressPhotoHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Suivez votre progression en prenant une photo ou en saisissant le numéro de page.'**
+  String get progressPhotoHint;
+
+  /// No description provided for @markAsFinished.
+  ///
+  /// In fr, this message translates to:
+  /// **'Marquer comme terminé'**
+  String get markAsFinished;
+
+  /// No description provided for @currentlyAtPage.
+  ///
+  /// In fr, this message translates to:
+  /// **'Actuellement à la page {page}'**
+  String currentlyAtPage(String page);
+
+  /// No description provided for @remainingAiSummaries.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count}/{max} résumés restants'**
+  String remainingAiSummaries(int count, int max);
+
+  /// No description provided for @noAnnotationsForBook.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucune annotation pour ce livre.\nAnnotez pendant vos sessions !'**
+  String get noAnnotationsForBook;
+
+  /// No description provided for @aiSheetExplain.
+  ///
+  /// In fr, this message translates to:
+  /// **'L\'IA analyse vos {count} annotations pour créer une fiche de lecture personnalisée : thèmes clés, citations marquantes, progression et synthèse.'**
+  String aiSheetExplain(int count);
+
+  /// No description provided for @generateMySheet.
+  ///
+  /// In fr, this message translates to:
+  /// **'Générer ma fiche'**
+  String get generateMySheet;
+
+  /// No description provided for @regenerate.
+  ///
+  /// In fr, this message translates to:
+  /// **'Régénérer'**
+  String get regenerate;
+
+  /// No description provided for @sheetSentToNotion.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fiche envoyée vers Notion !'**
+  String get sheetSentToNotion;
+
+  /// No description provided for @aiSummaryLabel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Résumé IA'**
+  String get aiSummaryLabel;
+
+  /// No description provided for @summarizing.
+  ///
+  /// In fr, this message translates to:
+  /// **'Résumé en cours...'**
+  String get summarizing;
+
+  /// No description provided for @summarizeAction.
+  ///
+  /// In fr, this message translates to:
+  /// **'Résumer'**
+  String get summarizeAction;
+
+  /// No description provided for @usedMonthlySummaries.
+  ///
+  /// In fr, this message translates to:
+  /// **'Vous avez utilisé vos {count} résumés du mois'**
+  String usedMonthlySummaries(int count);
+
+  /// No description provided for @premiumSummariesUpsell.
+  ///
+  /// In fr, this message translates to:
+  /// **'Passez en Premium pour résumer tous vos passages sans limite'**
+  String get premiumSummariesUpsell;
+
+  /// No description provided for @retryNextMonth.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réessayer le mois prochain'**
+  String get retryNextMonth;
+
+  /// No description provided for @addedToListNamed.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajouté à \"{title}\"'**
+  String addedToListNamed(String title);
+
+  /// No description provided for @barcodeLabel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Code-barres'**
+  String get barcodeLabel;
+
+  /// No description provided for @scanStepPhoto.
+  ///
+  /// In fr, this message translates to:
+  /// **'Photo'**
+  String get scanStepPhoto;
+
+  /// No description provided for @chooseGenre.
+  ///
+  /// In fr, this message translates to:
+  /// **'Choisir le genre'**
+  String get chooseGenre;
+
+  /// No description provided for @profileCurrentSection.
+  ///
+  /// In fr, this message translates to:
+  /// **'En ce moment'**
+  String get profileCurrentSection;
+
+  /// No description provided for @profileCurrentSince.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =1{depuis 1 jour} other{depuis {count} jours}}'**
+  String profileCurrentSince(int count);
+
+  /// No description provided for @profilePageProgress.
+  ///
+  /// In fr, this message translates to:
+  /// **'p. {current} / {total}'**
+  String profilePageProgress(int current, int total);
+
+  /// No description provided for @profileFavoritesSection.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ses coups de cœur'**
+  String get profileFavoritesSection;
+
+  /// No description provided for @profileCommonSection.
+  ///
+  /// In fr, this message translates to:
+  /// **'Vous avez lu les deux'**
+  String get profileCommonSection;
+
+  /// No description provided for @profileCommonSubtitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Les livres présents dans vos deux bibliothèques'**
+  String get profileCommonSubtitle;
+
+  /// No description provided for @profileYouLabel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Toi'**
+  String get profileYouLabel;
+
+  /// No description provided for @profileLibrarySection.
+  ///
+  /// In fr, this message translates to:
+  /// **'Sa bibliothèque'**
+  String get profileLibrarySection;
+
+  /// No description provided for @profileToReadChip.
+  ///
+  /// In fr, this message translates to:
+  /// **'Envies'**
+  String get profileToReadChip;
+
+  /// No description provided for @profileSeeFullLibrary.
+  ///
+  /// In fr, this message translates to:
+  /// **'Voir toute sa bibliothèque'**
+  String get profileSeeFullLibrary;
+
+  /// No description provided for @memberSinceDays.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =1{Membre depuis 1 jour} other{Membre depuis {count} jours}}'**
+  String memberSinceDays(int count);
+
+  /// No description provided for @memberSinceWeeks.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =1{Membre depuis 1 semaine} other{Membre depuis {count} semaines}}'**
+  String memberSinceWeeks(int count);
+
+  /// No description provided for @memberSinceMonths.
+  ///
+  /// In fr, this message translates to:
+  /// **'Membre depuis {count} mois'**
+  String memberSinceMonths(int count);
+
+  /// No description provided for @memberSinceYears.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =1{Membre depuis 1 an} other{Membre depuis {count} ans}}'**
+  String memberSinceYears(int count);
+
+  /// No description provided for @profileTheirRating.
+  ///
+  /// In fr, this message translates to:
+  /// **'Sa note'**
+  String get profileTheirRating;
+
+  /// No description provided for @sessionPageRange.
+  ///
+  /// In fr, this message translates to:
+  /// **'p. {start} → {end}'**
+  String sessionPageRange(int start, int end);
+
+  /// No description provided for @chooseNameTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Comment veux-tu apparaître ?'**
+  String get chooseNameTitle;
+
+  /// No description provided for @chooseNameSubtitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'C\'est le nom que verront tes amis et les autres lecteurs sur LexDay.'**
+  String get chooseNameSubtitle;
+
+  /// No description provided for @feedbackTooltip.
+  ///
+  /// In fr, this message translates to:
+  /// **'Donner mon avis'**
+  String get feedbackTooltip;
+
+  /// No description provided for @feedbackSheetTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Donner mon avis'**
+  String get feedbackSheetTitle;
+
+  /// No description provided for @feedbackSheetSubtitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Un bug, une idée, quelque chose qui te gêne ? Dis-nous tout — chaque retour nous aide à améliorer LexDay.'**
+  String get feedbackSheetSubtitle;
+
+  /// No description provided for @feedbackMessageLabel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ton message'**
+  String get feedbackMessageLabel;
+
+  /// No description provided for @feedbackMessageHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Écris ton retour ici…'**
+  String get feedbackMessageHint;
+
+  /// No description provided for @feedbackSubmitButton.
+  ///
+  /// In fr, this message translates to:
+  /// **'Envoyer'**
+  String get feedbackSubmitButton;
+
+  /// No description provided for @feedbackSentMessage.
+  ///
+  /// In fr, this message translates to:
+  /// **'Merci pour ton retour !'**
+  String get feedbackSentMessage;
+
+  /// No description provided for @feedbackErrorMessage.
+  ///
+  /// In fr, this message translates to:
+  /// **'Impossible d\'envoyer ton retour. Réessaie.'**
+  String get feedbackErrorMessage;
+
+  /// No description provided for @fabLogPastRead.
+  ///
+  /// In fr, this message translates to:
+  /// **'J\'ai lu'**
+  String get fabLogPastRead;
+
+  /// No description provided for @highlightTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Surligne le passage'**
+  String get highlightTitle;
+
+  /// No description provided for @highlightAnalyzing.
+  ///
+  /// In fr, this message translates to:
+  /// **'Lecture de la photo…'**
+  String get highlightAnalyzing;
+
+  /// No description provided for @highlightHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Glisse ton doigt sur le passage'**
+  String get highlightHint;
+
+  /// No description provided for @highlightNoText.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun texte détecté. Essaie une photo plus nette, ou laisse l\'IA relire la page.'**
+  String get highlightNoText;
+
+  /// No description provided for @highlightSelectAll.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tout sélectionner'**
+  String get highlightSelectAll;
+
+  /// No description provided for @highlightClear.
+  ///
+  /// In fr, this message translates to:
+  /// **'Effacer'**
+  String get highlightClear;
+
+  /// No description provided for @highlightUse.
+  ///
+  /// In fr, this message translates to:
+  /// **'Utiliser'**
+  String get highlightUse;
+
+  /// No description provided for @highlightOneWord.
+  ///
+  /// In fr, this message translates to:
+  /// **'1 mot surligné'**
+  String get highlightOneWord;
+
+  /// No description provided for @highlightWordCount.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count} mots surlignés'**
+  String highlightWordCount(int count);
+
+  /// No description provided for @highlightEnhanceAi.
+  ///
+  /// In fr, this message translates to:
+  /// **'Corriger avec l\'IA'**
+  String get highlightEnhanceAi;
+
+  /// No description provided for @highlightExtractAi.
+  ///
+  /// In fr, this message translates to:
+  /// **'Lire avec l\'IA'**
+  String get highlightExtractAi;
+
+  /// No description provided for @highlightEnhancing.
+  ///
+  /// In fr, this message translates to:
+  /// **'Relecture…'**
+  String get highlightEnhancing;
+
+  /// No description provided for @highlightAiDone.
+  ///
+  /// In fr, this message translates to:
+  /// **'Passage relu par l\'IA'**
+  String get highlightAiDone;
+
+  /// No description provided for @highlightAiLabel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Texte relu par l\'IA'**
+  String get highlightAiLabel;
+
+  /// No description provided for @highlightModeMove.
+  ///
+  /// In fr, this message translates to:
+  /// **'Zoomer / déplacer'**
+  String get highlightModeMove;
+
+  /// No description provided for @highlightModeSelect.
+  ///
+  /// In fr, this message translates to:
+  /// **'Surligner'**
+  String get highlightModeSelect;
+
+  /// No description provided for @highlightImageError.
+  ///
+  /// In fr, this message translates to:
+  /// **'Impossible d\'ouvrir cette photo.'**
+  String get highlightImageError;
+
+  /// No description provided for @highlightRetakePhoto.
+  ///
+  /// In fr, this message translates to:
+  /// **'Reprendre la photo'**
+  String get highlightRetakePhoto;
+
+  /// No description provided for @takePhotoAction.
+  ///
+  /// In fr, this message translates to:
+  /// **'Prendre une photo'**
+  String get takePhotoAction;
+
+  /// No description provided for @editHighlight.
+  ///
+  /// In fr, this message translates to:
+  /// **'Modifier le surlignage'**
+  String get editHighlight;
+
+  /// No description provided for @pageDetectedSuggestion.
+  ///
+  /// In fr, this message translates to:
+  /// **'Page {page} détectée'**
+  String pageDetectedSuggestion(int page);
+
+  /// No description provided for @capturePassageFab.
+  ///
+  /// In fr, this message translates to:
+  /// **'Garder un passage'**
+  String get capturePassageFab;
+
+  /// No description provided for @capturePassageTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Garder ce passage'**
+  String get capturePassageTitle;
+
+  /// No description provided for @capturePassageSave.
+  ///
+  /// In fr, this message translates to:
+  /// **'Enregistrer'**
+  String get capturePassageSave;
+
+  /// No description provided for @capturePassageSaved.
+  ///
+  /// In fr, this message translates to:
+  /// **'Passage gardé'**
+  String get capturePassageSaved;
+
+  /// No description provided for @capturePassageNoBook.
+  ///
+  /// In fr, this message translates to:
+  /// **'Choisir un livre'**
+  String get capturePassageNoBook;
+
+  /// No description provided for @capturePassageNeedBook.
+  ///
+  /// In fr, this message translates to:
+  /// **'Choisis un livre pour ce passage.'**
+  String get capturePassageNeedBook;
+
+  /// No description provided for @capturePassagePageLabel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Page'**
+  String get capturePassagePageLabel;
+
+  /// No description provided for @capturePassageChooseBook.
+  ///
+  /// In fr, this message translates to:
+  /// **'Quel livre ?'**
+  String get capturePassageChooseBook;
+
+  /// No description provided for @capturePassageScanCover.
+  ///
+  /// In fr, this message translates to:
+  /// **'Scanner la couverture d\'un nouveau livre'**
+  String get capturePassageScanCover;
+
+  /// No description provided for @capturePassageCameraError.
+  ///
+  /// In fr, this message translates to:
+  /// **'Impossible d\'ouvrir l\'appareil photo.'**
+  String get capturePassageCameraError;
+
+  /// No description provided for @myPassages.
+  ///
+  /// In fr, this message translates to:
+  /// **'Mes passages'**
+  String get myPassages;
+
+  /// No description provided for @myPassagesSearchHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rechercher dans mes passages…'**
+  String get myPassagesSearchHint;
+
+  /// No description provided for @myPassagesNoResult.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun passage ne correspond à cette recherche.'**
+  String get myPassagesNoResult;
+
+  /// No description provided for @myPassagesEmptyTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rien de gardé pour l\'instant'**
+  String get myPassagesEmptyTitle;
+
+  /// No description provided for @myPassagesEmptyBody.
+  ///
+  /// In fr, this message translates to:
+  /// **'Photographie une page, surligne le passage au doigt : il t\'attendra ici.'**
+  String get myPassagesEmptyBody;
+
+  /// No description provided for @myPassagesPage.
+  ///
+  /// In fr, this message translates to:
+  /// **'p. {page}'**
+  String myPassagesPage(int page);
+
+  /// No description provided for @myPassagesCopy.
+  ///
+  /// In fr, this message translates to:
+  /// **'Copier le texte'**
+  String get myPassagesCopy;
+
+  /// No description provided for @myPassagesCopied.
+  ///
+  /// In fr, this message translates to:
+  /// **'Passage copié'**
+  String get myPassagesCopied;
+
+  /// No description provided for @myPassagesDeleteTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Supprimer ce passage ?'**
+  String get myPassagesDeleteTitle;
+
+  /// No description provided for @myPassagesDeleteBody.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le texte et la photo seront définitivement supprimés.'**
+  String get myPassagesDeleteBody;
+
+  /// No description provided for @myPassagesDeleteConfirm.
+  ///
+  /// In fr, this message translates to:
+  /// **'Supprimer'**
+  String get myPassagesDeleteConfirm;
+
+  /// No description provided for @myPassagesSourceKindle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Kindle'**
+  String get myPassagesSourceKindle;
+
+  /// No description provided for @myPassagesNoteLabel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ma note'**
+  String get myPassagesNoteLabel;
+
+  /// No description provided for @myPassagesUnknownBook.
+  ///
+  /// In fr, this message translates to:
+  /// **'Livre inconnu'**
+  String get myPassagesUnknownBook;
+
+  /// No description provided for @myPassagesCount.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count} passage{count, plural, =1{} other{s}}'**
+  String myPassagesCount(int count);
+
+  /// No description provided for @startPageOptionalLabel.
+  ///
+  /// In fr, this message translates to:
+  /// **'PAGE DE DÉPART · FACULTATIF'**
+  String get startPageOptionalLabel;
+
+  /// No description provided for @willResumeAtPage.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tu reprendras à la page {page}'**
+  String willResumeAtPage(int page);
+
+  /// No description provided for @willStartAtBeginning.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tu commenceras au début'**
+  String get willStartAtBeginning;
+
+  /// No description provided for @abandonSessionElapsed.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tu lis depuis {duration}.'**
+  String abandonSessionElapsed(String duration);
+
+  /// No description provided for @abandonDeletesTime.
+  ///
+  /// In fr, this message translates to:
+  /// **'Abandonner supprime définitivement ce temps de lecture.'**
+  String get abandonDeletesTime;
+
+  /// No description provided for @abandonKeepReading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Continuer la lecture'**
+  String get abandonKeepReading;
+
+  /// No description provided for @abandonEndInstead.
+  ///
+  /// In fr, this message translates to:
+  /// **'Terminer la session'**
+  String get abandonEndInstead;
+
+  /// No description provided for @abandonDiscard.
+  ///
+  /// In fr, this message translates to:
+  /// **'Supprimer quand même'**
+  String get abandonDiscard;
+
+  /// No description provided for @focusModeSettingsEntry.
+  ///
+  /// In fr, this message translates to:
+  /// **'Mode sans distraction'**
+  String get focusModeSettingsEntry;
+
+  /// No description provided for @focusModeTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Mode sans distraction'**
+  String get focusModeTitle;
+
+  /// No description provided for @focusModeIntroTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Coupe les notifications pendant que tu lis'**
+  String get focusModeIntroTitle;
+
+  /// No description provided for @focusModeIntroBody.
+  ///
+  /// In fr, this message translates to:
+  /// **'Avec deux automatisations dans l\'app Raccourcis d\'Apple, ton iPhone passe en « Ne pas déranger » dès que tu ouvres LexDay, et redevient normal quand tu la quittes. Réglage unique, en 2 minutes.'**
+  String get focusModeIntroBody;
+
+  /// No description provided for @focusModeAutomation1Title.
+  ///
+  /// In fr, this message translates to:
+  /// **'À l\'ouverture de LexDay'**
+  String get focusModeAutomation1Title;
+
+  /// No description provided for @focusModeAutomation1Subtitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Activer Ne pas déranger automatiquement'**
+  String get focusModeAutomation1Subtitle;
+
+  /// No description provided for @focusModeAutomation2Title.
+  ///
+  /// In fr, this message translates to:
+  /// **'À la fermeture de LexDay'**
+  String get focusModeAutomation2Title;
+
+  /// No description provided for @focusModeAutomation2Subtitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Désactiver Ne pas déranger'**
+  String get focusModeAutomation2Subtitle;
+
+  /// No description provided for @focusModeStepOpenShortcuts.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ouvre l\'app Raccourcis (préinstallée sur ton iPhone)'**
+  String get focusModeStepOpenShortcuts;
+
+  /// No description provided for @focusModeStepAutomationTab.
+  ///
+  /// In fr, this message translates to:
+  /// **'Onglet « Automatisation », puis « Nouvelle automatisation »'**
+  String get focusModeStepAutomationTab;
+
+  /// No description provided for @focusModeStepChooseApp.
+  ///
+  /// In fr, this message translates to:
+  /// **'Choisis « App », puis sélectionne LexDay'**
+  String get focusModeStepChooseApp;
+
+  /// No description provided for @focusModeStepIsOpened.
+  ///
+  /// In fr, this message translates to:
+  /// **'Coche « Est ouverte » et « Exécuter immédiatement »'**
+  String get focusModeStepIsOpened;
+
+  /// No description provided for @focusModeStepIsClosed.
+  ///
+  /// In fr, this message translates to:
+  /// **'Coche « Est fermée » et « Exécuter immédiatement »'**
+  String get focusModeStepIsClosed;
+
+  /// No description provided for @focusModeStepActionOn.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajoute l\'action « Régler le mode de concentration » → Ne pas déranger → Activer'**
+  String get focusModeStepActionOn;
+
+  /// No description provided for @focusModeStepActionOff.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajoute l\'action « Régler le mode de concentration » → Ne pas déranger → Désactiver'**
+  String get focusModeStepActionOff;
+
+  /// No description provided for @focusModeOpenShortcuts.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ouvrir Raccourcis'**
+  String get focusModeOpenShortcuts;
+
+  /// No description provided for @focusModeNote.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réglage 100 % iOS : LexDay n\'accède à rien et tu peux supprimer l\'automatisation à tout moment dans Raccourcis.'**
+  String get focusModeNote;
+
+  /// No description provided for @focusModeShortcutsUnavailable.
+  ///
+  /// In fr, this message translates to:
+  /// **'Impossible d\'ouvrir Raccourcis. Réinstalle-la depuis l\'App Store.'**
+  String get focusModeShortcutsUnavailable;
+
+  /// No description provided for @focusSuggestionTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Lire sans être dérangé ?'**
+  String get focusSuggestionTitle;
+
+  /// No description provided for @focusSuggestionBody.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ton iPhone peut passer en « Ne pas déranger » automatiquement à chaque session. Réglage unique, en 2 minutes.'**
+  String get focusSuggestionBody;
+
+  /// No description provided for @focusSuggestionCta.
+  ///
+  /// In fr, this message translates to:
+  /// **'Voir comment'**
+  String get focusSuggestionCta;
+
+  /// No description provided for @onboardingFirstSessionReady.
+  ///
+  /// In fr, this message translates to:
+  /// **'Prêt à lire ?'**
+  String get onboardingFirstSessionReady;
+
+  /// No description provided for @onboardingFirstSessionHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'5 minutes suffisent pour démarrer. Tu pourras t’arrêter quand tu veux.'**
+  String get onboardingFirstSessionHint;
+
+  /// No description provided for @onboardingFirstSessionCta.
+  ///
+  /// In fr, this message translates to:
+  /// **'Lire 5 minutes maintenant'**
+  String get onboardingFirstSessionCta;
+
+  /// No description provided for @onboardingFirstSessionLater.
+  ///
+  /// In fr, this message translates to:
+  /// **'Pas maintenant'**
+  String get onboardingFirstSessionLater;
+
+  /// No description provided for @onboardingNoBookTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tout est prêt !'**
+  String get onboardingNoBookTitle;
+
+  /// No description provided for @onboardingNoBookBody.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajoute un livre quand tu veux pour démarrer ta première session de lecture.'**
+  String get onboardingNoBookBody;
+
+  /// No description provided for @onboardingNoBookCta.
+  ///
+  /// In fr, this message translates to:
+  /// **'C’est parti'**
+  String get onboardingNoBookCta;
+
+  /// No description provided for @onboardingReminderTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'On te rappelle demain ?'**
+  String get onboardingReminderTitle;
+
+  /// No description provided for @onboardingReminderBody.
+  ///
+  /// In fr, this message translates to:
+  /// **'Un seul rappel pour reprendre « {title} » — et rien d’autre tant que tu n’as pas lu.'**
+  String onboardingReminderBody(String title);
+
+  /// No description provided for @onboardingReminderYes.
+  ///
+  /// In fr, this message translates to:
+  /// **'Oui, rappelle-moi'**
+  String get onboardingReminderYes;
+
+  /// No description provided for @onboardingReminderNo.
+  ///
+  /// In fr, this message translates to:
+  /// **'Non merci'**
+  String get onboardingReminderNo;
 }
 
 class _AppLocalizationsDelegate

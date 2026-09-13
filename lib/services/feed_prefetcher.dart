@@ -4,11 +4,11 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../data/curated_lists_data.dart';
 import '../models/book_suggestion.dart';
 import '../models/prize_list.dart';
 import '../models/reading_flow.dart';
 import '../services/books_service.dart';
+import '../services/curated_lists_repository.dart';
 import '../services/feed_cache.dart';
 import '../services/feed_cache_service.dart';
 import '../services/feed_social_loader.dart';
@@ -33,7 +33,8 @@ class FeedPrefetcher {
       final user = supabase.auth.currentUser;
       if (user == null) return;
 
-      final curatedIds = kCuratedLists.map((l) => l.id).toList();
+      final curatedLists = await CuratedListsRepository.ensureLoaded();
+      final curatedIds = curatedLists.map((l) => l.id).toList();
 
       final results = await Future.wait([
         FlowService().getUserFlow(),

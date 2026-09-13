@@ -30,11 +30,19 @@ class ChallengeService {
           'target_book_id': targetBookId,
           'target_value': targetValue,
           'target_days': targetDays,
-          'starts_at': (startsAt ?? DateTime.now()).toIso8601String(),
-          'ends_at': endsAt.toIso8601String(),
+          'starts_at': (startsAt ?? DateTime.now()).toUtc().toIso8601String(),
+          'ends_at': endsAt.toUtc().toIso8601String(),
         })
         .select()
         .single();
+
+    // Le créateur rejoint automatiquement son défi (best-effort).
+    try {
+      await _supabase.from('challenge_participants').insert({
+        'challenge_id': response['id'],
+        'user_id': userId,
+      });
+    } catch (_) {}
 
     return GroupChallenge.fromJson(response);
   }
@@ -49,8 +57,7 @@ class ChallengeService {
         .select('''
           *,
           books:target_book_id(title, cover_url),
-          challenge_participants(count),
-          my_participation:challenge_participants!inner(progress, completed)
+          challenge_participants(count)
         ''')
         .eq('group_id', groupId)
         .order('created_at', ascending: false);
@@ -68,8 +75,9 @@ class ChallengeService {
 
     return (response as List).map((json) {
       final book = json['books'] as Map<String, dynamic>?;
-      final participantCount = json['challenge_participants'] is List
-          ? (json['challenge_participants'] as List).length
+      final cp = json['challenge_participants'];
+      final participantCount = cp is List && cp.isNotEmpty
+          ? ((cp.first as Map<String, dynamic>)['count'] as int? ?? 0)
           : 0;
       final myParticipation = participationMap[json['id'] as String];
 
@@ -151,7 +159,7 @@ class ChallengeService {
       'completed': completed,
     };
     if (completed) {
-      updates['completed_at'] = DateTime.now().toIso8601String();
+      updates['completed_at'] = DateTime.now().toUtc().toIso8601String();
     }
 
     await _supabase

@@ -1,12 +1,10 @@
 {
   "@@locale": "fr",
-
   "navFeed": "Feed",
   "navLibrary": "Biblio",
   "navMuse": "Muse",
   "navClub": "Club",
   "navProfile": "Mon espace",
-
   "tutorialDashboardTitle": "Ton résumé du jour",
   "tutorialDashboardDescription": "Ta série, tes minutes du jour et tes pages de la semaine — un coup d'œil pour suivre tes progrès.",
   "tutorialFeedTitle": "Ton feed",
@@ -20,16 +18,29 @@
   "tutorialNext": "Suivant",
   "tutorialDone": "Terminé",
   "tutorialSkip": "Passer",
-
   "kindleSyncedAutomatically": "Kindle synchronisé automatiquement",
-
+  "kindleSessionExpired": "Ta connexion Kindle a expiré, reconnecte-toi pour continuer la synchronisation",
+  "kindleReconnect": "Reconnecter",
+  "kindleStopSyncing": "Ne plus synchroniser",
+  "kindleSyncDisabled": "Synchro Kindle désactivée. Tu peux la réactiver dans les réglages.",
+  "sessionSourceKindle": "Lu sur Kindle · durée estimée",
+  "kindleSessionsAdded": "{count, plural, =1{Ta lecture Kindle a été ajoutée} other{{count} lectures Kindle ajoutées}}",
+  "@kindleSessionsAdded": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "enterEmailToReset": "Entre ton email pour réinitialiser",
   "emailSentCheckInbox": "Email envoyé, vérifie ta boîte.",
   "errorSendingEmail": "Erreur lors de l'envoi de l'email",
   "tooManyAttemptsRetryIn": "Trop de tentatives. Réessaie dans {seconds}s",
   "@tooManyAttemptsRetryIn": {
     "placeholders": {
-      "seconds": {"type": "int"}
+      "seconds": {
+        "type": "int"
+      }
     }
   },
   "emailAndPasswordRequired": "Email et mot de passe requis",
@@ -55,7 +66,6 @@
   "guestSignUpCta": "Créer un compte",
   "guestSignInCta": "J'ai déjà un compte",
   "guestCancelCta": "Plus tard",
-
   "emailAlreadyUsed": "Email déjà utilisé",
   "emailAlreadyUsedMessage": "Cette adresse email est déjà associée à un compte existant. Souhaitez-vous réinitialiser votre mot de passe ?",
   "back": "Retour",
@@ -83,14 +93,15 @@
   "createAccount": "Créer un compte",
   "alreadyHaveAccount": "Déjà un compte ? Se connecter",
   "legalNotices": "Mentions légales",
-
   "emailSent": "Email envoyé",
   "checkYourEmail": "Vérifie ta boîte mail",
   "confirmEmailSent": "Nous t'avons envoyé un lien pour confirmer ton adresse email.",
   "confirmEmailSentTo": "Nous avons envoyé un lien à {email}. Clique dessus pour activer ton compte.",
   "@confirmEmailSentTo": {
     "placeholders": {
-      "email": {"type": "String"}
+      "email": {
+        "type": "String"
+      }
     }
   },
   "iConfirmedMyEmail": "J'ai confirmé mon email",
@@ -98,24 +109,29 @@
   "resendConfirmationCooldown": "Réessaie dans {seconds}s",
   "@resendConfirmationCooldown": {
     "placeholders": {
-      "seconds": {"type": "int"}
+      "seconds": {
+        "type": "int"
+      }
     }
   },
   "resendConfirmationSent": "Email de confirmation renvoyé. Vérifie ta boîte.",
   "resendConfirmationError": "Impossible de renvoyer l'email : {message}",
   "@resendConfirmationError": {
     "placeholders": {
-      "message": {"type": "String"}
+      "message": {
+        "type": "String"
+      }
     }
   },
   "emailNotConfirmedTitle": "Email non confirmé",
   "emailNotConfirmedMessage": "Ton compte n'est pas encore activé. Clique sur le lien reçu par email, ou demande un nouveau lien.",
-
   "suggestionsForYou": "Suggestions pour toi",
   "bookAddedToLibrary": "{title} ajouté à votre bibliothèque",
   "@bookAddedToLibrary": {
     "placeholders": {
-      "title": {"type": "String"}
+      "title": {
+        "type": "String"
+      }
     }
   },
   "errorAddingBook": "Erreur lors de l'ajout du livre",
@@ -130,10 +146,11 @@
   "errorGeneric": "Erreur: {message}",
   "@errorGeneric": {
     "placeholders": {
-      "message": {"type": "String"}
+      "message": {
+        "type": "String"
+      }
     }
   },
-
   "myLibrary": "Ma Bibliothèque",
   "refreshTooltip": "Rafraîchir",
   "searchBook": "Rechercher un livre...",
@@ -144,14 +161,15 @@
   "authorFoundForBooks": "Auteur trouvé pour {count} livre{count, plural, =1{} other{s}}",
   "@authorFoundForBooks": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
   "noAuthorFound": "Aucun auteur trouvé",
   "errorSearchingAuthors": "Erreur lors de la recherche des auteurs",
   "searchingInProgress": "Recherche en cours...",
   "searchMissingAuthors": "Rechercher les auteurs manquants",
-
   "settings": "Paramètres",
   "profileSection": "Profil",
   "editName": "✏️ Modifier le nom",
@@ -163,14 +181,18 @@
   "freeTrialUntil": "Essai gratuit (jusqu'au {date})",
   "@freeTrialUntil": {
     "placeholders": {
-      "date": {"type": "String"}
+      "date": {
+        "type": "String"
+      }
     }
   },
   "premiumActive": "Premium actif",
   "premiumActiveUntil": "Premium actif (jusqu'au {date})",
   "@premiumActiveUntil": {
     "placeholders": {
-      "date": {"type": "String"}
+      "date": {
+        "type": "String"
+      }
     }
   },
   "manageSubscriptionTitle": "Gérer mon abonnement",
@@ -211,7 +233,9 @@
   "lastSync": "✅ Dernière sync: {date}",
   "@lastSync": {
     "placeholders": {
-      "date": {"type": "String"}
+      "date": {
+        "type": "String"
+      }
     }
   },
   "autoSync": "Sync automatique",
@@ -225,7 +249,9 @@
   "connectedTo": "Connecté à {name}",
   "@connectedTo": {
     "placeholders": {
-      "name": {"type": "String"}
+      "name": {
+        "type": "String"
+      }
     }
   },
   "notionSheetsDescription": "Tes fiches de lecture peuvent être envoyées vers Notion",
@@ -254,7 +280,7 @@
   "manageConnections": "🖥️ Gérer connexions & appareils",
   "legalSection": "Légal",
   "termsOfService": "📜 Conditions d'utilisation",
-  "privacyPolicy": "🔐 Politique de confidentialité",
+  "privacyPolicy": "Politique de confidentialité",
   "legalNoticesItem": "⚖️ Mentions légales",
   "logoutTitle": "Se déconnecter ?",
   "logoutMessage": "Tu vas être déconnecté. Continuer ?",
@@ -274,7 +300,9 @@
   "errorDeletingAccount": "Erreur lors de la suppression : {error}",
   "@errorDeletingAccount": {
     "placeholders": {
-      "error": {"type": "String"}
+      "error": {
+        "type": "String"
+      }
     }
   },
   "editNameTitle": "Modifier le nom",
@@ -289,26 +317,30 @@
   "unsupportedFormat": "Format non supporté. Utilisez JPG, PNG ou WebP",
   "notConnected": "Non connecté",
   "profilePictureUpdated": "✅ Photo de profil mise à jour!",
-
   "timeAgoMinutes": "il y a {minutes} min",
   "@timeAgoMinutes": {
     "placeholders": {
-      "minutes": {"type": "int"}
+      "minutes": {
+        "type": "int"
+      }
     }
   },
   "timeAgoHours": "il y a {hours}h",
   "@timeAgoHours": {
     "placeholders": {
-      "hours": {"type": "int"}
+      "hours": {
+        "type": "int"
+      }
     }
   },
   "timeAgoDays": "il y a {days}j",
   "@timeAgoDays": {
     "placeholders": {
-      "days": {"type": "int"}
+      "days": {
+        "type": "int"
+      }
     }
   },
-
   "libraryEmpty": "Votre bibliothèque est vide",
   "sessionAbandoned": "Session abandonnée",
   "muse": "💡 Muse",
@@ -316,7 +348,6 @@
   "myLibraryFab": "Ma bibliothèque",
   "searchEllipsis": "Rechercher...",
   "noBookFound": "Aucun livre trouvé",
-
   "abandonSessionTitle": "Abandonner la session",
   "abandonSessionMessage": "Voulez-vous vraiment abandonner cette session de lecture ?",
   "no": "Non",
@@ -326,30 +357,30 @@
   "stay": "Rester",
   "leave": "Quitter",
   "sessionInProgress": "SESSION EN COURS",
-
   "cancelSessionTitle": "Annuler la session",
   "cancelSessionMessage": "Êtes-vous sûr de vouloir annuler cette session de lecture ?",
-
   "errorCapture": "Erreur lors de la capture: {error}",
   "@errorCapture": {
     "placeholders": {
-      "error": {"type": "String"}
+      "error": {
+        "type": "String"
+      }
     }
   },
   "errorGoogleBooks": "Erreur recherche Google Books",
-
   "termsOfServiceTitle": "Conditions d'utilisation",
   "privacyPolicyTitle": "Politique de confidentialité",
   "legalNoticesTitle": "Mentions légales",
   "iAcceptTerms": "J'accepte les conditions",
-
   "sessionDuration": "DURÉE DE SESSION",
   "startPage": "Page de départ",
   "streakLabel": "Série",
   "streakDays": "{days} jours",
   "@streakDays": {
     "placeholders": {
-      "days": {"type": "int"}
+      "days": {
+        "type": "int"
+      }
     }
   },
   "endSessionSlide": "Terminer la session",
@@ -372,11 +403,12 @@
   "annotationSaved": "Annotation sauvegardée !",
   "transcribing": "Transcription...",
   "pageHint": "Page",
-
   "errorSelection": "Erreur lors de la sélection: {error}",
   "@errorSelection": {
     "placeholders": {
-      "error": {"type": "String"}
+      "error": {
+        "type": "String"
+      }
     }
   },
   "pageNotDetected": "Numéro de page non détecté. Saisissez-le manuellement.",
@@ -384,14 +416,20 @@
   "endPageBeforeStartDetailed": "La page de fin ({endPage}) ne peut pas être avant la page de début ({startPage}).",
   "@endPageBeforeStartDetailed": {
     "placeholders": {
-      "endPage": {"type": "int"},
-      "startPage": {"type": "int"}
+      "endPage": {
+        "type": "int"
+      },
+      "startPage": {
+        "type": "int"
+      }
     }
   },
   "ocrError": "Erreur OCR: {error}",
   "@ocrError": {
     "placeholders": {
-      "error": {"type": "String"}
+      "error": {
+        "type": "String"
+      }
     }
   },
   "invalidPageNumber": "Veuillez saisir un numéro de page valide.",
@@ -405,13 +443,17 @@
   "startedAtPage": "Commencée à la page {page}",
   "@startedAtPage": {
     "placeholders": {
-      "page": {"type": "int"}
+      "page": {
+        "type": "int"
+      }
     }
   },
   "durationValue": "Durée: {duration}",
   "@durationValue": {
     "placeholders": {
-      "duration": {"type": "String"}
+      "duration": {
+        "type": "String"
+      }
     }
   },
   "instructions": "Instructions",
@@ -430,7 +472,9 @@
   "pagesReadCount": "Pages lues: {count}",
   "@pagesReadCount": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
   "correctNumber": "Corriger le numéro",
@@ -438,7 +482,9 @@
   "startPagePrefix": "Page de début: {page}",
   "@startPagePrefix": {
     "placeholders": {
-      "page": {"type": "int"}
+      "page": {
+        "type": "int"
+      }
     }
   },
   "validate": "Valider",
@@ -454,27 +500,28 @@
   "consecutiveDays": "{days} jour{days, plural, =1{} other{s}} consécutif{days, plural, =1{} other{s}}!",
   "@consecutiveDays": {
     "placeholders": {
-      "days": {"type": "int"}
+      "days": {
+        "type": "int"
+      }
     }
   },
   "museBookFinished": "Bravo pour {title} ! Envie que Muse te conseille ta prochaine lecture ?",
   "@museBookFinished": {
     "placeholders": {
-      "title": {"type": "String"}
+      "title": {
+        "type": "String"
+      }
     }
   },
   "later": "Plus tard",
   "chatWithMuse": "Discuter avec Muse",
-
   "defaultUser": "Utilisateur",
   "mySessions": "Mes Sessions",
   "myStatistics": "Statistiques",
   "myLists": "Mes Listes",
-
   "statistics": "Statistiques",
   "readingStatistics": "Statistiques de lecture",
   "featureComingSoon": "Fonctionnalité à venir",
-
   "cannotAddBook": "Impossible d'ajouter ce livre",
   "titleAuthorPagesRequired": "Titre, auteur et pages requis",
   "bookAdded": "Livre ajouté",
@@ -488,18 +535,18 @@
   "titleHint": "Titre",
   "authorHint": "Auteur",
   "totalPages": "Pages totales",
-
   "activeSessionDialogTitle": "Session en cours",
   "activeSessionDialogMessage": "Une session de lecture est déjà en cours pour ce livre.",
   "pageAtNumber": "Page {page}",
   "@pageAtNumber": {
     "placeholders": {
-      "page": {"type": "int"}
+      "page": {
+        "type": "int"
+      }
     }
   },
   "whatDoYouWant": "Que voulez-vous faire ?",
   "resume": "Reprendre",
-
   "sessionCompleted": "SESSION TERMINÉE",
   "sessionCompletedTitle": "Session terminée !",
   "myReadingDefault": "Ma lecture",
@@ -509,7 +556,9 @@
   "streakDaysShort": "{days} j.",
   "@streakDaysShort": {
     "placeholders": {
-      "days": {"type": "int"}
+      "days": {
+        "type": "int"
+      }
     }
   },
   "readingPace": "Rythme de lecture",
@@ -519,13 +568,17 @@
   "fasterPercent": "+{percent}% plus rapide",
   "@fasterPercent": {
     "placeholders": {
-      "percent": {"type": "int"}
+      "percent": {
+        "type": "int"
+      }
     }
   },
   "slowerPercent": "{percent}% plus lent",
   "@slowerPercent": {
     "placeholders": {
-      "percent": {"type": "int"}
+      "percent": {
+        "type": "int"
+      }
     }
   },
   "withinAverage": "Dans ta moyenne",
@@ -541,10 +594,11 @@
   "nPages": "{count} pages",
   "@nPages": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
-
   "bookCompletedHeader": "LIVRE TERMINÉ",
   "bookCompletedTitle": "Livre terminé !",
   "congratsFinished": "Félicitations, tu as terminé",
@@ -554,7 +608,9 @@
   "readingDaysCount": "{count} jours de lecture",
   "@readingDaysCount": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
   "bookReport": "Bilan du livre",
@@ -570,21 +626,26 @@
   "pagesInDuration": "{pages} pages en {duration}",
   "@pagesInDuration": {
     "placeholders": {
-      "pages": {"type": "int"},
-      "duration": {"type": "String"}
+      "pages": {
+        "type": "int"
+      },
+      "duration": {
+        "type": "String"
+      }
     }
   },
   "daysPerWeek": "{count} j/sem",
   "@daysPerWeek": {
     "placeholders": {
-      "count": {"type": "String"}
+      "count": {
+        "type": "String"
+      }
     }
   },
   "unlockedBadges": "Badges débloqués",
   "share": "Partager",
   "backToHome": "Retour à l'accueil",
   "paceAndSlots": "Rythme, créneaux, régularité et plus",
-
   "clubSubtitle": "communauté",
   "readingClubs": "Clubs de lecture",
   "readingClub": "Club de lecture",
@@ -603,24 +664,29 @@
   "memberCount": "{count} membre{count, plural, =1{} other{s}}",
   "@memberCount": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
   "byCreator": "par {name}",
   "@byCreator": {
     "placeholders": {
-      "name": {"type": "String"}
+      "name": {
+        "type": "String"
+      }
     }
   },
   "limitReached": "Limite atteinte",
   "groupLimitMessage": "Tu as atteint la limite de {max} clubs de lecture. Passe à Premium pour en rejoindre autant que tu veux !",
   "@groupLimitMessage": {
     "placeholders": {
-      "max": {"type": "int"}
+      "max": {
+        "type": "int"
+      }
     }
   },
   "becomePremium": "Devenir Premium",
-
   "leaveGroupTitle": "Quitter le groupe ?",
   "leaveGroupMessage": "Voulez-vous vraiment quitter ce groupe ?",
   "leftGroup": "Vous avez quitté le groupe",
@@ -636,26 +702,33 @@
   "readPagesOf": "a lu {pages} pages de \"{title}\"",
   "@readPagesOf": {
     "placeholders": {
-      "pages": {"type": "int"},
-      "title": {"type": "String"}
+      "pages": {
+        "type": "int"
+      },
+      "title": {
+        "type": "String"
+      }
     }
   },
   "finishedBook": "a terminé \"{title}\" 🎉",
   "@finishedBook": {
     "placeholders": {
-      "title": {"type": "String"}
+      "title": {
+        "type": "String"
+      }
     }
   },
   "joinedGroup": "a rejoint le groupe",
   "recommendsBook": "recommande \"{title}\"",
   "@recommendsBook": {
     "placeholders": {
-      "title": {"type": "String"}
+      "title": {
+        "type": "String"
+      }
     }
   },
   "unknownActivity": "activité inconnue",
   "justNow": "À l'instant",
-
   "createGroupTitle": "Créer un groupe",
   "addPhoto": "Ajouter une photo",
   "groupNameRequired": "Nom du groupe *",
@@ -669,33 +742,40 @@
   "creatorAdminInfo": "En tant que créateur, vous serez automatiquement administrateur du groupe et pourrez inviter d'autres membres.",
   "createGroup": "Créer le groupe",
   "groupCreated": "Groupe créé avec succès!",
-
   "allFriendsInGroup": "Tous vos amis sont déjà membres du groupe",
   "inviteFriend": "Inviter un ami",
   "invitationSent": "✅ Invitation envoyée à {name}",
   "@invitationSent": {
     "placeholders": {
-      "name": {"type": "String"}
+      "name": {
+        "type": "String"
+      }
     }
   },
   "roleUpdated": "Rôle de {name} mis à jour",
   "@roleUpdated": {
     "placeholders": {
-      "name": {"type": "String"}
+      "name": {
+        "type": "String"
+      }
     }
   },
   "removeFromGroupTitle": "Retirer du groupe ?",
   "removeFromGroupMessage": "Voulez-vous retirer {name} du groupe ?",
   "@removeFromGroupMessage": {
     "placeholders": {
-      "name": {"type": "String"}
+      "name": {
+        "type": "String"
+      }
     }
   },
   "removeButton": "Retirer",
   "memberRemoved": "{name} a été retiré du groupe",
   "@memberRemoved": {
     "placeholders": {
-      "name": {"type": "String"}
+      "name": {
+        "type": "String"
+      }
     }
   },
   "demoteToMember": "Rétrograder en membre",
@@ -704,14 +784,15 @@
   "membersCount": "Membres ({count})",
   "@membersCount": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
   "noMembers": "Aucun membre",
   "youTag": "Vous",
   "administrator": "Administrateur",
   "memberRole": "Membre",
-
   "photoUpdated": "Photo mise à jour",
   "changesSaved": "Modifications enregistrées",
   "deleteGroupTitle": "Supprimer le groupe ?",
@@ -721,7 +802,9 @@
   "confirmDeleteGroupMessage": "Voulez-vous vraiment supprimer \"{name}\" définitivement ?",
   "@confirmDeleteGroupMessage": {
     "placeholders": {
-      "name": {"type": "String"}
+      "name": {
+        "type": "String"
+      }
     }
   },
   "groupDeleted": "Groupe supprimé",
@@ -739,7 +822,6 @@
   "saveChanges": "Enregistrer les modifications",
   "manageMembers": "Gérer les membres",
   "manageMembersSubtitle": "Voir, inviter et gérer les rôles",
-
   "deleteChallengeTitle": "Supprimer le défi ?",
   "deleteChallengeMessage": "Cette action est irréversible.",
   "challengeDeleted": "Défi supprimé",
@@ -747,33 +829,45 @@
   "daysRemaining": "{days}j restants",
   "@daysRemaining": {
     "placeholders": {
-      "days": {"type": "int"}
+      "days": {
+        "type": "int"
+      }
     }
   },
   "hoursRemaining": "{hours}h restantes",
   "@hoursRemaining": {
     "placeholders": {
-      "hours": {"type": "int"}
+      "hours": {
+        "type": "int"
+      }
     }
   },
   "minutesRemaining": "{minutes}min restantes",
   "@minutesRemaining": {
     "placeholders": {
-      "minutes": {"type": "int"}
+      "minutes": {
+        "type": "int"
+      }
     }
   },
   "readABook": "Lire un livre",
   "pagesToRead": "{count} pages à lire",
   "@pagesToRead": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
   "dailyChallenge": "{minutes} min/jour pendant {days} jours",
   "@dailyChallenge": {
     "placeholders": {
-      "minutes": {"type": "int"},
-      "days": {"type": "int"}
+      "minutes": {
+        "type": "int"
+      },
+      "days": {
+        "type": "int"
+      }
     }
   },
   "challengeDetail": "Détail du défi",
@@ -784,7 +878,9 @@
   "participantsCount": "Participants ({count})",
   "@participantsCount": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
   "noParticipants": "Aucun participant",
@@ -793,20 +889,27 @@
   "progressPages": "{progress} / {target} pages",
   "@progressPages": {
     "placeholders": {
-      "progress": {"type": "int"},
-      "target": {"type": "int"}
+      "progress": {
+        "type": "int"
+      },
+      "target": {
+        "type": "int"
+      }
     }
   },
   "progressDays": "{progress} / {target} jours",
   "@progressDays": {
     "placeholders": {
-      "progress": {"type": "int"},
-      "target": {"type": "int"}
+      "progress": {
+        "type": "int"
+      },
+      "target": {
+        "type": "int"
+      }
     }
   },
   "myProgress": "Ma progression",
   "completedTag": "Complété",
-
   "newChallenge": "Nouveau défi",
   "challengeType": "Type de défi",
   "challengeTitleRequired": "Titre du défi *",
@@ -819,7 +922,9 @@
   "daysUntilStart": "Dans {days}j",
   "@daysUntilStart": {
     "placeholders": {
-      "days": {"type": "int"}
+      "days": {
+        "type": "int"
+      }
     }
   },
   "challengeStartNotifTitle": "Le défi commence aujourd'hui !",
@@ -854,15 +959,18 @@
   "readBookTitle": "Lire \"{title}\"",
   "@readBookTitle": {
     "placeholders": {
-      "title": {"type": "String"}
+      "title": {
+        "type": "String"
+      }
     }
   },
-
   "privateProfileLabel": "Profil privé",
   "privateProfileMessage": "Ce profil est privé. Ajoutez {name} en ami pour voir ses statistiques.",
   "@privateProfileMessage": {
     "placeholders": {
-      "name": {"type": "String"}
+      "name": {
+        "type": "String"
+      }
     }
   },
   "books": "Livres",
@@ -884,7 +992,9 @@
   "removeFriendMessage": "Voulez-vous retirer {name} de vos amis ?",
   "@removeFriendMessage": {
     "placeholders": {
-      "name": {"type": "String"}
+      "name": {
+        "type": "String"
+      }
     }
   },
   "requestSent": "Demande envoyée",
@@ -895,10 +1005,11 @@
   "daysAgo": "Il y a {days} jours",
   "@daysAgo": {
     "placeholders": {
-      "days": {"type": "int"}
+      "days": {
+        "type": "int"
+      }
     }
   },
-
   "myFriends": "Mes amis",
   "findFriends": "Trouver des amis",
   "retry": "Réessayer",
@@ -908,10 +1019,11 @@
   "cannotRemoveFriend": "Impossible de retirer cet ami: {error}",
   "@cannotRemoveFriend": {
     "placeholders": {
-      "error": {"type": "String"}
+      "error": {
+        "type": "String"
+      }
     }
   },
-
   "searchLabel": "Rechercher",
   "friends": "Amis",
   "groups": "Groupes",
@@ -926,13 +1038,14 @@
   "relationAlreadyExists": "Relation déjà {status}",
   "@relationAlreadyExists": {
     "placeholders": {
-      "status": {"type": "String"}
+      "status": {
+        "type": "String"
+      }
     }
   },
   "invalidUser": "Utilisateur invalide",
   "connectToAddFriend": "Connecte-toi pour ajouter un ami",
   "errorDuringSearch": "Erreur lors de la recherche",
-
   "firstSessionBravo": "Bravo pour ta première\nsession de lecture !",
   "friendsReadToo": "Tes amis lisent aussi.\nAjoute-les pour voir leur activité !",
   "findMyFriends": "Trouver mes amis",
@@ -941,7 +1054,9 @@
   "friendsFoundOnLexDay": "{count} ami{count, plural, =1{} other{s}} trouvé{count, plural, =1{} other{s}} sur LexDay",
   "@friendsFoundOnLexDay": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
   "inviteFriendsToJoin": "Invite tes amis à rejoindre LexDay !",
@@ -951,7 +1066,6 @@
   "authorizeContactsSettings": "Pour trouver tes amis, autorise l'accès aux contacts dans les réglages.",
   "errorOccurredRetryLater": "Une erreur est survenue. Réessaie plus tard.",
   "openSettings": "Ouvrir les réglages",
-
   "findContactsFriends": "Trouver des amis",
   "searchingYourContacts": "Recherche dans tes contacts...",
   "noContactFound": "Aucun contact trouvé",
@@ -964,18 +1078,18 @@
   "cannotAccessContactsRetry": "Impossible d'accéder à tes contacts. Réessaie plus tard.",
   "errorOccurred": "Une erreur est survenue",
   "shareInviteToLexDay": "Rejoins-moi sur LexDay pour suivre nos lectures ensemble ! Télécharge l'app : https://apps.apple.com/fr/app/lexday/id6760492023",
-
   "friendRequests": "Demandes d'amis",
   "cannotGetRequests": "Impossible de récupérer les demandes",
   "friendAdded": "Ami ajouté",
   "requestDeclined": "Demande refusée",
   "actionImpossible": "Action impossible",
   "noRequest": "Aucune demande",
-
   "museGreeting": "Salut, je suis Muse, ta conseillère lecture. Qu'as-tu envie de lire ?",
   "museRecommendNovel": "Recommande-moi un roman",
   "museSimilarBook": "Un livre similaire à mon dernier",
   "museClassic": "Un classique à découvrir",
+  "museGiftChip": "🎁 Un livre à offrir",
+  "museGiftPrefill": "Quel livre pourrais-je offrir à ",
   "museAssistantLabel": "Assistant littéraire",
   "museHeroSubtitle": "Un livre, une question, une envie…",
   "museComposerHint": "Que cherches-tu aujourd'hui ?",
@@ -991,13 +1105,17 @@
   "museSearchPrefix": "Je cherche un livre : {query}",
   "@museSearchPrefix": {
     "placeholders": {
-      "query": {"type": "String"}
+      "query": {
+        "type": "String"
+      }
     }
   },
   "freeMessagesUsed": "Tu as utilisé tes {max} messages gratuits ce mois-ci",
   "@freeMessagesUsed": {
     "placeholders": {
-      "max": {"type": "int"}
+      "max": {
+        "type": "int"
+      }
     }
   },
   "subscribeForUnlimited": "Abonne-toi pour discuter sans limite avec Muse !",
@@ -1006,7 +1124,9 @@
   "cannotLoadBook": "Impossible de charger le livre : {error}",
   "@cannotLoadBook": {
     "placeholders": {
-      "error": {"type": "String"}
+      "error": {
+        "type": "String"
+      }
     }
   },
   "inBookstore": "En librairie",
@@ -1014,55 +1134,70 @@
   "enableLocationSettings": "Activez la localisation dans les réglages",
   "locationAccessRequired": "Accès à la localisation requis",
   "addToList": "Ajouter à une liste",
+  "addToThisList": "Ajouter à la liste",
+  "seeAllAuthorBooks": "Voir tous ses livres",
   "noPersonalList": "Aucune liste personnelle.",
   "createNewList": "Créer une nouvelle liste",
   "addedToList": "Ajouté à \"{title}\"",
   "@addedToList": {
     "placeholders": {
-      "title": {"type": "String"}
+      "title": {
+        "type": "String"
+      }
     }
   },
-
   "deleteConversation": "Supprimer la conversation",
   "deleteConversationConfirm": "Es-tu sûr de vouloir supprimer cette conversation ?",
   "unlimitedChatbot": "Utilisation illimitée du chatbot, abonnez-vous",
   "messagesUsedCount": "{used}/{max} messages utilisés ce mois-ci",
   "@messagesUsedCount": {
     "placeholders": {
-      "used": {"type": "int"},
-      "max": {"type": "int"}
+      "used": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
     }
   },
   "noConversation": "Aucune conversation",
   "startConversationMuse": "Démarre une conversation avec Muse pour obtenir des recommandations de livres personnalisées.",
   "newConversation": "Nouvelle conversation",
-
   "readingLists": "Listes de lecture",
   "nBooks": "{count} livres",
   "@nBooks": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
   "nReaders": "{count} lecteur{count, plural, =1{} other{s}}",
   "@nReaders": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
   "nRead": "{read}/{total} lus",
   "@nRead": {
     "placeholders": {
-      "read": {"type": "int"},
-      "total": {"type": "int"}
+      "read": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
     }
   },
-
   "deleteListTitle": "Supprimer cette liste ?",
   "deleteListMessage": "La liste \"{title}\" sera définitivement supprimée.",
   "@deleteListMessage": {
     "placeholders": {
-      "title": {"type": "String"}
+      "title": {
+        "type": "String"
+      }
     }
   },
   "editButton": "Modifier",
@@ -1075,17 +1210,20 @@
   "removeFromLibraryMessage": "Supprimer \"{title}\" définitivement de ta bibliothèque ?",
   "@removeFromLibraryMessage": {
     "placeholders": {
-      "title": {"type": "String"}
+      "title": {
+        "type": "String"
+      }
     }
   },
   "removeFromLibraryAction": "Supprimer",
   "bookRemovedFromLibrary": "Livre supprimé de ta bibliothèque",
   "@removeBookMessage": {
     "placeholders": {
-      "title": {"type": "String"}
+      "title": {
+        "type": "String"
+      }
     }
   },
-
   "myListsSection": "Mes listes",
   "savedLists": "Listes sauvegardées",
   "noList": "Aucune liste",
@@ -1094,12 +1232,13 @@
   "listLimitMessage": "Tu as atteint la limite de {max} listes de lecture. Passe à Premium pour en créer autant que tu veux !",
   "@listLimitMessage": {
     "placeholders": {
-      "max": {"type": "int"}
+      "max": {
+        "type": "int"
+      }
     }
   },
   "ok": "OK",
   "goPremium": "Passer Premium",
-
   "editList": "Modifier la liste",
   "newList": "Nouvelle liste",
   "listName": "Nom de la liste",
@@ -1112,7 +1251,39 @@
   "privateList": "Liste privée",
   "publicListDescription": "Visible par tes amis sur ton profil",
   "privateListDescription": "Visible uniquement par toi",
-
+  "listShareMakePublicTitle": "Rendre la liste publique ?",
+  "listShareMakePublicMessage": "Pour partager « {title} », la liste doit être publique. Toute personne avec le lien pourra la voir.",
+  "@listShareMakePublicMessage": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "makePublicButton": "Rendre publique",
+  "listShareLinkOption": "Partager le lien",
+  "listShareLinkSubtitle": "Page web consultable sans l'app",
+  "listShareImageOption": "Partager en image",
+  "listShareImageSubtitle": "Une carte pour Instagram ou TikTok",
+  "listShareText": "📚 Ma liste « {title} » sur LexDay :\n{url}",
+  "@listShareText": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "url": {
+        "type": "String"
+      }
+    }
+  },
+  "listByOwner": "Liste de {name}",
+  "@listByOwner": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "addBooksTitle": "Ajouter des livres",
   "myLibraryTab": "Ma bibliothèque",
   "searchTab": "Rechercher",
@@ -1122,7 +1293,6 @@
   "searchTitleAuthor": "Rechercher un titre ou un auteur...",
   "tryMoreSpecific": "Essaie avec un titre plus précis",
   "searchByTitleAuthor": "Recherche un livre par titre ou auteur",
-
   "themePickerTitle": "Thème de couleurs",
   "themePickerSubtitle": "Personnalise les couleurs de l'app. Sage est le thème par défaut, les autres sont disponibles avec Premium.",
   "themePickerSettingsLabel": "Thème de couleurs",
@@ -1133,12 +1303,13 @@
   "nPagesRead": "{count} pages",
   "@nPagesRead": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
   "thisWeek": "Cette semaine",
   "thisMonth": "Ce mois",
-
   "sessionTag": "SESSION",
   "makeVisible": "Rendre visible",
   "hideSessionBtn": "Masquer la session",
@@ -1151,7 +1322,9 @@
   "plusPages": "+{count} pages",
   "@plusPages": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
   "startLabel": "Début",
@@ -1161,7 +1334,9 @@
   "ofReadingDuration": "{duration} de lecture",
   "@ofReadingDuration": {
     "placeholders": {
-      "duration": {"type": "String"}
+      "duration": {
+        "type": "String"
+      }
     }
   },
   "sessionEnd": "fin de session",
@@ -1172,7 +1347,6 @@
   "errorModifying": "Erreur lors de la modification",
   "errorDeleting": "Erreur lors de la suppression",
   "endSessionError": "Impossible de terminer la session pour le moment. Réessaie dans un instant.",
-
   "loadingError": "Erreur de chargement",
   "pagesReadByMonth": "Pages lues par mois",
   "genreDistribution": "Répartition des genres",
@@ -1181,7 +1355,6 @@
   "yourGoals": "Tes objectifs",
   "noGoalDefined": "Aucun objectif défini",
   "defineGoals": "Définir tes objectifs",
-
   "notifications": "Notifications",
   "readingReminders": "Rappels de lecture",
   "remindersDescription": "Reste motivé avec des rappels quotidiens pour maintenir ton flow de lecture.",
@@ -1193,7 +1366,6 @@
   "whenReminder": "Quand veux-tu recevoir le rappel ?",
   "aboutNotifications": "À propos des notifications",
   "notificationInfo": "Tu recevras une notification les jours sélectionnés pour te rappeler de lire et maintenir ton flow.",
-
   "notificationCenter": "Centre de notifications",
   "notificationCenterDescription": "Gère tes préférences de notifications.",
   "friendRequestNotifications": "Demandes d'ami",
@@ -1207,7 +1379,6 @@
   "pushSection": "Notifications push",
   "pushSectionDescription": "Notifications sur ton appareil.",
   "settingsSaved": "Préférences enregistrées",
-
   "myGoals": "Mes objectifs",
   "goalsDescription": "Personnalise tes objectifs pour rester motivé et suivre ta progression.",
   "goalsSaved": "Objectifs enregistrés !",
@@ -1216,7 +1387,6 @@
   "goalPrefix": "Objectif :",
   "saveMyGoals": "Enregistrer mes objectifs",
   "goalsModifiable": "Tu pourras modifier tes objectifs à tout moment",
-
   "upgradeToLabel": "Passez à",
   "lexdayPremium": "LexDay Premium",
   "unlockPotential": "Débloquez tout le potentiel de votre lecture",
@@ -1225,7 +1395,9 @@
   "moreFeatures": "+{count} fonctionnalités",
   "@moreFeatures": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
   "choosePlan": "Choisir un plan",
@@ -1245,12 +1417,13 @@
   "alreadyFree": "DÉJÀ INCLUS GRATUITEMENT",
   "annual": "Annuel",
   "monthly": "Mensuel",
-
   "yourReadingFlow": "Ton flow de lecture",
   "consecutiveDaysActive": "{days} jours consécutifs, actif",
   "@consecutiveDaysActive": {
     "placeholders": {
-      "days": {"type": "int"}
+      "days": {
+        "type": "int"
+      }
     }
   },
   "daysLabel": "jours",
@@ -1264,7 +1437,9 @@
   "freezesAvailable": "{count}/2 dispo",
   "@freezesAvailable": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
   "exhausted": "Épuisé",
@@ -1277,25 +1452,25 @@
   "beatPercentile": "Tu as battu {percentile} % des lecteurs réguliers.",
   "@beatPercentile": {
     "placeholders": {
-      "percentile": {"type": "int"}
+      "percentile": {
+        "type": "int"
+      }
     }
   },
   "bravoExcl": "Bravo! ",
   "keepReadingTomorrow": "Continue ta lecture demain pour maintenir ton flow!",
-
   "iAcceptThe": "J'accepte les ",
   "termsOfUseLink": "Conditions Générales d'Utilisation",
   "ofLexDay": " de LexDay",
-
   "readingNow": "En train de lire · {label}",
   "@readingNow": {
     "placeholders": {
-      "label": {"type": "String"}
+      "label": {
+        "type": "String"
+      }
     }
   },
-
   "amazon": "Amazon",
-
   "libraryTitle": "Bibliothèque",
   "librarySubtitle": "ta collection",
   "filterAll": "Tous",
@@ -1309,9 +1484,25 @@
   "noReadBooks": "Aucun livre lu",
   "allReadingBooks": "Livres en cours",
   "allFinishedBooks": "Livres lus",
-
   "newSessionSubtitle": "NOUVELLE SESSION",
   "startSessionTitle": "Démarrer",
+  "startFromBeginning": "Commencer au début",
+  "addBookManuallyCta": "Ajouter « {query} » manuellement",
+  "@addBookManuallyCta": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "titleAuthorRequired": "Titre et auteur requis",
+  "cameraPermissionDenied": "Accès à la caméra refusé",
+  "cameraPermissionHint": "Autorise la caméra dans les réglages pour scanner, ou cherche le livre par son titre.",
+  "searchByTitleButton": "Rechercher par titre",
+  "scanBookCta": "Scanner un livre",
+  "endActiveSessionCta": "Terminer la session en cours",
+  "referralSection": "Parrainage",
+  "referralInvite": "Inviter un ami · 14 jours offerts",
   "whatPageAreYouAt": "À QUELLE PAGE ES-TU ?",
   "scanPageBtn": "Scanner la page",
   "galleryPageBtn": "Galerie",
@@ -1319,33 +1510,41 @@
   "continueFromPage": "Continuer depuis la page {page}",
   "@continueFromPage": {
     "placeholders": {
-      "page": {"type": "int"}
+      "page": {
+        "type": "int"
+      }
     }
   },
   "lastSessionPage": "Dernière session — page {page}",
   "@lastSessionPage": {
     "placeholders": {
-      "page": {"type": "int"}
+      "page": {
+        "type": "int"
+      }
     }
   },
   "pagesProgress": "{current} / {total} pages",
   "@pagesProgress": {
     "placeholders": {
-      "current": {"type": "int"},
-      "total": {"type": "int"}
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
     }
   },
   "noPreviousSession": "Première session",
   "sharedByUser": "Partagé par {name}",
   "@sharedByUser": {
     "placeholders": {
-      "name": {"type": "String"}
+      "name": {
+        "type": "String"
+      }
     }
   },
-
   "sessionAnnotations": "Annotations de la session",
   "annotateButton": "Annoter",
-
   "comments": "Commentaires",
   "writeComment": "Écrire un commentaire...",
   "commentBeingValidated": "Commentaire en cours de validation...",
@@ -1356,13 +1555,13 @@
   "replyingTo": "Réponse à {name}",
   "@replyingTo": {
     "placeholders": {
-      "name": {"type": "String"}
+      "name": {
+        "type": "String"
+      }
     }
   },
   "send": "Envoyer",
-
   "reactionPremiumOnly": "Réaction réservée aux membres Premium",
-
   "nearbyBookstores": "Librairies proches",
   "noBookstoresFound": "Aucune librairie trouvée à proximité",
   "bookstoresLoadError": "Impossible de charger les librairies. Vérifiez votre connexion et réessayez.",
@@ -1371,16 +1570,16 @@
   "navigate": "Itinéraire",
   "searchingBookstores": "Recherche de librairies...",
   "loadMoreBookstores": "Voir plus de librairies",
-
   "offlineBanner": "Hors ligne — les sessions seront synchronisées automatiquement",
   "sessionSavedOffline": "Session enregistrée hors ligne. Elle sera synchronisée à la reconnexion.",
   "offlineSyncSuccess": "{count, plural, =1{1 session synchronisée} other{{count} sessions synchronisées}}",
   "@offlineSyncSuccess": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
-
   "markAllRead": "Tout lire",
   "newNotifications": "Nouvelles",
   "recentNotifications": "Récentes",
@@ -1396,44 +1595,60 @@
   "sentGroupJoinRequest": "{name} souhaite rejoindre {groupName}",
   "@sentGroupJoinRequest": {
     "placeholders": {
-      "name": {"type": "String"},
-      "groupName": {"type": "String"}
+      "name": {
+        "type": "String"
+      },
+      "groupName": {
+        "type": "String"
+      }
     }
   },
   "@sentYouFriendRequest": {
     "placeholders": {
-      "name": {"type": "String"}
+      "name": {
+        "type": "String"
+      }
     }
   },
   "likedYourReading": "{name} a aimé votre lecture de {bookTitle}",
   "@likedYourReading": {
     "placeholders": {
-      "name": {"type": "String"},
-      "bookTitle": {"type": "String"}
+      "name": {
+        "type": "String"
+      },
+      "bookTitle": {
+        "type": "String"
+      }
     }
   },
   "commentedYourReading": "{name} a commenté votre lecture de {bookTitle}",
   "@commentedYourReading": {
     "placeholders": {
-      "name": {"type": "String"},
-      "bookTitle": {"type": "String"}
+      "name": {
+        "type": "String"
+      },
+      "bookTitle": {
+        "type": "String"
+      }
     }
   },
   "repliedYourComment": "{name} a répondu à votre commentaire sur {bookTitle}",
   "@repliedYourComment": {
     "placeholders": {
-      "name": {"type": "String"},
-      "bookTitle": {"type": "String"}
+      "name": {
+        "type": "String"
+      },
+      "bookTitle": {
+        "type": "String"
+      }
     }
   },
-
   "prizeSelections": "Sélections LexDay",
   "prizeSelectionsSubtitle": "Prix littéraires officiels",
   "officialLexDay": "Officielle LexDay",
   "bookSummary": "Résumé du livre",
   "noDescriptionAvailable": "Aucun résumé disponible pour ce livre.",
-  "buyOnAmazon": "Commander sur Amazon",
-
+  "buyOnAmazon": "Acheter sur Amazon",
   "requestToJoin": "Demander à rejoindre",
   "joinRequestSent": "Demande envoyée !",
   "joinRequestPending": "Demande en attente…",
@@ -1441,24 +1656,28 @@
   "joinRequestAccepted": "{name} a été accepté(e) dans le club",
   "@joinRequestAccepted": {
     "placeholders": {
-      "name": {"type": "String"}
+      "name": {
+        "type": "String"
+      }
     }
   },
   "joinRequestRejected": "Demande de {name} refusée",
   "@joinRequestRejected": {
     "placeholders": {
-      "name": {"type": "String"}
+      "name": {
+        "type": "String"
+      }
     }
   },
   "pendingJoinRequests": "{count, plural, =1{1 demande en attente} other{{count} demandes en attente}}",
   "@pendingJoinRequests": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
-  "accept": "Accepter",
   "reject": "Refuser",
-
   "readingForLabel": "JE LIS POUR",
   "readingForJustMe": "Moi",
   "readingForDaughter": "Ma fille",
@@ -1470,43 +1689,55 @@
   "readingForFather": "Mon père",
   "readingForMother": "Ma mère",
   "readingForOther": "Autre",
+  "readingForAddPrompt": "Lu pour quelqu'un ?",
   "readingForDisplay": "Lu pour {person}",
   "@readingForDisplay": {
     "placeholders": {
-      "person": {"type": "String"}
+      "person": {
+        "type": "String"
+      }
     }
   },
   "readWithDisplay": "Lu avec {person}",
   "@readWithDisplay": {
     "placeholders": {
-      "person": {"type": "String"}
+      "person": {
+        "type": "String"
+      }
     }
   },
-
   "readingForStatsTitle": "Lectures partagées",
   "readingForStatsSubtitle": "Temps passé à lire pour vos proches",
   "readingForNoStats": "Vous n''avez pas encore de session de lecture pour {person}",
   "@readingForNoStats": {
     "placeholders": {
-      "person": {"type": "String"}
+      "person": {
+        "type": "String"
+      }
     }
   },
   "readingForSessions": "{count} sessions",
   "@readingForSessions": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
   "readingForMinutes": "{minutes} min",
   "@readingForMinutes": {
     "placeholders": {
-      "minutes": {"type": "int"}
+      "minutes": {
+        "type": "int"
+      }
     }
   },
   "readingForPages": "{pages} pages",
   "@readingForPages": {
     "placeholders": {
-      "pages": {"type": "int"}
+      "pages": {
+        "type": "int"
+      }
     }
   },
   "refreshCovers": "Actualiser les couvertures",
@@ -1514,18 +1745,21 @@
   "coversRefreshed": "{count} couverture(s) mise(s) à jour",
   "@coversRefreshed": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
   "coversUpToDate": "Toutes les couvertures sont déjà à jour",
   "friendsLabel": "Amis",
-
   "kindleLoginTitle": "Connexion Kindle",
   "kindleTrustBanner": "Connexion directe à Amazon. Tes identifiants ne transitent jamais par LexDay.",
   "kindleBooksFound": "{count, plural, =1{livre trouvé} other{livres trouvés}}",
   "@kindleBooksFound": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
   "kindleStepLibrary": "Livres",
@@ -1543,16 +1777,13 @@
   "kindlePhaseImportingSubtitle": "Tes livres arrivent dans ta bibliothèque LexDay.",
   "kindlePhaseDoneTitle": "C'est tout bon !",
   "kindlePhaseDoneSubtitle": "Ta bibliothèque Kindle est synchronisée.",
-
   "kindleOnboardingTitle": "Connecte ton Kindle",
   "kindleOnboardingSubtitle": "Importe automatiquement ta bibliothèque Kindle.\nTes identifiants restent sur Amazon,\nnous n'y avons jamais accès.",
   "kindleOnboardingButton": "Connecter mon Kindle",
   "kindleOnboardingSkip": "Passer cette étape",
-
   "kindlePhaseErrorTitle": "La synchronisation a pris trop de temps",
   "kindlePhaseErrorSubtitle": "Amazon n'a pas répondu à temps.\nTu peux réessayer, ça prend généralement quelques secondes.",
   "kindleRetryButton": "Réessayer",
-
   "kindleReviewTitle": "Choisis tes livres",
   "kindleReviewSubtitle": "Décoche ceux que tu ne veux pas voir dans ta bibliothèque LexDay.",
   "kindleReviewSelectAll": "Tout sélectionner",
@@ -1560,20 +1791,25 @@
   "kindleReviewSelectedCount": "{selected}/{total} sélectionnés",
   "@kindleReviewSelectedCount": {
     "placeholders": {
-      "selected": {"type": "int"},
-      "total": {"type": "int"}
+      "selected": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
     }
   },
   "kindleReviewImportButton": "{count, plural, =0{Aucun livre à importer} =1{Importer 1 livre} other{Importer {count} livres}}",
   "@kindleReviewImportButton": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
   "kindleReviewStatusReading": "En cours",
   "kindleReviewStatusFinished": "Terminé",
   "kindleReviewStatusToRead": "À lire",
-
   "premiumFeature": "Fonctionnalité Premium",
   "unlockFeatureWith": "Débloquer avec Premium",
   "premiumUpsellCta": "Découvrir Premium",
@@ -1582,7 +1818,9 @@
   "savingsPercent": "Économisez {percent}%",
   "@savingsPercent": {
     "placeholders": {
-      "percent": {"type": "int"}
+      "percent": {
+        "type": "int"
+      }
     }
   },
   "trialBadge": "7 jours gratuits",
@@ -1590,14 +1828,16 @@
   "thenPerYear": "puis {price}/an",
   "@thenPerYear": {
     "placeholders": {
-      "price": {"type": "String"}
+      "price": {
+        "type": "String"
+      }
     }
   },
   "noCommitment": "Sans engagement",
   "recommended": "✦ Recommandé",
-  "privacyPolicy": "Politique de confidentialité",
   "freeIncludedSessions": "Sessions illimitées",
   "freeIncludedLibrary": "Bibliothèque illimitée",
+  "freeIncludedStats": "Statistiques & suivi de lecture complets",
   "freeIncludedFeed": "Feed social",
   "freeIncludedGoals": "Objectifs & badges de base",
   "freeIncludedWrapped": "Wrapped mensuel & annuel",
@@ -1606,24 +1846,22 @@
   "shareMySession": "Partager ma session",
   "saveImage": "Enregistrer l'image",
   "imageSaved": "Image enregistrée",
-  "buyOnAmazon": "Acheter sur Amazon",
-
   "staleSessionModalTitle": "Session en cours",
   "staleSessionModalBody": "Tu as une session de lecture active. Tu as fini de lire ?",
   "staleSessionFinishButton": "Terminer",
   "staleSessionContinueButton": "Continuer",
   "staleSessionNotifTitle": "Session de lecture en cours",
   "staleSessionNotifBody": "Tu as laissé une session de lecture ouverte. Tu as fini ?",
-
   "wrappedBannerTitle": "Ton Wrapped {month} est là !",
   "@wrappedBannerTitle": {
     "placeholders": {
-      "month": {"type": "String"}
+      "month": {
+        "type": "String"
+      }
     }
   },
   "wrappedBannerSubtitle": "Plonge dans ton mois en chiffres",
   "wrappedBannerDismiss": "Fermer",
-
   "groupLibrary": "Bibliothèque",
   "groupLibrarySubtitle": "Listes de lecture du club",
   "groupLibraryEmpty": "Aucune liste pour l'instant",
@@ -1639,13 +1877,17 @@
   "groupLibraryDeleteListConfirm": "Supprimer « {title} » ? Les livres référencés seront retirés de la liste.",
   "@groupLibraryDeleteListConfirm": {
     "placeholders": {
-      "title": {"type": "String"}
+      "title": {
+        "type": "String"
+      }
     }
   },
   "groupLibraryBookCount": "{count, plural, =0{Aucun livre} =1{1 livre} other{{count} livres}}",
   "@groupLibraryBookCount": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
   "groupLibraryAddBook": "Ajouter un livre",
@@ -1657,16 +1899,19 @@
   "groupLibraryAddedBy": "Ajouté par {name}",
   "@groupLibraryAddedBy": {
     "placeholders": {
-      "name": {"type": "String"}
+      "name": {
+        "type": "String"
+      }
     }
   },
   "groupLibraryCreatedBy": "Créée par {name}",
   "@groupLibraryCreatedBy": {
     "placeholders": {
-      "name": {"type": "String"}
+      "name": {
+        "type": "String"
+      }
     }
   },
-
   "reportSheetTitle": "Signaler",
   "reportSheetSubtitle": "Dis-nous ce qui ne va pas. Les signalements sont confidentiels et examinés par notre équipe.",
   "reportDetailsLabel": "Détails supplémentaires (optionnel)",
@@ -1693,7 +1938,11 @@
   "unblockUserAction": "Débloquer",
   "blockUserConfirmTitle": "Bloquer {name} ?",
   "@blockUserConfirmTitle": {
-    "placeholders": {"name": {"type": "String"}}
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
   },
   "blockUserConfirmMessage": "Cette personne ne pourra plus te trouver ou interagir avec toi, et tu ne verras plus son contenu. Si vous étiez amis, le lien d'amitié sera supprimé.",
   "blockUserConfirmCta": "Bloquer",
@@ -1711,6 +1960,7 @@
   "manualSearchTipTitle": "Ex : « Harry Potter sorcier »",
   "manualSearchTipAuthor": "Ex : « Harari Sapiens »",
   "manualSearchTipIsbn": "Tu peux aussi coller un ISBN (10 ou 13 chiffres)",
+  "manualSearchTrendingTitle": "Tendances en ce moment",
   "manualSearchNoResults": "Aucun livre trouvé",
   "manualSearchNoResultsHint": "Essaie une autre orthographe, ajoute le nom de l'auteur, ou retire des mots.",
   "totalPagesUnknownLabel": "Nombre de pages total",
@@ -1720,32 +1970,23 @@
   "totalPagesSaved": "Nombre de pages enregistré ✓",
   "totalPagesSaveError": "Impossible d'enregistrer. Réessaie.",
   "totalPagesInvalid": "Entre un nombre valide (> 0).",
-
   "statsPageTitle": "Statistiques",
   "statsPageHeading": "Statistiques de lecture",
   "statsPageComingSoon": "Fonctionnalité à venir",
-
   "allBadgesPageTitle": "Mes badges",
   "peopleYouMayKnowPageTitle": "À découvrir",
-
   "addBookPageTitle": "Ajouter un livre",
   "addBookSearchHeading": "Recherche Google Books",
   "addBookSearchHint": "Titre, auteur ou ISBN",
   "addBookSaveBtn": "Enregistrer",
-
   "startReadingPageTitle": "Démarrer une lecture",
   "startReadingSelectedBook": "Livre sélectionné",
-
   "feedSectionListsForYou": "Listes pour toi",
   "feedSectionTrending": "Tendances",
   "feedSectionPublicClubs": "Clubs publics à découvrir",
   "feedGuestCtaTitle": "Rejoins LexDay",
   "feedGuestCtaSubtitle": "Suis tes lectures, tes amis, tes objectifs.",
-
-  "termsOfServiceTitle": "Conditions d'utilisation",
-  "privacyPolicyTitle": "Politique de confidentialité",
   "legalNoticeTitle": "Mentions légales",
-
   "onboardingHabitQuestion": "Comment lis-tu\nle plus souvent ?",
   "onboardingHabitEreaderLabel": "Liseuse",
   "onboardingHabitEreaderSubtitle": "Kindle, Kobo...",
@@ -1753,24 +1994,25 @@
   "onboardingHabitPaperSubtitle": "Livres physiques",
   "onboardingHabitMixLabel": "Un mix",
   "onboardingHabitMixSubtitle": "Les deux !",
-
   "autoFreezeUsedTitle": "Ton flow a été protégé !",
   "autoFreezeUsedBody": "Un freeze automatique a sauvé ta série de {days} jours. Lis quelques pages aujourd'hui pour la faire continuer.",
   "@autoFreezeUsedBody": {
     "placeholders": {
-      "days": {"type": "int"}
+      "days": {
+        "type": "int"
+      }
     }
   },
   "autoFreezeUsedCta": "Continuer ma série",
-
   "feedGoalsCardTitle": "Mes objectifs",
   "feedGoalsCta": "Fixe-toi un objectif de lecture",
-
   "rateBookSheetTitle": "Noter ce livre",
   "rateBookSheetTitleWithBook": "Tu as terminé « {title} » !",
   "@rateBookSheetTitleWithBook": {
     "placeholders": {
-      "title": {"type": "String"}
+      "title": {
+        "type": "String"
+      }
     }
   },
   "rateBookSheetSubtitle": "Qu'en as-tu pensé ?",
@@ -1818,12 +2060,13 @@
   "abandonBookConfirmYes": "Oui, j'arrête",
   "abandonSheetTitle": "Tu abandonnes ce livre",
   "abandonSheetSubtitle": "Une note quand même ? C'est optionnel.",
-
   "watchCatchupTitle": "Lecture depuis ta Watch",
   "watchCatchupBody": "{minutes} min enregistrées depuis ton Apple Watch. Complète les pages pour mettre à jour ta progression.",
   "@watchCatchupBody": {
     "placeholders": {
-      "minutes": {"type": "int"}
+      "minutes": {
+        "type": "int"
+      }
     }
   },
   "watchCatchupStartPage": "Page de début",
@@ -1834,7 +2077,6 @@
   "watchCatchupEnterPages": "Indique les pages de début et de fin.",
   "watchCatchupOcrFailed": "Numéro de page non détecté, réessaie ou saisis-le à la main.",
   "watchCatchupError": "Enregistrement impossible. Réessaie.",
-
   "addPastSessionButton": "Ajouter une lecture passée",
   "addPastSessionTitle": "Lecture passée",
   "addPastSessionDuration": "Combien de temps as-tu lu ?",
@@ -1845,5 +2087,340 @@
   "addPastSessionEnterDuration": "Indique la durée de ta lecture.",
   "addPastSessionBackdatedInfo": "Cette lecture comptera dans tes stats mais pas pour ta flamme.",
   "addPastSessionTooShortWarning": "Moins de 2 min ou aucune page : cette lecture ne comptera pas pour ta flamme.",
-  "addPastSessionActiveSessionError": "Termine d'abord ta session en cours sur ce livre."
+  "addPastSessionActiveSessionError": "Termine d'abord ta session en cours sur ce livre.",
+  "scanIsbnDetected": "ISBN détecté : {code}",
+  "@scanIsbnDetected": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "scanNoBookForIsbn": "Aucun livre trouvé pour cet ISBN. Essayez le scan de couverture.",
+  "scanSearchError": "Erreur de recherche : {error}",
+  "@scanSearchError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "scanNoTextDetected": "Aucun texte détecté sur la couverture.",
+  "scanNoBookFound": "Aucun livre trouvé. Essayez la recherche manuelle.",
+  "scanIsbnTitle": "Scanner ISBN",
+  "scanCoverTitle": "Scanner couverture",
+  "manualSearchTooltip": "Recherche manuelle",
+  "coverLabel": "Couverture",
+  "scanPaused": "Scanner en pause",
+  "scanPointCamera": "Pointez la caméra vers le code-barres ISBN",
+  "scanBarcodeHint": "(au dos du livre, commence par 978 ou 979)",
+  "scanNoBarcodeHint": "Pas de code-barres ? Utilisez l'onglet \"Couverture\"",
+  "scanAnalyzingCover": "Analyse de la couverture...",
+  "scanScannedCover": "Couverture scannée :",
+  "scanDetectedText": "Texte détecté",
+  "scanPhotographCover": "Photographiez la couverture",
+  "scanCoverExplain": "On détecte le titre et trouve le livre",
+  "scanStepDetection": "Détection",
+  "scanStepSearch": "Recherche",
+  "scanIsbnAutoDetect": "Si l'ISBN est visible, il sera détecté automatiquement",
+  "scanResults": "Résultats :",
+  "bookAddedShort": "{title} ajouté",
+  "@bookAddedShort": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "emptyLibraryUseSearch": "Utilise l'onglet Rechercher pour trouver et ajouter des livres.",
+  "searchBookByTitleAuthorHint": "Recherche un livre par titre ou auteur",
+  "chooseCoverTitle": "Choisir une couverture",
+  "noCoversAvailable": "Aucune couverture disponible",
+  "coversComingSoon": "La bibliothèque sera bientôt enrichie.",
+  "bookHiddenFromOthers": "Livre masqué des autres utilisateurs",
+  "bookVisibleToOthers": "Livre visible pour les autres utilisateurs",
+  "errorUpdating": "Erreur lors de la mise à jour",
+  "markBookFinishedQuestion": "Marquer ce livre comme terminé ?",
+  "bookMarkedFinished": "Livre marqué comme terminé !",
+  "bookHiddenTooltip": "Livre masqué aux autres",
+  "hideBookTooltip": "Masquer ce livre",
+  "kindleBook": "Livre Kindle",
+  "scannedBook": "Livre scanné",
+  "addGenre": "Ajouter un genre",
+  "sessionStartedAtPage": "Commencée à la page {page}",
+  "@sessionStartedAtPage": {
+    "placeholders": {
+      "page": {
+        "type": "int"
+      }
+    }
+  },
+  "sinceDuration": "Depuis {duration}",
+  "@sinceDuration": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "endThisReading": "Terminer cette lecture",
+  "progressPhotoHint": "Suivez votre progression en prenant une photo ou en saisissant le numéro de page.",
+  "markAsFinished": "Marquer comme terminé",
+  "currentlyAtPage": "Actuellement à la page {page}",
+  "@currentlyAtPage": {
+    "placeholders": {
+      "page": {
+        "type": "String"
+      }
+    }
+  },
+  "remainingAiSummaries": "{count}/{max} résumés restants",
+  "@remainingAiSummaries": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "noAnnotationsForBook": "Aucune annotation pour ce livre.\nAnnotez pendant vos sessions !",
+  "aiSheetExplain": "L'IA analyse vos {count} annotations pour créer une fiche de lecture personnalisée : thèmes clés, citations marquantes, progression et synthèse.",
+  "@aiSheetExplain": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "generateMySheet": "Générer ma fiche",
+  "regenerate": "Régénérer",
+  "sheetSentToNotion": "Fiche envoyée vers Notion !",
+  "aiSummaryLabel": "Résumé IA",
+  "summarizing": "Résumé en cours...",
+  "summarizeAction": "Résumer",
+  "usedMonthlySummaries": "Vous avez utilisé vos {count} résumés du mois",
+  "@usedMonthlySummaries": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "premiumSummariesUpsell": "Passez en Premium pour résumer tous vos passages sans limite",
+  "retryNextMonth": "Réessayer le mois prochain",
+  "addedToListNamed": "Ajouté à \"{title}\"",
+  "@addedToListNamed": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "barcodeLabel": "Code-barres",
+  "scanStepPhoto": "Photo",
+  "chooseGenre": "Choisir le genre",
+  "profileCurrentSection": "En ce moment",
+  "profileCurrentSince": "{count, plural, =1{depuis 1 jour} other{depuis {count} jours}}",
+  "@profileCurrentSince": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "profilePageProgress": "p. {current} / {total}",
+  "@profilePageProgress": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "profileFavoritesSection": "Ses coups de cœur",
+  "profileCommonSection": "Vous avez lu les deux",
+  "profileCommonSubtitle": "Les livres présents dans vos deux bibliothèques",
+  "profileYouLabel": "Toi",
+  "profileLibrarySection": "Sa bibliothèque",
+  "profileToReadChip": "Envies",
+  "profileSeeFullLibrary": "Voir toute sa bibliothèque",
+  "memberSinceDays": "{count, plural, =1{Membre depuis 1 jour} other{Membre depuis {count} jours}}",
+  "@memberSinceDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "memberSinceWeeks": "{count, plural, =1{Membre depuis 1 semaine} other{Membre depuis {count} semaines}}",
+  "@memberSinceWeeks": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "memberSinceMonths": "Membre depuis {count} mois",
+  "@memberSinceMonths": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "memberSinceYears": "{count, plural, =1{Membre depuis 1 an} other{Membre depuis {count} ans}}",
+  "@memberSinceYears": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "profileTheirRating": "Sa note",
+  "sessionPageRange": "p. {start} → {end}",
+  "@sessionPageRange": {
+    "placeholders": {
+      "start": {
+        "type": "int"
+      },
+      "end": {
+        "type": "int"
+      }
+    }
+  },
+  "chooseNameTitle": "Comment veux-tu apparaître ?",
+  "chooseNameSubtitle": "C'est le nom que verront tes amis et les autres lecteurs sur LexDay.",
+  "feedbackTooltip": "Donner mon avis",
+  "feedbackSheetTitle": "Donner mon avis",
+  "feedbackSheetSubtitle": "Un bug, une idée, quelque chose qui te gêne ? Dis-nous tout — chaque retour nous aide à améliorer LexDay.",
+  "feedbackMessageLabel": "Ton message",
+  "feedbackMessageHint": "Écris ton retour ici…",
+  "feedbackSubmitButton": "Envoyer",
+  "feedbackSentMessage": "Merci pour ton retour !",
+  "feedbackErrorMessage": "Impossible d'envoyer ton retour. Réessaie.",
+  "fabLogPastRead": "J'ai lu",
+  "highlightTitle": "Surligne le passage",
+  "highlightAnalyzing": "Lecture de la photo…",
+  "highlightHint": "Glisse ton doigt sur le passage",
+  "highlightNoText": "Aucun texte détecté. Essaie une photo plus nette, ou laisse l'IA relire la page.",
+  "highlightSelectAll": "Tout sélectionner",
+  "highlightClear": "Effacer",
+  "highlightUse": "Utiliser",
+  "highlightOneWord": "1 mot surligné",
+  "highlightWordCount": "{count} mots surlignés",
+  "@highlightWordCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "highlightEnhanceAi": "Corriger avec l'IA",
+  "highlightExtractAi": "Lire avec l'IA",
+  "highlightEnhancing": "Relecture…",
+  "highlightAiDone": "Passage relu par l'IA",
+  "highlightAiLabel": "Texte relu par l'IA",
+  "highlightModeMove": "Zoomer / déplacer",
+  "highlightModeSelect": "Surligner",
+  "highlightImageError": "Impossible d'ouvrir cette photo.",
+  "highlightRetakePhoto": "Reprendre la photo",
+  "takePhotoAction": "Prendre une photo",
+  "chooseFromGallery": "Choisir dans la galerie",
+  "editHighlight": "Modifier le surlignage",
+  "pageDetectedSuggestion": "Page {page} détectée",
+  "@pageDetectedSuggestion": {
+    "placeholders": {
+      "page": { "type": "int" }
+    }
+  },
+  "capturePassageFab": "Garder un passage",
+  "capturePassageTitle": "Garder ce passage",
+  "capturePassageSave": "Enregistrer",
+  "capturePassageSaved": "Passage gardé",
+  "capturePassageNoBook": "Choisir un livre",
+  "capturePassageNeedBook": "Choisis un livre pour ce passage.",
+  "capturePassagePageLabel": "Page",
+  "capturePassageChooseBook": "Quel livre ?",
+  "capturePassageScanCover": "Scanner la couverture d'un nouveau livre",
+  "capturePassageCameraError": "Impossible d'ouvrir l'appareil photo.",
+  "myPassages": "Mes passages",
+  "myPassagesSearchHint": "Rechercher dans mes passages\u2026",
+  "myPassagesNoResult": "Aucun passage ne correspond à cette recherche.",
+  "myPassagesEmptyTitle": "Rien de gardé pour l'instant",
+  "myPassagesEmptyBody": "Photographie une page, surligne le passage au doigt : il t'attendra ici.",
+  "myPassagesPage": "p. {page}",
+  "@myPassagesPage": {
+    "placeholders": {
+      "page": { "type": "int" }
+    }
+  },
+  "myPassagesCopy": "Copier le texte",
+  "myPassagesCopied": "Passage copié",
+  "myPassagesDeleteTitle": "Supprimer ce passage ?",
+  "myPassagesDeleteBody": "Le texte et la photo seront définitivement supprimés.",
+  "myPassagesDeleteConfirm": "Supprimer",
+  "myPassagesSourceKindle": "Kindle",
+  "myPassagesNoteLabel": "Ma note",
+  "myPassagesUnknownBook": "Livre inconnu",
+  "myPassagesCount": "{count} passage{count, plural, =1{} other{s}}",
+  "@myPassagesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "startPageOptionalLabel": "PAGE DE DÉPART · FACULTATIF",
+  "willResumeAtPage": "Tu reprendras à la page {page}",
+  "@willResumeAtPage": {
+    "placeholders": {
+      "page": { "type": "int" }
+    }
+  },
+  "willStartAtBeginning": "Tu commenceras au début",
+  "abandonSessionElapsed": "Tu lis depuis {duration}.",
+  "@abandonSessionElapsed": {
+    "placeholders": {
+      "duration": { "type": "String" }
+    }
+  },
+  "abandonDeletesTime": "Abandonner supprime définitivement ce temps de lecture.",
+  "abandonKeepReading": "Continuer la lecture",
+  "abandonEndInstead": "Terminer la session",
+  "abandonDiscard": "Supprimer quand même",
+  "focusModeSettingsEntry": "Mode sans distraction",
+  "focusModeTitle": "Mode sans distraction",
+  "focusModeIntroTitle": "Coupe les notifications pendant que tu lis",
+  "focusModeIntroBody": "Avec deux automatisations dans l'app Raccourcis d'Apple, ton iPhone passe en « Ne pas déranger » dès que tu ouvres LexDay, et redevient normal quand tu la quittes. Réglage unique, en 2 minutes.",
+  "focusModeAutomation1Title": "À l'ouverture de LexDay",
+  "focusModeAutomation1Subtitle": "Activer Ne pas déranger automatiquement",
+  "focusModeAutomation2Title": "À la fermeture de LexDay",
+  "focusModeAutomation2Subtitle": "Désactiver Ne pas déranger",
+  "focusModeStepOpenShortcuts": "Ouvre l'app Raccourcis (préinstallée sur ton iPhone)",
+  "focusModeStepAutomationTab": "Onglet « Automatisation », puis « Nouvelle automatisation »",
+  "focusModeStepChooseApp": "Choisis « App », puis sélectionne LexDay",
+  "focusModeStepIsOpened": "Coche « Est ouverte » et « Exécuter immédiatement »",
+  "focusModeStepIsClosed": "Coche « Est fermée » et « Exécuter immédiatement »",
+  "focusModeStepActionOn": "Ajoute l'action « Régler le mode de concentration » → Ne pas déranger → Activer",
+  "focusModeStepActionOff": "Ajoute l'action « Régler le mode de concentration » → Ne pas déranger → Désactiver",
+  "focusModeOpenShortcuts": "Ouvrir Raccourcis",
+  "focusModeNote": "Réglage 100 % iOS : LexDay n'accède à rien et tu peux supprimer l'automatisation à tout moment dans Raccourcis.",
+  "focusModeShortcutsUnavailable": "Impossible d'ouvrir Raccourcis. Réinstalle-la depuis l'App Store.",
+  "focusSuggestionTitle": "Lire sans être dérangé ?",
+  "focusSuggestionBody": "Ton iPhone peut passer en « Ne pas déranger » automatiquement à chaque session. Réglage unique, en 2 minutes.",
+  "focusSuggestionCta": "Voir comment",
+  "onboardingFirstSessionReady": "Prêt à lire ?",
+  "onboardingFirstSessionHint": "5 minutes suffisent pour démarrer. Tu pourras t’arrêter quand tu veux.",
+  "onboardingFirstSessionCta": "Lire 5 minutes maintenant",
+  "onboardingFirstSessionLater": "Pas maintenant",
+  "onboardingNoBookTitle": "Tout est prêt !",
+  "onboardingNoBookBody": "Ajoute un livre quand tu veux pour démarrer ta première session de lecture.",
+  "onboardingNoBookCta": "C’est parti",
+  "onboardingReminderTitle": "On te rappelle demain ?",
+  "onboardingReminderBody": "Un seul rappel pour reprendre « {title} » — et rien d’autre tant que tu n’as pas lu.",
+  "onboardingReminderYes": "Oui, rappelle-moi",
+  "onboardingReminderNo": "Non merci",
+  "@onboardingReminderBody": {"placeholders": {"title": {"type": "String"}}}
 }

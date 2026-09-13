@@ -9,6 +9,7 @@
   import '../../services/monthly_notification_service.dart';
   import '../../services/feed_prefetcher.dart';
   import '../../services/push_notification_service.dart';
+  import '../../services/referral_service.dart';
   import '../../services/subscription_service.dart';
   import '../onboarding/onboarding_page.dart';
   import 'login_page.dart';
@@ -118,10 +119,45 @@
         });
       } finally {
         if (Supabase.instance.client.auth.currentUser != null) {
+          // `initialize()` ne demande PAS la permission système : elle câble
+          // seulement le routage des notifications et enregistre le token si
+          // la permission est déjà accordée. La popup est présentée plus tard,
+          // après la première session de lecture terminée
+          // (cf. MainNavigation._maybeAskPushPermission).
           await PushNotificationService().initialize();
           // Schedule reading reminders from user profile settings
           await _scheduleReadingRemindersFromProfile();
+          // Parrainage : un code reçu par deep link AVANT l'inscription (cas
+          // principal — le filleul n'avait pas l'app) est mémorisé en attente
+          // par DeepLinkService. C'est ici, une fois la session ouverte, qu'il
+          // faut l'appliquer. Le docstring de `applyPendingCode()` prévoyait
+          // cet appel depuis AuthGate ; il n'existait pas, donc aucun
+          // parrainage différé n'était jamais attribué.
+          await _applyPendingReferral();
         }
+      }
+    }
+
+    /// Best-effort : ne doit jamais bloquer l'arrivée dans l'app.
+    /// `applyPendingCode()` ne consomme le code qu'en cas de résultat
+    /// définitif — une erreur réseau le laisse en attente pour le prochain
+    /// lancement.
+    Future<void> _applyPendingReferral() async {
+      try {
+        final service = ReferralService();
+        // Android : récupère le code transmis par le Play Store à
+        // l'installation. No-op ailleurs et après le premier passage.
+        await service.captureInstallReferrer();
+        // Met en cache le lien personnel pour que TOUS les partages sortants
+        // (session, livre terminé, badge, Wrapped…) portent le code de
+        // parrainage plutôt qu'un lien App Store anonyme.
+        await service.primeShareLink();
+        final result = await service.applyPendingCode();
+        if (result != null) {
+          debugPrint('Parrainage appliqué: $result');
+        }
+      } catch (e) {
+        debugPrint('Parrainage (non bloquant): $e');
       }
     }
 

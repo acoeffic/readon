@@ -1,12 +1,16 @@
 // lib/services/reading_session_service.dart
 
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/book.dart';
 import '../models/reading_session.dart';
 import '../widgets/cached_book_cover.dart';
+import 'analytics_service.dart';
 import 'books_service.dart';
 import 'challenge_service.dart';
+import 'last_page_cache.dart';
 import 'live_activity_service.dart';
 import 'ocr_service.dart';
 import 'offline_session_queue.dart';
@@ -18,6 +22,33 @@ Future<int> _effectiveSecondsFor(DateTime startTime) async {
   final pause = await SessionPauseService().getTotalPauseDuration();
   final secs = DateTime.now().difference(startTime).inSeconds - pause.inSeconds;
   return secs < 0 ? 0 : secs;
+}
+
+/// Timeout appliqué aux écritures Supabase de démarrage/fin de session.
+/// En mode avion, certains appels ne échouent pas immédiatement : sans
+/// timeout, l'utilisateur resterait bloqué sur le spinner au lieu de
+/// basculer sur la sauvegarde locale.
+const _kSessionWriteTimeout = Duration(seconds: 10);
+
+/// Détecte les erreurs de connectivité (pas d'internet, DNS, timeout...)
+/// par opposition aux vraies erreurs serveur (RLS, contrainte, 4xx/5xx).
+/// On ne met en file offline QUE les échecs réseau : une erreur serveur
+/// rejouée à l'infini ne réussira jamais.
+bool _isNetworkError(Object e) {
+  if (e is TimeoutException) return true;
+  final s = e.toString();
+  return s.contains('SocketException') ||
+      s.contains('ClientException') ||
+      s.contains('Failed host lookup') ||
+      s.contains('Connection refused') ||
+      s.contains('Connection reset') ||
+      s.contains('Connection closed') ||
+      s.contains('Connection failed') ||
+      s.contains('Connection terminated') ||
+      s.contains('Network is unreachable') ||
+      s.contains('Software caused connection abort') ||
+      s.contains('HandshakeException') ||
+      s.contains('AuthRetryableFetchException');
 }
 
 class ReadingSessionService {
@@ -53,12 +84,37 @@ class ReadingSessionService {
   /// Soit [imagePath] est fourni (OCR extraira le numéro de page),
   /// soit [manualPageNumber] est fourni directement.
   /// Si [offlineMode] est true, la session est sauvegardée localement.
+  /// Event PostHog non bloquant émis à chaque démarrage de session, quel que
+  /// soit le chemin (en ligne, offline, bascule offline sur erreur réseau).
+  ///
+  /// `page_source` est la donnée clé : elle dit si les lecteurs photographient
+  /// la page (OCR) ou saisissent le numéro à la main. C'est ce qui permettra
+  /// de trancher sur la friction du scan au démarrage.
+  void _trackSessionStarted({
+    required bool offline,
+    required String? imagePath,
+    String? pageSource,
+  }) {
+    unawaited(AnalyticsService().track(
+      AnalyticsEvent.sessionStarted,
+      properties: {
+        'offline': offline,
+        // `inferred` = l'utilisateur n'a rien saisi, la page vient de ce qu'on
+        // savait déjà. C'est la mesure qui dira si demander une page au
+        // démarrage servait à quelque chose.
+        'page_source':
+            pageSource ?? (imagePath != null ? 'photo' : 'manual'),
+      },
+    ));
+  }
+
   Future<ReadingSession> startSession({
     required String bookId,
     String? imagePath,
     int? manualPageNumber,
     bool offlineMode = false,
     String? readingFor,
+    String? pageSource,
   }) async {
     try {
       int? pageNumber = manualPageNumber;
@@ -87,8 +143,11 @@ class ReadingSessionService {
           bookId: bookId,
           startPage: pageNumber,
           startImagePath: imagePath,
+          readingFor: readingFor,
         );
         _notifyActiveSessionsChanged();
+        _trackSessionStarted(
+            offline: true, imagePath: imagePath, pageSource: pageSource);
         return result;
       }
 
@@ -114,13 +173,38 @@ class ReadingSessionService {
         insertData['reading_for'] = readingFor;
       }
 
-      final response = await _supabase
-          .from('reading_sessions')
-          .insert(insertData)
-          .select()
-          .single();
+      // Filet de sécurité : si l'écriture échoue pour cause réseau (détection
+      // de connectivité en retard ou erronée — mode avion, tunnel, wifi sans
+      // internet...), on bascule sur la file offline au lieu de perdre la
+      // session avec une erreur.
+      final Map<String, dynamic> response;
+      try {
+        response = await _supabase
+            .from('reading_sessions')
+            .insert(insertData)
+            .select()
+            .single()
+            .timeout(_kSessionWriteTimeout);
+      } catch (e) {
+        if (_isNetworkError(e)) {
+          debugPrint('startSession: réseau indisponible, bascule offline ($e)');
+          final result = await _offlineQueue.queueStartSession(
+            bookId: bookId,
+            startPage: pageNumber,
+            startImagePath: imagePath,
+            readingFor: readingFor,
+          );
+          _notifyActiveSessionsChanged();
+          _trackSessionStarted(
+            offline: true, imagePath: imagePath, pageSource: pageSource);
+          return result;
+        }
+        rethrow;
+      }
 
       final session = ReadingSession.fromJson(response);
+      _trackSessionStarted(
+          offline: false, imagePath: imagePath, pageSource: pageSource);
 
       // Reprendre un livre abandonné le repasse en lecture (non bloquant)
       try {
@@ -168,12 +252,22 @@ class ReadingSessionService {
     String title = '';
     String author = '';
     List<String> coverUrls = const [];
+    Map<String, String?>? bookInfo;
     try {
       final bookIdInt = int.tryParse(session.bookId);
       if (bookIdInt != null) {
         final Book book = await _booksService.getBookById(bookIdInt);
         title = book.title;
         author = book.author ?? '';
+        // Identité du livre — permet à LiveActivityService de re-résoudre
+        // la couverture en cours de session si la résolution échoue ici.
+        bookInfo = {
+          'imageUrl': book.coverUrl,
+          'isbn': book.isbn,
+          'googleId': book.googleId,
+          'title': book.title,
+          'author': book.author,
+        };
         // Résout la même chaîne validée que CachedBookCover (Google Books /
         // Amazon / iTunes / OpenLibrary / BnF...). Le résultat passe par le
         // cache statique partagé : si la couverture est déjà affichée dans
@@ -207,6 +301,7 @@ class ReadingSessionService {
       bookTitle: title.isEmpty ? 'Lecture en cours' : title,
       bookAuthor: author,
       coverUrls: coverUrls,
+      bookInfo: bookInfo,
       accumulatedSeconds: 0,
       isPaused: false,
     );
@@ -282,15 +377,42 @@ class ReadingSessionService {
         throw Exception('Veuillez fournir un numéro de page.');
       }
 
-      // Mode offline : sauvegarder localement
-      if (offlineMode && activeSession != null) {
+      final int endPageNumber = pageNumber;
+
+      // Mémorisation locale immédiate : c'est le moment où la page atteinte
+      // est la plus fiable, et le seul dont on dispose hors ligne.
+      final cachedBookId = activeSession?.bookId;
+      if (cachedBookId != null) {
+        unawaited(LastPageCache.set(cachedBookId, endPageNumber));
+      }
+
+      // Fin de session locale, commune à tous les chemins offline :
+      // end_time ajusté du cumul des pauses (comme le chemin online), état
+      // de pause nettoyé, Live Activity terminée (API locale iOS, fonctionne
+      // sans réseau — sinon elle restait affichée après une fin en mode avion).
+      Future<ReadingSession> queueOfflineEnd(ReadingSession active) async {
+        final pauseService = SessionPauseService();
+        final totalPause = await pauseService.getTotalPauseDuration();
+        final adjustedEnd = DateTime.now().subtract(totalPause);
+        await pauseService.clearAll();
+        try {
+          await _liveActivity.end(sessionId: active.id);
+        } catch (e) {
+          debugPrint('Live Activity end offline (non bloquant): $e');
+        }
         final result = await _offlineQueue.queueEndSession(
-          activeSession: activeSession,
-          endPage: pageNumber,
+          activeSession: active,
+          endPage: endPageNumber,
           endImagePath: imagePath,
+          endTime: adjustedEnd,
         );
         _notifyActiveSessionsChanged();
         return result;
+      }
+
+      // Mode offline : sauvegarder localement
+      if (offlineMode && activeSession != null) {
+        return queueOfflineEnd(activeSession);
       }
 
       // Session démarrée hors ligne (id temp `offline_…`) et on est maintenant
@@ -305,13 +427,7 @@ class ReadingSessionService {
         if (realId != null) {
           effectiveSessionId = realId;
         } else if (activeSession != null) {
-          final result = await _offlineQueue.queueEndSession(
-            activeSession: activeSession,
-            endPage: pageNumber,
-            endImagePath: imagePath,
-          );
-          _notifyActiveSessionsChanged();
-          return result;
+          return queueOfflineEnd(activeSession);
         } else {
           throw Exception('Session hors ligne introuvable.');
         }
@@ -330,26 +446,57 @@ class ReadingSessionService {
 
       // Mettre à jour la session
       final updateData = <String, dynamic>{
-        'end_page': pageNumber,
+        'end_page': endPageNumber,
         'end_time': adjustedEnd.toUtc().toIso8601String(),
       };
       if (imagePath != null) {
         updateData['end_image_path'] = imagePath;
       }
 
-      final response = await _supabase
-          .from('reading_sessions')
-          .update(updateData)
-          .eq('id', effectiveSessionId)
-          .eq('user_id', _supabase.auth.currentUser!.id)
-          .select()
-          .maybeSingle();
+      // Filet de sécurité : si l'UPDATE échoue pour cause réseau (détection
+      // de connectivité en retard ou erronée), on met la fin en file offline
+      // au lieu de perdre la session avec une erreur. `end_time` réutilise
+      // `adjustedEnd` (les pauses viennent d'être finalisées via clearAll).
+      final Map<String, dynamic>? response;
+      try {
+        response = await _supabase
+            .from('reading_sessions')
+            .update(updateData)
+            .eq('id', effectiveSessionId)
+            .eq('user_id', _supabase.auth.currentUser!.id)
+            .select()
+            .maybeSingle()
+            .timeout(_kSessionWriteTimeout);
+      } catch (e) {
+        if (_isNetworkError(e) && activeSession != null) {
+          debugPrint('endSession: réseau indisponible, bascule offline ($e)');
+          // `effectiveSessionId` : si le démarrage offline vient d'être poussé
+          // (flushStartAndGetRealId), la fin doit référencer le vrai id.
+          final result = await _offlineQueue.queueEndSession(
+            activeSession: activeSession.copyWith(id: effectiveSessionId),
+            endPage: endPageNumber,
+            endImagePath: imagePath,
+            endTime: adjustedEnd,
+          );
+          _notifyActiveSessionsChanged();
+          return result;
+        }
+        rethrow;
+      }
 
       if (response == null) {
         throw Exception('Session introuvable ou déjà terminée.');
       }
 
       final session = ReadingSession.fromJson(response);
+
+      unawaited(AnalyticsService().track(
+        AnalyticsEvent.sessionEnded,
+        properties: {
+          'pages_read': session.pagesRead,
+          'duration_minutes': session.durationMinutes,
+        },
+      ));
 
       // Mettre à jour la progression des défis
       try {
@@ -448,16 +595,26 @@ class ReadingSessionService {
   /// Calculer les statistiques de lecture d'un livre
   Future<BookReadingStats> getBookStats(String bookId) async {
     try {
-      final sessions = await getBookSessions(bookId);
+      final results = await Future.wait<dynamic>([
+        getBookSessions(bookId),
+        // Progression Kindle (sync JSON) : un livre lu sur Kindle a une page
+        // courante même sans aucune session LexDay.
+        BooksService().getKindleCurrentPage(bookId),
+      ]);
+      final sessions = results[0] as List<ReadingSession>;
+      final kindlePage = results[1] as int?;
       
       // Filtrer uniquement les sessions complètes
       final completedSessions = sessions.where((s) => s.endPage != null).toList();
       
       if (completedSessions.isEmpty) {
+        if (kindlePage != null) {
+          unawaited(LastPageCache.set(bookId, kindlePage));
+        }
         return BookReadingStats(
           totalPagesRead: 0,
           totalMinutesRead: 0,
-          currentPage: null,
+          currentPage: kindlePage,
           sessionsCount: 0,
           avgPagesPerSession: 0,
           avgMinutesPerPage: 0,
@@ -466,7 +623,24 @@ class ReadingSessionService {
       
       int totalPages = completedSessions.fold(0, (sum, s) => sum + s.pagesRead);
       int totalMinutes = completedSessions.fold(0, (sum, s) => sum + s.durationMinutes);
-      int? currentPage = completedSessions.first.endPage; // Dernière page lue
+      // Page courante = page la plus avancée atteinte sur le livre, et non
+      // le end_page de la session la plus récente par horodatage. Une lecture
+      // passée saisie a posteriori (is_manual) porte un horaire approximatif
+      // (21:00 par défaut pour un jour passé) qui peut la classer AVANT la
+      // vraie dernière session du même jour : la progression semblait alors
+      // "non comptabilisée". Corollaire spec (test 8) : une session antidatée
+      // plus ancienne ne doit jamais faire reculer la page courante.
+      int? currentPage = completedSessions
+          .map((s) => s.endPage!)
+          .reduce((a, b) => a > b ? a : b);
+      // Kindle peut être plus avancé que la dernière session LexDay.
+      if (kindlePage != null && kindlePage > (currentPage ?? 0)) currentPage = kindlePage;
+
+      // On tient la vérité : on la mémorise en local pour que le prochain
+      // démarrage hors ligne ne reparte pas à la page 1. Voir [LastPageCache].
+      if (currentPage != null) {
+        unawaited(LastPageCache.set(bookId, currentPage));
+      }
       
       double avgPagesPerSession = totalPages / completedSessions.length;
       double avgMinutesPerPage = totalPages > 0 ? totalMinutes / totalPages : 0;
@@ -570,6 +744,82 @@ class ReadingSessionService {
     }
   }
 
+  /// Modifier a posteriori « pour qui » une session a été lue.
+  ///
+  /// [readingFor] : clé ('son', 'mother', …) ou `null` pour revenir à une
+  /// lecture pour soi (convention identique au démarrage de session :
+  /// 'myself' n'est jamais stocké, on met NULL).
+  Future<void> updateSessionReadingFor(
+    String sessionId,
+    String? readingFor,
+  ) async {
+    try {
+      final userId = _supabase.auth.currentUser?.id;
+      if (userId == null) throw Exception('Non connecté');
+      await _supabase
+          .from('reading_sessions')
+          .update({'reading_for': readingFor})
+          .eq('id', sessionId)
+          .eq('user_id', userId);
+    } catch (e) {
+      debugPrint('Erreur updateSessionReadingFor: $e');
+      rethrow;
+    }
+  }
+
+  /// Rythme personnel en minutes par page, calculé sur les dernières sessions
+  /// réellement trackées (ni Kindle, ni saisies manuelles : celles-là portent
+  /// déjà une durée déclarée ou estimée). `null` si pas assez d'historique.
+  Future<double?> getPersonalMinutesPerPage({int sampleSize = 50}) async {
+    try {
+      final userId = _supabase.auth.currentUser?.id;
+      if (userId == null) return null;
+      final rows = await _supabase
+          .from('reading_sessions')
+          .select('start_page, end_page, start_time, end_time')
+          .eq('user_id', userId)
+          .eq('is_manual', false)
+          .not('end_time', 'is', null)
+          .not('end_page', 'is', null)
+          .order('end_time', ascending: false)
+          .limit(sampleSize);
+      var pages = 0;
+      var minutes = 0.0;
+      for (final r in rows as List) {
+        final sp = (r['start_page'] as num?)?.toInt();
+        final ep = (r['end_page'] as num?)?.toInt();
+        if (sp == null || ep == null || ep <= sp) continue;
+        final st = DateTime.tryParse(r['start_time'] as String? ?? '');
+        final et = DateTime.tryParse(r['end_time'] as String? ?? '');
+        if (st == null || et == null) continue;
+        final m = et.difference(st).inSeconds / 60.0;
+        if (m <= 0) continue;
+        pages += ep - sp;
+        minutes += m;
+      }
+      if (pages < 20) return null;
+      return minutes / pages;
+    } catch (e) {
+      debugPrint('Erreur getPersonalMinutesPerPage: $e');
+      return null;
+    }
+  }
+
+  /// Durée estimée pour [pages] pages au rythme personnel (repli
+  /// [defaultMinutesPerPage]), bornée : rythme entre 0,5 et 5 min/page,
+  /// total entre 1 min et [maxDuration]. Sert aux sessions Kindle, dont on
+  /// ne connaît que le delta de pages.
+  Future<Duration> estimateDurationForPages(
+    int pages, {
+    double defaultMinutesPerPage = 1.5,
+    Duration maxDuration = const Duration(hours: 3),
+  }) async {
+    final personal = await getPersonalMinutesPerPage();
+    final perPage = (personal ?? defaultMinutesPerPage).clamp(0.5, 5.0);
+    final minutes = (pages * perPage).round().clamp(1, maxDuration.inMinutes);
+    return Duration(minutes: minutes);
+  }
+
   /// Enregistrer une lecture passée, saisie manuellement a posteriori
   /// ("Ajouter une lecture passée" : chrono oublié).
   ///
@@ -587,6 +837,7 @@ class ReadingSessionService {
     required int endPage,
     required Duration duration,
     DateTime? endTime,
+    String? source,
   }) async {
     try {
       final userId = _supabase.auth.currentUser?.id;
@@ -622,6 +873,7 @@ class ReadingSessionService {
             'start_page': startPage,
             'start_time': effectiveStart.toUtc().toIso8601String(),
             'is_manual': true,
+            if (source != null) 'source': source,
           })
           .select()
           .single();
@@ -791,9 +1043,26 @@ class ReadingSessionService {
   /// Annuler une session active
   Future<void> cancelSession(String sessionId) async {
     try {
+      // Combien de temps de lecture part à la poubelle : c'est la mesure qui
+      // dira si l'abandon reste un cas rare et volontaire, ou s'il sert de
+      // porte de sortie à un écran de fin trop exigeant.
+      unawaited(AnalyticsService().track(
+        AnalyticsEvent.sessionAbandoned,
+        properties: {'session_id': sessionId},
+      ));
+
       // Nettoie l'état de pause et ferme la Live Activity avant suppression DB.
       await SessionPauseService().clearAll();
       await _liveActivity.end(sessionId: sessionId);
+
+      // Session démarrée hors ligne : elle n'existe que dans la file locale
+      // (un DELETE Supabase sur un id `offline_…` échouerait de toute façon,
+      // la colonne est un uuid).
+      if (sessionId.startsWith('offline_')) {
+        await _offlineQueue.removeOfflineStartSession(sessionId);
+        _notifyActiveSessionsChanged();
+        return;
+      }
 
       await _supabase
           .from('reading_sessions')

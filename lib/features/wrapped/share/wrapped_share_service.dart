@@ -7,12 +7,12 @@ import 'package:path_provider/path_provider.dart';
 import 'package:screenshot/screenshot.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../../utils/app_constants.dart';
 import '../yearly/yearly_wrapped_data.dart';
 import '../yearly/widgets/yearly_animations.dart';
 import 'share_format.dart';
 import 'story_share_service.dart';
 import 'wrapped_share_card.dart';
+import '../../../services/referral_service.dart';
 
 // ==========================================================================
 // Service
@@ -42,7 +42,7 @@ class WrappedShareService {
     required int year,
     Rect? sharePositionOrigin,
   }) async {
-    final text = 'Mon annee de lecture $year \uD83D\uDCDA\u2728 #LexDayWrapped\n$kAppStoreUrl';
+    final text = 'Mon annee de lecture $year \uD83D\uDCDA\u2728 #LexDayWrapped\n$ReferralService.shareUrl';
 
     // Instagram : vrai partage Story (image pr\u00E9charg\u00E9e en fond). Si l'app
     // n'est pas install\u00E9e / non support\u00E9e, on retombe sur la feuille native.

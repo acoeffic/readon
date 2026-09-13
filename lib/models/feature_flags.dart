@@ -35,7 +35,9 @@ class FeatureFlags {
   static const _premiumFeatures = <Feature>{
     Feature.advancedReactions,
     Feature.flowManualFreeze,
-    Feature.advancedStats,
+    // Feature.advancedStats — débloqué en gratuit le 19/08/2026 :
+    // le suivi des performances alimente la boucle d'activation
+    // (livre → 1re session), il ne doit pas être paywallé.
     Feature.customThemes,
     Feature.premiumBadges,
     Feature.flowHistory,

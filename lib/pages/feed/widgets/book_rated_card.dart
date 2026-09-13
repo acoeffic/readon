@@ -101,7 +101,7 @@ class _BookRatedCardState extends State<BookRatedCard> {
 
   Future<void> _openReactionPicker() async {
     if (supabase.auth.currentUser == null) {
-      await showRequireAccountSheet(context);
+      await showRequireAccountSheet(context, source: 'rating_reaction_picker');
       return;
     }
     final sub = context.read<SubscriptionProvider>();
@@ -117,7 +117,7 @@ class _BookRatedCardState extends State<BookRatedCard> {
 
   Future<void> _toggleReaction(String emoji) async {
     if (supabase.auth.currentUser == null) {
-      await showRequireAccountSheet(context);
+      await showRequireAccountSheet(context, source: 'rating_reaction_toggle');
       return;
     }
     final previousCounts = Map<String, int>.from(_reactionCounts);

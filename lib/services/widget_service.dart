@@ -152,7 +152,8 @@ class WidgetService {
             .get(Uri.parse(coverUrl), headers: _browserHeaders)
             .timeout(const Duration(seconds: 8));
         if (response.statusCode != 200) continue;
-        if (!CachedBookCover.looksLikeRealCover(coverUrl, response.bodyBytes)) {
+        if (!await CachedBookCover.looksLikeRealCoverPixels(
+            coverUrl, response.bodyBytes)) {
           debugPrint('WidgetService: placeholder rejeté pour $coverUrl');
           continue;
         }

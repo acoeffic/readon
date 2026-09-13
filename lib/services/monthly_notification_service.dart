@@ -8,6 +8,7 @@ import 'package:timezone/data/latest_all.dart' as tzdata;
 import 'package:flutter_timezone/flutter_timezone.dart';
 
 import '../features/wrapped/monthly/monthly_wrapped_screen.dart';
+import 'notification_permission.dart';
 import 'wrapped_banner_service.dart';
 
 class MonthlyNotificationService {
@@ -63,10 +64,19 @@ class MonthlyNotificationService {
     // 2. Platform-specific settings
     const androidSettings =
         AndroidInitializationSettings('@mipmap/ic_launcher');
+    // ⚠️ Les trois `request*Permission` DOIVENT rester à `false`.
+    //
+    // À `true`, `_plugin.initialize()` présente la popup système de
+    // notifications séance tenante — or `initialize()` est appelée depuis le
+    // splash, donc avant même l'écran de connexion. C'était la première chose
+    // que voyait un nouvel utilisateur, et le refus était quasi systématique.
+    // La popup est désormais présentée une seule fois, après la première
+    // session de lecture terminée, par
+    // `PushNotificationService.promptPermissionAndRegister()`.
     const iosSettings = DarwinInitializationSettings(
-      requestAlertPermission: true,
-      requestBadgePermission: true,
-      requestSoundPermission: true,
+      requestAlertPermission: false,
+      requestBadgePermission: false,
+      requestSoundPermission: false,
     );
     const initSettings = InitializationSettings(
       android: androidSettings,
@@ -94,7 +104,17 @@ class MonthlyNotificationService {
     await scheduleNextMonthlyNotification();
   }
 
-  /// Request notification permission (Android 13+ / iOS).
+  /// Demande explicitement la permission notifications (Android 13+ / iOS).
+  ///
+  /// ⚠️ **Ne pas appeler depuis les méthodes de planification.** Il n'existe
+  /// qu'une seule popup système pour toute l'app, présentée une seule fois :
+  /// le point d'entrée unique est
+  /// `PushNotificationService.promptPermissionAndRegister()`, déclenché après
+  /// la première session de lecture terminée. Les planifications se contentent
+  /// de lire le statut via `hasNotificationPermission()` et de ne rien poser
+  /// tant qu'il est négatif.
+  ///
+  /// Conservée pour un éventuel réglage explicite depuis les préférences.
   Future<bool> requestPermission() async {
     if (Platform.isAndroid) {
       final androidPlugin = _plugin
@@ -125,7 +145,16 @@ class MonthlyNotificationService {
   /// Schedule a notification for 9:00 AM on the 1st of next month.
   Future<void> scheduleNextMonthlyNotification() async {
     await _plugin.cancel(_notificationId);
-    await requestPermission();
+
+    // Lecture seule : pas de popup ici. Sans permission, planifier ne sert à
+    // rien de toute façon — on repassera au prochain lancement, une fois la
+    // permission accordée au bon moment.
+    if (!await hasNotificationPermission()) {
+      debugPrint(
+        'MonthlyNotification: permission absente, planification différée',
+      );
+      return;
+    }
 
     final now = tz.TZDateTime.now(tz.local);
     final nextFirst = _nextFirstOfMonth(now);
@@ -309,7 +338,13 @@ class MonthlyNotificationService {
       return;
     }
 
-    await requestPermission();
+    // Idem : lecture seule, aucune popup déclenchée depuis une planification.
+    if (!await hasNotificationPermission()) {
+      debugPrint(
+        'ReadingReminders: permission absente, planification différée',
+      );
+      return;
+    }
 
     final notificationDetails = NotificationDetails(
       android: AndroidNotificationDetails(

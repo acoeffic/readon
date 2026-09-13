@@ -4,8 +4,14 @@
 
 import ActivityKit
 import AppIntents
+import ImageIO
 import SwiftUI
 import WidgetKit
+import os
+
+/// Log de diagnostic couverture côté extension — visible dans Console.app
+/// (filtre sous-système "fr.lexday.app"), y compris en build TestFlight.
+private let laWidgetLog = Logger(subsystem: "fr.lexday.app", category: "LACoverWidget")
 
 @available(iOS 16.1, *)
 struct ReadingLiveActivity: Widget {
@@ -130,8 +136,26 @@ struct LiveActivityCover: View {
     private var uiImage: UIImage? {
         // Lit l'image depuis le container App Group partagé (écrite par
         // l'app Flutter au moment de démarrer la Live Activity).
-        guard let url = ReadingActivityAttributes.coverFileURL(for: sessionId),
-              let data = try? Data(contentsOf: url) else { return nil }
+        guard let url = ReadingActivityAttributes.coverFileURL(for: sessionId) else {
+            laWidgetLog.error("read: containerURL App Group nil")
+            return nil
+        }
+        guard let data = try? Data(contentsOf: url) else {
+            laWidgetLog.warning("read: fichier absent/illisible \(url.lastPathComponent, privacy: .public)")
+            return nil
+        }
+        // Décodage via ImageIO avec taille bornée : défensif (fichier trop
+        // grand écrit par une vieille version) + économe en mémoire widget.
+        if let src = CGImageSourceCreateWithData(data as CFData, nil),
+           let thumb = CGImageSourceCreateThumbnailAtIndex(src, 0, [
+               kCGImageSourceCreateThumbnailFromImageAlways: true,
+               kCGImageSourceCreateThumbnailWithTransform: true,
+               kCGImageSourceThumbnailMaxPixelSize: 360,
+           ] as CFDictionary) {
+            laWidgetLog.info("read: \(data.count) o → thumb \(thumb.width)x\(thumb.height) px")
+            return UIImage(cgImage: thumb)
+        }
+        laWidgetLog.error("read: décodage ImageIO impossible (\(data.count) o) — fallback UIImage(data:)")
         return UIImage(data: data)
     }
 

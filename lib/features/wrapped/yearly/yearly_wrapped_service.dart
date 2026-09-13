@@ -250,17 +250,42 @@ class YearlyWrappedService {
     String endIso,
   ) async {
     try {
+      // PAS d'embed books(...) : reading_sessions.book_id est TEXT sans FK
+      // vers books.id (BIGINT) → PostgREST renvoie PGRST200 et le catch
+      // rendait un wrapped annuel entièrement à zéro. On résout les livres
+      // par une seconde requête et on réinjecte sous la clé 'books' pour ne
+      // rien changer en aval.
       final response = await _supabase
           .from('reading_sessions')
-          .select(
-              'start_time, end_time, book_id, books(title, author, cover_url, genre)')
+          .select('start_time, end_time, book_id')
           .eq('user_id', userId)
           .not('end_time', 'is', null)
           .gte('start_time', startIso)
           .lt('start_time', endIso)
           .order('start_time');
 
-      return List<Map<String, dynamic>>.from(response as List);
+      final sessions = List<Map<String, dynamic>>.from(response as List);
+
+      final bookIds = sessions
+          .map((s) => int.tryParse(s['book_id']?.toString() ?? ''))
+          .whereType<int>()
+          .toSet()
+          .toList();
+      if (bookIds.isNotEmpty) {
+        final booksResponse = await _supabase
+            .from('books')
+            .select('id, title, author, cover_url, genre')
+            .inFilter('id', bookIds);
+        final byId = <String, Map<String, dynamic>>{
+          for (final b in booksResponse as List)
+            (b['id'] as num).toInt().toString(): Map<String, dynamic>.from(b),
+        };
+        for (final s in sessions) {
+          s['books'] = byId[s['book_id']?.toString()];
+        }
+      }
+
+      return sessions;
     } catch (e) {
       debugPrint('Erreur _getCompletedSessions: $e');
       return [];

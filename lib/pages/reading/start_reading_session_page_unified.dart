@@ -10,14 +10,17 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../services/reading_session_service.dart';
 import '../../services/ocr_service.dart';
+import '../../services/last_page_cache.dart';
 import '../../models/book.dart';
 import '../../models/reading_session.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/cached_book_cover.dart';
 import '../../widgets/constrained_content.dart';
+import '../../widgets/reading_for_picker.dart';
 import '../../providers/connectivity_provider.dart';
 import 'active_reading_session_page.dart';
 import 'add_past_session_page.dart';
+import 'end_reading_session_page.dart';
 
 const _kBgColor = Color(0xFFFAF3E8);
 const _kSageGreen = Color(0xFF6B988D);
@@ -70,23 +73,30 @@ class _StartReadingSessionPageUnifiedState extends State<StartReadingSessionPage
   }
 
   Future<void> _loadBookStats() async {
+    final bookId = widget.book.id.toString();
+    int? serverPage;
     try {
-      final stats = await _sessionService.getBookStats(widget.book.id.toString());
-      if (!mounted || stats.currentPage == null) return;
-      setState(() {
-        _lastPage = stats.currentPage;
-        // Prefill the start-page input with the last known page so that
-        // resuming a book is a single tap. Only when the user hasn't
-        // started typing/scanning yet — never overwrite a manual entry
-        // or an OCR detection.
-        if (_manualPageController.text.isEmpty &&
-            _manualPageNumber == null &&
-            _detectedPageNumber == null) {
-          _manualPageController.text = stats.currentPage.toString();
-          _manualPageNumber = stats.currentPage;
-        }
-      });
-    } catch (_) {}
+      final stats = await _sessionService.getBookStats(bookId);
+      serverPage = stats.currentPage;
+    } catch (_) {
+      serverPage = null;
+    }
+
+    // `currentPage` est nul dans DEUX cas très différents : livre jamais
+    // commencé, ou statistiques indisponibles (`getBookSessions` renvoie une
+    // liste vide sur erreur réseau). Le cache local tranche : s'il connaît une
+    // page, ce n'est pas un livre neuf, et repartir à 1 fausserait la
+    // progression sans que l'utilisateur s'en aperçoive.
+    final cachedPage = await LastPageCache.get(bookId);
+    if (!mounted) return;
+
+    setState(() {
+      // Le champ de saisie n'est volontairement **pas** pré-rempli : un
+      // nombre déjà inscrit se lit comme une valeur à vérifier. On affiche la
+      // page présumée en placeholder et on annonce sous le bouton ce qui va
+      // se passer — la saisie ne sert plus qu'à corriger.
+      _lastPage = serverPage ?? cachedPage;
+    });
   }
 
   Future<void> _checkActiveSession() async {
@@ -113,6 +123,33 @@ class _StartReadingSessionPageUnifiedState extends State<StartReadingSessionPage
         } catch (_) {}
       }
     } catch (_) {}
+  }
+
+  /// Termine la session en cours (celle d'un autre livre, le plus souvent)
+  /// puis rafraîchit l'état : si elle a bien été clôturée, le bouton
+  /// « Lancer la session » de CETTE page se débloque, sans avoir à ressortir.
+  Future<void> _endActiveSessionThenReturn() async {
+    final session = _activeSession;
+    if (session == null) return;
+
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => EndReadingSessionPage(
+          activeSession: session,
+          book: _activeSessionBook,
+        ),
+      ),
+    );
+
+    if (!mounted) return;
+    setState(() {
+      _activeSession = null;
+      _activeSessionBook = null;
+    });
+    // Vérité serveur : si l'utilisateur a fait marche arrière sans terminer,
+    // la bannière revient d'elle-même.
+    await _checkActiveSession();
   }
 
   void _resumeActiveSession() {
@@ -187,9 +224,10 @@ class _StartReadingSessionPageUnifiedState extends State<StartReadingSessionPage
 
       final XFile? photo = await _picker.pickImage(
         source: ImageSource.camera,
-        maxWidth: 1920,
-        maxHeight: 1080,
-        imageQuality: 85,
+        // Résolution haute : l'OCR du numéro de page a besoin de pixels.
+        maxWidth: 2400,
+        maxHeight: 2400,
+        imageQuality: 92,
       );
 
       if (photo == null) return;
@@ -263,155 +301,12 @@ class _StartReadingSessionPageUnifiedState extends State<StartReadingSessionPage
     });
   }
 
-  static const List<String> _readingForKeys = [
-    'myself', 'daughter', 'son', 'partner', 'friend',
-    'mother', 'father', 'grandmother', 'grandfather', 'other',
-  ];
-
-  String _readingForEmoji(String key) {
-    switch (key) {
-      case 'myself': return '\uD83D\uDCD6';
-      case 'daughter': return '\uD83D\uDC67';
-      case 'son': return '\uD83D\uDC66';
-      case 'friend': return '\uD83E\uDDD1\u200D\uD83E\uDD1D\u200D\uD83E\uDDD1';
-      case 'grandmother': return '\uD83D\uDC75';
-      case 'grandfather': return '\uD83D\uDC74';
-      case 'father': return '\uD83D\uDC68';
-      case 'mother': return '\uD83D\uDC69';
-      case 'partner': return '\u2764\uFE0F';
-      default: return '\u2728';
-    }
-  }
-
-  String _readingForLabel(AppLocalizations l, String key) {
-    switch (key) {
-      case 'myself': return l.readingForJustMe;
-      case 'daughter': return l.readingForDaughter;
-      case 'son': return l.readingForSon;
-      case 'friend': return l.readingForFriend;
-      case 'grandmother': return l.readingForGrandmother;
-      case 'grandfather': return l.readingForGrandfather;
-      case 'father': return l.readingForFather;
-      case 'mother': return l.readingForMother;
-      case 'partner': return l.readingForPartner;
-      default: return l.readingForOther;
-    }
-  }
-
   Future<void> _openReadingForPicker() async {
-    final l = AppLocalizations.of(context);
-    final selected = await showModalBottomSheet<String>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (ctx) {
-        final current = _readingFor ?? 'myself';
-        return Container(
-          decoration: const BoxDecoration(
-            color: _kBgColor,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-          ),
-          padding: EdgeInsets.only(
-            top: 12,
-            left: 16,
-            right: 16,
-            bottom: MediaQuery.of(ctx).padding.bottom + 16,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Center(
-                child: Container(
-                  width: 44,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFBDB5A8),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 18),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-                child: Text(
-                  l.readingForLabel,
-                  style: GoogleFonts.dmSans(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 1.5,
-                    color: _kSageGreen,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 10),
-              Flexible(
-                child: SingleChildScrollView(
-                  child: Column(
-                    children: _readingForKeys.map((key) {
-                      final isSelected = key == current;
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(16),
-                            onTap: () => Navigator.of(ctx).pop(key),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 14,
-                              ),
-                              decoration: BoxDecoration(
-                                color: isSelected
-                                    ? _kSageGreen.withValues(alpha: 0.12)
-                                    : Colors.white,
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(
-                                  color: isSelected
-                                      ? _kSageGreen
-                                      : const Color(0xFFE2DDD5),
-                                  width: isSelected ? 1.5 : 1,
-                                ),
-                              ),
-                              child: Row(
-                                children: [
-                                  Text(
-                                    _readingForEmoji(key),
-                                    style: const TextStyle(fontSize: 22),
-                                  ),
-                                  const SizedBox(width: 14),
-                                  Expanded(
-                                    child: Text(
-                                      _readingForLabel(l, key),
-                                      style: GoogleFonts.dmSans(
-                                        fontSize: 15,
-                                        fontWeight: isSelected
-                                            ? FontWeight.w600
-                                            : FontWeight.w500,
-                                        color: const Color(0xFF1A1A1A),
-                                      ),
-                                    ),
-                                  ),
-                                  if (isSelected)
-                                    Icon(
-                                      Icons.check_rounded,
-                                      color: _kSageGreen,
-                                      size: 20,
-                                    ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
+    final selected = await showReadingForPicker(
+      context,
+      current: _readingFor ?? 'myself',
+      accentColor: _kSageGreen,
+      backgroundColor: _kBgColor,
     );
     if (selected != null && mounted) {
       setState(() => _readingFor = selected);
@@ -437,16 +332,22 @@ class _StartReadingSessionPageUnifiedState extends State<StartReadingSessionPage
   }
 
   Future<void> _startSession() async {
-    final pageNumber = _detectedPageNumber ?? _manualPageNumber;
+    // Le numéro de page est FACULTATIF. Sans saisie ni photo, on démarre à la
+    // dernière page connue — ou au début pour un livre neuf. Exiger un chiffre
+    // exact avant d'avoir lu une ligne était la taxe la plus chère de la
+    // boucle quotidienne : c'était aussi le tout premier écran bloquant d'un
+    // nouvel utilisateur.
+    final pageNumber = _detectedPageNumber ?? _manualPageNumber ?? _lastPage ?? 1;
+    final pageSource = _detectedPageNumber != null
+        ? 'photo'
+        : _manualPageNumber != null
+            ? 'manual'
+            : 'inferred';
 
-    if (pageNumber == null) {
-      setState(() {
-        _errorMessage = AppLocalizations.of(context).captureOrEnterPage;
-      });
-      return;
-    }
-
-    setState(() => _isProcessing = true);
+    setState(() {
+      _isProcessing = true;
+      _errorMessage = null;
+    });
 
     try {
       final isOffline = !Provider.of<ConnectivityProvider>(context, listen: false).isOnline;
@@ -455,42 +356,7 @@ class _StartReadingSessionPageUnifiedState extends State<StartReadingSessionPage
         bookId: widget.book.id.toString(),
         imagePath: _imageFile?.path,
         manualPageNumber: pageNumber,
-        offlineMode: isOffline,
-        readingFor: _readingFor == 'myself' ? null : _readingFor,
-      );
-
-      if (!mounted) return;
-
-      if (isOffline) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppLocalizations.of(context).sessionSavedOffline),
-            backgroundColor: Colors.orange.shade700,
-          ),
-        );
-      }
-
-      Navigator.of(context).pop(session);
-
-    } catch (e) {
-      setState(() {
-        _isProcessing = false;
-        _errorMessage = 'Erreur: $e';
-      });
-    }
-  }
-
-  Future<void> _startFromLastPage() async {
-    if (_lastPage == null) return;
-
-    setState(() => _isProcessing = true);
-
-    try {
-      final isOffline = !Provider.of<ConnectivityProvider>(context, listen: false).isOnline;
-
-      final session = await _sessionService.startSession(
-        bookId: widget.book.id.toString(),
-        manualPageNumber: _lastPage!,
+        pageSource: pageSource,
         offlineMode: isOffline,
         readingFor: _readingFor == 'myself' ? null : _readingFor,
       );
@@ -522,6 +388,9 @@ class _StartReadingSessionPageUnifiedState extends State<StartReadingSessionPage
     final book = widget.book;
     final totalPages = _totalPagesOverride ?? book.pageCount;
     final currentPage = _lastPage ?? 0;
+    // Ce qui se passera si l'utilisateur appuie sur le bouton tel quel :
+    // sa saisie si elle existe, sinon la dernière page connue, sinon le début.
+    final plannedPage = _detectedPageNumber ?? _manualPageNumber ?? _lastPage;
     final progress = (totalPages != null && totalPages > 0)
         ? (currentPage / totalPages).clamp(0.0, 1.0)
         : 0.0;
@@ -647,6 +516,23 @@ class _StartReadingSessionPageUnifiedState extends State<StartReadingSessionPage
                               ),
                             ),
                           ),
+                          // Sortie de secours : sans elle, une session ouverte
+                          // sur un AUTRE livre désactive le bouton « Lancer »
+                          // et la seule issue était de revenir au FAB pour
+                          // abandonner la session — 9 taps pour changer de
+                          // livre. On propose de la terminer proprement ici.
+                          TextButton(
+                            onPressed: _endActiveSessionThenReturn,
+                            child: Text(
+                              l.endActiveSessionCta,
+                              style: GoogleFonts.dmSans(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFF6A6A6A),
+                                decoration: TextDecoration.underline,
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -696,31 +582,22 @@ class _StartReadingSessionPageUnifiedState extends State<StartReadingSessionPage
                               ),
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(12),
-                                child: book.coverUrl != null
-                                    ? CachedBookCover(
-                                        imageUrl: book.coverUrl,
-                                        isbn: book.isbn,
-                                        googleId: book.googleId,
-                                        title: book.title,
-                                        author: book.author,
-                                        width: 72,
-                                        height: 108,
-                                        borderRadius: BorderRadius.circular(12),
-                                      )
-                                    : Container(
-                                        width: 72,
-                                        height: 108,
-                                        decoration: BoxDecoration(
-                                          color: Colors.white.withValues(alpha: 0.15),
-                                          borderRadius: BorderRadius.circular(12),
-                                        ),
-                                        child: const Center(
-                                          child: Text(
-                                            '📖',
-                                            style: TextStyle(fontSize: 32),
-                                          ),
-                                        ),
-                                      ),
+                                // Toujours passer par CachedBookCover, même
+                                // sans coverUrl en base : il résout la
+                                // couverture via ISBN/googleId/titre/auteur
+                                // (Google Books, OpenLibrary, BnF...) et
+                                // retombe sur une couverture générée
+                                // titre+auteur, plus parlante que l'emoji 📖.
+                                child: CachedBookCover(
+                                  imageUrl: book.coverUrl,
+                                  isbn: book.isbn,
+                                  googleId: book.googleId,
+                                  title: book.title,
+                                  author: book.author,
+                                  width: 72,
+                                  height: 108,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
                               ),
                             ),
                             const SizedBox(width: 16),
@@ -842,13 +719,13 @@ class _StartReadingSessionPageUnifiedState extends State<StartReadingSessionPage
                             child: Row(
                               children: [
                                 Text(
-                                  _readingForEmoji(_readingFor ?? 'myself'),
+                                  readingForEmoji(_readingFor ?? 'myself'),
                                   style: const TextStyle(fontSize: 20),
                                 ),
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Text(
-                                    _readingForLabel(l, _readingFor ?? 'myself'),
+                                    readingForLabel(l, _readingFor ?? 'myself'),
                                     style: GoogleFonts.dmSans(
                                       fontSize: 15,
                                       fontWeight: FontWeight.w500,
@@ -878,7 +755,7 @@ class _StartReadingSessionPageUnifiedState extends State<StartReadingSessionPage
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        l.whatPageAreYouAt,
+                        l.startPageOptionalLabel,
                         style: GoogleFonts.dmSans(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
@@ -1239,24 +1116,23 @@ class _StartReadingSessionPageUnifiedState extends State<StartReadingSessionPage
                         ),
                       ),
                     ),
-                    if (_lastPage != null) ...[
-                      const SizedBox(height: 10),
-                      GestureDetector(
-                        onTap: (_isProcessing || _activeSession != null)
-                            ? null
-                            : _startFromLastPage,
-                        child: Text(
-                          l.continueFromPage(_lastPage!),
-                          style: GoogleFonts.dmSans(
-                            fontSize: 14,
-                            color: _kSageGreen,
-                            fontWeight: FontWeight.w500,
-                            decoration: TextDecoration.underline,
-                            decorationColor: _kSageGreen.withValues(alpha: 0.4),
-                          ),
-                        ),
+                    // Le raccourci souligné « un tap » a disparu : le bouton
+                    // principal fait désormais exactement la même chose quand
+                    // aucune page n'est saisie. Il ne reste qu'une légende qui
+                    // annonce ce qui va se passer — l'hypothèse devient
+                    // visible et corrigeable, au lieu d'être silencieuse.
+                    const SizedBox(height: 10),
+                    Text(
+                      plannedPage != null
+                          ? l.willResumeAtPage(plannedPage)
+                          : l.willStartAtBeginning,
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.dmSans(
+                        fontSize: 13,
+                        color: const Color(0xFF8A8175),
+                        fontWeight: FontWeight.w400,
                       ),
-                    ],
+                    ),
                     // Chrono oublié : enregistrer une lecture déjà effectuée.
                     const SizedBox(height: 10),
                     GestureDetector(

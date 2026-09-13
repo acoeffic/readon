@@ -14,12 +14,15 @@ import '../../services/subscription_service.dart';
 import 'blocked_users_page.dart';
 import 'notification_settings_page.dart';
 import 'kindle_login_page.dart';
+import 'referral_page.dart';
 import 'manage_subscription_page.dart';
 import 'reading_goals_page.dart';
+import 'focus_mode_guide_page.dart';
 import 'theme_picker_page.dart';
 import '../../services/native_paywall_service.dart';
 import '../../services/kindle_webview_service.dart';
 import '../../services/kindle_auto_sync_service.dart';
+import '../../services/referral_service.dart';
 import '../../models/feature_flags.dart';
 import '../auth/auth_gate.dart';
 import '../auth/terms_of_service_page.dart';
@@ -33,6 +36,7 @@ import '../../services/push_notification_service.dart';
 import 'package:lexday/features/badges/services/badges_service.dart';
 import '../../services/books_service.dart';
 import '../../services/analytics_service.dart';
+import '../../services/focus_mode_service.dart';
 import '../../services/feed_cache_service.dart';
 import 'package:lexday/features/badges/widgets/badge_unlocked_dialog.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -779,6 +783,7 @@ if (!allowedExtensions.contains(fileExtension)) {
       // Nettoyer les caches et le token FCM AVANT la déconnexion
       await FeedCacheService.clear();
       await PushNotificationService().clearToken();
+                      ReferralService.clearShareLinkCache();
       await AnalyticsService().track(AnalyticsEvent.logout);
       await AnalyticsService().reset();
 
@@ -871,6 +876,30 @@ if (!allowedExtensions.contains(fileExtension)) {
                         ? l10n.uploadingPhoto
                         : l10n.changeProfilePicture,
                     onTap: _isUploading ? null : _changeProfilePicture,
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: AppSpace.m),
+
+              // --- Section Parrainage ---
+              //
+              // Point d'entrée ajouté le 15/08/2026 : la page, le service et
+              // les Edge Functions existaient depuis mai, mais `ReferralPage`
+              // n'était instanciée nulle part — 53 codes générés, 0 parrainage.
+              // C'est le seul mécanisme qui crée d'un coup un nouvel
+              // utilisateur ET un lien social, or avoir ≥1 ami dans les 72 h
+              // multiplie par ~6 le nombre de jours de lecture.
+              _SettingsSection(
+                title: l10n.referralSection,
+                items: [
+                  _SettingsItem(
+                    label: l10n.referralInvite,
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const ReferralPage(),
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -1118,6 +1147,21 @@ if (!allowedExtensions.contains(fileExtension)) {
                       );
                     },
                   ),
+                  // Mode sans distraction : iOS uniquement (automatisations
+                  // Raccourcis + mode Concentration, sans équivalent Android).
+                  if (FocusModeService().isSupported)
+                    _SettingsItem(
+                      label: l10n.focusModeSettingsEntry,
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => const FocusModeGuidePage(
+                              source: 'settings',
+                            ),
+                          ),
+                        );
+                      },
+                    ),
                   _SettingsItem(
                     label: _refreshingCovers
                         ? l10n.refreshingCovers
@@ -1494,6 +1538,7 @@ if (!allowedExtensions.contains(fileExtension)) {
                       await AvatarCacheService.instance.clear();
                       await FeedCacheService.clear();
                       await PushNotificationService().clearToken();
+                      ReferralService.clearShareLinkCache();
                       await SubscriptionService().logoutUser();
                       await AnalyticsService().track(AnalyticsEvent.logout);
                       await AnalyticsService().reset();

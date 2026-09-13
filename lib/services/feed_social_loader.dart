@@ -18,8 +18,9 @@ class FeedSocialData {
   final List<PeopleYouMayKnow> peopleYouMayKnow;
   final Map<String, MutualFriendsSummary> discoverMutuals;
 
-  /// Ids des suggestions pour lesquelles une relation existe déjà
-  /// (demande envoyée / amitié) → la carte affiche l'état "demandé".
+  /// Ids des suggestions pour lesquelles une demande est en cours (pending)
+  /// → la carte affiche l'état "demandé". Les amitiés déjà acceptées sont
+  /// exclues des listes en amont, elles n'apparaissent pas ici.
   final Set<String> requestedIds;
 
   const FeedSocialData({
@@ -106,15 +107,33 @@ class FeedSocialLoader {
             ? Future.value(<String, MutualFriendsSummary>{})
             : MutualFriendsService().getSummariesBatch(discoverIds),
         suggestedIds.isEmpty
-            ? Future.value(<String>{})
-            : ContactsService().getExistingRelationUserIds(suggestedIds),
+            ? Future.value(<String, String>{})
+            : ContactsService().getRelationStatusesByUserId(suggestedIds),
       ]);
+
+      final relationStatuses = social[1] as Map<String, String>;
+
+      // Les amis déjà acceptés ne sont pas des "suggestions" : on les retire
+      // des deux listes (couvre notamment le fallback profils publics, qui ne
+      // filtre pas les relations existantes côté requête). Les relations
+      // restantes (demande pending) sont passées à l'UI comme "demandé" pour
+      // griser le bouton en "En attente".
+      bool isAccepted(String id) => relationStatuses[id] == 'accepted';
+      discoverReadersList = discoverReadersList
+          .where((r) => !isAccepted(r['user_id'] as String? ?? ''))
+          .toList();
+      final filteredPymk =
+          pymkList.where((p) => !isAccepted(p.userId)).toList();
+      final requestedIds = relationStatuses.entries
+          .where((e) => e.value != 'accepted')
+          .map((e) => e.key)
+          .toSet();
 
       return FeedSocialData(
         discoverReaders: discoverReadersList,
-        peopleYouMayKnow: pymkList,
+        peopleYouMayKnow: filteredPymk,
         discoverMutuals: social[0] as Map<String, MutualFriendsSummary>,
-        requestedIds: social[1] as Set<String>,
+        requestedIds: requestedIds,
       );
     } catch (e) {
       debugPrint('FeedSocialLoader.load error: $e');

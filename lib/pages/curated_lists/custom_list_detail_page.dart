@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../models/book.dart';
 import '../../models/user_custom_list.dart';
 import '../../services/user_custom_lists_service.dart';
@@ -8,7 +9,9 @@ import '../../theme/app_theme.dart';
 import '../../widgets/cached_book_cover.dart';
 import 'add_book_to_list_page.dart';
 import 'create_custom_list_dialog.dart';
+import 'list_share_service.dart';
 import '../../widgets/constrained_content.dart';
+import '../books/user_books_page.dart';
 
 class CustomListDetailPage extends StatefulWidget {
   final UserCustomList list;
@@ -24,6 +27,10 @@ class _CustomListDetailPageState extends State<CustomListDetailPage> {
 
   bool _isLoading = true;
   late UserCustomList _list;
+  String? _ownerName;
+
+  bool get _isOwner =>
+      _list.userId == Supabase.instance.client.auth.currentUser?.id;
 
   @override
   void initState() {
@@ -41,6 +48,10 @@ class _CustomListDetailPageState extends State<CustomListDetailPage> {
         _list = listWithBooks;
         _isLoading = false;
       });
+      if (!_isOwner && _ownerName == null) {
+        final name = await _service.getListOwnerName(_list.userId);
+        if (mounted) setState(() => _ownerName = name);
+      }
     } catch (e) {
       debugPrint('Erreur _loadData CustomListDetail: $e');
       if (mounted) setState(() => _isLoading = false);
@@ -98,205 +109,54 @@ class _CustomListDetailPageState extends State<CustomListDetailPage> {
     }
   }
 
-  void _showBookDetailSheet(Book book) {
+  Future<void> _shareList() async {
     final l = AppLocalizations.of(context)!;
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (sheetContext) => DraggableScrollableSheet(
-        initialChildSize: 0.55,
-        minChildSize: 0.3,
-        maxChildSize: 0.85,
-        expand: false,
-        builder: (context, scrollController) => SingleChildScrollView(
-          controller: scrollController,
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.withValues(alpha: 0.3),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  CachedBookCover(
-                    imageUrl: book.coverUrl,
-                    isbn: book.isbn,
-                    googleId: book.googleId,
-                    title: book.title,
-                    author: book.author,
-                    width: 100,
-                    height: 150,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          book.title,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
-                          ),
-                        ),
-                        if (book.author != null &&
-                            book.author!.isNotEmpty) ...[
-                          const SizedBox(height: 4),
-                          Text(
-                            book.author!,
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurface
-                                  .withValues(alpha: 0.6),
-                            ),
-                          ),
-                        ],
-                        if (book.pageCount != null) ...[
-                          const SizedBox(height: 8),
-                          Text(
-                            '${book.pageCount} pages',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurface
-                                  .withValues(alpha: 0.5),
-                            ),
-                          ),
-                        ],
-                        if (book.genre != null) ...[
-                          const SizedBox(height: 6),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFFF6B35)
-                                  .withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              book.genre!,
-                              style: const TextStyle(
-                                fontSize: 11,
-                                color: Color(0xFFFF6B35),
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                        ],
-                        const SizedBox(height: 12),
-                        GestureDetector(
-                          onTap: () {
-                            Navigator.pop(context);
-                            _showAddToListSheet(book);
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFFF6B35)
-                                  .withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: const Color(0xFFFF6B35)
-                                    .withValues(alpha: 0.3),
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(
-                                  LucideIcons.listPlus,
-                                  size: 14,
-                                  color: Color(0xFFFF6B35),
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  l.addToList,
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: Color(0xFFFF6B35),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              if (book.description != null) ...[
-                const SizedBox(height: 20),
-                Text(
-                  l.description,
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: Theme.of(context).colorScheme.onSurface,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  book.description!,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onSurface
-                        .withValues(alpha: 0.7),
-                    height: 1.6,
-                  ),
-                ),
-              ],
-              const SizedBox(height: 20),
-            ],
-          ),
+
+    // Rendre la liste publique si besoin (avec confirmation).
+    if (!_list.isPublic) {
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(l.listShareMakePublicTitle),
+          content: Text(l.listShareMakePublicMessage(_list.title)),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(l.cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text(l.makePublicButton),
+            ),
+          ],
         ),
-      ),
-    );
+      );
+      if (confirm != true) return;
+    }
+
+    try {
+      final token = await _service.ensurePublicShareToken(_list);
+      if (!mounted) return;
+      if (!_list.isPublic) {
+        setState(() => _list = _list.copyWith(isPublic: true));
+      }
+      await showListShareSheet(context, list: _list, shareToken: token);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur : $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
-  void _showAddToListSheet(Book book) async {
-    final results = await Future.wait([
-      _service.getUserLists(),
-      _service.getListIdsContainingBook(book.id),
-    ]);
-
-    final lists = results[0] as List<UserCustomList>;
-    final containingIds = results[1] as Set<int>;
-
-    if (!mounted) return;
-
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => _AddToListSheet(
-        lists: lists,
-        containingIds: containingIds,
-        bookId: book.id,
-        service: _service,
-      ),
+  void _openBookDetail(Book book) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => BookDetailPage(book: book)),
     );
   }
 
@@ -354,15 +214,22 @@ class _CustomListDetailPageState extends State<CustomListDetailPage> {
             ),
             actions: [
               IconButton(
-                icon: const Icon(LucideIcons.pencil, color: Colors.white),
-                tooltip: l.editButton,
-                onPressed: _editList,
+                icon: const Icon(LucideIcons.share2, color: Colors.white),
+                tooltip: l.share,
+                onPressed: _shareList,
               ),
-              IconButton(
-                icon: const Icon(LucideIcons.trash2, color: Colors.white),
-                tooltip: l.deleteButton,
-                onPressed: _deleteList,
-              ),
+              if (_isOwner) ...[
+                IconButton(
+                  icon: const Icon(LucideIcons.pencil, color: Colors.white),
+                  tooltip: l.editButton,
+                  onPressed: _editList,
+                ),
+                IconButton(
+                  icon: const Icon(LucideIcons.trash2, color: Colors.white),
+                  tooltip: l.deleteButton,
+                  onPressed: _deleteList,
+                ),
+              ],
             ],
             flexibleSpace: FlexibleSpaceBar(
               background: Container(
@@ -435,6 +302,20 @@ class _CustomListDetailPageState extends State<CustomListDetailPage> {
                           .withValues(alpha: 0.6),
                     ),
                   ),
+                  if (!_isOwner && _ownerName != null) ...[
+                    const Spacer(),
+                    Text(
+                      l.listByOwner(_ownerName!),
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontStyle: FontStyle.italic,
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withValues(alpha: 0.5),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -460,8 +341,8 @@ class _CustomListDetailPageState extends State<CustomListDetailPage> {
                   return _CustomBookListItem(
                     book: book,
                     gradientColor: gradientColors.last,
-                    onRemove: () => _removeBook(book),
-                    onTap: () => _showBookDetailSheet(book),
+                    onRemove: _isOwner ? () => _removeBook(book) : null,
+                    onTap: () => _openBookDetail(book),
                   );
                 },
                 childCount: _list.books.length,
@@ -472,7 +353,9 @@ class _CustomListDetailPageState extends State<CustomListDetailPage> {
         ],
       ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: !_isOwner
+          ? null
+          : FloatingActionButton.extended(
         onPressed: _addBooks,
         backgroundColor: const Color(0xFFFF6B35),
         foregroundColor: Colors.white,
@@ -518,16 +401,18 @@ class _CustomListDetailPageState extends State<CustomListDetailPage> {
                   .withValues(alpha: 0.4),
             ),
           ),
-          const SizedBox(height: 20),
-          FilledButton.icon(
-            onPressed: _addBooks,
-            icon: const Icon(LucideIcons.plus),
-            label: Text(l.addBookToList),
-            style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFFFF6B35),
-              foregroundColor: Colors.white,
+          if (_isOwner) ...[
+            const SizedBox(height: 20),
+            FilledButton.icon(
+              onPressed: _addBooks,
+              icon: const Icon(LucideIcons.plus),
+              label: Text(l.addBookToList),
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFFFF6B35),
+                foregroundColor: Colors.white,
+              ),
             ),
-          ),
+          ],
         ],
       ),
     );
@@ -537,7 +422,7 @@ class _CustomListDetailPageState extends State<CustomListDetailPage> {
 class _CustomBookListItem extends StatelessWidget {
   final Book book;
   final Color gradientColor;
-  final VoidCallback onRemove;
+  final VoidCallback? onRemove;
   final VoidCallback? onTap;
 
   const _CustomBookListItem({
@@ -550,6 +435,8 @@ class _CustomBookListItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context)!;
+    final remove = onRemove;
+    if (remove == null) return _buildRow(context);
     return Dismissible(
       key: Key('custom_book_${book.id}'),
       direction: DismissDirection.endToStart,
@@ -581,8 +468,13 @@ class _CustomBookListItem extends StatelessWidget {
             ) ??
             false;
       },
-      onDismissed: (_) => onRemove(),
-      child: InkWell(
+      onDismissed: (_) => remove(),
+      child: _buildRow(context),
+    );
+  }
+
+  Widget _buildRow(BuildContext context) {
+    return InkWell(
         onTap: onTap,
         child: Padding(
         padding: const EdgeInsets.symmetric(
@@ -645,179 +537,6 @@ class _CustomBookListItem extends StatelessWidget {
             ),
           ],
         ),
-      ),
-      ),
-    );
-  }
-}
-
-class _AddToListSheet extends StatefulWidget {
-  final List<UserCustomList> lists;
-  final Set<int> containingIds;
-  final int bookId;
-  final UserCustomListsService service;
-
-  const _AddToListSheet({
-    required this.lists,
-    required this.containingIds,
-    required this.bookId,
-    required this.service,
-  });
-
-  @override
-  State<_AddToListSheet> createState() => _AddToListSheetState();
-}
-
-class _AddToListSheetState extends State<_AddToListSheet> {
-  late Set<int> _containingIds;
-
-  @override
-  void initState() {
-    super.initState();
-    _containingIds = Set<int>.from(widget.containingIds);
-  }
-
-  Future<void> _toggleList(UserCustomList list) async {
-    final wasInList = _containingIds.contains(list.id);
-    setState(() {
-      if (wasInList) {
-        _containingIds.remove(list.id);
-      } else {
-        _containingIds.add(list.id);
-      }
-    });
-
-    try {
-      if (wasInList) {
-        await widget.service.removeBookFromList(list.id, widget.bookId);
-      } else {
-        await widget.service.addBookToList(list.id, widget.bookId);
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          if (wasInList) {
-            _containingIds.add(list.id);
-          } else {
-            _containingIds.remove(list.id);
-          }
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur : $e'), backgroundColor: Colors.red),
-        );
-      }
-    }
-  }
-
-  Future<void> _createNewList() async {
-    final l = AppLocalizations.of(context)!;
-    Navigator.pop(context);
-    final result = await showCreateCustomListSheet(context);
-    if (result != null) {
-      try {
-        await widget.service.addBookToList(result.id, widget.bookId);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(l.addedToList(result.title)),
-              backgroundColor: Colors.green,
-            ),
-          );
-        }
-      } catch (e) {
-        debugPrint('Erreur ajout à nouvelle liste: $e');
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context)!;
-    return SafeArea(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(top: 12),
-            child: Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Theme.of(context)
-                      .colorScheme
-                      .onSurface
-                      .withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Text(
-              l.addToList,
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
-                  ?.copyWith(fontWeight: FontWeight.bold),
-            ),
-          ),
-          if (widget.lists.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Text(
-                l.noPersonalList,
-                style: TextStyle(
-                  color: Theme.of(context)
-                      .colorScheme
-                      .onSurface
-                      .withValues(alpha: 0.5),
-                ),
-              ),
-            )
-          else
-            ...widget.lists.map((list) {
-              final isInList = _containingIds.contains(list.id);
-              final gradientColors = list.gradientColors;
-              return ListTile(
-                leading: Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(colors: gradientColors),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(list.icon, size: 18, color: Colors.white),
-                ),
-                title: Text(list.title),
-                trailing: Icon(
-                  isInList ? Icons.check_circle : Icons.circle_outlined,
-                  color: isInList ? const Color(0xFFFF6B35) : null,
-                ),
-                onTap: () => _toggleList(list),
-              );
-            }),
-          const Divider(),
-          ListTile(
-            leading: Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: const Color(0xFFFF6B35).withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(LucideIcons.plus,
-                  size: 18, color: Color(0xFFFF6B35)),
-            ),
-            title: Text(
-              l.createNewList,
-              style: const TextStyle(color: Color(0xFFFF6B35)),
-            ),
-            onTap: _createNewList,
-          ),
-          const SizedBox(height: 8),
-        ],
       ),
     );
   }

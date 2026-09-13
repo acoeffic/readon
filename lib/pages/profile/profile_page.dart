@@ -4,6 +4,7 @@ import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/constrained_content.dart';
 import '../../widgets/cached_profile_avatar.dart';
+import '../../widgets/feedback_sheet.dart';
 import '../../services/avatar_cache_service.dart';
 import 'settings_page.dart';
 import 'profile_detail_page.dart';
@@ -11,6 +12,7 @@ import '../sessions/sessions_tab.dart';
 import '../stats/stats_tab.dart';
 import '../curated_lists/saved_lists_tab.dart';
 import '../books/user_books_page.dart';
+import '../reading/my_passages_tab.dart';
 
 class ProfilePage extends StatefulWidget {
   final bool showBack;
@@ -33,7 +35,7 @@ class _ProfilePageState extends State<ProfilePage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
     _tabController.addListener(_onTabChanged);
     _loadUserInfo();
     _loadPendingFriendRequests();
@@ -63,7 +65,8 @@ class _ProfilePageState extends State<ProfilePage>
   }
 
   void _onTabChanged() {
-    if (_tabController.index == 2 && !_tabController.indexIsChanging) {
+    // Index 3 depuis l'insertion de « Mes passages » en position 1.
+    if (_tabController.index == 3 && !_tabController.indexIsChanging) {
       _savedListsKey.currentState?.refresh();
     }
   }
@@ -130,13 +133,14 @@ class _ProfilePageState extends State<ProfilePage>
               ),
               child: Row(
                 children: [
-                  if (widget.showBack)
+                  if (widget.showBack) ...[
                     IconButton(
                       icon: const Icon(Icons.arrow_back),
                       onPressed: () => Navigator.of(context).pop(),
-                    )
-                  else
+                    ),
                     const SizedBox(width: 48),
+                  ] else
+                    const SizedBox(width: 96),
 
                   const Spacer(),
 
@@ -203,6 +207,11 @@ class _ProfilePageState extends State<ProfilePage>
                   const Spacer(),
 
                   IconButton(
+                    icon: const Icon(Icons.feedback_outlined),
+                    tooltip: l10n.feedbackTooltip,
+                    onPressed: () => showFeedbackSheet(context),
+                  ),
+                  IconButton(
                     icon: const Icon(Icons.settings_outlined),
                     onPressed: () async {
                       await Navigator.of(context).push(
@@ -227,6 +236,7 @@ class _ProfilePageState extends State<ProfilePage>
               tabAlignment: TabAlignment.start,
               tabs: [
                 Tab(text: l10n.mySessions),
+                Tab(text: l10n.myPassages),
                 Tab(text: l10n.myStatistics),
                 Tab(text: l10n.myLists),
                 Tab(text: l10n.myLibrary),
@@ -239,6 +249,7 @@ class _ProfilePageState extends State<ProfilePage>
                 controller: _tabController,
                 children: [
                   const SessionsTab(),
+                  const MyPassagesTab(),
                   const StatsTab(),
                   SavedListsTab(key: _savedListsKey),
                   const UserBooksPage(),

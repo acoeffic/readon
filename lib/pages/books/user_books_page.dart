@@ -38,6 +38,8 @@ import '../../services/annotation_service.dart';
 import '../../services/ai_service.dart';
 import '../../services/notion_service.dart';
 import '../../services/native_paywall_service.dart';
+import 'scan_book_cover_page.dart';
+import '../../services/google_books_service.dart';
 import 'reading_sheet_share_service.dart';
 
 class UserBooksPage extends StatefulWidget {
@@ -285,9 +287,43 @@ class _UserBooksPageState extends State<UserBooksPage> {
                       ? AppColors.textSecondaryDark
                       : AppColors.textSecondary),
               textAlign: TextAlign.center),
+          // L'état vide était purement textuel : il décrivait quoi faire sans
+          // offrir le moyen de le faire. Aucun point d'entrée d'ajout de livre
+          // n'existait dans cette page.
+          const SizedBox(height: 20),
+          FilledButton.icon(
+            onPressed: _scanAndAddBook,
+            icon: const Icon(LucideIcons.camera, size: 18),
+            label: Text(l10n.scanBookCta),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.sageGreen,
+              foregroundColor: Colors.white,
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            ),
+          ),
         ],
       ),
     );
+  }
+
+  /// Scan d'une couverture depuis la bibliothèque, puis rechargement.
+  Future<void> _scanAndAddBook() async {
+    final googleBook = await Navigator.push<GoogleBook>(
+      context,
+      MaterialPageRoute(builder: (_) => const ScanBookCoverPage()),
+    );
+    if (googleBook == null || !mounted) return;
+    try {
+      await _booksService.addBookFromGoogleBooks(googleBook);
+      if (!mounted) return;
+      await _loadBooks();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red),
+      );
+    }
   }
 
   Widget _buildHeaderWidget(AppLocalizations l10n) {
@@ -949,52 +985,49 @@ class _UserBooksPageState extends State<UserBooksPage> {
   }
 
   Widget _buildBookCover(Book book, double width, double height) {
-    if (book.coverUrl != null && book.coverUrl!.isNotEmpty) {
-      return Container(
-        width: width.isFinite ? width : null,
-        height: height.isFinite ? height : null,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.1),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(12),
-          child: CachedBookCover(
-            imageUrl: book.coverUrl,
-            isbn: book.isbn,
-            googleId: book.googleId,
-            title: book.title,
-            author: book.author,
-            width: width.isFinite ? width : 140,
-            height: height.isFinite ? height : 200,
-            fit: BoxFit.cover,
-          ),
-        ),
-      );
-    }
-
-    final color = _placeholderColors[
-        book.title.hashCode.abs() % _placeholderColors.length];
+    // Toujours passer par CachedBookCover : même quand cover_url est vide en
+    // base, sa chaîne de résolution (googleId/ISBN/titre+auteur) retrouve la
+    // couverture — c'est ce que fait déjà la page de détail. La tuile colorée
+    // avec le titre ne sert plus que d'ultime fallback (errorWidget).
     return Container(
       width: width.isFinite ? width : null,
       height: height.isFinite ? height : null,
       decoration: BoxDecoration(
-        color: color,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: color.withValues(alpha: 0.3),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),
         ],
       ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: CachedBookCover(
+          imageUrl: book.coverUrl,
+          isbn: book.isbn,
+          googleId: book.googleId,
+          title: book.title,
+          author: book.author,
+          width: width.isFinite ? width : 140,
+          height: height.isFinite ? height : 200,
+          fit: BoxFit.cover,
+          errorWidget: _buildTitlePlaceholder(book, width, height),
+        ),
+      ),
+    );
+  }
+
+  /// Tuile colorée titre/auteur — fallback final quand aucune couverture
+  /// n'est trouvable (affichée par CachedBookCover via errorWidget).
+  Widget _buildTitlePlaceholder(Book book, double width, double height) {
+    final color = _placeholderColors[
+        book.title.hashCode.abs() % _placeholderColors.length];
+    return Container(
+      width: width.isFinite ? width : null,
+      height: height.isFinite ? height : null,
+      color: color,
       padding: const EdgeInsets.all(10),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -1345,6 +1378,19 @@ class _BookDetailPageState extends State<BookDetailPage> {
     // Si une session a été créée, naviguer vers la session active
     if (result != null) {
       if (!mounted) return;
+
+      // Livre pas encore dans la bibliothèque (ouvert depuis une liste, le
+      // feed, un partage...) : l'ajouter en "reading" pour qu'il apparaisse
+      // dans "En cours". Best-effort : ne bloque pas la session.
+      if (_bookStatus == null) {
+        try {
+          await _booksService.updateBookStatus(widget.book.id, 'reading');
+          if (mounted) setState(() => _bookStatus = 'reading');
+        } catch (e) {
+          debugPrint('Ajout auto à la bibliothèque échoué (non bloquant): $e');
+        }
+      }
+      if (!mounted) return;
       await Navigator.push(
         context,
         MaterialPageRoute(
@@ -1420,7 +1466,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text(AppLocalizations.of(context).errorGeneric(e.toString())), backgroundColor: Colors.red),
         );
       }
     }
@@ -1435,15 +1481,15 @@ class _BookDetailPageState extends State<BookDetailPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(newValue
-                ? 'Livre masqué des autres utilisateurs'
-                : 'Livre visible pour les autres utilisateurs'),
+                ? AppLocalizations.of(context).bookHiddenFromOthers
+                : AppLocalizations.of(context).bookVisibleToOthers),
           ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text(AppLocalizations.of(context).errorGeneric(e.toString())), backgroundColor: Colors.red),
         );
       }
     }
@@ -1456,11 +1502,11 @@ class _BookDetailPageState extends State<BookDetailPage> {
         child: ListView(
           shrinkWrap: true,
           children: [
-            const Padding(
-              padding: EdgeInsets.all(16),
+            Padding(
+              padding: const EdgeInsets.all(16),
               child: Text(
-                'Choisir le genre',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                AppLocalizations.of(context).chooseGenre,
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
             ),
             ..._availableGenres.map((genre) => ListTile(
@@ -1483,8 +1529,8 @@ class _BookDetailPageState extends State<BookDetailPage> {
                       if (mounted) setState(() => _currentGenre = genre);
                     } catch (e) {
                       messenger.showSnackBar(
-                        const SnackBar(
-                            content: Text('Erreur lors de la mise à jour')),
+                        SnackBar(
+                            content: Text(AppLocalizations.of(context).errorUpdating)),
                       );
                     }
                   },
@@ -1583,18 +1629,18 @@ class _BookDetailPageState extends State<BookDetailPage> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.auto_awesome, color: Colors.amber),
-            SizedBox(width: 8),
-            Text('Terminer le livre'),
+            const Icon(Icons.auto_awesome, color: Colors.amber),
+            const SizedBox(width: 8),
+            Text(AppLocalizations.of(context).finishBookTitle),
           ],
         ),
-        content: const Text('Marquer ce livre comme terminé ?'),
+        content: Text(AppLocalizations.of(context).markBookFinishedQuestion),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Annuler'),
+            child: Text(AppLocalizations.of(context).cancel),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
@@ -1602,7 +1648,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
               backgroundColor: Colors.amber,
               foregroundColor: Colors.white,
             ),
-            child: const Text('Oui, terminé !'),
+            child: Text(AppLocalizations.of(context).yesFinished),
           ),
         ],
       ),
@@ -1615,8 +1661,8 @@ class _BookDetailPageState extends State<BookDetailPage> {
 
         setState(() => _bookStatus = 'finished');
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Livre marqué comme terminé !'),
+          SnackBar(
+            content: Text(AppLocalizations.of(context).bookMarkedFinished),
             backgroundColor: Colors.green,
           ),
         );
@@ -1652,7 +1698,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red),
+            SnackBar(content: Text(AppLocalizations.of(context).errorGeneric(e.toString())), backgroundColor: Colors.red),
           );
         }
       }
@@ -1713,7 +1759,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text(AppLocalizations.of(context).errorGeneric(e.toString())), backgroundColor: Colors.red),
         );
       }
     }
@@ -1736,13 +1782,15 @@ class _BookDetailPageState extends State<BookDetailPage> {
       appBar: AppBar(
         title: Text(widget.book.title),
         actions: [
-          if (widget.sharedByUserId == null) ...[
+          // Masquer/supprimer n'ont de sens que si le livre est déjà dans la
+          // bibliothèque de l'utilisateur.
+          if (widget.sharedByUserId == null && _bookStatus != null) ...[
             IconButton(
               icon: Icon(
                 _isHidden ? Icons.visibility_off : Icons.visibility,
                 color: _isHidden ? Colors.orange : null,
               ),
-              tooltip: _isHidden ? 'Livre masqué aux autres' : 'Masquer ce livre',
+              tooltip: _isHidden ? AppLocalizations.of(context).bookHiddenTooltip : AppLocalizations.of(context).hideBookTooltip,
               onPressed: _toggleHidden,
             ),
             IconButton(
@@ -1757,7 +1805,10 @@ class _BookDetailPageState extends State<BookDetailPage> {
         child: Column(
           children: [
             _buildBookHeader(),
-            if (!_isLoading && _bookStatus != null) _buildReadingSessionSection(),
+            // Affichée même si le livre n'est pas encore dans la bibliothèque
+            // (ouvert depuis une liste ou le feed) : « Commencer une lecture »
+            // l'ajoutera automatiquement en "reading".
+            if (!_isLoading) _buildReadingSessionSection(),
             if (_stats != null && _stats!.sessionsCount > 0) _buildStatsSection(),
             if (!_isLoading &&
                 widget.sharedByUserId == null &&
@@ -1844,7 +1895,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      widget.book.isKindle ? 'Livre Kindle' : 'Livre scanné',
+                      widget.book.isKindle ? AppLocalizations.of(context).kindleBook : AppLocalizations.of(context).scannedBook,
                       style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
                     ),
                   ],
@@ -1886,7 +1937,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          _currentGenre ?? 'Ajouter un genre',
+                          _currentGenre ?? AppLocalizations.of(context).addGenre,
                           style: TextStyle(
                             fontSize: 12,
                             color: _currentGenre != null
@@ -1910,18 +1961,18 @@ class _BookDetailPageState extends State<BookDetailPage> {
                         color: const Color(0xFFFF6B35).withValues(alpha: 0.3),
                       ),
                     ),
-                    child: const Row(
+                    child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(
+                        const Icon(
                           LucideIcons.listPlus,
                           size: 14,
                           color: Color(0xFFFF6B35),
                         ),
-                        SizedBox(width: 4),
+                        const SizedBox(width: 4),
                         Text(
-                          'Ajouter à une liste',
-                          style: TextStyle(
+                          AppLocalizations.of(context).addToList,
+                          style: const TextStyle(
                             fontSize: 12,
                             color: Color(0xFFFF6B35),
                           ),
@@ -2077,8 +2128,8 @@ class _BookDetailPageState extends State<BookDetailPage> {
                         ],
                       ),
                       const SizedBox(height: 8),
-                      Text('Commencée à la page ${_activeSession!.startPage}'),
-                      Text('Depuis ${_formatDuration(_activeSession!.startTime)}'),
+                      Text(AppLocalizations.of(context).sessionStartedAtPage(_activeSession!.startPage)),
+                      Text(AppLocalizations.of(context).sinceDuration(_formatDuration(_activeSession!.startTime))),
                     ],
                   ),
                 ),
@@ -2086,7 +2137,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
                 ElevatedButton.icon(
                   onPressed: _endReadingSession,
                   icon: const Icon(Icons.stop),
-                  label: const Text('Terminer cette lecture'),
+                  label: Text(AppLocalizations.of(context).endThisReading),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.all(16),
                     backgroundColor: Colors.green,
@@ -2095,9 +2146,9 @@ class _BookDetailPageState extends State<BookDetailPage> {
                 ),
               ] else ...[
                 if (!_isBookFinished) ...[
-                  const Text(
-                    'Suivez votre progression en prenant une photo ou en saisissant le numéro de page.',
-                    style: TextStyle(color: Colors.grey),
+                  Text(
+                    AppLocalizations.of(context).progressPhotoHint,
+                    style: const TextStyle(color: Colors.grey),
                   ),
                   const SizedBox(height: 12),
                   ElevatedButton.icon(
@@ -2125,7 +2176,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
                   OutlinedButton.icon(
                     onPressed: _markAsFinished,
                     icon: const Icon(Icons.check_circle_outline),
-                    label: const Text('Marquer comme terminé'),
+                    label: Text(AppLocalizations.of(context).markAsFinished),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.all(16),
                       foregroundColor: Colors.amber.shade800,
@@ -2162,7 +2213,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
                         Icon(Icons.emoji_events, color: Colors.amber.shade700),
                         const SizedBox(width: 8),
                         Text(
-                          'Livre terminé !',
+                          AppLocalizations.of(context).bookCompletedTitle,
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -2277,7 +2328,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
                       Icon(Icons.emoji_events, color: Colors.amber.shade700),
                       const SizedBox(width: 8),
                       Text(
-                        'Livre terminé !',
+                        AppLocalizations.of(context).bookCompletedTitle,
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -2297,7 +2348,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
                     const Icon(Icons.bookmark, color: Colors.blue),
                     const SizedBox(width: 8),
                     Text(
-                      'Actuellement à la page ${_stats!.currentPage}',
+                      AppLocalizations.of(context).currentlyAtPage('${_stats!.currentPage}'),
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -2351,7 +2402,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
                     Icon(Icons.auto_awesome, size: 14, color: AppColors.primary),
                     const SizedBox(width: 4),
                     Text(
-                      '$_remainingAiSummaries/${FeatureFlags.maxFreeAiSummaries} résumés restants',
+                      AppLocalizations.of(context).remainingAiSummaries(_remainingAiSummaries, FeatureFlags.maxFreeAiSummaries),
                       style: TextStyle(
                         fontSize: 11,
                         color: AppColors.primary,
@@ -2375,7 +2426,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Aucune annotation pour ce livre.\nAnnotez pendant vos sessions !',
+                        AppLocalizations.of(context).noAnnotationsForBook,
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: Colors.grey.shade500,
@@ -2463,7 +2514,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
     return Column(
       children: [
         Text(
-          'L\'IA analyse vos ${_annotations.length} annotations pour créer une fiche de lecture personnalisée : thèmes clés, citations marquantes, progression et synthèse.',
+          AppLocalizations.of(context).aiSheetExplain(_annotations.length),
           style: TextStyle(
             fontSize: 13,
             color: Colors.grey.shade600,
@@ -2477,7 +2528,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
               ? ElevatedButton.icon(
                   onPressed: () => _generateReadingSheet(),
                   icon: const Icon(Icons.auto_awesome, size: 18),
-                  label: const Text('Générer ma fiche'),
+                  label: Text(AppLocalizations.of(context).generateMySheet),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
@@ -2496,7 +2547,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
                     );
                   },
                   icon: const Icon(Icons.lock_outline, size: 18),
-                  label: const Text('Fonctionnalité Premium'),
+                  label: Text(AppLocalizations.of(context).premiumFeature),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: const Color(0xFFD4A54A),
                     side: const BorderSide(color: Color(0xFFD4A54A)),
@@ -2699,7 +2750,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
               child: OutlinedButton.icon(
                 onPressed: () => _generateReadingSheet(force: true),
                 icon: const Icon(Icons.refresh, size: 16),
-                label: const Text('Régénérer'),
+                label: Text(AppLocalizations.of(context).regenerate),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: Colors.grey.shade600,
                   side: BorderSide(color: Colors.grey.shade300),
@@ -2822,7 +2873,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
       if (mounted) {
         setState(() => _isGeneratingSheet = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text(AppLocalizations.of(context).errorGeneric(e.toString())), backgroundColor: Colors.red),
         );
       }
     }
@@ -2836,7 +2887,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
         setState(() => _isSyncingNotion = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Fiche envoyée vers Notion !'),
+            content: Text(AppLocalizations.of(context).sheetSentToNotion),
             backgroundColor: Colors.green,
             action: notionUrl.isNotEmpty
                 ? SnackBarAction(
@@ -2852,7 +2903,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
       if (mounted) {
         setState(() => _isSyncingNotion = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text(AppLocalizations.of(context).errorGeneric(e.toString())), backgroundColor: Colors.red),
         );
       }
     }
@@ -2883,7 +2934,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context, false),
-                child: const Text('Annuler'),
+                child: Text(AppLocalizations.of(context).cancel),
               ),
               TextButton(
                 onPressed: () => Navigator.pop(context, true),
@@ -2903,7 +2954,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
           if (mounted) {
             setState(() => _annotations.insert(index, removed));
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red),
+              SnackBar(content: Text(AppLocalizations.of(context).errorGeneric(e.toString())), backgroundColor: Colors.red),
             );
           }
         }
@@ -3009,7 +3060,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
                             size: 12, color: AppColors.primary),
                         const SizedBox(width: 4),
                         Text(
-                          'Résumé IA',
+                          AppLocalizations.of(context).aiSummaryLabel,
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
@@ -3039,21 +3090,21 @@ class _BookDetailPageState extends State<BookDetailPage> {
             ] else if (annotation.content.length >= 20) ...[
               const SizedBox(height: 8),
               _summarizingIds.contains(annotation.id)
-                  ? const SizedBox(
+                  ? SizedBox(
                       height: 28,
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          SizedBox(
+                          const SizedBox(
                             width: 14,
                             height: 14,
                             child:
                                 CircularProgressIndicator(strokeWidth: 2),
                           ),
-                          SizedBox(width: 6),
+                          const SizedBox(width: 6),
                           Text(
-                            'Résumé en cours...',
-                            style: TextStyle(fontSize: 12),
+                            AppLocalizations.of(context).summarizing,
+                            style: const TextStyle(fontSize: 12),
                           ),
                         ],
                       ),
@@ -3076,7 +3127,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
                                 size: 12, color: AppColors.primary),
                             const SizedBox(width: 4),
                             Text(
-                              'Résumer',
+                              AppLocalizations.of(context).summarizeAction,
                               style: TextStyle(
                                 fontSize: 12,
                                 color: AppColors.primary,
@@ -3165,7 +3216,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text(AppLocalizations.of(context).errorGeneric(e.toString())), backgroundColor: Colors.red),
         );
       }
     } finally {
@@ -3189,9 +3240,9 @@ class _BookDetailPageState extends State<BookDetailPage> {
             children: [
               Icon(Icons.auto_awesome, size: 48, color: AppColors.primary),
               const SizedBox(height: 16),
-              const Text(
-                'Vous avez utilisé vos 3 résumés du mois',
-                style: TextStyle(
+              Text(
+                AppLocalizations.of(context).usedMonthlySummaries(FeatureFlags.maxFreeAiSummaries),
+                style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
                 ),
@@ -3199,7 +3250,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Passez en Premium pour résumer tous vos passages sans limite',
+                AppLocalizations.of(context).premiumSummariesUpsell,
                 style: TextStyle(
                   fontSize: 14,
                   color: Colors.grey.shade600,
@@ -3225,9 +3276,9 @@ class _BookDetailPageState extends State<BookDetailPage> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text(
-                    'Découvrir Premium',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  child: Text(
+                    AppLocalizations.of(context).premiumUpsellCta,
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                   ),
                 ),
               ),
@@ -3235,7 +3286,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
               TextButton(
                 onPressed: () => Navigator.pop(context),
                 child: Text(
-                  'Réessayer le mois prochain',
+                  AppLocalizations.of(context).retryNextMonth,
                   style: TextStyle(color: Colors.grey.shade500),
                 ),
               ),
@@ -3282,7 +3333,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Annuler'),
+            child: Text(AppLocalizations.of(context).cancel),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -3308,7 +3359,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                        content: Text('Erreur: $e'),
+                        content: Text(AppLocalizations.of(context).errorGeneric(e.toString())),
                         backgroundColor: Colors.red),
                   );
                 }
@@ -3519,7 +3570,7 @@ class _AddToListSheetState extends State<_AddToListSheet> {
           }
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur : $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text(AppLocalizations.of(context).errorGeneric(e.toString())), backgroundColor: Colors.red),
         );
       }
     }
@@ -3535,7 +3586,7 @@ class _AddToListSheetState extends State<_AddToListSheet> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Ajouté à "${result.title}"'),
+              content: Text(AppLocalizations.of(context).addedToListNamed(result.title)),
               backgroundColor: Colors.green,
             ),
           );
@@ -3572,7 +3623,7 @@ class _AddToListSheetState extends State<_AddToListSheet> {
           Padding(
             padding: const EdgeInsets.all(16),
             child: Text(
-              'Ajouter à une liste',
+              AppLocalizations.of(context).addToList,
               style: Theme.of(context)
                   .textTheme
                   .titleMedium
@@ -3583,7 +3634,7 @@ class _AddToListSheetState extends State<_AddToListSheet> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Text(
-                'Aucune liste personnelle.',
+                AppLocalizations.of(context).noPersonalList,
                 style: TextStyle(
                   color: Theme.of(context)
                       .colorScheme
@@ -3626,9 +3677,9 @@ class _AddToListSheetState extends State<_AddToListSheet> {
               child: const Icon(LucideIcons.plus,
                   size: 18, color: Color(0xFFFF6B35)),
             ),
-            title: const Text(
-              'Créer une nouvelle liste',
-              style: TextStyle(color: Color(0xFFFF6B35)),
+            title: Text(
+              AppLocalizations.of(context).createNewList,
+              style: const TextStyle(color: Color(0xFFFF6B35)),
             ),
             onTap: _createNewList,
           ),

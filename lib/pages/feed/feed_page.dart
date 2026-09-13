@@ -59,7 +59,7 @@ import '../friends/search_users_page.dart';
 import 'widgets/curated_lists_carousel.dart';
 import '../../models/curated_list.dart';
 import '../../services/curated_lists_service.dart';
-import '../../data/curated_lists_data.dart';
+import '../../services/curated_lists_repository.dart';
 import '../curated_lists/curated_list_detail_page.dart';
 import '../curated_lists/all_curated_lists_page.dart';
 import '../curated_lists/prize_list_detail_page.dart';
@@ -453,6 +453,12 @@ class _FeedPageState extends State<FeedPage> {
     // le chemin (cache mémoire, Hive ou réseau).
     _loadGoals();
 
+    // Catalogue des listes curatées : rafraîchi en arrière-plan pour que le
+    // carousel reflète la base même quand le feed est servi depuis le cache.
+    CuratedListsRepository.ensureLoaded().then((_) {
+      if (mounted) setState(() {});
+    });
+
     // 1️⃣ Cache mémoire (instantané, < 5 min)
     if (FeedCache.isValid) {
       setState(() => _applyCacheData(FeedCache.data!));
@@ -524,7 +530,8 @@ class _FeedPageState extends State<FeedPage> {
 
       // Tous les appels sont lancés en parallèle sans Future.wait global :
       // chaque future hydrate son slice de state quand elle se résout.
-      final curatedIds = kCuratedLists.map((l) => l.id).toList();
+      final curatedLists = await CuratedListsRepository.ensureLoaded();
+      final curatedIds = curatedLists.map((l) => l.id).toList();
       final bundleFuture = supabase.rpc('get_feed_bundle', params: {
         'p_feed_limit': _pageSize,
         'p_trending_limit': 5,
@@ -870,7 +877,7 @@ class _FeedPageState extends State<FeedPage> {
   List<Widget> _buildCuratedListsSection() {
     return [
       CuratedListsCarousel(
-        lists: kCuratedLists,
+        lists: CuratedListsRepository.lists,
         readerCounts: curatedReaderCounts,
         savedListIds: savedCuratedListIds,
         onToggleSave: _toggleCuratedListSave,
@@ -1322,6 +1329,9 @@ class _FeedPageState extends State<FeedPage> {
         trendingService.getTrendingBooks(limit: 10),
         prizeListService.fetchPrizeLists(),
         _groupsService.getPublicGroups(limit: 6),
+        // Catalogue des listes curatées (lisible en anonyme) : le setState
+        // ci-dessous rafraîchit le carousel avec la version serveur.
+        CuratedListsRepository.ensureLoaded(),
       ]);
       if (!mounted) return;
       setState(() {
@@ -1357,7 +1367,10 @@ class _FeedPageState extends State<FeedPage> {
       ..._buildPublicClubsSection(),
 
       // CTA conversion
-      _GuestConversionCta(onTap: () => showRequireAccountSheet(context)),
+      _GuestConversionCta(
+        onTap: () =>
+            showRequireAccountSheet(context, source: 'feed_conversion_cta'),
+      ),
       const SizedBox(height: AppSpace.l),
     ];
   }
@@ -1579,7 +1592,7 @@ class _GuestModeBanner extends StatelessWidget {
     return Material(
       color: AppColors.primary.withValues(alpha: 0.08),
       child: InkWell(
-        onTap: () => showRequireAccountSheet(context),
+        onTap: () => showRequireAccountSheet(context, source: 'feed_banner'),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           child: Row(

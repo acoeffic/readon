@@ -152,6 +152,11 @@ class _ShareSlideState extends State<ShareSlide> {
   /// l'app cible, et l'image est bien jointe). On n'ouvre plus l'app via un
   /// simple scheme, qui n'emportait pas l'image et ouvrait une app vide.
   /// [urlScheme] / [webFallbackUrl] sont conservés pour compat des appels.
+  ///
+  /// Volontairement SANS la vidéo pré-rendue : elle est au format story
+  /// (9:16) alors que ces boutons demandent le format carré, et surtout les
+  /// extensions de partage LinkedIn/X n'acceptent pas toujours les vidéos —
+  /// l'app cible n'apparaissait alors pas dans la feuille de partage.
   Future<void> _shareToApp(String appName, String urlScheme, ShareFormat format, {String? webFallbackUrl}) async {
     if (_loadingAction != null) return;
     setState(() => _loadingAction = appName);
@@ -171,7 +176,7 @@ class _ShareSlideState extends State<ShareSlide> {
         imageBytes: bytes,
         year: data.year,
         month: data.month,
-        videoFile: _hasVideo ? _videoFile : null,
+        videoFile: null,
         sharePositionOrigin: _shareOrigin(),
       );
     } catch (e) {

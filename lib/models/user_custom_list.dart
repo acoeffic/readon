@@ -9,6 +9,7 @@ class UserCustomList {
   final String iconName;
   final String gradientColor;
   final bool isPublic;
+  final String? shareToken;
   final DateTime createdAt;
   final DateTime? updatedAt;
   final List<Book> books;
@@ -20,6 +21,7 @@ class UserCustomList {
     this.iconName = 'book-open',
     this.gradientColor = '#7FA497',
     this.isPublic = false,
+    this.shareToken,
     required this.createdAt,
     this.updatedAt,
     this.books = const [],
@@ -34,6 +36,7 @@ class UserCustomList {
       iconName: json['icon_name'] as String? ?? 'book-open',
       gradientColor: json['gradient_color'] as String? ?? '#7FA497',
       isPublic: json['is_public'] as bool? ?? false,
+      shareToken: json['share_token'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: json['updated_at'] != null
           ? DateTime.parse(json['updated_at'] as String)
@@ -69,6 +72,7 @@ class UserCustomList {
       iconName: iconName ?? this.iconName,
       gradientColor: gradientColor ?? this.gradientColor,
       isPublic: isPublic ?? this.isPublic,
+      shareToken: shareToken,
       createdAt: createdAt,
       updatedAt: updatedAt,
       books: books ?? this.books,

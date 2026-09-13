@@ -13,6 +13,7 @@ import '../auth/confirm_email_page.dart';
 import '../auth/login_page.dart';
 import '../../widgets/terms_acceptance_checkbox.dart';
 import '../auth/legal_notice_page.dart';
+import '../../widgets/constrained_content.dart';
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});
@@ -188,6 +189,15 @@ class _SignUpPageState extends State<SignUpPage> {
     final email = emailController.text.trim();
     final password = passwordController.text.trim();
 
+    // Nom obligatoire : sans lui, le trigger handle_new_user retomberait
+    // sur un nom dérivé de l'email (peu flatteur et semi-identifiant).
+    if (name.length < 2) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context).nameRequired)),
+      );
+      return;
+    }
+
     if (email.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(AppLocalizations.of(context).emailAndPasswordRequired)),
@@ -285,143 +295,145 @@ class _SignUpPageState extends State<SignUpPage> {
       data: AppTheme.light(),
       child: Scaffold(
       backgroundColor: AppColors.bgLight,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(AppSpace.l),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              BackHeader(title: AppLocalizations.of(context).createAccountTitle),
-              const SizedBox(height: AppSpace.l),
+      body: ConstrainedContent(
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(AppSpace.l),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                BackHeader(title: AppLocalizations.of(context).createAccountTitle),
+                const SizedBox(height: AppSpace.l),
 
-              // Logo LexDay
-              Center(
-                child: Column(
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(22),
-                      child: SvgPicture.asset(
-                        'assets/images/logo_lexday.svg',
-                        width: 100,
-                        height: 100,
+                // Logo LexDay
+                Center(
+                  child: Column(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(22),
+                        child: SvgPicture.asset(
+                          'assets/images/logo_lexday.svg',
+                          width: 100,
+                          height: 100,
+                        ),
+                      ),
+                      const SizedBox(height: AppSpace.s),
+                      Text(
+                        'LexDay',
+                        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                              color: AppColors.primary,
+                              fontSize: 26,
+                              fontWeight: FontWeight.w700,
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: AppSpace.l),
+
+                Text(
+                  AppLocalizations.of(context).joinLexDay,
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                        fontSize: 26,
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
+                const SizedBox(height: AppSpace.s),
+                Text(
+                  AppLocalizations.of(context).enterInfoToStart,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                const SizedBox(height: AppSpace.xl),
+
+                Text(AppLocalizations.of(context).name, style: Theme.of(context).textTheme.titleMedium),
+                const SizedBox(height: AppSpace.xs),
+                TextField(
+                  controller: nameController,
+                  decoration: InputDecoration(hintText: AppLocalizations.of(context).yourName),
+                ),
+
+                const SizedBox(height: AppSpace.m),
+                Text(AppLocalizations.of(context).emailLower, style: Theme.of(context).textTheme.titleMedium),
+                const SizedBox(height: AppSpace.xs),
+                TextField(
+                  controller: emailController,
+                  decoration: InputDecoration(hintText: AppLocalizations.of(context).yourEmail),
+                  keyboardType: TextInputType.emailAddress,
+                ),
+
+                const SizedBox(height: AppSpace.m),
+                Text(AppLocalizations.of(context).passwordLabel, style: Theme.of(context).textTheme.titleMedium),
+                const SizedBox(height: AppSpace.xs),
+                TextField(
+                  controller: passwordController,
+                  obscureText: true,
+                  decoration: const InputDecoration(hintText: '••••••••'),
+                ),
+
+                const SizedBox(height: AppSpace.l),
+
+                // Acceptation des CGU
+                TermsAcceptanceCheckbox(
+                  value: _acceptedTerms,
+                  onChanged: (value) {
+                    setState(() => _acceptedTerms = value ?? false);
+                  },
+                ),
+
+                const SizedBox(height: AppSpace.l),
+
+                // Bouton créer compte (désactivé si CGU pas acceptées)
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _acceptedTerms 
+                          ? AppColors.primary 
+                          : Colors.grey.shade400,
+                      foregroundColor: AppColors.white,
+                      padding: const EdgeInsets.symmetric(vertical: AppSpace.m),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppRadius.l),
                       ),
                     ),
-                    const SizedBox(height: AppSpace.s),
-                    Text(
-                      'LexDay',
-                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                            color: AppColors.primary,
-                            fontSize: 26,
-                            fontWeight: FontWeight.w700,
-                          ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: AppSpace.l),
-
-              Text(
-                AppLocalizations.of(context).joinLexDay,
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontSize: 26,
-                      fontWeight: FontWeight.w700,
-                    ),
-              ),
-              const SizedBox(height: AppSpace.s),
-              Text(
-                AppLocalizations.of(context).enterInfoToStart,
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-              const SizedBox(height: AppSpace.xl),
-
-              Text(AppLocalizations.of(context).name, style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: AppSpace.xs),
-              TextField(
-                controller: nameController,
-                decoration: InputDecoration(hintText: AppLocalizations.of(context).yourName),
-              ),
-
-              const SizedBox(height: AppSpace.m),
-              Text(AppLocalizations.of(context).emailLower, style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: AppSpace.xs),
-              TextField(
-                controller: emailController,
-                decoration: InputDecoration(hintText: AppLocalizations.of(context).yourEmail),
-                keyboardType: TextInputType.emailAddress,
-              ),
-
-              const SizedBox(height: AppSpace.m),
-              Text(AppLocalizations.of(context).passwordLabel, style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: AppSpace.xs),
-              TextField(
-                controller: passwordController,
-                obscureText: true,
-                decoration: const InputDecoration(hintText: '••••••••'),
-              ),
-
-              const SizedBox(height: AppSpace.l),
-
-              // Acceptation des CGU
-              TermsAcceptanceCheckbox(
-                value: _acceptedTerms,
-                onChanged: (value) {
-                  setState(() => _acceptedTerms = value ?? false);
-                },
-              ),
-
-              const SizedBox(height: AppSpace.l),
-
-              // Bouton créer compte (désactivé si CGU pas acceptées)
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _acceptedTerms 
-                        ? AppColors.primary 
-                        : Colors.grey.shade400,
-                    foregroundColor: AppColors.white,
-                    padding: const EdgeInsets.symmetric(vertical: AppSpace.m),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppRadius.l),
-                    ),
-                  ),
-                  onPressed: _acceptedTerms ? signUp : null,
-                  child: Text(
-                    AppLocalizations.of(context).createAccount,
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: AppSpace.m),
-              Center(
-                child: TextButton(
-                  onPressed: () => Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(builder: (_) => const LoginPage()),
-                  ),
-                  child: Text(
-                    AppLocalizations.of(context).alreadyHaveAccount,
-                    style: const TextStyle(color: AppColors.primary),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: AppSpace.s),
-              Center(
-                child: TextButton(
-                  onPressed: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const LegalNoticePage()),
-                  ),
-                  child: Text(
-                    AppLocalizations.of(context).legalNotices,
-                    style: const TextStyle(
-                      color: AppColors.textSecondary,
-                      fontSize: 14,
+                    onPressed: _acceptedTerms ? signUp : null,
+                    child: Text(
+                      AppLocalizations.of(context).createAccount,
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                     ),
                   ),
                 ),
-              ),
-            ],
+
+                const SizedBox(height: AppSpace.m),
+                Center(
+                  child: TextButton(
+                    onPressed: () => Navigator.of(context).pushReplacement(
+                      MaterialPageRoute(builder: (_) => const LoginPage()),
+                    ),
+                    child: Text(
+                      AppLocalizations.of(context).alreadyHaveAccount,
+                      style: const TextStyle(color: AppColors.primary),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: AppSpace.s),
+                Center(
+                  child: TextButton(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const LegalNoticePage()),
+                    ),
+                    child: Text(
+                      AppLocalizations.of(context).legalNotices,
+                      style: const TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

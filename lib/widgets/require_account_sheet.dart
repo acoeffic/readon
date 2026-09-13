@@ -9,6 +9,8 @@
 //     l'utilisateur quitte le mode invité et atterrit sur la page d'auth
 //     correspondante (option B : on ne reprend pas l'action après login).
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -18,6 +20,7 @@ import '../pages/auth/auth_gate.dart';
 import '../pages/auth/login_page.dart';
 import '../pages/auth/signup_page.dart';
 import '../providers/guest_mode_provider.dart';
+import '../services/analytics_service.dart';
 import '../theme/app_theme.dart';
 
 /// Helper principal : appeler depuis n'importe quelle action gated.
@@ -25,13 +28,14 @@ import '../theme/app_theme.dart';
 Future<bool> requireAccount(
   BuildContext context, {
   required VoidCallback action,
+  required String source,
 }) async {
   final isLoggedIn = Supabase.instance.client.auth.currentUser != null;
   if (isLoggedIn) {
     action();
     return true;
   }
-  await showRequireAccountSheet(context);
+  await showRequireAccountSheet(context, source: source);
   return false;
 }
 
@@ -39,21 +43,34 @@ Future<bool> requireAccount(
 Future<bool> requireAccountAsync(
   BuildContext context, {
   required Future<void> Function() action,
+  required String source,
 }) async {
   final isLoggedIn = Supabase.instance.client.auth.currentUser != null;
   if (isLoggedIn) {
     await action();
     return true;
   }
-  await showRequireAccountSheet(context);
+  await showRequireAccountSheet(context, source: source);
   return false;
 }
 
 /// Affiche la modal sans pré-vérifier l'auth (utile pour les taps sur tabs
 /// gated où on veut toujours afficher le prompt).
-Future<void> showRequireAccountSheet(BuildContext context) async {
+/// [source] identifie l'action qui a déclenché le mur (`fab_scan`,
+/// `send_comment`, `tab_muse`…). C'est la dimension qui permettra de savoir
+/// quelle action donne réellement envie de créer un compte : le rapport
+/// `guest_wall_converted` / `guest_wall_shown` par `source`.
+Future<void> showRequireAccountSheet(
+  BuildContext context, {
+  required String source,
+}) async {
   final colors = context.appColors;
   final l = AppLocalizations.of(context);
+
+  unawaited(AnalyticsService().track(
+    AnalyticsEvent.guestWallShown,
+    properties: {'source': source},
+  ));
 
   await showModalBottomSheet<void>(
     context: context,
@@ -121,7 +138,7 @@ Future<void> showRequireAccountSheet(BuildContext context) async {
               width: double.infinity,
               height: 50,
               child: ElevatedButton(
-                onPressed: () => _exitGuestAndOpen(ctx, signup: true),
+                onPressed: () => _exitGuestAndOpen(ctx, signup: true, source: source),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
@@ -144,7 +161,7 @@ Future<void> showRequireAccountSheet(BuildContext context) async {
               width: double.infinity,
               height: 50,
               child: OutlinedButton(
-                onPressed: () => _exitGuestAndOpen(ctx, signup: false),
+                onPressed: () => _exitGuestAndOpen(ctx, signup: false, source: source),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppColors.primary,
                   side: BorderSide(
@@ -165,7 +182,13 @@ Future<void> showRequireAccountSheet(BuildContext context) async {
             ),
             const SizedBox(height: 6),
             TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
+              onPressed: () {
+                unawaited(AnalyticsService().track(
+                  AnalyticsEvent.guestWallDismissed,
+                  properties: {'source': source},
+                ));
+                Navigator.of(ctx).pop();
+              },
               child: Text(
                 l.guestCancelCta,
                 style: TextStyle(
@@ -181,8 +204,16 @@ Future<void> showRequireAccountSheet(BuildContext context) async {
   );
 }
 
-Future<void> _exitGuestAndOpen(BuildContext sheetContext,
-    {required bool signup}) async {
+Future<void> _exitGuestAndOpen(
+  BuildContext sheetContext, {
+  required bool signup,
+  required String source,
+}) async {
+  unawaited(AnalyticsService().track(
+    AnalyticsEvent.guestWallConverted,
+    properties: {'source': source, 'target': signup ? 'signup' : 'login'},
+  ));
+
   final navigator = Navigator.of(sheetContext, rootNavigator: true);
   await sheetContext.read<GuestModeProvider>().exitGuestMode();
   if (!sheetContext.mounted) return;

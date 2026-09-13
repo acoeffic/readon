@@ -222,7 +222,7 @@ class _FeedHeaderState extends State<FeedHeader>
 
   Future<void> _onMessagesTap() async {
     if (Supabase.instance.client.auth.currentUser == null) {
-      await showRequireAccountSheet(context);
+      await showRequireAccountSheet(context, source: 'header_messages');
       return;
     }
     Navigator.of(context).push(
@@ -232,7 +232,7 @@ class _FeedHeaderState extends State<FeedHeader>
 
   Future<void> _onAvatarTap() async {
     if (Supabase.instance.client.auth.currentUser == null) {
-      await showRequireAccountSheet(context);
+      await showRequireAccountSheet(context, source: 'header_avatar');
       return;
     }
     await Navigator.of(context).push(

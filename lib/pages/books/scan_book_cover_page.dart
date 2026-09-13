@@ -3,9 +3,13 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:async';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import '../../l10n/app_localizations.dart';
 import '../../services/ocr_service.dart';
 import '../../services/google_books_service.dart';
 import '../../theme/app_theme.dart';
@@ -93,7 +97,7 @@ class _ScanBookCoverPageState extends State<ScanBookCoverPage>
         setState(() {
           _scannerActive = false;
           _detectedISBN = code;
-          _successMessage = 'ISBN détecté: $code';
+          _successMessage = AppLocalizations.of(context).scanIsbnDetected(code);
         });
 
         // Rechercher le livre
@@ -127,7 +131,7 @@ class _ScanBookCoverPageState extends State<ScanBookCoverPage>
           _searchResults = results;
           _isSearching = false;
           if (results.isEmpty) {
-            _errorMessage = 'Aucun livre trouvé pour cet ISBN. Essayez le scan de couverture.';
+            _errorMessage = AppLocalizations.of(context).scanNoBookForIsbn;
           }
         });
       }
@@ -135,7 +139,7 @@ class _ScanBookCoverPageState extends State<ScanBookCoverPage>
       if (!mounted) return;
       setState(() {
         _isSearching = false;
-        _errorMessage = 'Erreur de recherche: $e';
+        _errorMessage = AppLocalizations.of(context).scanSearchError(e.toString());
       });
     }
   }
@@ -170,19 +174,113 @@ class _ScanBookCoverPageState extends State<ScanBookCoverPage>
     try {
       final XFile? photo = await _picker.pickImage(
         source: ImageSource.camera,
-        maxWidth: 1920,
-        maxHeight: 1080,
-        imageQuality: 85,
+        maxWidth: 2400,
+        maxHeight: 2400,
+        imageQuality: 92,
       );
 
       if (photo == null) return;
       await _processImage(photo);
     } catch (e) {
       if (!mounted) return;
+      // Permission caméra refusée : l'exception brute du plugin ne dit rien à
+      // l'utilisateur et ne propose aucune suite. On nomme le problème et on
+      // ouvre les deux sorties possibles (réglages, recherche par titre).
+      if (_isCameraPermissionError(e)) {
+        setState(() {
+          _errorMessage = AppLocalizations.of(context).cameraPermissionHint;
+        });
+        _showCameraPermissionSnack();
+        return;
+      }
       setState(() {
-        _errorMessage = 'Erreur lors de la capture: $e';
+        _errorMessage = AppLocalizations.of(context).errorCapture(e.toString());
       });
     }
+  }
+
+  /// Vrai si l'erreur remontée par image_picker est un refus de permission.
+  bool _isCameraPermissionError(Object e) {
+    final text = e.toString().toLowerCase();
+    return text.contains('camera_access_denied') ||
+        text.contains('access_denied') ||
+        text.contains('permission');
+  }
+
+  void _showCameraPermissionSnack() {
+    if (!mounted) return;
+    final l = AppLocalizations.of(context);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(l.cameraPermissionDenied),
+        duration: const Duration(seconds: 6),
+        action: SnackBarAction(
+          label: l.openSettings,
+          onPressed: openAppSettings,
+        ),
+      ),
+    );
+  }
+
+  /// Caméra indisponible (permission refusée, matériel occupé). Sans ce
+  /// builder, `MobileScanner` peint la surface d'erreur brute du plugin :
+  /// écran mort, aucun message, aucune sortie. Le parcours d'ajout de livre
+  /// s'arrêtait définitivement ici.
+  Widget _buildScannerError() {
+    final l = AppLocalizations.of(context);
+    return Container(
+      color: Colors.black87,
+      padding: const EdgeInsets.all(20),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.no_photography_outlined,
+                color: Colors.white70, size: 44),
+            const SizedBox(height: 12),
+            Text(
+              l.cameraPermissionDenied,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              l.cameraPermissionHint,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.white70, fontSize: 13),
+            ),
+            const SizedBox(height: 16),
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                ElevatedButton.icon(
+                  onPressed: _manualSearch,
+                  icon: const Icon(Icons.search, size: 18),
+                  label: Text(l.searchByTitleButton),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+                TextButton(
+                  onPressed: openAppSettings,
+                  child: Text(
+                    l.openSettings,
+                    style: const TextStyle(color: Colors.white70),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   /// Sélectionner depuis la galerie
@@ -197,7 +295,7 @@ class _ScanBookCoverPageState extends State<ScanBookCoverPage>
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _errorMessage = 'Erreur lors de la sélection: $e';
+        _errorMessage = AppLocalizations.of(context).errorSelection(e.toString());
       });
     }
   }
@@ -220,15 +318,16 @@ class _ScanBookCoverPageState extends State<ScanBookCoverPage>
         if (!mounted) return;
         setState(() {
           _detectedISBN = isbn;
-          _successMessage = 'ISBN détecté: $isbn';
+          _successMessage = AppLocalizations.of(context).scanIsbnDetected(isbn);
           _isProcessing = false;
         });
         await _searchByISBN(isbn);
         return;
       }
 
-      // 2. Sinon, extraire le texte de la couverture
-      final text = await _ocrService.extractAllText(photo.path);
+      // 2. Sinon, extraire les lignes de texte avec leur taille (bounding box)
+      final lines = await _ocrService.extractLines(photo.path);
+      final text = lines.map((l) => l.text).join('\n');
 
       if (!mounted) return;
       setState(() {
@@ -238,13 +337,13 @@ class _ScanBookCoverPageState extends State<ScanBookCoverPage>
 
       if (text.isEmpty) {
         setState(() {
-          _errorMessage = 'Aucun texte détecté sur la couverture.';
+          _errorMessage = AppLocalizations.of(context).scanNoTextDetected;
         });
         return;
       }
 
       // 3. Rechercher sur Google Books
-      await _searchOnGoogleBooks(text);
+      await _searchOnGoogleBooks(lines, text);
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -254,100 +353,190 @@ class _ScanBookCoverPageState extends State<ScanBookCoverPage>
     }
   }
 
-  /// Nettoie le texte OCR pour en extraire une requête pertinente
-  String _cleanOCRQuery(String rawText) {
-    final lines = rawText
-        .split('\n')
-        .map((l) => l.trim())
-        .where((l) => l.isNotEmpty)
-        .where((l) => l.length > 2) // Ignorer lignes trop courtes
-        .where((l) => !RegExp(r'^\d[\d\s\-\./:]*$').hasMatch(l)) // Ignorer dates/numéros purs
-        .where((l) {
-          final lower = l.toLowerCase();
-          // Ignorer les noms d'éditeurs/collections/mentions courantes
-          const noiseExact = [
-            // Éditeurs
-            'texto', 'folio', 'poche', 'pocket', 'j\'ai lu', 'livre de poche',
-            'gallimard', 'hachette', 'flammarion', 'albin michel', 'seuil',
-            'grasset', 'actes sud', 'points', 'babel', 'nathan', 'casterman',
-            'bayard', 'milan', 'didier jeunesse', 'père castor', 'père castor',
-            'l\'école des loisirs', 'ecole des loisirs', 'kaléidoscope',
-            'kaleidoscope', 'gautier-languereau', 'auzou', 'fleurus',
-            'larousse', 'robert laffont', 'calmann-lévy', 'calmann-levy',
-            'le cherche midi', 'stock', 'jc lattès', 'jc lattes', 'belfond',
-            'denoël', 'denoel', 'rivages', 'minuit', 'p.o.l', 'verdier',
-            'zulma', 'sabine wespieser', 'l\'olivier', 'mercure de france',
-            'penguin', 'harper collins', 'harpercollins', 'simon & schuster',
-            'random house', 'macmillan', 'scholastic', 'bloomsbury',
-            // Collections / types
-            'edition', 'édition', 'editions', 'éditions', 'collection',
-            'album', 'album nathan', 'album jeunesse', 'roman', 'essai',
-            'bd', 'bande dessinée', 'manga', 'poche', 'grand format',
-            // Mentions marketing
-            'isbn', 'prix', 'best-seller', 'bestseller', 'www.', 'http',
-            'nouveau', 'nouveauté', 'nouveaute', 'inédit', 'inedit',
-          ];
-          // Correspondance exacte ou préfixe
-          if (noiseExact.any((n) => lower == n || lower.startsWith('$n '))) {
-            return false;
-          }
-          // Ignorer les lignes qui sont juste "Éditions X" ou "Collection X"
-          if (RegExp(r'^(éditions?|editions?|collection)\b', caseSensitive: false).hasMatch(lower)) {
-            return false;
-          }
-          // Ignorer les lignes contenant uniquement un copyright/année
-          if (RegExp(r'^[©®]\s*\d{4}').hasMatch(l)) return false;
-          return true;
-        })
-        .toList();
+  /// True si la ligne est du "bruit" (éditeur, mentions marketing, dates…)
+  /// et ne peut pas être un titre ou un auteur.
+  bool _isNoiseLine(String l) {
+    if (l.length <= 2) return true;
+    // Dates / numéros purs
+    if (RegExp(r'^\d[\d\s\-\./:]*$').hasMatch(l)) return true;
 
-    if (lines.isEmpty) return rawText.trim();
-
-    // Prendre les 2 lignes les plus longues (probablement titre + auteur)
-    final sorted = List<String>.from(lines)..sort((a, b) => b.length.compareTo(a.length));
-    final topLines = sorted.take(2).toList();
-
-    // Utiliser intitle: sur la ligne la plus longue (titre probable)
-    // pour améliorer la pertinence Google Books
-    if (topLines.length >= 2) {
-      return 'intitle:${topLines[0]} inauthor:${topLines[1]}';
+    final lower = l.toLowerCase();
+    const noiseExact = [
+      // Éditeurs
+      'texto', 'folio', 'poche', 'pocket', 'j\'ai lu', 'livre de poche',
+      'gallimard', 'hachette', 'flammarion', 'albin michel', 'seuil',
+      'grasset', 'actes sud', 'points', 'babel', 'nathan', 'casterman',
+      'bayard', 'milan', 'didier jeunesse', 'père castor',
+      'l\'école des loisirs', 'ecole des loisirs', 'kaléidoscope',
+      'kaleidoscope', 'gautier-languereau', 'auzou', 'fleurus',
+      'larousse', 'robert laffont', 'calmann-lévy', 'calmann-levy',
+      'le cherche midi', 'stock', 'jc lattès', 'jc lattes', 'belfond',
+      'denoël', 'denoel', 'rivages', 'minuit', 'p.o.l', 'verdier',
+      'zulma', 'sabine wespieser', 'l\'olivier', 'mercure de france',
+      'penguin', 'harper collins', 'harpercollins', 'simon & schuster',
+      'random house', 'macmillan', 'scholastic', 'bloomsbury',
+      // Collections / types
+      'edition', 'édition', 'editions', 'éditions', 'collection',
+      'album', 'album nathan', 'album jeunesse', 'roman', 'essai',
+      'bd', 'bande dessinée', 'manga', 'grand format',
+      // Mentions marketing / interface (photo d'écran, page produit…)
+      'isbn', 'prix', 'best-seller', 'bestseller', 'www.', 'http',
+      'nouveau', 'nouveauté', 'nouveaute', 'inédit', 'inedit',
+      'ebook', 'kindle', 'amazon', 'fnac', 'cultura', 'livres',
+      'ajouter au panier', 'voir tous les détails', 'livraison',
+      'broché', 'broche', 'relié', 'relie', 'format',
+    ];
+    if (noiseExact.any((n) => lower == n || lower.startsWith('$n '))) {
+      return true;
     }
-    return 'intitle:${topLines[0]}';
+    // "Éditions X" / "Collection X"
+    if (RegExp(r'^(éditions?|editions?|collection)\b', caseSensitive: false)
+        .hasMatch(lower)) {
+      return true;
+    }
+    // Copyright/année
+    if (RegExp(r'^[©®]\s*\d{4}').hasMatch(l)) return true;
+    // Notes type "4,6 étoiles", pourcentages, prix en euros
+    if (RegExp(r'^\d+[,.]\d+\s*[€%★*]?$').hasMatch(l)) return true;
+    if (l.contains('€')) return true;
+    return false;
   }
 
-  /// Rechercher sur Google Books avec le texte OCR
-  Future<void> _searchOnGoogleBooks(String query) async {
+  /// Normalise une chaîne pour comparaison : minuscules, sans accents,
+  /// caractères non alphanumériques remplacés par des espaces.
+  String _normalize(String s) {
+    const accents = 'àáâäãåçèéêëìíîïñòóôöõùúûüýÿœæ';
+    const plain = 'aaaaaaceeeeiiiinooooouuuuyyoa';
+    var out = s.toLowerCase();
+    for (var i = 0; i < accents.length; i++) {
+      out = out.replaceAll(accents[i], plain[i]);
+    }
+    return out
+        .replaceAll(RegExp(r'[^a-z0-9]+'), ' ')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+  }
+
+  /// Classe les lignes OCR par hauteur de texte décroissante (le titre et
+  /// l'auteur sont presque toujours les plus gros textes de l'image),
+  /// après filtrage du bruit et dédoublonnage.
+  List<String> _candidateLines(List<OcrLine> lines) {
+    final filtered = lines.where((l) => !_isNoiseLine(l.text)).toList()
+      ..sort((a, b) => b.height.compareTo(a.height));
+    final seen = <String>{};
+    final out = <String>[];
+    for (final l in filtered) {
+      final key = _normalize(l.text);
+      if (key.isEmpty || !seen.add(key)) continue;
+      out.add(l.text);
+    }
+    return out;
+  }
+
+  /// Ne garde que les résultats dont le titre ou l'auteur recoupe réellement
+  /// le texte OCR — évite d'afficher des livres au hasard renvoyés par le
+  /// fuzzy matching de Google Books. Trie par pertinence du titre.
+  List<GoogleBook> _filterRelevant(List<GoogleBook> results, String ocrText) {
+    final haystack = ' ${_normalize(ocrText)} ';
+
+    double titleScore(GoogleBook book) {
+      final tokens = _normalize(book.title)
+          .split(' ')
+          .where((t) => t.length >= 3)
+          .toList();
+      if (tokens.isEmpty) return 0;
+      final found = tokens.where((t) => haystack.contains(' $t ')).length;
+      return found / tokens.length;
+    }
+
+    bool authorMatches(GoogleBook book) {
+      return book.authors.any((a) {
+        final tokens =
+            _normalize(a).split(' ').where((t) => t.length >= 3).toList();
+        return tokens.isNotEmpty &&
+            tokens.every((t) => haystack.contains(' $t '));
+      });
+    }
+
+    final scored = <(GoogleBook, double)>[];
+    for (final book in results) {
+      final score = titleScore(book);
+      if (score >= 0.5 || authorMatches(book)) {
+        scored.add((book, score));
+      }
+    }
+    scored.sort((a, b) => b.$2.compareTo(a.$2));
+    return scored.map((e) => e.$1).toList();
+  }
+
+  /// Rechercher sur Google Books à partir des lignes OCR classées par taille
+  /// de texte. Cascade de requêtes, chaque étape filtrée par pertinence ;
+  /// fallback IA (Edge Function) en dernier recours.
+  Future<void> _searchOnGoogleBooks(List<OcrLine> lines, String rawText) async {
     setState(() {
       _isSearching = true;
       _errorMessage = null;
     });
 
     try {
-      final cleanQuery = _cleanOCRQuery(query);
-      debugPrint('OCR search query: "$cleanQuery"');
+      final candidates = _candidateLines(lines);
+      debugPrint('OCR candidates (par taille): ${candidates.take(5).toList()}');
 
-      // 1. Essayer avec la requête nettoyée (intitle:/inauthor:) + restriction FR
-      var results = await _googleBooksService.searchBooks(cleanQuery, langRestrict: true);
+      var results = <GoogleBook>[];
 
-      // 2. Si pas de résultat, réessayer sans restriction de langue
-      if (results.isEmpty) {
-        debugPrint('OCR retry without lang restrict');
-        results = await _googleBooksService.searchBooks(cleanQuery);
+      if (candidates.isNotEmpty) {
+        // 1. Requête combinée avec les 3 plus gros textes (titre + auteur
+        //    y sont presque toujours), restreinte au français d'abord.
+        final combined = candidates.take(3).join(' ');
+        debugPrint('OCR query 1: "$combined" (fr)');
+        results = _filterRelevant(
+          await _googleBooksService.searchBooks(combined, langRestrict: true),
+          rawText,
+        );
+
+        // 2. Même requête sans restriction de langue
+        if (results.isEmpty) {
+          debugPrint('OCR query 2: "$combined"');
+          results = _filterRelevant(
+            await _googleBooksService.searchBooks(combined),
+            rawText,
+          );
+        }
+
+        // 3. intitle:/inauthor: dans les deux sens (on ne sait pas lequel des
+        //    deux plus gros textes est le titre et lequel est l'auteur)
+        if (results.isEmpty && candidates.length >= 2) {
+          final a = candidates[0], b = candidates[1];
+          debugPrint('OCR query 3: intitle/inauthor');
+          results = _filterRelevant(
+            await _googleBooksService.searchBooks('intitle:$b inauthor:$a'),
+            rawText,
+          );
+          if (results.isEmpty) {
+            results = _filterRelevant(
+              await _googleBooksService.searchBooks('intitle:$a inauthor:$b'),
+              rawText,
+            );
+          }
+        }
+
+        // 4. Chaque candidat seul (toujours filtré par pertinence, donc pas
+        //    de résultats hors sujet)
+        if (results.isEmpty) {
+          for (final c in candidates.take(3)) {
+            debugPrint('OCR query 4: "$c"');
+            results = _filterRelevant(
+              await _googleBooksService.searchBooks(c),
+              rawText,
+            );
+            if (results.isNotEmpty) break;
+          }
+        }
       }
 
-      // 3. Fallback : requête simple avec la ligne la plus longue (sans intitle:)
+      // 5. Fallback IA : extraction titre/auteur par la Edge Function
       if (results.isEmpty) {
-        final fallbackLines = query
-            .split('\n')
-            .map((l) => l.trim())
-            .where((l) => l.length > 3)
-            .toList();
-        if (fallbackLines.isNotEmpty) {
-          fallbackLines.sort((a, b) => b.length.compareTo(a.length));
-          final fallbackQuery = fallbackLines.first;
-          debugPrint('OCR fallback query: "$fallbackQuery"');
-          results = await _googleBooksService.searchBooks(fallbackQuery);
-        }
+        results = await _aiFallbackSearch(rawText);
       }
 
       if (!mounted) return;
@@ -358,15 +547,55 @@ class _ScanBookCoverPageState extends State<ScanBookCoverPage>
 
       if (results.isEmpty) {
         setState(() {
-          _errorMessage = 'Aucun livre trouvé. Essayez la recherche manuelle.';
+          _errorMessage = AppLocalizations.of(context).scanNoBookFound;
         });
       }
     } catch (e) {
       if (!mounted) return;
       setState(() {
         _isSearching = false;
-        _errorMessage = 'Erreur de recherche: $e';
+        _errorMessage = AppLocalizations.of(context).scanSearchError(e.toString());
       });
+    }
+  }
+
+  /// Fallback IA : envoie le texte OCR à la Edge Function
+  /// `extract-book-from-cover` (gpt-4o-mini) qui en extrait titre + auteur,
+  /// puis recherche sur Google Books. Best-effort : toute erreur (pas de
+  /// réseau, mode invité, quota…) retourne simplement une liste vide.
+  Future<List<GoogleBook>> _aiFallbackSearch(String rawText) async {
+    try {
+      debugPrint('OCR fallback IA: extraction titre/auteur');
+      final response = await Supabase.instance.client.functions.invoke(
+        'extract-book-from-cover',
+        body: {'ocr_text': rawText},
+      );
+
+      final data = response.data;
+      final map = data is Map<String, dynamic>
+          ? data
+          : (data is String ? jsonDecode(data) as Map<String, dynamic> : null);
+      if (map == null) return [];
+
+      final title = (map['title'] as String?)?.trim() ?? '';
+      final author = (map['author'] as String?)?.trim() ?? '';
+      if (title.isEmpty) return [];
+      debugPrint('OCR fallback IA: titre="$title" auteur="$author"');
+
+      var results = <GoogleBook>[];
+      if (author.isNotEmpty) {
+        results = await _googleBooksService.searchByTitleAuthor(title, author);
+      }
+      if (results.isEmpty) {
+        results =
+            await _googleBooksService.searchBooks('$title $author'.trim());
+      }
+      // Filtre de pertinence contre le texte OCR enrichi du titre/auteur
+      // extraits (l'IA peut avoir corrigé une coquille OCR).
+      return _filterRelevant(results, '$rawText\n$title\n$author');
+    } catch (e) {
+      debugPrint('OCR fallback IA erreur: $e');
+      return [];
     }
   }
 
@@ -401,14 +630,14 @@ class _ScanBookCoverPageState extends State<ScanBookCoverPage>
     return Scaffold(
       appBar: AppBar(
         title: Text(_currentMode == ScanMode.barcode
-            ? 'Scanner ISBN'
-            : 'Scanner couverture'),
+            ? AppLocalizations.of(context).scanIsbnTitle
+            : AppLocalizations.of(context).scanCoverTitle),
         backgroundColor: AppColors.primary,
         actions: [
           IconButton(
             icon: const Icon(Icons.search),
             onPressed: _manualSearch,
-            tooltip: 'Recherche manuelle',
+            tooltip: AppLocalizations.of(context).manualSearchTooltip,
           ),
         ],
       ),
@@ -462,7 +691,7 @@ class _ScanBookCoverPageState extends State<ScanBookCoverPage>
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      'Code-barres',
+                      AppLocalizations.of(context).barcodeLabel,
                       style: TextStyle(
                         fontWeight: _currentMode == ScanMode.barcode
                             ? FontWeight.bold
@@ -503,7 +732,7 @@ class _ScanBookCoverPageState extends State<ScanBookCoverPage>
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      'Couverture',
+                      AppLocalizations.of(context).coverLabel,
                       style: TextStyle(
                         fontWeight: _currentMode == ScanMode.ocr
                             ? FontWeight.bold
@@ -545,6 +774,7 @@ class _ScanBookCoverPageState extends State<ScanBookCoverPage>
                     MobileScanner(
                       controller: _scannerController!,
                       onDetect: _onBarcodeDetected,
+                      errorBuilder: (context, error) => _buildScannerError(),
                     ),
                   if (!_scannerActive)
                     Container(
@@ -566,8 +796,8 @@ class _ScanBookCoverPageState extends State<ScanBookCoverPage>
                               const Icon(Icons.pause_circle,
                                   color: Colors.white54, size: 48),
                               const SizedBox(height: 8),
-                              const Text('Scanner en pause',
-                                  style: TextStyle(color: Colors.white54)),
+                              Text(AppLocalizations.of(context).scanPaused,
+                                  style: const TextStyle(color: Colors.white54)),
                             ],
                           ],
                         ),
@@ -621,12 +851,12 @@ class _ScanBookCoverPageState extends State<ScanBookCoverPage>
                             ],
                           ),
                           const SizedBox(height: 8),
-                          Text('Pointez la caméra vers le code-barres ISBN',
+                          Text(AppLocalizations.of(context).scanPointCamera,
                               style: TextStyle(color: isDark ? Colors.white70 : null)),
-                          Text('(au dos du livre, commence par 978 ou 979)',
+                          Text(AppLocalizations.of(context).scanBarcodeHint,
                               style: TextStyle(color: isDark ? Colors.white70 : null)),
                           const SizedBox(height: 8),
-                          Text('Pas de code-barres ? Utilisez l\'onglet "Couverture"',
+                          Text(AppLocalizations.of(context).scanNoBarcodeHint,
                               style: TextStyle(
                                 fontStyle: FontStyle.italic,
                                 color: isDark ? Colors.white60 : null,
@@ -646,7 +876,7 @@ class _ScanBookCoverPageState extends State<ScanBookCoverPage>
                 child: ElevatedButton.icon(
                   onPressed: _retry,
                   icon: const Icon(Icons.refresh),
-                  label: const Text('Réessayer'),
+                  label: Text(AppLocalizations.of(context).retry),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
@@ -662,13 +892,13 @@ class _ScanBookCoverPageState extends State<ScanBookCoverPage>
 
           // Loading
           if (_isSearching)
-            const Padding(
-              padding: EdgeInsets.all(20),
+            Padding(
+              padding: const EdgeInsets.all(20),
               child: Column(
                 children: [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 12),
-                  Text('Recherche en cours...'),
+                  const CircularProgressIndicator(),
+                  const SizedBox(height: 12),
+                  Text(AppLocalizations.of(context).searchingInProgress),
                 ],
               ),
             ),
@@ -712,9 +942,9 @@ class _ScanBookCoverPageState extends State<ScanBookCoverPage>
             child: ElevatedButton.icon(
               onPressed: _isProcessing ? null : _takePicture,
               icon: const Icon(Icons.camera_alt_rounded),
-              label: const Text(
-                'Prendre une photo',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              label: Text(
+                AppLocalizations.of(context).takePhoto,
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
@@ -731,7 +961,7 @@ class _ScanBookCoverPageState extends State<ScanBookCoverPage>
             child: TextButton.icon(
               onPressed: _isProcessing ? null : _pickFromGallery,
               icon: const Icon(Icons.photo_library_outlined, size: 18),
-              label: const Text('Choisir depuis la galerie'),
+              label: Text(AppLocalizations.of(context).chooseFromGallery),
               style: TextButton.styleFrom(
                 foregroundColor: AppColors.primary,
               ),
@@ -746,14 +976,14 @@ class _ScanBookCoverPageState extends State<ScanBookCoverPage>
           // Processing
           if (_isProcessing) ...[
             const SizedBox(height: AppSpace.l),
-            const Card(
+            Card(
               child: Padding(
-                padding: EdgeInsets.all(20),
+                padding: const EdgeInsets.all(20),
                 child: Column(
                   children: [
-                    CircularProgressIndicator(),
-                    SizedBox(height: 12),
-                    Text('Analyse de la couverture...'),
+                    const CircularProgressIndicator(),
+                    const SizedBox(height: 12),
+                    Text(AppLocalizations.of(context).scanAnalyzingCover),
                   ],
                 ),
               ),
@@ -765,14 +995,14 @@ class _ScanBookCoverPageState extends State<ScanBookCoverPage>
 
           // Loading recherche
           if (_isSearching && !_isProcessing)
-            const Card(
+            Card(
               child: Padding(
-                padding: EdgeInsets.all(20),
+                padding: const EdgeInsets.all(20),
                 child: Column(
                   children: [
-                    CircularProgressIndicator(),
-                    SizedBox(height: 12),
-                    Text('Recherche en cours...'),
+                    const CircularProgressIndicator(),
+                    const SizedBox(height: 12),
+                    Text(AppLocalizations.of(context).searchingInProgress),
                   ],
                 ),
               ),
@@ -781,7 +1011,7 @@ class _ScanBookCoverPageState extends State<ScanBookCoverPage>
           // Image preview
           if (_imageFile != null && !_isProcessing) ...[
             const SizedBox(height: 20),
-            const Text('Couverture scannée:',
+            Text(AppLocalizations.of(context).scanScannedCover,
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             const SizedBox(height: 8),
             ClipRRect(
@@ -798,7 +1028,7 @@ class _ScanBookCoverPageState extends State<ScanBookCoverPage>
           if (_extractedText != null && _extractedText!.isNotEmpty) ...[
             const SizedBox(height: 20),
             ExpansionTile(
-              title: const Text('Texte détecté'),
+              title: Text(AppLocalizations.of(context).scanDetectedText),
               children: [
                 Builder(
                   builder: (context) {
@@ -867,14 +1097,14 @@ class _ScanBookCoverPageState extends State<ScanBookCoverPage>
               child: Column(
                 children: [
                   Text(
-                    'Photographiez la couverture',
+                    AppLocalizations.of(context).scanPhotographCover,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w700,
                         ),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'On détecte le titre et trouve le livre',
+                    AppLocalizations.of(context).scanCoverExplain,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: Theme.of(context)
                               .colorScheme
@@ -893,12 +1123,12 @@ class _ScanBookCoverPageState extends State<ScanBookCoverPage>
 
   Widget _buildOCRSteps() {
     return Row(
-      children: const [
-        _OCRStep(icon: Icons.camera_alt_outlined, label: 'Photo'),
-        SizedBox(width: AppSpace.s),
-        _OCRStep(icon: Icons.text_fields_rounded, label: 'Détection'),
-        SizedBox(width: AppSpace.s),
-        _OCRStep(icon: Icons.auto_awesome_outlined, label: 'Recherche'),
+      children: [
+        _OCRStep(icon: Icons.camera_alt_outlined, label: AppLocalizations.of(context).scanStepPhoto),
+        const SizedBox(width: AppSpace.s),
+        _OCRStep(icon: Icons.text_fields_rounded, label: AppLocalizations.of(context).scanStepDetection),
+        const SizedBox(width: AppSpace.s),
+        _OCRStep(icon: Icons.auto_awesome_outlined, label: AppLocalizations.of(context).scanStepSearch),
       ],
     );
   }
@@ -924,7 +1154,7 @@ class _ScanBookCoverPageState extends State<ScanBookCoverPage>
           const SizedBox(width: AppSpace.s),
           Flexible(
             child: Text(
-              'Si l\'ISBN est visible, il sera détecté automatiquement',
+              AppLocalizations.of(context).scanIsbnAutoDetect,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: AppColors.primary,
                     fontWeight: FontWeight.w500,
@@ -998,9 +1228,9 @@ class _ScanBookCoverPageState extends State<ScanBookCoverPage>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Résultats:',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              Text(
+                AppLocalizations.of(context).scanResults,
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               TextButton.icon(
                 onPressed: _retry,

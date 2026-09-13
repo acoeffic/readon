@@ -31,6 +31,9 @@
 		A0A0A0A09999AAAABBBBCCCC /* ReadingActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0A0A0A01111222233334444 /* ReadingActivityAttributes.swift */; };
 		A4E845FAA27851917864DCE6 /* WatchSessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15684D26A74206BAFAB93FBC /* WatchSessionManager.swift */; };
 		B1B1B1B100000001CCCCDDDD /* SubscriptionPaywallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1B1B1B100000002CCCCDDDD /* SubscriptionPaywallView.swift */; };
+		D4D4D4D400000001AAAABBBB /* KindleCookiesChannel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4D4D4D400000002AAAABBBB /* KindleCookiesChannel.swift */; };
+		C3C3C3C35555666677778888 /* ReadingActivityIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3C3C3C31111222233334444 /* ReadingActivityIntents.swift */; };
+		C3C3C3C39999AAAABBBBCCCC /* ReadingActivityIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3C3C3C31111222233334444 /* ReadingActivityIntents.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -112,7 +115,6 @@
 		331C807B294A618700263BE5 /* RunnerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunnerTests.swift; sourceTree = "<group>"; };
 		331C8081294A63A400263BE5 /* RunnerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RunnerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = AppFrameworkInfo.plist; path = Flutter/AppFrameworkInfo.plist; sourceTree = "<group>"; };
-		408C4BD49F2A7700683B9318 /* Generated.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Generated.xcconfig; path = Flutter/Generated.xcconfig; sourceTree = "<group>"; };
 		41A64234B3C09F65160C1CEE /* LexDayWatch.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = LexDayWatch.entitlements; sourceTree = "<group>"; };
 		49A7426E8F0222B403D1415E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		61DD0ABAE244D55CA7B2E543 /* Pods-RunnerTests.profile.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.profile.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.profile.xcconfig"; sourceTree = "<group>"; };
@@ -136,12 +138,14 @@
 		AF84363BD97FCF56B70E3272 /* Pods-RunnerTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.release.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.release.xcconfig"; sourceTree = "<group>"; };
 		B14E413799CE8ED63514EEA3 /* WatchConnectivityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = WatchConnectivityManager.swift; path = Runner/WatchConnectivityManager.swift; sourceTree = SOURCE_ROOT; };
 		B1B1B1B100000002CCCCDDDD /* SubscriptionPaywallView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SubscriptionPaywallView.swift; sourceTree = "<group>"; };
+		D4D4D4D400000002AAAABBBB /* KindleCookiesChannel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = KindleCookiesChannel.swift; sourceTree = "<group>"; };
+		C3C3C3C31111222233334444 /* ReadingActivityIntents.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ReadingActivityIntents.swift; sourceTree = "<group>"; };
 		CC944123CAE36EA82B961763 /* Pods_Runner.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Runner.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		F2904DCB988E43725AC1161E /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		1E6601FB2F8D792D00B55A28 = {
+		1E6601FB2F8D792D00B55A28 /* Exceptions for "LexDayWidgetExtension" folder in "LexDayWidgetExtensionExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
@@ -151,7 +155,18 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		1E6601ED2F8D792C00B55A28 /* LexDayWidgetExtension */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (1E6601FB2F8D792D00B55A28, ); explicitFileTypes = {}; explicitFolders = (); path = LexDayWidgetExtension; sourceTree = "<group>"; };
+		1E6601ED2F8D792C00B55A28 /* LexDayWidgetExtension */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				1E6601FB2F8D792D00B55A28 /* Exceptions for "LexDayWidgetExtension" folder in "LexDayWidgetExtensionExtension" target */,
+			);
+			explicitFileTypes = {
+			};
+			explicitFolders = (
+			);
+			path = LexDayWidgetExtension;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -279,7 +294,9 @@
 				1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */,
 				74858FAE1ED2DC5600515810 /* AppDelegate.swift */,
 				A0A0A0A01111222233334444 /* ReadingActivityAttributes.swift */,
+				C3C3C3C31111222233334444 /* ReadingActivityIntents.swift */,
 				B1B1B1B100000002CCCCDDDD /* SubscriptionPaywallView.swift */,
+				D4D4D4D400000002AAAABBBB /* KindleCookiesChannel.swift */,
 				74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */,
 			);
 			path = Runner;
@@ -421,7 +438,7 @@
 			);
 			mainGroup = 97C146E51CF9000F007C117D;
 			packageReferences = (
-				781AD8BC2B33823900A9FFBB /* XCLocalSwiftPackageReference "Flutter/ephemeral/Packages/FlutterGeneratedPluginSwiftPackage" */,
+				781AD8BC2B33823900A9FFBB /* XCLocalSwiftPackageReference "FlutterGeneratedPluginSwiftPackage" */,
 			);
 			productRefGroup = 97C146EF1CF9000F007C117D /* Products */;
 			projectDirPath = "";
@@ -593,6 +610,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A0A0A0A09999AAAABBBBCCCC /* ReadingActivityAttributes.swift in Sources */,
+				C3C3C3C39999AAAABBBBCCCC /* ReadingActivityIntents.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -620,7 +638,9 @@
 			files = (
 				74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */,
 				A0A0A0A05555666677778888 /* ReadingActivityAttributes.swift in Sources */,
+				C3C3C3C35555666677778888 /* ReadingActivityIntents.swift in Sources */,
 				B1B1B1B100000001CCCCDDDD /* SubscriptionPaywallView.swift in Sources */,
+				D4D4D4D400000001AAAABBBB /* KindleCookiesChannel.swift in Sources */,
 				1E9B06BA2F72AA4F0050EA5C /* dummy.swift in Sources */,
 				1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */,
 				838B470685CB164C2B2BE2AB /* WatchConnectivityManager.swift in Sources */,
@@ -1232,7 +1252,7 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		781AD8BC2B33823900A9FFBB /* XCLocalSwiftPackageReference "Flutter/ephemeral/Packages/FlutterGeneratedPluginSwiftPackage" */ = {
+		781AD8BC2B33823900A9FFBB /* XCLocalSwiftPackageReference "FlutterGeneratedPluginSwiftPackage" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = Flutter/ephemeral/Packages/FlutterGeneratedPluginSwiftPackage;
 		};

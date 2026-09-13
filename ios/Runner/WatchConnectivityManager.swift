@@ -32,6 +32,11 @@ final class WatchConnectivityManager: NSObject, WCSessionDelegate {
 
     private var defaults: UserDefaults? { UserDefaults(suiteName: appGroupId) }
 
+    /// Notifie Flutter (via le MethodChannel, câblé dans AppDelegate) qu'une
+    /// commande vient d'arriver, pour un traitement immédiat sans attendre le
+    /// prochain tick du polling Dart (2 s). Toujours appelé sur le main thread.
+    var onCommandReceived: (() -> Void)?
+
     private override init() { super.init() }
 
     /// À appeler tôt (depuis AppDelegate) pour commencer à écouter la Watch.
@@ -100,6 +105,11 @@ final class WatchConnectivityManager: NSObject, WCSessionDelegate {
         d.set(command, forKey: cmdKey)
         d.set(sessionId, forKey: cmdSessionKey)
         d.set(Date().timeIntervalSince1970, forKey: cmdTimestampKey)
+        // Les callbacks WCSession arrivent sur un thread background ; le
+        // MethodChannel Flutter exige le main thread.
+        DispatchQueue.main.async { [weak self] in
+            self?.onCommandReceived?()
+        }
     }
 
     /// Lit puis efface la commande en attente émise par la Watch.

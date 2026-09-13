@@ -34,13 +34,14 @@ STRATÉGIE :
 1. Identifie le PROFIL : fiction vs non-fiction, thèmes dominants, complexité, langue préférée.
 2. Respecte le profil : si le lecteur est principalement non-fiction/business, recommande dans cette catégorie. Ne propose pas de romans à un lecteur 100% non-fiction.
 3. Priorise la RÉCENCE : les 5 derniers livres terminés pèsent 3x plus. Recommande dans la continuité thématique des lectures récentes.
-4. Utilise les SIGNAUX D'ENGAGEMENT : livres annotés ou lus rapidement = forte appréciation → recommande dans la même veine. Livres abandonnés = signal négatif → évite ce style.
-5. Adapte la longueur : respecte la longueur moyenne des livres lus par l'utilisateur.
-6. Analyse les DESCRIPTIONS des livres lus pour comprendre les thèmes précis, pas juste le genre.
+4. Les NOTES utilisateur (0.5 à 5★) sont le signal de préférence LE PLUS FIABLE : livres notés ≥ 4★ (surtout \"recommandé\") = adorés → recommande dans la même veine. Livres notés ≤ 2★ = déplu → évite absolument ce style. Les tags de ressenti (moving, funny, gripping, comforting…) décrivent l'expérience émotionnelle recherchée par le lecteur.
+5. Utilise les SIGNAUX D'ENGAGEMENT : livres annotés ou lus rapidement = forte appréciation → recommande dans la même veine. Livres abandonnés = signal négatif → évite ce style.
+6. Adapte la longueur : respecte la longueur moyenne des livres lus par l'utilisateur.
+7. Analyse les DESCRIPTIONS des livres lus pour comprendre les thèmes précis, pas juste le genre.
 
 RÈGLES :
 - Recommande exactement le nombre de livres demandé.
-- Ne recommande JAMAIS un livre déjà dans l'historique de l'utilisateur (lu, en cours, ou à lire).
+- Ne recommande JAMAIS un livre déjà dans l'historique de l'utilisateur (lu, en cours, abandonné, ou à lire).
 - Ne recommande QUE des livres qui existent réellement. N'invente rien.
 - Varie les auteurs dans tes suggestions.
 - Réponds UNIQUEMENT avec un JSON valide, sans texte autour.
@@ -132,6 +133,8 @@ serve(async (req) => {
       { data: toRead },
       { data: sessions },
       { data: annotationCounts },
+      { data: ratings },
+      { data: abandonedBooks },
     ] = await Promise.all([
       supabase
         .from("user_books")
@@ -162,12 +165,28 @@ serve(async (req) => {
         .from("annotations")
         .select("book_id")
         .eq("user_id", user.id),
+      supabase
+        .from("book_ratings")
+        .select("book_id, rating, emotion_tags, review_text, would_recommend, abandoned, abandoned_at_percent")
+        .eq("user_id", user.id),
+      supabase
+        .from("user_books")
+        .select("book_id, books(title, author, genre)")
+        .eq("user_id", user.id)
+        .eq("status", "abandoned")
+        .limit(20),
     ]);
 
     // Build annotation count map
     const annotationMap: Record<string, number> = {};
     for (const a of annotationCounts ?? []) {
       annotationMap[a.book_id] = (annotationMap[a.book_id] || 0) + 1;
+    }
+
+    // Build rating map (une note par lecture ; on garde la plus récente = dernière ligne)
+    const ratingMap: Record<string, any> = {};
+    for (const r of ratings ?? []) {
+      ratingMap[r.book_id] = r;
     }
 
     // Build reading pace map
@@ -182,7 +201,7 @@ serve(async (req) => {
       bookPace[s.book_id].totalDays += hours / 24;
     }
 
-    // Detect abandoned books
+    // Detect abandoned books (heuristique : livres 'reading' sans session récente)
     const thirtyDaysAgo = Date.now() - 30 * 86400000;
     const lastSessionByBook: Record<string, number> = {};
     for (const s of sessions ?? []) {
@@ -209,7 +228,14 @@ serve(async (req) => {
           if (book.page_count) parts[0] += ` [${book.page_count}p]`;
           const annotations = annotationMap[b.book_id] || 0;
           const pace = bookPace[b.book_id];
+          const rating = ratingMap[b.book_id];
           const signals: string[] = [];
+          if (rating?.rating != null) {
+            signals.push(`noté ${rating.rating}★${rating.would_recommend ? ", recommandé" : ""}`);
+            if (Array.isArray(rating.emotion_tags) && rating.emotion_tags.length) {
+              signals.push(`ressenti: ${rating.emotion_tags.join("/")}`);
+            }
+          }
           if (annotations > 0) signals.push(`${annotations} annotations`);
           if (pace && pace.totalDays > 0) {
             const pagesPerDay = Math.round(pace.totalPages / pace.totalDays);
@@ -217,6 +243,7 @@ serve(async (req) => {
             else if (pagesPerDay < 20 && pace.totalDays > 14) signals.push("lu lentement");
           }
           if (signals.length) parts[0] += ` → ${signals.join(", ")}`;
+          if (rating?.review_text) parts.push(`  Avis du lecteur : \"${truncate(rating.review_text, 100)}\"`);
           if (book.description) parts.push(`  ${truncate(book.description, 120)}`);
           return parts.join("\n");
         })
@@ -229,6 +256,25 @@ serve(async (req) => {
           const book = b.books;
           if (!book) return null;
           return `- ${book.title}${book.author ? ` de ${book.author}` : ""}${book.genre ? ` (${book.genre})` : ""}`;
+        })
+        .filter(Boolean)
+        .join("\n");
+
+    // Livres explicitement abandonnés (statut 'abandoned'), avec note éventuelle
+    const formatAbandonedBooks = (books: any[]) =>
+      (books ?? [])
+        .map((b: any) => {
+          const book = b.books;
+          if (!book) return null;
+          let line = `- ${book.title}${book.author ? ` de ${book.author}` : ""}${book.genre ? ` (${book.genre})` : ""}`;
+          const r = ratingMap[b.book_id];
+          if (r) {
+            const details: string[] = [];
+            if (r.rating != null) details.push(`noté ${r.rating}★`);
+            if (r.abandoned_at_percent != null) details.push(`arrêté à ${r.abandoned_at_percent}%`);
+            if (details.length) line += ` → ${details.join(", ")}`;
+          }
+          return line;
         })
         .filter(Boolean)
         .join("\n");
@@ -264,6 +310,12 @@ serve(async (req) => {
       return lastSession < thirtyDaysAgo;
     });
 
+    // Livres mal notés (≤ 2★) ou lectures abandonnées avec note → signal négatif fort
+    const badlyRated = (finished ?? []).filter((b: any) => {
+      const r = ratingMap[b.book_id];
+      return r && (r.rating <= 2 || r.abandoned === true);
+    });
+
     // Build context
     let userContext = "";
     const profileParts: string[] = [];
@@ -278,8 +330,20 @@ serve(async (req) => {
 
     if (topGenres.length) userContext += `Genres préférés : ${topGenres.join(", ")}\n\n`;
     if (finished?.length) userContext += `Livres terminés (${finished.length}):\n${formatFinishedBooks(finished)}\n\n`;
+    if (badlyRated.length) {
+      const lines = badlyRated
+        .map((b: any) => {
+          const r = ratingMap[b.book_id];
+          return `- ${b.books?.title ?? "?"}${b.books?.author ? ` de ${b.books.author}` : ""} (noté ${r.rating}★${r.abandoned ? ", abandonné" : ""})`;
+        })
+        .join("\n");
+      userContext += `Livres qui ont DÉPLU (à éviter comme style) :\n${lines}\n\n`;
+    }
     if (reading?.length) userContext += `En cours de lecture :\n${formatSimpleBooks(reading)}\n\n`;
-    if (abandoned.length) userContext += `Livres probablement abandonnés :\n${formatSimpleBooks(abandoned)}\n\n`;
+    const abandonedExplicit = formatAbandonedBooks(abandonedBooks ?? []);
+    const abandonedHeuristic = formatSimpleBooks(abandoned);
+    const abandonedAll = [abandonedExplicit, abandonedHeuristic].filter((s) => s).join("\n");
+    if (abandonedAll) userContext += `Livres abandonnés (signal négatif, NE PAS recommander) :\n${abandonedAll}\n\n`;
     if (toRead?.length) userContext += `Liste à lire (NE PAS recommander) :\n${formatSimpleBooks(toRead)}\n`;
 
     if (!userContext.trim()) {

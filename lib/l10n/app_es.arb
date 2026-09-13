@@ -19,6 +19,19 @@
   "tutorialDone": "Hecho",
   "tutorialSkip": "Omitir",
   "kindleSyncedAutomatically": "Kindle sincronizado automáticamente",
+  "kindleSessionExpired": "Tu sesión de Kindle ha caducado, vuelve a conectarte para seguir sincronizando",
+  "kindleReconnect": "Reconectar",
+  "kindleStopSyncing": "Dejar de sincronizar",
+  "kindleSyncDisabled": "Sincronización de Kindle desactivada. Puedes reactivarla en los ajustes.",
+  "sessionSourceKindle": "Leído en Kindle · tiempo estimado",
+  "kindleSessionsAdded": "{count, plural, =1{Tu lectura Kindle se ha añadido} other{{count} lecturas Kindle añadidas}}",
+  "@kindleSessionsAdded": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "enterEmailToReset": "Introduce tu email para restablecer",
   "emailSentCheckInbox": "Email enviado, revisa tu bandeja de entrada.",
   "errorSendingEmail": "Error al enviar el email",
@@ -1062,6 +1075,8 @@
   "museRecommendNovel": "Recomiéndame una novela",
   "museSimilarBook": "Un libro similar al último",
   "museClassic": "Un clásico por descubrir",
+  "museGiftChip": "🎁 Un libro para regalar",
+  "museGiftPrefill": "¿Qué libro podría regalarle a ",
   "museAssistantLabel": "Asistente literario",
   "museHeroSubtitle": "Un libro, una pregunta, un deseo…",
   "museComposerHint": "¿Qué buscas hoy?",
@@ -1077,7 +1092,9 @@
   "museSearchPrefix": "Busco un libro: {query}",
   "@museSearchPrefix": {
     "placeholders": {
-      "query": {"type": "String"}
+      "query": {
+        "type": "String"
+      }
     }
   },
   "freeMessagesUsed": "Has usado tus {max} mensajes gratuitos este mes",
@@ -1104,6 +1121,8 @@
   "enableLocationSettings": "Activa la ubicación en Ajustes",
   "locationAccessRequired": "Acceso a la ubicación requerido",
   "addToList": "Añadir a una lista",
+  "addToThisList": "Añadir a la lista",
+  "seeAllAuthorBooks": "Ver todos sus libros",
   "noPersonalList": "Ninguna lista personal.",
   "createNewList": "Crear una nueva lista",
   "addedToList": "Añadido a \"{title}\"",
@@ -1208,6 +1227,39 @@
   "privateList": "Lista privada",
   "publicListDescription": "Visible para tus amigos en tu perfil",
   "privateListDescription": "Visible solo para ti",
+  "listShareMakePublicTitle": "¿Hacer pública la lista?",
+  "listShareMakePublicMessage": "Para compartir «{title}», la lista debe ser pública. Cualquiera con el enlace podrá verla.",
+  "@listShareMakePublicMessage": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "makePublicButton": "Hacer pública",
+  "listShareLinkOption": "Compartir el enlace",
+  "listShareLinkSubtitle": "Página web visible sin la app",
+  "listShareImageOption": "Compartir como imagen",
+  "listShareImageSubtitle": "Una tarjeta para Instagram o TikTok",
+  "listShareText": "📚 Mi lista «{title}» en LexDay:\n{url}",
+  "@listShareText": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "url": {
+        "type": "String"
+      }
+    }
+  },
+  "listByOwner": "Lista de {name}",
+  "@listByOwner": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "addBooksTitle": "Añadir libros",
   "myLibraryTab": "Mi biblioteca",
   "searchTab": "Buscar",
@@ -1397,6 +1449,23 @@
   "allFinishedBooks": "Libros leídos",
   "newSessionSubtitle": "NUEVA SESIÓN",
   "startSessionTitle": "Iniciar",
+  "startFromBeginning": "Empezar desde el principio",
+  "addBookManuallyCta": "Añadir «{query}» manualmente",
+  "@addBookManuallyCta": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "titleAuthorRequired": "Título y autor obligatorios",
+  "cameraPermissionDenied": "Acceso a la cámara denegado",
+  "cameraPermissionHint": "Permite el acceso a la cámara en Ajustes para escanear, o busca el libro por título.",
+  "searchByTitleButton": "Buscar por título",
+  "scanBookCta": "Escanear un libro",
+  "endActiveSessionCta": "Terminar la sesión en curso",
+  "referralSection": "Invitaciones",
+  "referralInvite": "Invitar a un amigo · 14 días gratis",
   "whatPageAreYouAt": "¿EN QUÉ PÁGINA ESTÁS?",
   "scanPageBtn": "Escanear página",
   "galleryPageBtn": "Galería",
@@ -1582,6 +1651,7 @@
   "readingForFather": "Mi padre",
   "readingForMother": "Mi madre",
   "readingForOther": "Otro",
+  "readingForAddPrompt": "¿Leíste para alguien?",
   "readingForDisplay": "Leído para {person}",
   "@readingForDisplay": {
     "placeholders": {
@@ -1729,6 +1799,7 @@
   "recommended": "✦ Recomendado",
   "freeIncludedSessions": "Sesiones ilimitadas",
   "freeIncludedLibrary": "Biblioteca ilimitada",
+  "freeIncludedStats": "Estadísticas y seguimiento completos",
   "freeIncludedFeed": "Feed social",
   "freeIncludedGoals": "Objetivos e insignias básicas",
   "freeIncludedWrapped": "Wrapped mensual y anual",
@@ -1841,6 +1912,7 @@
   "manualSearchTipTitle": "Ej.: «Harry Potter mago»",
   "manualSearchTipAuthor": "Ej.: «Harari Sapiens»",
   "manualSearchTipIsbn": "También puedes pegar un ISBN (10 o 13 dígitos)",
+  "manualSearchTrendingTitle": "Tendencias del momento",
   "manualSearchNoResults": "No se encontraron libros",
   "manualSearchNoResultsHint": "Prueba con otra ortografía, añade el nombre del autor o elimina algunas palabras.",
   "totalPagesUnknownLabel": "Número total de páginas",
@@ -1908,19 +1980,18 @@
   "staleSessionContinueButton": "Continuar",
   "staleSessionNotifTitle": "Sesión de lectura en curso",
   "staleSessionNotifBody": "Dejaste una sesión de lectura abierta. ¿Has terminado?",
-
   "autoFreezeUsedTitle": "¡Tu flow ha sido protegido!",
   "autoFreezeUsedBody": "Un freeze automático salvó tu racha de {days} días. Lee unas páginas hoy para mantenerla.",
   "autoFreezeUsedCta": "Continuar mi racha",
-
   "feedGoalsCardTitle": "Mis objetivos",
   "feedGoalsCta": "Fíjate un objetivo de lectura",
-
   "rateBookSheetTitle": "Puntúa este libro",
   "rateBookSheetTitleWithBook": "¡Has terminado «{title}»!",
   "@rateBookSheetTitleWithBook": {
     "placeholders": {
-      "title": {"type": "String"}
+      "title": {
+        "type": "String"
+      }
     }
   },
   "rateBookSheetSubtitle": "¿Qué te pareció?",
@@ -1968,7 +2039,6 @@
   "abandonBookConfirmYes": "Sí, lo dejo",
   "abandonSheetTitle": "Vas a abandonar este libro",
   "abandonSheetSubtitle": "¿Una nota igualmente? Es opcional.",
-
   "watchCatchupTitle": "Lectura desde tu Watch",
   "watchCatchupBody": "{minutes} min registrados desde tu Apple Watch. Completa las páginas para actualizar tu progreso.",
   "watchCatchupStartPage": "Página de inicio",
@@ -1979,7 +2049,6 @@
   "watchCatchupEnterPages": "Indica las páginas de inicio y final.",
   "watchCatchupOcrFailed": "Número de página no detectado, inténtalo de nuevo o escríbelo.",
   "watchCatchupError": "No se pudo guardar. Inténtalo de nuevo.",
-
   "addPastSessionButton": "Añadir una lectura pasada",
   "addPastSessionTitle": "Lectura pasada",
   "addPastSessionDuration": "¿Cuánto tiempo leíste?",
@@ -1990,5 +2059,340 @@
   "addPastSessionEnterDuration": "Indica cuánto tiempo leíste.",
   "addPastSessionBackdatedInfo": "Esta lectura contará en tus estadísticas pero no para tu llama.",
   "addPastSessionTooShortWarning": "Menos de 2 min o ninguna página: esta lectura no contará para tu llama.",
-  "addPastSessionActiveSessionError": "Termina primero tu sesión en curso de este libro."
+  "addPastSessionActiveSessionError": "Termina primero tu sesión en curso de este libro.",
+  "scanIsbnDetected": "ISBN detectado: {code}",
+  "@scanIsbnDetected": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "scanNoBookForIsbn": "No se encontró ningún libro para este ISBN. Prueba el escaneo de portada.",
+  "scanSearchError": "Error de búsqueda: {error}",
+  "@scanSearchError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "scanNoTextDetected": "No se detectó texto en la portada.",
+  "scanNoBookFound": "No se encontró ningún libro. Prueba la búsqueda manual.",
+  "scanIsbnTitle": "Escanear ISBN",
+  "scanCoverTitle": "Escanear portada",
+  "manualSearchTooltip": "Búsqueda manual",
+  "coverLabel": "Portada",
+  "scanPaused": "Escáner en pausa",
+  "scanPointCamera": "Apunta la cámara al código de barras ISBN",
+  "scanBarcodeHint": "(en la contraportada, empieza por 978 o 979)",
+  "scanNoBarcodeHint": "¿Sin código de barras? Usa la pestaña \"Portada\"",
+  "scanAnalyzingCover": "Analizando la portada...",
+  "scanScannedCover": "Portada escaneada:",
+  "scanDetectedText": "Texto detectado",
+  "scanPhotographCover": "Fotografía la portada",
+  "scanCoverExplain": "Detectamos el título y encontramos el libro",
+  "scanStepDetection": "Detección",
+  "scanStepSearch": "Búsqueda",
+  "scanIsbnAutoDetect": "Si el ISBN es visible, se detectará automáticamente",
+  "scanResults": "Resultados:",
+  "bookAddedShort": "{title} añadido",
+  "@bookAddedShort": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "emptyLibraryUseSearch": "Usa la pestaña Buscar para encontrar y añadir libros.",
+  "searchBookByTitleAuthorHint": "Busca un libro por título o autor",
+  "chooseCoverTitle": "Elegir una portada",
+  "noCoversAvailable": "No hay portadas disponibles",
+  "coversComingSoon": "Pronto habrá más portadas.",
+  "bookHiddenFromOthers": "Libro oculto para otros usuarios",
+  "bookVisibleToOthers": "Libro visible para otros usuarios",
+  "errorUpdating": "Error al actualizar",
+  "markBookFinishedQuestion": "¿Marcar este libro como terminado?",
+  "bookMarkedFinished": "¡Libro marcado como terminado!",
+  "bookHiddenTooltip": "Libro oculto para los demás",
+  "hideBookTooltip": "Ocultar este libro",
+  "kindleBook": "Libro Kindle",
+  "scannedBook": "Libro escaneado",
+  "addGenre": "Añadir un género",
+  "sessionStartedAtPage": "Iniciada en la página {page}",
+  "@sessionStartedAtPage": {
+    "placeholders": {
+      "page": {
+        "type": "int"
+      }
+    }
+  },
+  "sinceDuration": "Desde hace {duration}",
+  "@sinceDuration": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "endThisReading": "Terminar esta lectura",
+  "progressPhotoHint": "Sigue tu progreso tomando una foto o introduciendo el número de página.",
+  "markAsFinished": "Marcar como terminado",
+  "currentlyAtPage": "Actualmente en la página {page}",
+  "@currentlyAtPage": {
+    "placeholders": {
+      "page": {
+        "type": "String"
+      }
+    }
+  },
+  "remainingAiSummaries": "{count}/{max} resúmenes restantes",
+  "@remainingAiSummaries": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "noAnnotationsForBook": "No hay anotaciones para este libro.\n¡Anota durante tus sesiones!",
+  "aiSheetExplain": "La IA analiza tus {count} anotaciones para crear una ficha de lectura personalizada: temas clave, citas destacadas, progresión y síntesis.",
+  "@aiSheetExplain": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "generateMySheet": "Generar mi ficha",
+  "regenerate": "Regenerar",
+  "sheetSentToNotion": "¡Ficha enviada a Notion!",
+  "aiSummaryLabel": "Resumen IA",
+  "summarizing": "Resumiendo...",
+  "summarizeAction": "Resumir",
+  "usedMonthlySummaries": "Has usado tus {count} resúmenes del mes",
+  "@usedMonthlySummaries": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "premiumSummariesUpsell": "Pásate a Premium para resumir todos tus pasajes sin límite",
+  "retryNextMonth": "Vuelve a intentarlo el mes que viene",
+  "addedToListNamed": "Añadido a \"{title}\"",
+  "@addedToListNamed": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "barcodeLabel": "Código de barras",
+  "scanStepPhoto": "Foto",
+  "chooseGenre": "Elegir el género",
+  "profileCurrentSection": "Ahora mismo",
+  "profileCurrentSince": "{count, plural, =1{desde hace 1 día} other{desde hace {count} días}}",
+  "@profileCurrentSince": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "profilePageProgress": "p. {current} / {total}",
+  "@profilePageProgress": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "profileFavoritesSection": "Sus favoritos",
+  "profileCommonSection": "Los habéis leído ambos",
+  "profileCommonSubtitle": "Libros presentes en vuestras dos bibliotecas",
+  "profileYouLabel": "Tú",
+  "profileLibrarySection": "Su biblioteca",
+  "profileToReadChip": "Deseos",
+  "profileSeeFullLibrary": "Ver toda su biblioteca",
+  "memberSinceDays": "{count, plural, =1{Miembro desde hace 1 día} other{Miembro desde hace {count} días}}",
+  "@memberSinceDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "memberSinceWeeks": "{count, plural, =1{Miembro desde hace 1 semana} other{Miembro desde hace {count} semanas}}",
+  "@memberSinceWeeks": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "memberSinceMonths": "{count, plural, =1{Miembro desde hace 1 mes} other{Miembro desde hace {count} meses}}",
+  "@memberSinceMonths": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "memberSinceYears": "{count, plural, =1{Miembro desde hace 1 año} other{Miembro desde hace {count} años}}",
+  "@memberSinceYears": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "profileTheirRating": "Su nota",
+  "sessionPageRange": "p. {start} → {end}",
+  "@sessionPageRange": {
+    "placeholders": {
+      "start": {
+        "type": "int"
+      },
+      "end": {
+        "type": "int"
+      }
+    }
+  },
+  "chooseNameTitle": "¿Cómo quieres aparecer?",
+  "chooseNameSubtitle": "Es el nombre que verán tus amigos y otros lectores en LexDay.",
+  "feedbackTooltip": "Enviar mi opinión",
+  "feedbackSheetTitle": "Enviar mi opinión",
+  "feedbackSheetSubtitle": "¿Un error, una idea, algo que te molesta? Cuéntanoslo todo — cada opinión nos ayuda a mejorar LexDay.",
+  "feedbackMessageLabel": "Tu mensaje",
+  "feedbackMessageHint": "Escribe tu opinión aquí…",
+  "feedbackSubmitButton": "Enviar",
+  "feedbackSentMessage": "¡Gracias por tu opinión!",
+  "feedbackErrorMessage": "No se pudo enviar tu opinión. Inténtalo de nuevo.",
+  "fabLogPastRead": "Acabo de leer",
+  "highlightTitle": "Subraya el pasaje",
+  "highlightAnalyzing": "Leyendo la foto…",
+  "highlightHint": "Desliza el dedo sobre el pasaje",
+  "highlightNoText": "No se detectó texto. Prueba con una foto más nítida o deja que la IA lea la página.",
+  "highlightSelectAll": "Seleccionar todo",
+  "highlightClear": "Borrar",
+  "highlightUse": "Usar",
+  "highlightOneWord": "1 palabra subrayada",
+  "highlightWordCount": "{count} palabras subrayadas",
+  "@highlightWordCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "highlightEnhanceAi": "Corregir con IA",
+  "highlightExtractAi": "Leer con IA",
+  "highlightEnhancing": "Releyendo…",
+  "highlightAiDone": "Pasaje releído por la IA",
+  "highlightAiLabel": "Texto releído por la IA",
+  "highlightModeMove": "Zoom / mover",
+  "highlightModeSelect": "Subrayar",
+  "highlightImageError": "No se puede abrir esta foto.",
+  "highlightRetakePhoto": "Volver a tomar la foto",
+  "takePhotoAction": "Hacer una foto",
+  "chooseFromGallery": "Elegir de la galería",
+  "editHighlight": "Editar el subrayado",
+  "pageDetectedSuggestion": "Página {page} detectada",
+  "@pageDetectedSuggestion": {
+    "placeholders": {
+      "page": { "type": "int" }
+    }
+  },
+  "capturePassageFab": "Guardar un pasaje",
+  "capturePassageTitle": "Guardar este pasaje",
+  "capturePassageSave": "Guardar",
+  "capturePassageSaved": "Pasaje guardado",
+  "capturePassageNoBook": "Elegir un libro",
+  "capturePassageNeedBook": "Elige un libro para este pasaje.",
+  "capturePassagePageLabel": "Página",
+  "capturePassageChooseBook": "¿Qué libro?",
+  "capturePassageScanCover": "Escanear la portada de un libro nuevo",
+  "capturePassageCameraError": "No se pudo abrir la cámara.",
+  "myPassages": "Mis pasajes",
+  "myPassagesSearchHint": "Buscar en mis pasajes\u2026",
+  "myPassagesNoResult": "Ningún pasaje coincide con esta búsqueda.",
+  "myPassagesEmptyTitle": "Todavía no has guardado nada",
+  "myPassagesEmptyBody": "Fotografía una página y subraya el pasaje con el dedo: te esperará aquí.",
+  "myPassagesPage": "p. {page}",
+  "@myPassagesPage": {
+    "placeholders": {
+      "page": { "type": "int" }
+    }
+  },
+  "myPassagesCopy": "Copiar el texto",
+  "myPassagesCopied": "Pasaje copiado",
+  "myPassagesDeleteTitle": "¿Eliminar este pasaje?",
+  "myPassagesDeleteBody": "El texto y la foto se eliminarán definitivamente.",
+  "myPassagesDeleteConfirm": "Eliminar",
+  "myPassagesSourceKindle": "Kindle",
+  "myPassagesNoteLabel": "Mi nota",
+  "myPassagesUnknownBook": "Libro desconocido",
+  "myPassagesCount": "{count} pasaje{count, plural, =1{} other{s}}",
+  "@myPassagesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "startPageOptionalLabel": "PÁGINA INICIAL · OPCIONAL",
+  "willResumeAtPage": "Retomarás en la página {page}",
+  "@willResumeAtPage": {
+    "placeholders": {
+      "page": { "type": "int" }
+    }
+  },
+  "willStartAtBeginning": "Empezarás desde el principio",
+  "abandonSessionElapsed": "Llevas leyendo {duration}.",
+  "@abandonSessionElapsed": {
+    "placeholders": {
+      "duration": { "type": "String" }
+    }
+  },
+  "abandonDeletesTime": "Abandonar elimina definitivamente este tiempo de lectura.",
+  "abandonKeepReading": "Seguir leyendo",
+  "abandonEndInstead": "Terminar la sesión",
+  "abandonDiscard": "Eliminar de todos modos",
+  "focusModeSettingsEntry": "Modo sin distracciones",
+  "focusModeTitle": "Modo sin distracciones",
+  "focusModeIntroTitle": "Silencia las notificaciones mientras lees",
+  "focusModeIntroBody": "Con dos automatizaciones en la app Atajos de Apple, tu iPhone activa «No molestar» al abrir LexDay y vuelve a la normalidad al salir. Configuración única, en 2 minutos.",
+  "focusModeAutomation1Title": "Al abrir LexDay",
+  "focusModeAutomation1Subtitle": "Activar No molestar automáticamente",
+  "focusModeAutomation2Title": "Al cerrar LexDay",
+  "focusModeAutomation2Subtitle": "Desactivar No molestar",
+  "focusModeStepOpenShortcuts": "Abre la app Atajos (preinstalada en tu iPhone)",
+  "focusModeStepAutomationTab": "Ve a la pestaña «Automatización» y toca «Nueva automatización»",
+  "focusModeStepChooseApp": "Elige «App» y selecciona LexDay",
+  "focusModeStepIsOpened": "Marca «Se abre» y «Ejecutar de inmediato»",
+  "focusModeStepIsClosed": "Marca «Se cierra» y «Ejecutar de inmediato»",
+  "focusModeStepActionOn": "Añade la acción «Establecer modo de concentración» → No molestar → Activar",
+  "focusModeStepActionOff": "Añade la acción «Establecer modo de concentración» → No molestar → Desactivar",
+  "focusModeOpenShortcuts": "Abrir Atajos",
+  "focusModeNote": "Es un ajuste 100 % de iOS: LexDay no accede a nada y puedes eliminar la automatización cuando quieras en Atajos.",
+  "focusModeShortcutsUnavailable": "No se pudo abrir Atajos. Reinstálala desde el App Store.",
+  "focusSuggestionTitle": "¿Leer sin interrupciones?",
+  "focusSuggestionBody": "Tu iPhone puede activar «No molestar» automáticamente en cada sesión. Configuración única de 2 minutos.",
+  "focusSuggestionCta": "Ver cómo",
+  "onboardingFirstSessionReady": "¿Lista para leer?",
+  "onboardingFirstSessionHint": "Con 5 minutos basta para empezar. Para cuando quieras.",
+  "onboardingFirstSessionCta": "Leer 5 minutos ahora",
+  "onboardingFirstSessionLater": "Ahora no",
+  "onboardingNoBookTitle": "¡Todo listo!",
+  "onboardingNoBookBody": "Añade un libro cuando quieras para empezar tu primera sesión de lectura.",
+  "onboardingNoBookCta": "Vamos",
+  "onboardingReminderTitle": "¿Te lo recordamos mañana?",
+  "onboardingReminderBody": "Un solo recordatorio para retomar «{title}» — y nada más hasta que hayas leído.",
+  "onboardingReminderYes": "Sí, recuérdamelo",
+  "onboardingReminderNo": "No, gracias",
+  "@onboardingReminderBody": {"placeholders": {"title": {"type": "String"}}}
 }

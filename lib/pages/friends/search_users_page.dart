@@ -7,7 +7,6 @@ import '../../services/books_service.dart';
 import '../../services/mutual_friends_service.dart';
 import '../../services/people_you_may_know_service.dart';
 import '../../theme/app_theme.dart';
-import '../../utils/app_constants.dart';
 import '../../widgets/back_header.dart';
 import '../../widgets/mutual_friends_badge.dart';
 import '../../widgets/user_search_card.dart';
@@ -17,6 +16,7 @@ import '../groups/group_detail_page.dart';
 import 'friend_profile_page.dart';
 import 'people_you_may_know_page.dart';
 import '../../widgets/constrained_content.dart';
+import '../../services/referral_service.dart';
 
 class SearchUsersPage extends StatefulWidget {
   const SearchUsersPage({super.key});
@@ -99,7 +99,7 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
     final text = bookTitle != null
         ? '\u{1F4D6} Je suis en train de lire $bookTitle\n\n'
             'Tu lis quoi en ce moment ? \u{1F440}\n'
-            '$kAppStoreUrl'
+            '$ReferralService.shareUrl'
         : l.shareInviteText;
     final box = context.findRenderObject() as RenderBox?;
     final origin = box != null ? box.localToGlobal(Offset.zero) & box.size : null;

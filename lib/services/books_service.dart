@@ -1,5 +1,6 @@
 // lib/services/books_service.dart
 
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
@@ -7,7 +8,11 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/book.dart';
+import '../models/reading_session.dart';
 import '../widgets/cached_book_cover.dart';
+import 'analytics_service.dart';
+import 'annotation_service.dart';
+import 'reading_session_service.dart';
 import 'google_books_service.dart';
 import 'kindle_webview_service.dart';
 
@@ -52,6 +57,21 @@ class BooksService {
 
   /// Ajouter un livre depuis Google Books
   Future<Book> addBookFromGoogleBooks(GoogleBook googleBook) async {
+    // Saisie manuelle : la page de recherche renvoie un GoogleBook synthétique
+    // sans id (le livre n'existe pas au catalogue Google). On ne peut alors ni
+    // dédupliquer par google_id ni enrichir la fiche — on bascule sur le
+    // chemin manuel, qui déduplique par titre+auteur et pose source='manual'.
+    if (googleBook.id.isEmpty) {
+      return addBookManually(
+        title: googleBook.title,
+        author: googleBook.authorsString,
+        isbn: googleBook.isbns.isNotEmpty ? googleBook.isbns.first : null,
+        coverUrl: googleBook.coverUrl,
+        pageCount: googleBook.pageCount,
+        description: googleBook.description,
+      );
+    }
+
     try {
       // Vérifier si le livre existe déjà (par Google ID)
       final existingByGoogle = await _supabase
@@ -178,6 +198,15 @@ class BooksService {
         'book_id': bookId,
         'status': 'to_read', // ou 'reading', 'finished'
       });
+
+      // Point de passage unique de tous les ajouts à la bibliothèque (recherche,
+      // scan de couverture, saisie manuelle, import Kindle) : c'est ici qu'on
+      // mesure `book_added`, et nulle part ailleurs. Le retour anticipé
+      // ci-dessus garantit qu'un livre déjà présent ne compte pas deux fois.
+      unawaited(AnalyticsService().track(
+        AnalyticsEvent.bookAdded,
+        properties: {'book_id': bookId},
+      ));
     } catch (e) {
       debugPrint('Erreur _addToUserBooks: $e');
       rethrow;
@@ -508,7 +537,22 @@ class BooksService {
         return null;
       }
 
-      final currentPage = (candidate['end_page'] as num?)?.toInt() ?? 0;
+      // Page courante = max des end_page connus pour ce livre (dans la
+      // fenêtre récupérée), pas seulement celui de la dernière session par
+      // end_time : une lecture passée antidatée (is_manual, horaire par
+      // défaut 21:00) peut être plus avancée en pages tout en étant classée
+      // avant la dernière session — et inversement, une session antidatée
+      // plus ancienne ne doit pas faire reculer la page courante.
+      final candidateBookId = candidate['book_id'].toString();
+      int currentPage = 0;
+      for (final session in sessions) {
+        if (session['book_id']?.toString() != candidateBookId) continue;
+        final endPage = (session['end_page'] as num?)?.toInt() ?? 0;
+        if (endPage > currentPage) currentPage = endPage;
+      }
+      // Progression Kindle (sync JSON) : la page la plus avancée gagne.
+      final kindlePage = await getKindleCurrentPage(candidateBookId);
+      if (kindlePage != null && kindlePage > currentPage) currentPage = kindlePage;
       final book = Book.fromJson(bookData);
 
       return {
@@ -520,6 +564,159 @@ class BooksService {
       debugPrint('Erreur getCurrentReadingBook: $e');
       return null;
     }
+  }
+
+  /// Pourcentages Kindle stockés (user_books.kindle_percent) pour [asins].
+  Future<Map<String, int>> getKindlePercentsByAsin(List<String> asins) async {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null || asins.isEmpty) return {};
+    final rows = await _supabase
+        .from('user_books')
+        .select('kindle_asin, kindle_percent')
+        .eq('user_id', userId)
+        .inFilter('kindle_asin', asins);
+    final out = <String, int>{};
+    for (final r in rows as List) {
+      final asin = r['kindle_asin'] as String?;
+      final pct = (r['kindle_percent'] as num?)?.toInt();
+      if (asin != null && pct != null) out[asin] = pct;
+    }
+    return out;
+  }
+
+  /// ASIN des livres « en cours » côté LexDay : statut reading, ou
+  /// progression Kindle connue entre 1 et 99 %. Complète les N livres les
+  /// plus récents d'Amazon pour la phase progression : un livre entamé puis
+  /// laissé de côté quelques semaines sort du top récence, mais on veut
+  /// toujours capter sa reprise.
+  Future<List<String>> getKindleAsinsInProgress() async {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) return [];
+    final rows = await _supabase
+        .from('user_books')
+        .select('kindle_asin, status, kindle_percent')
+        .eq('user_id', userId)
+        .not('kindle_asin', 'is', null)
+        .neq('status', 'finished');
+    final out = <String>[];
+    for (final r in rows as List) {
+      final asin = r['kindle_asin'] as String?;
+      if (asin == null || asin.isEmpty) continue;
+      final status = r['status'] as String?;
+      final pct = (r['kindle_percent'] as num?)?.toInt();
+      if (status == 'reading' || (pct != null && pct > 0 && pct < 100)) {
+        out.add(asin);
+      }
+    }
+    return out;
+  }
+
+  /// Crée une session de lecture (is_manual, source 'kindle') pour le delta de
+  /// progression Kindle [fromPercent] → [toPercent] d'un livre. Décision du
+  /// 12/09/2026 : session complète (pages + durée estimée au rythme
+  /// personnel, compte pour la flamme, badges, objectifs, feed avec badge
+  /// Kindle). Datée au moment du sync — la session est du jour, donc elle
+  /// compte pour la flamme (règle is_manual antidatée = exclue).
+  ///
+  /// Sans `page_count` on ne sait pas convertir un % en pages : pas de session
+  /// (la page courante reste gérée par [getKindleCurrentPage]).
+  /// Date de fin d'une session Kindle : le dernier jour lu selon le
+  /// calendrier Amazon, dans la fenêtre ]dernier sync progression, maintenant].
+  /// Ce jour = aujourd'hui (ou calendrier absent) → maintenant. Un jour passé
+  /// → 21:00 ce jour-là (même convention que les lectures passées). La session
+  /// compte quand même pour la flamme (exemption source 'kindle').
+  DateTime _kindleSessionEndTime(
+    KindleInsightsCalendar? calendar,
+    DateTime? previousProgressAt,
+  ) {
+    final now = DateTime.now();
+    if (calendar == null) return now;
+    final day = calendar.lastReadDayBetween(previousProgressAt?.toLocal(), now);
+    if (day == null) return now;
+    final today = DateTime(now.year, now.month, now.day);
+    if (!day.isBefore(today)) return now;
+    final at21 = DateTime(day.year, day.month, day.day, 21);
+    return at21.isAfter(now) ? now : at21;
+  }
+
+  Future<bool> _createKindleSession({
+    required int bookId,
+    required int fromPercent,
+    required int toPercent,
+    required String title,
+    DateTime? endTime,
+  }) async {
+    final bookRow = await _supabase
+        .from('books')
+        .select('page_count')
+        .eq('id', bookId)
+        .maybeSingle();
+    final pageCount = (bookRow?['page_count'] as num?)?.toInt();
+    if (pageCount == null || pageCount <= 0) {
+      debugPrint(
+          'importKindleBooks: pas de page_count pour "$title", session Kindle sautée');
+      return false;
+    }
+    int toPage(int pct) => (pct / 100 * pageCount).round().clamp(0, pageCount).toInt();
+    final startPage = toPage(fromPercent);
+    final endPage = toPage(toPercent);
+    final pages = endPage - startPage;
+    if (pages < 1) return false;
+
+    final sessionService = ReadingSessionService();
+    final duration = await sessionService.estimateDurationForPages(pages);
+    await sessionService.insertPastSession(
+      bookId: bookId.toString(),
+      startPage: startPage,
+      endPage: endPage,
+      duration: duration,
+      endTime: endTime,
+      source: ReadingSession.sourceKindle,
+    );
+    debugPrint(
+      'importKindleBooks: session Kindle "$title" p.$startPage→$endPage '
+      '($pages p., ~${duration.inMinutes} min estimées, fin ${endTime ?? 'maintenant'})',
+    );
+    return true;
+  }
+
+  /// Page courante déduite de la progression Kindle pour [bookId], ou `null`
+  /// si le livre n'a pas de pourcentage Kindle ou pas de nombre de pages
+  /// (impossible de convertir un % en page sans `page_count`).
+  ///
+  /// Utilisé par les calculs de page courante (`getBookStats`,
+  /// `getCurrentReadingBook`) : la page affichée devient
+  /// max(sessions, Kindle), dans l'esprit de la règle existante « la page
+  /// courante ne recule jamais ».
+  Future<int?> getKindleCurrentPage(String bookId) async {
+    try {
+      final userId = _supabase.auth.currentUser?.id;
+      final bookIdInt = int.tryParse(bookId);
+      if (userId == null || bookIdInt == null) return null;
+
+      final row = await _supabase
+          .from('user_books')
+          .select('kindle_percent, books(page_count)')
+          .eq('user_id', userId)
+          .eq('book_id', bookIdInt)
+          .maybeSingle();
+      if (row == null) return null;
+      return kindlePageFromRow(row);
+    } catch (e) {
+      debugPrint('Erreur getKindleCurrentPage: $e');
+      return null;
+    }
+  }
+
+  /// Conversion pure `% Kindle → page` à partir d'une ligne user_books
+  /// jointe à `books(page_count)`. `null` si l'un des deux manque.
+  static int? kindlePageFromRow(Map<String, dynamic> row) {
+    final percent = (row['kindle_percent'] as num?)?.toInt();
+    final book = row['books'];
+    final pageCount = book is Map ? (book['page_count'] as num?)?.toInt() : null;
+    if (percent == null || percent <= 0) return null;
+    if (pageCount == null || pageCount <= 0) return null;
+    return (percent / 100 * pageCount).round().clamp(1, pageCount).toInt();
   }
 
   /// Importer les livres depuis l'extraction Kindle dans la bibliothèque
@@ -562,20 +759,36 @@ class BooksService {
         .toSet();
   }
 
-  Future<int> importKindleBooks(List<KindleBookProgress> kindleBooks, {bool isFirstSync = false}) async {
+  /// Nombre de sessions Kindle créées par le dernier [importKindleBooks] de
+  /// cette instance (delta de progression → session). Lu par le widget de
+  /// sync pour rafraîchir le feed et prévenir l'utilisateur.
+  int kindleSessionsCreated = 0;
+
+  Future<int> importKindleBooks(
+    List<KindleBookProgress> kindleBooks, {
+    bool isFirstSync = false,
+    KindleInsightsCalendar? calendar,
+  }) async {
     int imported = 0;
+    kindleSessionsCreated = 0;
     final userId = _supabase.auth.currentUser?.id;
     if (userId == null) return 0;
 
     for (final kindleBook in kindleBooks) {
       try {
-        // Vérifier si le livre existe déjà (par titre + source kindle)
-        final existing = await _supabase
+        // Vérifier si le livre existe déjà (par titre + source kindle).
+        // `.limit(1)` plutôt que `.maybeSingle()` : deux éditions peuvent
+        // partager le même titre, et maybeSingle() jette (PGRST116) dès qu'il y
+        // a 2 lignes — le livre était alors purement et simplement sauté.
+        final existingRows = await _supabase
             .from('books')
             .select('id, cover_url, author')
             .eq('title', kindleBook.title)
             .eq('source', 'kindle')
-            .maybeSingle();
+            .order('id', ascending: true)
+            .limit(1);
+        final Map<String, dynamic>? existing =
+            existingRows.isNotEmpty ? existingRows[0] : null;
 
         int bookId;
         bool needsCoverUpdate = false;
@@ -655,23 +868,50 @@ class BooksService {
             newStatus = 'finished';
             autoFinished = true;
           }
-        } else {
-          // Sync normal : basé sur la progression Kindle
-          if (kindleBook.percentComplete == 100) {
-            newStatus = 'finished';
-          } else if (kindleBook.percentComplete != null && kindleBook.percentComplete! > 0) {
-            newStatus = 'reading';
-          }
         }
 
         // Ajouter ou mettre à jour user_books EN PREMIER
         // (nécessaire avant update_book_metadata qui vérifie l'appartenance)
         final existingUserBook = await _supabase
             .from('user_books')
-            .select('status')
+            .select('status, kindle_percent, kindle_asin, kindle_progress_at')
             .eq('user_id', userId)
             .eq('book_id', bookId)
             .maybeSingle();
+
+        final percent = kindleBook.percentComplete;
+        final previousPercent =
+            (existingUserBook?['kindle_percent'] as num?)?.toInt();
+        final progressed =
+            percent != null && percent > 0 && percent != previousPercent;
+
+        if (!isFirstSync) {
+          // Sync normal : basé sur la progression Kindle.
+          if (percent == 100) {
+            newStatus = 'finished';
+          } else if (percent != null && percent > 0) {
+            // « reading » seulement pour un livre NOUVEAU dans la bibliothèque
+            // ou dont la progression a bougé depuis le dernier sync : c'est le
+            // signe d'une lecture réelle. Sans cette garde, le premier sync
+            // JSON (qui rapporte un pourcentage pour TOUS les livres) aurait
+            // basculé en « reading » chaque livre entamé un jour puis laissé
+            // en « à lire » ou abandonné par l'utilisateur.
+            if (existingUserBook == null || progressed) newStatus = 'reading';
+          }
+        }
+
+        // Colonnes de progression, écrites dès qu'on tient un pourcentage.
+        // `kindle_progress_at` ne bouge que si le pourcentage a changé : il
+        // sert à dater la dernière lecture Kindle, pas le dernier sync.
+        final progressFields = <String, dynamic>{
+          if (kindleBook.asin != null &&
+              kindleBook.asin != existingUserBook?['kindle_asin'])
+            'kindle_asin': kindleBook.asin,
+          if (percent != null && percent != previousPercent) ...{
+            'kindle_percent': percent,
+            'kindle_progress_at': DateTime.now().toUtc().toIso8601String(),
+          },
+        };
 
         if (existingUserBook == null) {
           await _supabase.from('user_books').insert({
@@ -679,21 +919,54 @@ class BooksService {
             'book_id': bookId,
             'status': newStatus ?? 'to_read',
             if (autoFinished) 'kindle_auto_finished': true,
+            ...progressFields,
           });
           imported++;
-        } else if (newStatus != null) {
-          // Mettre à jour le statut si on a une info de progression
+        } else {
           final currentStatus = existingUserBook['status'] as String?;
           // Ne pas rétrograder un livre "finished" vers "reading"
-          if (currentStatus != 'finished' || newStatus == 'finished') {
+          final statusChange = newStatus != null &&
+                  newStatus != currentStatus &&
+                  (currentStatus != 'finished' || newStatus == 'finished')
+              ? newStatus
+              : null;
+          final update = <String, dynamic>{
+            if (statusChange != null) 'status': statusChange,
+            if (statusChange != null && autoFinished) 'kindle_auto_finished': true,
+            ...progressFields,
+          };
+          if (update.isNotEmpty) {
             await _supabase
                 .from('user_books')
-                .update({
-                  'status': newStatus,
-                  if (autoFinished) 'kindle_auto_finished': true,
-                })
+                .update(update)
                 .eq('user_id', userId)
                 .eq('book_id', bookId);
+          }
+
+          // Progression Kindle en hausse depuis le sync précédent → session.
+          // APRÈS la mise à jour de kindle_percent : si la session échoue on
+          // perd un delta (la page courante reste juste), alors que l'inverse
+          // créerait un doublon au sync suivant. Premier pourcentage connu
+          // (previousPercent null) = baseline, pas de session.
+          if (previousPercent != null &&
+              percent != null &&
+              percent > previousPercent) {
+            try {
+              final previousAt = DateTime.tryParse(
+                  existingUserBook['kindle_progress_at'] as String? ?? '');
+              if (await _createKindleSession(
+                bookId: bookId,
+                fromPercent: previousPercent,
+                toPercent: percent,
+                title: kindleBook.title,
+                endTime: _kindleSessionEndTime(calendar, previousAt),
+              )) {
+                kindleSessionsCreated++;
+              }
+            } catch (e) {
+              debugPrint(
+                  'importKindleBooks: session Kindle "${kindleBook.title}" KO: $e');
+            }
           }
         }
 
@@ -716,10 +989,24 @@ class BooksService {
     return imported;
   }
 
+  /// Échappe les métacaractères LIKE d'un titre avant de l'injecter dans un
+  /// `ilike '%…%'`. Sans ça, un titre contenant `%` ou `_` (ex. « 100_% pur »)
+  /// se transforme en joker et matche n'importe quel livre.
+  String _escapeLikePattern(String value) => value
+      .replaceAll('\\', r'\\')
+      .replaceAll('%', r'\%')
+      .replaceAll('_', r'\_');
+
   /// Marquer les livres comme terminés à partir des titres trouvés sur Reading Insights
   /// Ces livres apparaissent dans la section "titles read" d'Amazon
   /// Utilise une recherche floue car les titres peuvent différer entre les sources
   /// (ex: "Ma vie sans gravité" vs "Ma vie sans gravité (French Edition)")
+  ///
+  /// Le statut posé ici est `kindle_auto_finished` : il vient d'un scraping,
+  /// pas d'une session de lecture réelle. Les migrations badges/stats excluent
+  /// explicitement ces lignes (voir 20260313_fix_kindle_books_excluded_from_badges),
+  /// et ne pas poser le flag faussait le compteur de livres terminés ainsi que
+  /// l'attribution des badges.
   Future<int> markBooksAsFinished(List<KindleBookProgress> finishedBooks) async {
     int updated = 0;
     final userId = _supabase.auth.currentUser?.id;
@@ -730,13 +1017,22 @@ class BooksService {
         // Nettoyer le titre pour la recherche (enlever les suffixes d'édition)
         final cleanTitle = _cleanBookTitle(kindleBook.title);
 
-        // Chercher le livre par titre exact d'abord
-        var book = await _supabase
+        // Chercher le livre par titre exact d'abord.
+        // `.limit(1)` + `.order` plutôt que `.maybeSingle()` : plusieurs
+        // éditions peuvent partager le même titre, et maybeSingle() jette
+        // (PGRST116) dès qu'il y a 2 lignes — l'exception faisait alors sauter
+        // le livre entier.
+        // NB : `ascending` vaut false par DÉFAUT dans postgrest-dart (contrairement
+        // à supabase-js). On l'explicite pour prendre la plus ancienne édition.
+        final exact = await _supabase
             .from('books')
             .select('id')
             .eq('title', kindleBook.title)
             .eq('source', 'kindle')
-            .maybeSingle();
+            .order('id', ascending: true)
+            .limit(1);
+
+        Map<String, dynamic>? book = exact.isNotEmpty ? exact[0] : null;
 
         // Si pas trouvé, chercher par correspondance partielle
         // (le titre stocké contient le titre de Reading Insights)
@@ -745,10 +1041,11 @@ class BooksService {
               .from('books')
               .select('id, title')
               .eq('source', 'kindle')
-              .ilike('title', '%$cleanTitle%')
+              .ilike('title', '%${_escapeLikePattern(cleanTitle)}%')
+              .order('id', ascending: true)
               .limit(1);
 
-          if ((results as List).isNotEmpty) {
+          if (results.isNotEmpty) {
             book = results[0];
           }
         }
@@ -765,9 +1062,38 @@ class BooksService {
             .maybeSingle();
 
         if (existing != null && existing['status'] != 'finished') {
+          // Le flag exclut la ligne des badges et du compteur de livres
+          // terminés. Ne le poser que si le livre n'a AUCUNE session de lecture
+          // LexDay : sinon on ferait disparaître des stats un livre réellement
+          // lu dans l'app, simplement parce qu'Amazon le liste aussi.
+          //
+          // try/catch local : si ce check échoue, on doit quand même mettre le
+          // statut à jour (c'est le comportement d'avant). Repli conservateur
+          // `readInApp = true` → pas de flag → le livre reste compté.
+          // `reading_sessions.book_id` est de type TEXT, d'où le toString().
+          bool readInApp = true;
+          try {
+            final sessions = await _supabase
+                .from('reading_sessions')
+                .select('id')
+                .eq('user_id', userId)
+                .eq('book_id', bookId.toString())
+                .limit(1);
+            readInApp = (sessions as List).isNotEmpty;
+          } catch (e) {
+            debugPrint(
+                'markBooksAsFinished: check sessions échoué pour $bookId: $e');
+          }
+
           await _supabase
               .from('user_books')
-              .update({'status': 'finished'})
+              .update({
+                'status': 'finished',
+                // Écrit inconditionnellement : un livre flaggé lors d'un sync
+                // précédent puis réellement lu dans l'app doit récupérer sa
+                // place dans les stats.
+                'kindle_auto_finished': !readInApp,
+              })
               .eq('user_id', userId)
               .eq('book_id', bookId);
           updated++;
@@ -777,6 +1103,175 @@ class BooksService {
       }
     }
     return updated;
+  }
+
+  /// Index de la bibliothèque de l'utilisateur pour résoudre les livres
+  /// Kindle (surlignages) : par ASIN d'abord, par titre ensuite.
+  ///
+  /// Remplace l'ancienne résolution par requêtes `books.title` globales
+  /// filtrées sur `source = 'kindle'`, qui échouait dès que le livre avait
+  /// été dédoublonné à l'import sur un `google_id` existant (ligne `books`
+  /// en source 'google'), et qui n'était pas scopée à l'utilisateur (une
+  /// correspondance partielle pouvait tomber sur le livre de quelqu'un
+  /// d'autre). Construit une fois par import : ~100 lignes.
+  Future<_UserLibraryIndex> _loadUserLibraryIndex(String userId) async {
+    final rows = await _supabase
+        .from('user_books')
+        .select('book_id, kindle_asin, books(id, title)')
+        .eq('user_id', userId);
+
+    final byAsin = <String, int>{};
+    final byTitle = <String, int>{};
+    final entries = <MapEntry<String, int>>[];
+    for (final row in rows as List) {
+      final book = row['books'];
+      if (book is! Map) continue;
+      final id = (book['id'] as num?)?.toInt();
+      final title = book['title'] as String?;
+      if (id == null || title == null) continue;
+      final asin = row['kindle_asin'] as String?;
+      if (asin != null && asin.isNotEmpty) byAsin[asin] = id;
+      final key = _titleKey(title);
+      if (key.isNotEmpty) {
+        byTitle.putIfAbsent(key, () => id);
+        entries.add(MapEntry(key, id));
+      }
+    }
+    return _UserLibraryIndex(byAsin: byAsin, byTitle: byTitle, entries: entries);
+  }
+
+  /// Clé de comparaison de titres : édition retirée, minuscules, ponctuation
+  /// et espaces normalisés. Le notebook et la bibliothèque n'affichent pas
+  /// toujours le même libellé pour un même livre.
+  String _titleKey(String title) => _cleanBookTitle(title)
+      .toLowerCase()
+      .replaceAll(RegExp(r'[^\p{L}\p{N}]+', unicode: true), ' ')
+      .trim();
+
+  /// Résout un livre du notebook. Ordre : ASIN (exact, posé par
+  /// [importKindleBooks] via l'API JSON) → titre normalisé exact → l'un des
+  /// deux titres contient l'autre (sous-titre présent d'un seul côté).
+  /// Renvoie null si le livre n'est pas dans la bibliothèque de l'utilisateur.
+  int? _resolveKindleBookId(
+    _UserLibraryIndex index, {
+    required String asin,
+    required String kindleTitle,
+  }) {
+    final byAsin = index.byAsin[asin];
+    if (byAsin != null) return byAsin;
+
+    final key = _titleKey(kindleTitle);
+    if (key.isEmpty) return null;
+    final exact = index.byTitle[key];
+    if (exact != null) return exact;
+
+    if (key.length <= 5) return null;
+    for (final e in index.entries) {
+      if (e.key.length <= 5) continue;
+      if (e.key.contains(key) || key.contains(e.key)) return e.value;
+    }
+    return null;
+  }
+
+  /// Importe les surlignages Kindle extraits de read.amazon.com/notebook en
+  /// annotations de type 'kindle' (le mur « Mes passages »).
+  ///
+  /// Idempotent : upsert `ignoreDuplicates` sur (user_id, source_key) — le
+  /// re-crawl quotidien réinsère les mêmes clés, seules les nouvelles lignes
+  /// passent. Le `.select('id')` derrière un `ON CONFLICT DO NOTHING` ne
+  /// renvoie QUE les lignes réellement insérées : c'est le compteur exact de
+  /// nouveaux passages.
+  ///
+  /// Les surlignages dont le livre n'est pas résolvable (livre rendu/archivé,
+  /// absent de la bibliothèque LexDay) sont sautés — l'import des livres
+  /// ([importKindleBooks]) tourne juste avant dans le pipeline, le cas est
+  /// donc marginal.
+  Future<int> importKindleHighlights(List<KindleHighlight> highlights) async {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null || highlights.isEmpty) return 0;
+
+    // Résoudre chaque livre UNE seule fois : un gros lecteur peut ramener des
+    // centaines de surlignages répartis sur quelques dizaines de livres.
+    final byAsin = <String, List<KindleHighlight>>{};
+    for (final h in highlights) {
+      byAsin.putIfAbsent(h.asin, () => []).add(h);
+    }
+
+    final _UserLibraryIndex index;
+    try {
+      index = await _loadUserLibraryIndex(userId);
+    } catch (e) {
+      debugPrint('importKindleHighlights: index bibliothèque KO: $e');
+      return 0;
+    }
+
+    int inserted = 0;
+    int skippedBooks = 0;
+    final skippedTitles = <String>[];
+    for (final entry in byAsin.entries) {
+      final group = entry.value;
+      try {
+        final asin = entry.key;
+        final bookId = _resolveKindleBookId(
+          index,
+          asin: asin,
+          kindleTitle: group.first.bookTitle,
+        );
+        if (bookId == null) {
+          skippedBooks++;
+          skippedTitles.add('${group.first.bookTitle} [$asin]');
+          continue;
+        }
+
+        // Résolu par titre → mémoriser l'ASIN pour que le prochain sync
+        // tombe directement dessus (et pour tout futur usage de l'ASIN).
+        if (!index.byAsin.containsKey(asin)) {
+          index.byAsin[asin] = bookId;
+          try {
+            await _supabase
+                .from('user_books')
+                .update({'kindle_asin': asin})
+                .eq('user_id', userId)
+                .eq('book_id', bookId)
+                .isFilter('kindle_asin', null);
+          } catch (e) {
+            debugPrint('importKindleHighlights: backfill ASIN $asin KO: $e');
+          }
+        }
+
+        final rows = group
+            .map((h) => <String, dynamic>{
+                  'user_id': userId,
+                  'book_id': bookId.toString(),
+                  'content': h.text,
+                  'type': 'kindle',
+                  'source_key': h.sourceKey,
+                  if (h.page != null) 'page_number': h.page,
+                  if (h.note != null && h.note!.isNotEmpty) 'note': h.note,
+                })
+            .toList();
+
+        final res = await _supabase
+            .from('annotations')
+            .upsert(rows,
+                onConflict: 'user_id,source_key', ignoreDuplicates: true)
+            .select('id');
+        inserted += (res as List).length;
+      } catch (e) {
+        debugPrint(
+            'importKindleHighlights: échec "${group.first.bookTitle}": $e');
+      }
+    }
+    if (skippedBooks > 0) {
+      debugPrint(
+          'importKindleHighlights: $skippedBooks livre(s) non résolus, sautés : '
+          '${skippedTitles.join(' | ')}');
+    }
+    // Réveiller le mur Mes passages s'il est déjà construit : l'import arrive
+    // en arrière-plan, potentiellement pendant que l'utilisateur regarde
+    // l'onglet.
+    if (inserted > 0) AnnotationService.notifyChanged();
+    return inserted;
   }
 
   /// Mettre à jour le genre d'un livre
@@ -1712,4 +2207,17 @@ class BooksService {
       debugPrint('Erreur enrichissement livre $bookId: $e');
     }
   }
+}
+
+/// Index en mémoire de la bibliothèque de l'utilisateur, pour la résolution
+/// des livres Kindle (voir `BooksService._loadUserLibraryIndex`).
+class _UserLibraryIndex {
+  final Map<String, int> byAsin;
+  final Map<String, int> byTitle;
+  final List<MapEntry<String, int>> entries;
+  _UserLibraryIndex({
+    required this.byAsin,
+    required this.byTitle,
+    required this.entries,
+  });
 }

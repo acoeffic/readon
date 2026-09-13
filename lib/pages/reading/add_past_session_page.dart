@@ -132,8 +132,8 @@ class _AddPastSessionPageState extends State<AddPastSessionPage> {
     try {
       final photo = await ImagePicker().pickImage(
         source: ImageSource.camera,
-        maxWidth: 1500,
-        imageQuality: 85,
+        maxWidth: 2400,
+        imageQuality: 92,
       );
       if (photo == null || !mounted) return;
       setState(() => _error = null);
@@ -202,23 +202,31 @@ class _AddPastSessionPageState extends State<AddPastSessionPage> {
       // Hooks post-session (comme la fin de session normale), non bloquants.
       WidgetService().updateWidget().catchError((_) {});
 
+      // Fix 2026-08-11 : timeout sur les appels post-session — une requête
+      // qui pend ne doit jamais bloquer la navigation.
+      const postSessionTimeout = Duration(seconds: 6);
       List<dynamic> newBadges = [];
       List<dynamic> newSecretBadges = [];
       try {
-        newBadges = await BadgesService().checkAndAwardBadges();
+        newBadges = await BadgesService()
+            .checkAndAwardBadges()
+            .timeout(postSessionTimeout);
       } catch (e) {
         debugPrint('Erreur checkAndAwardBadges (non bloquante): $e');
       }
       try {
         newSecretBadges = await BadgesService()
-            .checkSecretBadges(sessionId: session.id, bookFinished: false);
+            .checkSecretBadges(sessionId: session.id, bookFinished: false)
+            .timeout(postSessionTimeout);
       } catch (e) {
         debugPrint('Erreur checkSecretBadges (non bloquante): $e');
       }
       // Badges de flow : attribution silencieuse (une lecture du jour peut
       // prolonger le streak) — pas de dialogue dédié ici.
       try {
-        await FlowService().checkAndAwardFlowBadges();
+        await FlowService()
+            .checkAndAwardFlowBadges()
+            .timeout(postSessionTimeout);
       } catch (e) {
         debugPrint('Erreur checkAndAwardFlowBadges (non bloquante): $e');
       }
@@ -277,6 +285,8 @@ class _AddPastSessionPageState extends State<AddPastSessionPage> {
                 children: [
                   CachedBookCover(
                     imageUrl: widget.book.coverUrl,
+                    isbn: widget.book.isbn,
+                    googleId: widget.book.googleId,
                     title: widget.book.title,
                     author: widget.book.author,
                     width: 50,

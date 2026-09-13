@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import '../../data/curated_lists_data.dart';
 import '../../models/curated_list.dart';
+import '../../services/curated_lists_repository.dart';
 import '../../services/curated_lists_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/constrained_content.dart';
@@ -19,6 +19,7 @@ class _AllCuratedListsPageState extends State<AllCuratedListsPage> {
   final _service = CuratedListsService();
 
   bool _isLoading = true;
+  List<CuratedList> _lists = CuratedListsRepository.lists;
   Map<int, int> _readerCounts = {};
   Set<int> _savedListIds = {};
 
@@ -30,14 +31,15 @@ class _AllCuratedListsPageState extends State<AllCuratedListsPage> {
 
   Future<void> _loadData() async {
     try {
+      final lists = await CuratedListsRepository.ensureLoaded();
       final results = await Future.wait([
-        _service.getReaderCounts(
-            kCuratedLists.map((l) => l.id).toList()),
+        _service.getReaderCounts(lists.map((l) => l.id).toList()),
         _service.getSavedListIds(),
       ]);
 
       if (!mounted) return;
       setState(() {
+        _lists = lists;
         _readerCounts = results[0] as Map<int, int>;
         _savedListIds = results[1] as Set<int>;
         _isLoading = false;
@@ -96,9 +98,9 @@ class _AllCuratedListsPageState extends State<AllCuratedListsPage> {
               child: ConstrainedContent(
                 child: ListView.builder(
                 padding: const EdgeInsets.all(AppSpace.l),
-                itemCount: kCuratedLists.length,
+                itemCount: _lists.length,
                 itemBuilder: (context, index) {
-                  final list = kCuratedLists[index];
+                  final list = _lists[index];
                   final isSaved = _savedListIds.contains(list.id);
                   final readerCount = _readerCounts[list.id] ?? 0;
                   return _AllListCard(

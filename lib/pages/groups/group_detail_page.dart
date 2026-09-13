@@ -86,7 +86,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
 
   Future<void> _requestToJoin() async {
     if (Supabase.instance.client.auth.currentUser == null) {
-      await showRequireAccountSheet(context);
+      await showRequireAccountSheet(context, source: 'join_group');
       return;
     }
     final l = AppLocalizations.of(context);

@@ -22,6 +22,7 @@ import '../../theme/app_theme.dart';
 import 'auth_gate.dart';
 import 'confirm_email_page.dart';
 import 'signup_page.dart';
+import '../../widgets/constrained_content.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -276,395 +277,397 @@ class _LoginPageState extends State<LoginPage> {
     final colors = context.appColors;
     return Scaffold(
         backgroundColor: colors.scaffoldBg,
-        body: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 32,
-              vertical: AppSpace.xl,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: AppSpace.l),
+        body: ConstrainedContent(
+          child: SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 32,
+                vertical: AppSpace.xl,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: AppSpace.l),
 
-                // Logo + titre
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: SvgPicture.asset(
-                        'assets/images/logo_lexday.svg',
-                        width: 64,
-                        height: 64,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        RichText(
-                          text: TextSpan(
-                            children: [
-                              TextSpan(
-                                text: 'Lex',
-                                style: TextStyle(
-                                  fontSize: 30,
-                                  fontWeight: FontWeight.w400,
-                                  fontFamily: 'Poppins',
-                                  height: 1.1,
-                                  color: colors.textPrimary,
-                                ),
-                              ),
-                              TextSpan(
-                                text: 'Day',
-                                style: TextStyle(
-                                  fontSize: 30,
-                                  fontWeight: FontWeight.w400,
-                                  fontFamily: 'Poppins',
-                                  height: 1.1,
-                                  color: AppColors.primary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Text(
-                          'YOUR READING LIFE, TRACKED',
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w500,
-                            letterSpacing: 2.0,
-                            color: colors.textSecondary,
-                            fontFamily: 'Poppins',
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 40),
-
-                // Welcome text
-                Text(
-                  l10n.welcomeBack,
-                  style: GoogleFonts.playfairDisplay(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w400,
-                    fontStyle: FontStyle.italic,
-                    color: colors.textPrimary,
-                  ),
-                ),
-                Text(
-                  l10n.reader,
-                  style: GoogleFonts.playfairDisplay(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w400,
-                    fontStyle: FontStyle.italic,
-                    color: colors.textPrimary,
-                  ),
-                ),
-
-                const SizedBox(height: 36),
-
-                // Apple & Google buttons
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: _signInWithApple,
-                        icon: Icon(
-                          Icons.apple,
-                          size: 22,
-                          color: colors.textPrimary,
-                        ),
-                        label: Text(
-                          'Apple',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w500,
-                            color: colors.textPrimary,
-                            fontFamily: 'Poppins',
-                          ),
-                        ),
-                        style: OutlinedButton.styleFrom(
-                          backgroundColor: colors.cardBg,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          side: BorderSide(color: colors.border),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: _signInWithGoogle,
-                        icon: FaIcon(
-                          FontAwesomeIcons.google,
-                          size: 18,
-                          color: colors.textSecondary,
-                        ),
-                        label: Text(
-                          'Google',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w500,
-                            color: colors.textPrimary,
-                            fontFamily: 'Poppins',
-                          ),
-                        ),
-                        style: OutlinedButton.styleFrom(
-                          backgroundColor: colors.cardBg,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          side: BorderSide(color: colors.border),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 24),
-
-                // Divider "or"
-                Row(
-                  children: [
-                    Expanded(
-                      child: Divider(
-                        color: colors.divider,
-                        thickness: 1,
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Text(
-                        l10n.or,
-                        style: TextStyle(
-                          color: colors.textSecondary,
-                          fontSize: 14,
-                          fontFamily: 'Poppins',
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      child: Divider(
-                        color: colors.divider,
-                        thickness: 1,
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 24),
-
-                // Email
-                Text(
-                  l10n.email,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 2.0,
-                    color: colors.textSecondary,
-                    fontFamily: 'Poppins',
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Semantics(
-                  identifier: 'login_email_field',
-                  child: TextField(
-                  controller: emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: InputDecoration(
-                    hintText: 'you@example.com',
-                    hintStyle: TextStyle(
-                      color: colors.textSecondary.withValues(alpha: 0.4),
-                      fontFamily: 'Poppins',
-                    ),
-                    filled: true,
-                    fillColor: colors.cardBg,
-                    contentPadding: const EdgeInsets.symmetric(
-                      vertical: 16,
-                      horizontal: 18,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: colors.border),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: colors.border),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: AppColors.primary, width: 2),
-                    ),
-                  ),
-                ),
-                ),
-
-                const SizedBox(height: 20),
-
-                // Password
-                Text(
-                  l10n.password,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 2.0,
-                    color: colors.textSecondary,
-                    fontFamily: 'Poppins',
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Semantics(
-                  identifier: 'login_password_field',
-                  child: TextField(
-                  controller: passwordController,
-                  obscureText: true,
-                  decoration: InputDecoration(
-                    hintText: '••••••••',
-                    hintStyle: TextStyle(
-                      color: colors.textSecondary.withValues(alpha: 0.4),
-                      fontFamily: 'Poppins',
-                    ),
-                    filled: true,
-                    fillColor: colors.cardBg,
-                    contentPadding: const EdgeInsets.symmetric(
-                      vertical: 16,
-                      horizontal: 18,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: colors.border),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: colors.border),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: AppColors.primary, width: 2),
-                    ),
-                  ),
-                ),
-                ),
-
-                // Forgot password
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: sendResetPassword,
-                    style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                    ),
-                    child: Text(
-                      l10n.forgotPassword,
-                      style: const TextStyle(
-                        color: AppColors.primary,
-                        fontSize: 14,
-                        fontFamily: 'Poppins',
-                      ),
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 16),
-
-                // Continue Reading button
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      elevation: 0,
-                    ),
-                    onPressed: login,
-                    child: Text(
-                      l10n.continueReading,
-                      style: const TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w600,
-                        fontFamily: 'Poppins',
-                      ),
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 28),
-
-                // Create account link
-                Center(
-                  child: Row(
+                  // Logo + titre
+                  Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
-                        l10n.newToLexDay,
-                        style: TextStyle(
-                          color: colors.textSecondary,
-                          fontSize: 14,
-                          fontFamily: 'Poppins',
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: SvgPicture.asset(
+                          'assets/images/logo_lexday.svg',
+                          width: 64,
+                          height: 64,
                         ),
                       ),
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (context) => const SignUpPage(),
+                      const SizedBox(width: 10),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          RichText(
+                            text: TextSpan(
+                              children: [
+                                TextSpan(
+                                  text: 'Lex',
+                                  style: TextStyle(
+                                    fontSize: 30,
+                                    fontWeight: FontWeight.w400,
+                                    fontFamily: 'Poppins',
+                                    height: 1.1,
+                                    color: colors.textPrimary,
+                                  ),
+                                ),
+                                TextSpan(
+                                  text: 'Day',
+                                  style: TextStyle(
+                                    fontSize: 30,
+                                    fontWeight: FontWeight.w400,
+                                    fontFamily: 'Poppins',
+                                    height: 1.1,
+                                    color: AppColors.primary,
+                                  ),
+                                ),
+                              ],
                             ),
-                          );
-                        },
-                        child: Text(
-                          l10n.createAnAccount,
-                          style: const TextStyle(
-                            color: AppColors.primary,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            fontFamily: 'Poppins',
+                          ),
+                          Text(
+                            'YOUR READING LIFE, TRACKED',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w500,
+                              letterSpacing: 2.0,
+                              color: colors.textSecondary,
+                              fontFamily: 'Poppins',
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 40),
+
+                  // Welcome text
+                  Text(
+                    l10n.welcomeBack,
+                    style: GoogleFonts.playfairDisplay(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w400,
+                      fontStyle: FontStyle.italic,
+                      color: colors.textPrimary,
+                    ),
+                  ),
+                  Text(
+                    l10n.reader,
+                    style: GoogleFonts.playfairDisplay(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w400,
+                      fontStyle: FontStyle.italic,
+                      color: colors.textPrimary,
+                    ),
+                  ),
+
+                  const SizedBox(height: 36),
+
+                  // Apple & Google buttons
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: _signInWithApple,
+                          icon: Icon(
+                            Icons.apple,
+                            size: 22,
+                            color: colors.textPrimary,
+                          ),
+                          label: Text(
+                            'Apple',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                              color: colors.textPrimary,
+                              fontFamily: 'Poppins',
+                            ),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            backgroundColor: colors.cardBg,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            side: BorderSide(color: colors.border),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: _signInWithGoogle,
+                          icon: FaIcon(
+                            FontAwesomeIcons.google,
+                            size: 18,
+                            color: colors.textSecondary,
+                          ),
+                          label: Text(
+                            'Google',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                              color: colors.textPrimary,
+                              fontFamily: 'Poppins',
+                            ),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            backgroundColor: colors.cardBg,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            side: BorderSide(color: colors.border),
                           ),
                         ),
                       ),
                     ],
                   ),
-                ),
 
-                const SizedBox(height: 18),
+                  const SizedBox(height: 24),
 
-                // Continue without account (guest mode)
-                Center(
-                  child: GestureDetector(
-                    onTap: () async {
-                      await context.read<GuestModeProvider>().enterGuestMode();
-                      if (!context.mounted) return;
-                      Navigator.of(context).pushAndRemoveUntil(
-                        MaterialPageRoute(
-                          builder: (_) => const MainNavigation(),
+                  // Divider "or"
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Divider(
+                          color: colors.divider,
+                          thickness: 1,
                         ),
-                        (route) => false,
-                      );
-                    },
-                    child: Text(
-                      l10n.continueWithoutAccount,
-                      style: TextStyle(
-                        color: colors.textSecondary,
-                        fontSize: 13,
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Text(
+                          l10n.or,
+                          style: TextStyle(
+                            color: colors.textSecondary,
+                            fontSize: 14,
+                            fontFamily: 'Poppins',
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: Divider(
+                          color: colors.divider,
+                          thickness: 1,
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // Email
+                  Text(
+                    l10n.email,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 2.0,
+                      color: colors.textSecondary,
+                      fontFamily: 'Poppins',
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Semantics(
+                    identifier: 'login_email_field',
+                    child: TextField(
+                    controller: emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: InputDecoration(
+                      hintText: 'you@example.com',
+                      hintStyle: TextStyle(
+                        color: colors.textSecondary.withValues(alpha: 0.4),
                         fontFamily: 'Poppins',
-                        decoration: TextDecoration.underline,
-                        decorationColor: colors.textSecondary.withValues(alpha: 0.4),
+                      ),
+                      filled: true,
+                      fillColor: colors.cardBg,
+                      contentPadding: const EdgeInsets.symmetric(
+                        vertical: 16,
+                        horizontal: 18,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: colors.border),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: colors.border),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: AppColors.primary, width: 2),
                       ),
                     ),
                   ),
-                ),
-              ],
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // Password
+                  Text(
+                    l10n.password,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 2.0,
+                      color: colors.textSecondary,
+                      fontFamily: 'Poppins',
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Semantics(
+                    identifier: 'login_password_field',
+                    child: TextField(
+                    controller: passwordController,
+                    obscureText: true,
+                    decoration: InputDecoration(
+                      hintText: '••••••••',
+                      hintStyle: TextStyle(
+                        color: colors.textSecondary.withValues(alpha: 0.4),
+                        fontFamily: 'Poppins',
+                      ),
+                      filled: true,
+                      fillColor: colors.cardBg,
+                      contentPadding: const EdgeInsets.symmetric(
+                        vertical: 16,
+                        horizontal: 18,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: colors.border),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: colors.border),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: AppColors.primary, width: 2),
+                      ),
+                    ),
+                  ),
+                  ),
+
+                  // Forgot password
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: sendResetPassword,
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                      ),
+                      child: Text(
+                        l10n.forgotPassword,
+                        style: const TextStyle(
+                          color: AppColors.primary,
+                          fontSize: 14,
+                          fontFamily: 'Poppins',
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Continue Reading button
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        elevation: 0,
+                      ),
+                      onPressed: login,
+                      child: Text(
+                        l10n.continueReading,
+                        style: const TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w600,
+                          fontFamily: 'Poppins',
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 28),
+
+                  // Create account link
+                  Center(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          l10n.newToLexDay,
+                          style: TextStyle(
+                            color: colors.textSecondary,
+                            fontSize: 14,
+                            fontFamily: 'Poppins',
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (context) => const SignUpPage(),
+                              ),
+                            );
+                          },
+                          child: Text(
+                            l10n.createAnAccount,
+                            style: const TextStyle(
+                              color: AppColors.primary,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              fontFamily: 'Poppins',
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 18),
+
+                  // Continue without account (guest mode)
+                  Center(
+                    child: GestureDetector(
+                      onTap: () async {
+                        await context.read<GuestModeProvider>().enterGuestMode();
+                        if (!context.mounted) return;
+                        Navigator.of(context).pushAndRemoveUntil(
+                          MaterialPageRoute(
+                            builder: (_) => const MainNavigation(),
+                          ),
+                          (route) => false,
+                        );
+                      },
+                      child: Text(
+                        l10n.continueWithoutAccount,
+                        style: TextStyle(
+                          color: colors.textSecondary,
+                          fontSize: 13,
+                          fontFamily: 'Poppins',
+                          decoration: TextDecoration.underline,
+                          decorationColor: colors.textSecondary.withValues(alpha: 0.4),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

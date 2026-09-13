@@ -14,6 +14,7 @@ import '../../providers/subscription_provider.dart';
 import '../../services/native_paywall_service.dart';
 import '../../services/reading_session_service.dart';
 import '../../services/books_service.dart';
+import '../../services/app_review_service.dart';
 import 'package:lexday/features/badges/services/badges_service.dart';
 import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
@@ -68,6 +69,14 @@ class _BookCompletedSummaryPageState extends State<BookCompletedSummaryPage>
     _loadData();
     _trophyController.forward();
     _confettiController.forward();
+
+    // Moment de fierté : livre terminé. On laisse les confettis se jouer,
+    // puis on tente la popup d'avis native (garde-fous dans le service).
+    Future.delayed(const Duration(seconds: 3), () {
+      if (mounted) {
+        AppReviewService.maybeRequestReview(trigger: 'book_completed');
+      }
+    });
   }
 
   @override
@@ -789,7 +798,12 @@ class _BookCompletedSummaryPageState extends State<BookCompletedSummaryPage>
   // ── Premium "Bilan du livre" section ────────────────────────────────
 
   Widget _buildPremiumBilanSection(bool isDark) {
-    final isPremium = context.watch<SubscriptionProvider>().isPremium;
+    // Bilan de performance : routé via FeatureFlags (advancedStats est
+    // désormais gratuit — 19/08/2026).
+    final insightsUnlocked = FeatureFlags.isAvailable(
+      Feature.advancedStats,
+      isPremium: context.watch<SubscriptionProvider>().isPremium,
+    );
     final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
 
     // Compute premium metrics
@@ -829,29 +843,31 @@ class _BookCompletedSummaryPageState extends State<BookCompletedSummaryPage>
       ),
       child: Column(
         children: [
-          // Header with PREMIUM badge
+          // Header (badge PREMIUM seulement si la feature est verrouillée)
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
             child: Row(
               children: [
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFD4A54A),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Text(
-                    'PREMIUM',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white,
-                      letterSpacing: 0.5,
+                if (!insightsUnlocked) ...[
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFD4A54A),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Text(
+                      'PREMIUM',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                        letterSpacing: 0.5,
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 10),
+                  const SizedBox(width: 10),
+                ],
                 Text(
                   'Bilan du livre',
                   style: TextStyle(
@@ -877,12 +893,12 @@ class _BookCompletedSummaryPageState extends State<BookCompletedSummaryPage>
                         ? Colors.white.withValues(alpha: 0.08)
                         : Colors.grey.shade200,
                   ),
-                _buildInsightRow(insights[i], isDark, isPremium),
+                _buildInsightRow(insights[i], isDark, insightsUnlocked),
               ],
             );
           }),
           // CTA for free users
-          if (!isPremium) ...[
+          if (!insightsUnlocked) ...[
             const SizedBox(height: 4),
             GestureDetector(
               onTap: () => NativePaywallService.present(
@@ -952,7 +968,7 @@ class _BookCompletedSummaryPageState extends State<BookCompletedSummaryPage>
     );
   }
 
-  Widget _buildInsightRow(_InsightRow insight, bool isDark, bool isPremium) {
+  Widget _buildInsightRow(_InsightRow insight, bool isDark, bool unlocked) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       child: Row(
@@ -969,7 +985,7 @@ class _BookCompletedSummaryPageState extends State<BookCompletedSummaryPage>
               ),
             ),
           ),
-          if (isPremium)
+          if (unlocked)
             Flexible(
               child: Text(
                 insight.value,

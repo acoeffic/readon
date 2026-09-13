@@ -15,7 +15,6 @@ import '../../../models/book.dart';
 import '../../../models/reading_session.dart';
 import '../../../models/reading_flow.dart';
 import '../../../theme/app_theme.dart';
-import '../../../utils/app_constants.dart';
 import '../../../widgets/cached_book_cover.dart';
 import '../../../widgets/cached_profile_avatar.dart';
 import '../../../widgets/reaction_picker.dart';
@@ -27,6 +26,7 @@ import '../../reading/book_finished_share_service.dart';
 import '../../books/user_books_page.dart';
 import '../../reading/book_completed_summary_page.dart';
 import 'comments_sheet.dart';
+import '../../../services/referral_service.dart';
 
 // ---------------------------------------------------------------------------
 // Color constants for the book-finished card (light / dark)
@@ -396,7 +396,7 @@ class _BookFinishedCardState extends State<BookFinishedCard>
     final title = _bookTitle ?? 'un livre';
     final author = _bookAuthor != null ? ' de $_bookAuthor' : '';
     final shareText =
-        "Je viens de terminer \"$title\"$author ! 📚✨\n\n#Lecture #LexDay\n$kAppStoreUrl";
+        "Je viens de terminer \"$title\"$author ! 📚✨\n\n#Lecture #LexDay\n$ReferralService.shareUrl";
     if (!mounted) return;
     final box = context.findRenderObject() as RenderBox?;
     final origin =

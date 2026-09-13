@@ -83,7 +83,7 @@ class _CommentsSheetState extends State<CommentsSheet> {
 
   Future<void> _sendComment() async {
     if (Supabase.instance.client.auth.currentUser == null) {
-      await showRequireAccountSheet(context);
+      await showRequireAccountSheet(context, source: 'send_comment');
       return;
     }
     final content = _controller.text.trim();

@@ -13,9 +13,9 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:lexday/features/wrapped/share/share_format.dart';
 import 'package:lexday/features/wrapped/share/story_share_service.dart';
 import 'package:lexday/theme/app_theme.dart';
-import 'package:lexday/utils/app_constants.dart';
 import '../widgets/badge_share_card.dart';
 import 'badges_service.dart';
+import '../../../services/referral_service.dart';
 
 // ==========================================================================
 // Service
@@ -85,7 +85,7 @@ class BadgeShareService {
     Rect? sharePositionOrigin,
   }) async {
     final text =
-        'Je viens de débloquer le badge "${badge.name}" \uD83C\uDFC6 #LexDay\n$kAppStoreUrl';
+        'Je viens de débloquer le badge "${badge.name}" \uD83C\uDFC6 #LexDay\n$ReferralService.shareUrl';
 
     // Instagram : vrai partage Story (image préchargée en fond). Fallback
     // feuille native si l'app n'est pas installée / non supportée.

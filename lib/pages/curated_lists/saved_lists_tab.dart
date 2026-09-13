@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:provider/provider.dart';
-import '../../data/curated_lists_data.dart';
 import '../../models/curated_list.dart';
 import '../../models/feature_flags.dart';
 import '../../models/user_custom_list.dart';
 import '../../pages/feed/widgets/curated_lists_carousel.dart';
 import '../../providers/subscription_provider.dart';
+import '../../services/curated_lists_repository.dart';
 import '../../services/curated_lists_service.dart';
 import '../../widgets/constrained_content.dart';
 import '../../widgets/premium_gate.dart';
@@ -30,6 +30,7 @@ class SavedListsTabState extends State<SavedListsTab> {
   final _customService = UserCustomListsService();
 
   bool _isLoading = true;
+  List<CuratedList> _lists = CuratedListsRepository.lists;
   Set<int> _savedListIds = {};
   Map<int, int> _readCounts = {};
   Map<int, int> _readerCounts = {};
@@ -51,10 +52,12 @@ class SavedListsTabState extends State<SavedListsTab> {
       final results = await Future.wait([
         _curatedService.getSavedListIds(),
         _customService.getUserLists(),
+        CuratedListsRepository.ensureLoaded(),
       ]);
 
       final savedIds = results[0] as Set<int>;
       final customLists = results[1] as List<UserCustomList>;
+      final curatedLists = results[2] as List<CuratedList>;
 
       // Charger les compteurs en parallèle
       final countResults = await Future.wait([
@@ -66,11 +69,12 @@ class SavedListsTabState extends State<SavedListsTab> {
                 .getBookCountsPerList(customLists.map((l) => l.id).toList())
             : Future.value(<int, int>{}),
         _curatedService.getReaderCounts(
-            kCuratedLists.map((l) => l.id).toList()),
+            curatedLists.map((l) => l.id).toList()),
       ]);
 
       if (!mounted) return;
       setState(() {
+        _lists = curatedLists;
         _savedListIds = savedIds;
         _readCounts = countResults[0];
         _customLists = customLists;
@@ -85,7 +89,7 @@ class SavedListsTabState extends State<SavedListsTab> {
   }
 
   List<CuratedList> get _savedLists {
-    return kCuratedLists
+    return _lists
         .where((list) => _savedListIds.contains(list.id))
         .toList();
   }
@@ -235,7 +239,7 @@ class SavedListsTabState extends State<SavedListsTab> {
 
             // Carousel de suggestions de listes curatées
             CuratedListsCarousel(
-              lists: kCuratedLists,
+              lists: _lists,
               readerCounts: _readerCounts,
               savedListIds: _savedListIds,
               onToggleSave: _toggleCuratedListSave,
@@ -344,7 +348,7 @@ class SavedListsTabState extends State<SavedListsTab> {
 
           // Carousel de suggestions de listes curatées
           CuratedListsCarousel(
-            lists: kCuratedLists,
+            lists: _lists,
             readerCounts: _readerCounts,
             savedListIds: _savedListIds,
             onToggleSave: _toggleCuratedListSave,

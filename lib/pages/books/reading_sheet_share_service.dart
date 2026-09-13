@@ -11,8 +11,8 @@ import '../../models/reading_sheet.dart';
 import '../../features/wrapped/share/share_format.dart';
 import '../../features/wrapped/share/story_share_service.dart';
 import '../../theme/app_theme.dart';
-import '../../utils/app_constants.dart';
 import 'reading_sheet_share_card.dart';
+import '../../services/referral_service.dart';
 
 // ==========================================================================
 // Service
@@ -48,7 +48,7 @@ class ReadingSheetShareService {
     return '\u{1F4D6} Ma fiche de lecture de $titlePart\n'
         '${readingSheet.annotationCount} annotations analysées par l\'IA\n'
         '${themeNames.isNotEmpty ? 'Thèmes : $themeNames\n' : ''}'
-        '\n$kAppStoreUrl';
+        '\n$ReferralService.shareUrl';
   }
 
   /// Build the full reading sheet as plain text for clipboard copy.
@@ -89,7 +89,7 @@ class ReadingSheetShareService {
       buffer.writeln();
     }
 
-    buffer.writeln('Généré par LexDay — $kAppStoreUrl');
+    buffer.writeln('Généré par LexDay — $ReferralService.shareUrl');
     return buffer.toString();
   }
 

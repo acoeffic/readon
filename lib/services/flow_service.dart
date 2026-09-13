@@ -24,6 +24,7 @@ class FlowService {
     required String? endTimeIso,
     bool isManual = false,
     String? createdAtIso,
+    String? source,
   }) {
     if (startPage == null ||
         endPage == null ||
@@ -39,7 +40,11 @@ class FlowService {
     // Session manuelle antidatée ("Ajouter une lecture passée" pour un jour
     // antérieur) : compte pour les stats/feed/défis mais pas pour la flamme,
     // sinon on pourrait réparer son streak a posteriori.
-    if (isManual && createdAtIso != null) {
+    // Exception : une session Kindle est datée par le calendrier de lecture
+    // Amazon, pas par l'utilisateur — elle compte pour la flamme au vrai jour
+    // de lecture. Miroir serveur : get_user_streak_stats (migration
+    // 20260912_kindle_sessions_backdated_flow).
+    if (isManual && createdAtIso != null && source != 'kindle') {
       final end = DateTime.parse(endTimeIso).toLocal();
       final created = DateTime.parse(createdAtIso).toLocal();
       if (end.year != created.year ||
@@ -182,7 +187,7 @@ class FlowService {
       // Récupérer toutes les sessions terminées de l'utilisateur
       final response = await _supabase
           .from('reading_sessions')
-          .select('start_time, end_time, start_page, end_page, is_manual, created_at')
+          .select('start_time, end_time, start_page, end_page, is_manual, created_at, source')
           .eq('user_id', userId)
           .not('end_time', 'is', null)
           .order('end_time', ascending: false);
@@ -208,6 +213,7 @@ class FlowService {
           endTimeIso: endTime,
           isManual: session['is_manual'] as bool? ?? false,
           createdAtIso: session['created_at'] as String?,
+          source: session['source'] as String?,
         )) {
           continue;
         }
@@ -254,7 +260,7 @@ class FlowService {
 
       final response = await _supabase
           .from('reading_sessions')
-          .select('start_time, end_time, start_page, end_page, is_manual, created_at')
+          .select('start_time, end_time, start_page, end_page, is_manual, created_at, source')
           .eq('user_id', userId)
           .eq('is_hidden', false)
           .not('end_time', 'is', null)
@@ -276,6 +282,7 @@ class FlowService {
           endTimeIso: endTime,
           isManual: session['is_manual'] as bool? ?? false,
           createdAtIso: session['created_at'] as String?,
+          source: session['source'] as String?,
         )) {
           continue;
         }
@@ -462,18 +469,27 @@ class FlowService {
           .map((b) => b['badge_id'] as String)
           .toSet();
 
-      // Vérifier chaque niveau de badge
+      // Vérifier chaque niveau de badge.
+      // On utilise le meilleur flow (longest) : un badge atteint reste acquis
+      // même si la flamme est retombée depuis.
+      final bestFlow = flow.currentFlow > flow.longestFlow
+          ? flow.currentFlow
+          : flow.longestFlow;
       for (final level in FlowBadgeLevel.values) {
-        if (flow.currentFlow >= level.days &&
+        if (bestFlow >= level.days &&
             !existingBadgeIds.contains(level.badgeId)) {
           // Créer le badge s'il n'existe pas
           await _ensureBadgeExists(level);
 
-          // Attribuer le badge à l'utilisateur (upsert pour éviter doublon)
+          // Attribuer le badge à l'utilisateur (upsert pour éviter doublon).
+          // NB fix 2026-08-11 : la colonne s'appelle `unlocked_at` (l'ancien
+          // `earned_at` n'existe pas → l'upsert échouait silencieusement et
+          // aucun badge de flow n'a jamais été attribué). L'attribution est
+          // aussi faite côté serveur (check_and_award_badges) désormais.
           await _supabase.from('user_badges').upsert({
             'user_id': userId,
             'badge_id': level.badgeId,
-            'earned_at': DateTime.now().toIso8601String(),
+            'unlocked_at': DateTime.now().toIso8601String(),
           }, onConflict: 'user_id,badge_id', ignoreDuplicates: true);
 
           newBadges.add(level);
@@ -525,7 +541,7 @@ class FlowService {
 
       final response = await _supabase
           .from('reading_sessions')
-          .select('start_time, end_time, start_page, end_page, is_manual, created_at')
+          .select('start_time, end_time, start_page, end_page, is_manual, created_at, source')
           .eq('user_id', userId)
           .not('end_time', 'is', null)
           .order('end_time', ascending: false)
@@ -542,6 +558,7 @@ class FlowService {
           endTimeIso: endTime,
           isManual: session['is_manual'] as bool? ?? false,
           createdAtIso: session['created_at'] as String?,
+          source: session['source'] as String?,
         )) {
           continue;
         }

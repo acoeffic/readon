@@ -14,8 +14,8 @@ import '../../features/wrapped/share/share_format.dart';
 import '../../features/wrapped/share/story_share_service.dart';
 import '../../services/lexday_sync_service.dart';
 import '../../theme/app_theme.dart';
-import '../../utils/app_constants.dart';
 import 'book_finished_share_card.dart';
+import '../../services/referral_service.dart';
 
 // ==========================================================================
 // Service
@@ -64,7 +64,7 @@ class BookFinishedShareService {
         '\u2014 ${stats.totalPagesRead} pages en '
         '${stats.sessionsCount} sessions de lecture !\n\n'
         'Tu lis quoi en ce moment ? \u{1F440}\n'
-        '$kAppStoreUrl';
+        '$ReferralService.shareUrl';
   }
 
   /// Execute the share action for a specific [destination].

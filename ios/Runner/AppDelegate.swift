@@ -5,6 +5,12 @@ import GoogleMaps
 import Firebase
 import FirebaseMessaging
 import ActivityKit
+import os
+import workmanager
+
+/// Log de diagnostic couverture Live Activity — visible dans Console.app
+/// (filtre sous-système "fr.lexday.app"), y compris en build TestFlight.
+let laCoverLog = Logger(subsystem: "fr.lexday.app", category: "LACover")
 
 @main
 @objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
@@ -36,6 +42,20 @@ import ActivityKit
     // même avant que le moteur Flutter ne soit prêt.
     WatchConnectivityManager.shared.activate()
 
+    // Sync Kindle en arrière-plan (workmanager → BGAppRefreshTask).
+    // L'identifiant doit être dans Info.plist (BGTaskSchedulerPermittedIdentifiers).
+    // Le moteur headless a besoin des plugins ET du channel cookies.
+    WorkmanagerPlugin.setPluginRegistrantCallback { registry in
+      GeneratedPluginRegistrant.register(with: registry)
+      if let registrar = registry.registrar(forPlugin: "KindleCookiesChannel") {
+        KindleCookiesChannel.register(with: registrar.messenger())
+      }
+    }
+    WorkmanagerPlugin.registerPeriodicTask(
+      withIdentifier: "fr.lexday.app.kindleProgress",
+      frequency: NSNumber(value: 60 * 60)
+    )
+
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 
@@ -50,6 +70,11 @@ import ActivityKit
 
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
+
+    // Lecture des cookies Amazon de la WebView (sync Kindle en arrière-plan).
+    if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "KindleCookiesChannel") {
+      KindleCookiesChannel.register(with: registrar.messenger())
+    }
 
     // Enregistre le MethodChannel Live Activity sur le moteur Flutter implicite.
     // On passe par le PluginRegistrar pour obtenir un BinaryMessenger de manière stable
@@ -72,6 +97,12 @@ import ActivityKit
 
   private func setupWatchChannel(messenger: FlutterBinaryMessenger) {
     let channel = FlutterMethodChannel(name: watchChannelName, binaryMessenger: messenger)
+    // Dès qu'une commande Watch arrive, prévient Flutter pour qu'il la
+    // consomme immédiatement (sinon le polling Dart ne la voit qu'au tick
+    // suivant, voire au prochain retour au premier plan).
+    WatchConnectivityManager.shared.onCommandReceived = { [weak channel] in
+      channel?.invokeMethod("commandReceived", arguments: nil)
+    }
     channel.setMethodCallHandler { call, result in
       switch call.method {
       case "isSupported":
@@ -167,6 +198,27 @@ import ActivityKit
                             details: nil))
       }
     }
+
+    // Relaie instantanément les commandes Pause/Reprendre émises par les
+    // App Intents de la Live Activity (qui s'exécutent dans CE process) vers
+    // le moteur Flutter, sans attendre le polling au retour au premier plan.
+    // On consomme au passage la commande App Group pour éviter une double
+    // application par le polling (les handlers Dart sont de toute façon
+    // idempotents).
+    if #available(iOS 16.1, *) {
+      NotificationCenter.default.addObserver(
+        forName: Notification.Name("LexDayLiveActivityCommand"),
+        object: nil,
+        queue: .main
+      ) { [weak self] note in
+        guard let self = self else { return }
+        let payload = self.consumePendingCommand()
+          ?? note.userInfo as? [String: Any]
+        if let payload = payload {
+          channel.invokeMethod("onLiveActivityCommand", arguments: payload)
+        }
+      }
+    }
   }
 
   @available(iOS 16.1, *)
@@ -209,6 +261,22 @@ import ActivityKit
       let isPaused = args["isPaused"] as? Bool ?? false
       Task {
         await self.updateActivity(sessionId: sessionId, accumulatedSeconds: accumulated, isPaused: isPaused)
+        result(true)
+      }
+
+    case "setCover":
+      // Couverture récupérée en cours de session (retry côté Dart) : on
+      // écrit le fichier puis on force un re-render de la Live Activity
+      // (la vue relit le fichier App Group à chaque rendu).
+      guard let args = call.arguments as? [String: Any],
+            let sessionId = args["sessionId"] as? String,
+            let cover = args["coverBase64"] as? String, !cover.isEmpty else {
+        result(FlutterError(code: "BAD_ARGS", message: "sessionId + coverBase64 requis", details: nil))
+        return
+      }
+      Task {
+        self.writeCoverToSharedContainer(sessionId: sessionId, base64: cover)
+        await self.rerenderActivity(sessionId: sessionId)
         result(true)
       }
 
@@ -274,18 +342,65 @@ import ActivityKit
   /// dans le container App Group pour que le widget puisse la lire.
   @available(iOS 16.1, *)
   private func writeCoverToSharedContainer(sessionId: String, base64: String) {
-    guard let fileURL = ReadingActivityAttributes.coverFileURL(for: sessionId) else { return }
+    guard let fileURL = ReadingActivityAttributes.coverFileURL(for: sessionId) else {
+      laCoverLog.error("write: containerURL App Group nil")
+      return
+    }
     guard !base64.isEmpty, let data = Data(base64Encoded: base64),
           let image = UIImage(data: data) else {
+      laCoverLog.warning("write: base64 vide/indécodable (\(base64.count) chars) → suppression fichier")
       // Si pas de couverture, on supprime l'ancienne si elle existe.
       try? FileManager.default.removeItem(at: fileURL)
       return
     }
-    // Redimensionne à max 240px pour limiter la taille disque (on reste
-    // très en-dessous du quota mémoire des widgets).
-    let resized = image.resizedForLiveActivity(maxDimension: 240)
-    guard let jpeg = resized.jpegData(compressionQuality: 0.82) else { return }
-    try? jpeg.write(to: fileURL, options: .atomic)
+    let (gStd, cStd) = image.coverLumaStds()
+    laCoverLog.info("write: image reçue \(Int(image.size.width))x\(Int(image.size.height))@\(image.scale)x, \(data.count) o, std global=\(gStd, format: .fixed(precision: 1)) centre=\(cStd, format: .fixed(precision: 1))")
+    // Garde-fou final : rejette les images quasi-uniformes (rectangle gris
+    // « placeholder » servi par certains CDN) qui passeraient les filtres
+    // côté Dart. Mieux vaut le placeholder dessiné par le widget qu'un
+    // rectangle gris.
+    guard image.looksLikeRealCoverImage() else {
+      laCoverLog.warning("write: image quasi-uniforme rejetée → suppression fichier")
+      try? FileManager.default.removeItem(at: fileURL)
+      return
+    }
+    // Quand les octets téléchargés sont déjà raisonnables, on les écrit TELS
+    // QUELS : le widget écran d'accueil affiche exactement ces octets sans
+    // problème (base64 → UserDefaults → UIImage), alors que le chemin
+    // resize+jpegData de la Live Activity produit un rendu gris — on aligne
+    // donc le fichier sur le chemin qui fonctionne. Le re-encodage ne sert
+    // plus que pour les images vraiment trop grandes.
+    let maxSidePx = max(image.size.width * image.scale,
+                        image.size.height * image.scale)
+    let jpeg: Data
+    if maxSidePx <= 700, data.count <= 200_000 {
+      jpeg = data
+      laCoverLog.info("write: octets originaux conservés (\(Int(maxSidePx)) px max)")
+    } else {
+      // Redimensionne à max 240px pour limiter la taille disque (on reste
+      // très en-dessous du quota mémoire des widgets).
+      let resized = image.resizedForLiveActivity(maxDimension: 240)
+      guard let encoded = resized.jpegData(compressionQuality: 0.82) else {
+        laCoverLog.error("write: jpegData nil")
+        return
+      }
+      jpeg = encoded
+      laCoverLog.info("write: re-encodée \(Int(resized.size.width * resized.scale))x\(Int(resized.size.height * resized.scale)) px")
+    }
+    do {
+      try jpeg.write(to: fileURL, options: .atomic)
+      laCoverLog.info("write: OK \(jpeg.count) o → \(fileURL.lastPathComponent, privacy: .public)")
+    } catch {
+      laCoverLog.error("write: échec écriture: \(String(describing: error), privacy: .public)")
+      return
+    }
+    // Relecture de contrôle : ce que le widget va réellement lire.
+    if let back = try? Data(contentsOf: fileURL), let img2 = UIImage(data: back) {
+      let (g2, c2) = img2.coverLumaStds()
+      laCoverLog.info("readback: \(back.count) o, \(Int(img2.size.width * img2.scale))x\(Int(img2.size.height * img2.scale)) px, std global=\(g2, format: .fixed(precision: 1)) centre=\(c2, format: .fixed(precision: 1))")
+    } else {
+      laCoverLog.error("readback: fichier illisible/indécodable juste après écriture")
+    }
   }
 
   @available(iOS 16.1, *)
@@ -310,6 +425,21 @@ import ActivityKit
         await activity.update(ActivityContent(state: newState, staleDate: nil))
       } else {
         await activity.update(using: newState)
+      }
+    }
+  }
+
+  /// Force un re-render de la Live Activity SANS changer son état logique :
+  /// on re-pousse le contenu courant tel quel. Utilisé après l'écriture
+  /// tardive de la couverture (retry) pour que la vue relise le fichier.
+  @available(iOS 16.1, *)
+  private func rerenderActivity(sessionId: String) async {
+    for activity in Activity<ReadingActivityAttributes>.activities
+    where activity.attributes.sessionId == sessionId {
+      if #available(iOS 16.2, *) {
+        await activity.update(ActivityContent(state: activity.content.state, staleDate: nil))
+      } else {
+        await activity.update(using: activity.contentState)
       }
     }
   }
@@ -361,10 +491,74 @@ extension UIImage {
     guard maxSide > maxDimension else { return self }
     let scale = maxDimension / maxSide
     let newSize = CGSize(width: size.width * scale, height: size.height * scale)
-    let renderer = UIGraphicsImageRenderer(size: newSize)
+    // ⚠️ format.scale = 1 : sans ça, UIGraphicsImageRenderer rend à l'échelle
+    // de l'écran (3x sur iPhone) → une "240px" sortait en réalité en 720px.
+    let format = UIGraphicsImageRendererFormat.default()
+    format.scale = 1
+    let renderer = UIGraphicsImageRenderer(size: newSize, format: format)
     return renderer.image { _ in
       draw(in: CGRect(origin: .zero, size: newSize))
     }
+  }
+
+  /// Détection de « fausse couverture » : décode l'image en 16×16 et mesure
+  /// l'écart-type de luminance. Un placeholder uni (rectangle gris) est
+  /// quasi-uniforme (std ≈ 0-5) alors qu'une vraie couverture — même une
+  /// photo noir & blanc — dépasse largement 10. Critère volontairement bas
+  /// pour ne pas rejeter les couvertures minimalistes.
+  /// (std global, std du centre 60 %) de luminance, mesurés sur une grille
+  /// 16×16. Retourne (-1, -1) si l'image est indécodable ici.
+  func coverLumaStds() -> (Double, Double) {
+    let side = 16
+    guard let cg = cgImage else { return (-1, -1) }
+    var pixels = [UInt8](repeating: 0, count: side * side * 4)
+    let colorSpace = CGColorSpaceCreateDeviceRGB()
+    guard let ctx = CGContext(
+      data: &pixels, width: side, height: side,
+      bitsPerComponent: 8, bytesPerRow: side * 4, space: colorSpace,
+      bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+    ) else { return (-1, -1) }
+    ctx.interpolationQuality = .low
+    ctx.draw(cg, in: CGRect(x: 0, y: 0, width: side, height: side))
+
+    func lumaStd(x0: Int, y0: Int, x1: Int, y1: Int) -> Double {
+      var sum = 0.0
+      var count = 0
+      for y in y0..<y1 {
+        for x in x0..<x1 {
+          let o = (y * side + x) * 4
+          sum += (Double(pixels[o]) + Double(pixels[o + 1]) + Double(pixels[o + 2])) / 3.0
+          count += 1
+        }
+      }
+      guard count > 0 else { return 0 }
+      let mean = sum / Double(count)
+      var varSum = 0.0
+      for y in y0..<y1 {
+        for x in x0..<x1 {
+          let o = (y * side + x) * 4
+          let l = (Double(pixels[o]) + Double(pixels[o + 1]) + Double(pixels[o + 2])) / 3.0
+          varSum += (l - mean) * (l - mean)
+        }
+      }
+      return (varSum / Double(count)).squareRoot()
+    }
+
+    return (
+      lumaStd(x0: 0, y0: 0, x1: side, y1: side),
+      lumaStd(x0: 3, y0: 3, x1: 13, y1: 13)
+    )
+  }
+
+  func looksLikeRealCoverImage() -> Bool {
+    let (global, center) = coverLumaStds()
+    if global < 0 { return true }  // indécodable ici → laisser passer
+    // 1) Image entièrement unie → placeholder.
+    guard global >= 8 else { return false }
+    // 2) Centre (60 % central) quasi-uni → placeholder « à bords décorés »
+    //    (bordure/texte sur les bords uniquement) : affiché croppé en
+    //    aspectRatio(.fill), il ne resterait qu'un rectangle uni à l'écran.
+    return center >= 4
   }
 }
 

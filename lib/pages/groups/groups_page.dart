@@ -87,7 +87,7 @@ class _GroupsPageState extends State<GroupsPage> {
 
   void _navigateToCreateGroup() async {
     if (Supabase.instance.client.auth.currentUser == null) {
-      await showRequireAccountSheet(context);
+      await showRequireAccountSheet(context, source: 'create_group');
       return;
     }
     final isPremium = context.read<SubscriptionProvider>().isPremium;

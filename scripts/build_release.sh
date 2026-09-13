@@ -48,8 +48,29 @@ echo
 flutter clean
 flutter build appbundle --release --dart-define-from-file=env.json
 
-# ---------- Récap ----------
+# ---------- Vérification des secrets embarqués ----------
+# Garde-fou (incident 2026-08 : AAB 1.0.5+11 uploadé sur Play sans env.json →
+# SUPABASE_URL vide, auth cassée pour tous les users Android). On vérifie que
+# l'URL Supabase de env.json est bien présente dans le snapshot AOT.
 AAB_PATH="build/app/outputs/bundle/release/app-release.aab"
+if ! python3 - "$AAB_PATH" <<'PY'
+import json, sys, zipfile
+host = json.load(open("env.json"))["SUPABASE_URL"].replace("https://", "").strip("/")
+if not host:
+    sys.exit("env.json: SUPABASE_URL vide")
+data = zipfile.ZipFile(sys.argv[1]).read("base/lib/arm64-v8a/libapp.so")
+if host.encode() not in data:
+    sys.exit(f"'{host}' introuvable dans libapp.so")
+PY
+then
+  echo
+  echo -e "${RED}Erreur:${NC} SUPABASE_URL absent du binaire — le build n'a pas reçu les dart-defines."
+  echo "       Ne PAS uploader cet AAB. Rebuilder via ce script (jamais 'flutter build appbundle' à la main)."
+  exit 1
+fi
+echo -e "${GREEN}✓ Secrets vérifiés dans le binaire (SUPABASE_URL présent)${NC}"
+
+# ---------- Récap ----------
 if [[ -f "$AAB_PATH" ]]; then
   SIZE=$(du -h "$AAB_PATH" | cut -f1)
   echo

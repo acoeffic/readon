@@ -1,3 +1,12 @@
+// ⚠️ FALLBACK EMBARQUÉ UNIQUEMENT.
+// La source de vérité du catalogue est désormais la table Supabase
+// `curated_lists` (+ `curated_list_books`), chargée via
+// CuratedListsRepository. Ce fichier n'est utilisé que si le réseau ET le
+// cache Hive sont indisponibles (premier lancement offline typiquement).
+// Pour ajouter/modifier une liste : INSERT en base — pas besoin de rebuild.
+// Resynchroniser ce fichier de temps en temps reste une bonne idée pour que
+// le fallback offline ne soit pas trop daté.
+
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../models/curated_list.dart';

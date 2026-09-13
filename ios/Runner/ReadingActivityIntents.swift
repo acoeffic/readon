@@ -2,10 +2,20 @@
 // Boutons interactifs (Pause / Reprendre) dans la Live Activity.
 // Requiert iOS 17+.
 //
-// Stratégie : les intents écrivent la commande dans l'App Group via UserDefaults.
-// L'app Flutter observe ce fichier (à son prochain réveil ou via polling léger)
-// pour mettre à jour sa propre machine à états côté Dart.
-// En parallèle, l'intent met IMMÉDIATEMENT à jour la Live Activity pour une UX fluide.
+// IMPORTANT — target membership : ce fichier DOIT être compilé dans le target
+// Runner ET dans le target LexDayWidgetExtensionExtension (comme
+// ReadingActivityAttributes.swift). Un `LiveActivityIntent` ne s'exécute dans
+// le process de l'APP que si son type existe dans le binaire de l'app ; sinon
+// perform() tourne dans le process de la widget extension, où
+// `Activity<...>.activities` est VIDE → applyPause/applyResume ne font rien et
+// le bouton Pause semble mort jusqu'au prochain foreground de l'app.
+//
+// Stratégie : perform() (exécuté dans le process de l'app) :
+//   1. écrit la commande dans l'App Group (fallback lu par le polling Dart) ;
+//   2. met IMMÉDIATEMENT à jour la Live Activity (UI fluide) ;
+//   3. poste une notification locale que l'AppDelegate relaie au moteur
+//      Flutter via MethodChannel pour synchroniser la machine à états Dart
+//      sans attendre le retour au premier plan.
 
 import AppIntents
 import ActivityKit
@@ -27,6 +37,7 @@ public struct PauseReadingIntent: LiveActivityIntent {
     public func perform() async throws -> some IntentResult {
         ReadingActivityBridge.signal(command: "pause", sessionId: sessionId)
         await ReadingActivityBridge.applyPause(sessionId: sessionId)
+        ReadingActivityBridge.notifyApp(command: "pause", sessionId: sessionId)
         return .result()
     }
 }
@@ -47,6 +58,7 @@ public struct ResumeReadingIntent: LiveActivityIntent {
     public func perform() async throws -> some IntentResult {
         ReadingActivityBridge.signal(command: "resume", sessionId: sessionId)
         await ReadingActivityBridge.applyResume(sessionId: sessionId)
+        ReadingActivityBridge.notifyApp(command: "resume", sessionId: sessionId)
         return .result()
     }
 }
@@ -59,6 +71,25 @@ enum ReadingActivityBridge {
     static let pendingCommandKey = "pendingReadingCommand"
     static let pendingCommandSessionKey = "pendingReadingCommandSession"
     static let pendingCommandTimestampKey = "pendingReadingCommandTimestamp"
+
+    /// Nom de la notification in-process relayée par l'AppDelegate vers Flutter.
+    /// N'a d'effet que quand perform() tourne dans le process de l'app (cas
+    /// nominal avec LiveActivityIntent compilé dans le target Runner).
+    static let commandNotification = Notification.Name("LexDayLiveActivityCommand")
+
+    /// Prévient l'app (même process) qu'une commande vient d'être émise, pour
+    /// que le moteur Flutter l'applique sans attendre le polling au foreground.
+    static func notifyApp(command: String, sessionId: String) {
+        NotificationCenter.default.post(
+            name: commandNotification,
+            object: nil,
+            userInfo: [
+                "command": command,
+                "sessionId": sessionId,
+                "timestamp": Date().timeIntervalSince1970,
+            ]
+        )
+    }
 
     /// Écrit la commande pause/resume dans l'App Group pour que Flutter la lise à sa prochaine foregrounding.
     static func signal(command: String, sessionId: String) {

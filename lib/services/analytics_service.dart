@@ -18,6 +18,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:posthog_flutter/posthog_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../config/env.dart';
 
@@ -30,10 +31,32 @@ abstract final class AnalyticsEvent {
   static const loginSucceeded = 'login_succeeded';
   static const logout = 'logout';
 
+  /// « Continuer sans compte » depuis l'écran de connexion. Sans cet event, la
+  /// population invitée est totalement invisible (aucune ligne en base).
+  static const guestModeEntered = 'guest_mode_entered';
+
+  /// Sortie du mode invité (l'utilisateur part créer un compte ou se
+  /// connecter). Le couple entré/sorti donne le taux de conversion global.
+  static const guestModeExited = 'guest_mode_exited';
+
+  // ── Murs « compte requis » ──
+  //
+  // Le trio ci-dessous répond à la question qui vaut le plus cher : *quelle
+  // action donne envie à un visiteur de créer un compte ?* Chaque event porte
+  // un `source` (fab_scan, send_comment, tab_muse…). Le rapport
+  // converted/shown par source désigne le meilleur hameçon de conversion.
+
+  static const guestWallShown = 'guest_wall_shown';
+  static const guestWallConverted = 'guest_wall_converted';
+  static const guestWallDismissed = 'guest_wall_dismissed';
+
   // ── Onboarding ──
   static const onboardingStepViewed = 'onboarding_step_viewed';
   static const onboardingStepSkipped = 'onboarding_step_skipped';
   static const onboardingCompleted = 'onboarding_completed';
+  /// Pré-prompt « On te rappelle demain ? » présenté à ceux qui sortent de
+  /// l'onboarding sans lancer de session. Propriété `answer` : yes / no.
+  static const onboardingReminderPrompt = 'onboarding_reminder_prompt';
 
   // ── Lecture ──
   static const sessionStarted = 'reading_session_started';
@@ -49,6 +72,22 @@ abstract final class AnalyticsEvent {
   static const bookHidden = 'book_hidden';
   static const bookRemoved = 'book_removed';
 
+  // ── Passages (capture hors session) ──
+  //
+  // Le cœur du pari « carnet de lecture » : capturer un passage doit valoir
+  // quelque chose *sans* démarrer de session. Le ratio started/saved dit si
+  // le tunnel photo → surlignage → sauvegarde tient la route.
+  static const passageCaptureStarted = 'passage_capture_started';
+  static const passageSaved = 'passage_saved';
+  static const passageCaptureAbandoned = 'passage_capture_abandoned';
+  static const passagesWallOpened = 'passages_wall_opened';
+  static const passagesBookOpened = 'passages_book_opened';
+
+  /// Surlignages Kindle importés par le sync auto (Readwise-like).
+  /// `imported` = nouvelles lignes, `extracted` = total ramené par le crawl :
+  /// le ratio dit si le lecteur surligne encore ou si on re-crawle du stock.
+  static const kindleHighlightsSynced = 'kindle_highlights_synced';
+
   // ── Social ──
   static const friendRequestSent = 'friend_request_sent';
   static const friendRequestAccepted = 'friend_request_accepted';
@@ -62,6 +101,17 @@ abstract final class AnalyticsEvent {
   static const badgeUnlocked = 'badge_unlocked';
   static const badgeShared = 'badge_shared';
   static const streakBroken = 'streak_broken';
+
+  // ── Mode sans distraction (automatisations Raccourcis iOS) ──
+  //
+  // Entonnoir : suggestion post-session affichée → guide ouvert (avec
+  // `source` : settings | post_session_suggestion) → app Raccourcis ouverte.
+  // On ne peut pas savoir si l'automatisation est réellement créée (iOS ne
+  // le dit pas) — le dernier event mesurable est l'ouverture de Raccourcis.
+  static const focusSuggestionShown = 'focus_suggestion_shown';
+  static const focusSuggestionDismissed = 'focus_suggestion_dismissed';
+  static const focusGuideOpened = 'focus_guide_opened';
+  static const focusGuideShortcutsOpened = 'focus_guide_shortcuts_opened';
 
   // ── Notifications ──
   static const pushPermissionRequested = 'push_permission_requested';
@@ -83,6 +133,7 @@ class AnalyticsService {
   factory AnalyticsService() => _instance;
 
   bool _initialized = false;
+  bool _authListenerAttached = false;
   bool get _enabled => _initialized && Env.posthogApiKey.isNotEmpty;
 
   /// À appeler une fois au démarrage de l'app, après chargement de l'env.
@@ -209,6 +260,51 @@ class AnalyticsService {
       await Posthog().reset();
     } catch (e) {
       debugPrint('AnalyticsService.reset error: $e');
+    }
+  }
+
+  /// Branche l'écoute des changements d'état d'authentification pour émettre
+  /// [AnalyticsEvent.signupCompleted] / [AnalyticsEvent.loginSucceeded] depuis
+  /// un seul endroit, quel que soit le chemin emprunté (email, Apple, Google).
+  ///
+  /// À appeler une fois au démarrage, après [init] et après
+  /// `Supabase.initialize`. Idempotent.
+  ///
+  /// Distinction signup / login : `AuthChangeEvent.signedIn` ne dit pas si le
+  /// compte vient d'être créé. On compare donc la date de création de
+  /// l'utilisateur à l'instant courant — un compte de moins de deux minutes au
+  /// moment du premier `signedIn` est une inscription.
+  void attachAuthListener() {
+    if (_authListenerAttached) return;
+    _authListenerAttached = true;
+
+    try {
+      Supabase.instance.client.auth.onAuthStateChange.listen((state) {
+        // `initialSession` (restauration au lancement) et `tokenRefreshed` ne
+        // sont pas des connexions : les compter fausserait le funnel.
+        if (state.event != AuthChangeEvent.signedIn) return;
+
+        final user = state.session?.user;
+        if (user == null) return;
+
+        final createdAt = DateTime.tryParse(user.createdAt);
+        final isFreshAccount = createdAt != null &&
+            DateTime.now().toUtc().difference(createdAt.toUtc()) <
+                const Duration(minutes: 2);
+
+        final provider =
+            (user.appMetadata['provider'] as String?) ?? 'email';
+
+        unawaited(track(
+          isFreshAccount
+              ? AnalyticsEvent.signupCompleted
+              : AnalyticsEvent.loginSucceeded,
+          properties: {'provider': provider},
+        ));
+      });
+    } catch (e) {
+      debugPrint('AnalyticsService.attachAuthListener error: $e');
+      _authListenerAttached = false;
     }
   }
 

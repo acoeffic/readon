@@ -6,10 +6,10 @@ import 'package:path_provider/path_provider.dart';
 import 'package:screenshot/screenshot.dart';
 import 'package:share_plus/share_plus.dart' hide ShareResult;
 import 'package:url_launcher/url_launcher.dart';
-import '../../../utils/app_constants.dart';
 import '../monthly/monthly_wrapped_data.dart';
 import 'monthly_share_card.dart';
 import 'share_format.dart';
+import '../../../services/referral_service.dart';
 
 // ==========================================================================
 // Service — self-contained for monthly wrapped sharing
@@ -43,7 +43,7 @@ class MonthlyShareService {
     if (videoFile != null) {
       await Share.shareXFiles(
         [XFile(videoFile.path)],
-        text: 'Mon wrapped lecture #LexDay\n$kAppStoreUrl',
+        text: 'Mon wrapped lecture #LexDay\n$ReferralService.shareUrl',
         sharePositionOrigin: sharePositionOrigin,
       );
       return;
@@ -51,7 +51,7 @@ class MonthlyShareService {
     final file = await _saveTempFile(imageBytes, year, month);
     await Share.shareXFiles(
       [XFile(file.path)],
-      text: 'Mon wrapped lecture #LexDay\n$kAppStoreUrl',
+      text: 'Mon wrapped lecture #LexDay\n$ReferralService.shareUrl',
       sharePositionOrigin: sharePositionOrigin,
     );
   }
@@ -88,14 +88,14 @@ class MonthlyShareService {
     if (videoFile != null) {
       await Share.shareXFiles(
         [XFile(videoFile.path)],
-        text: 'Mon wrapped lecture #LexDay\n$kAppStoreUrl',
+        text: 'Mon wrapped lecture #LexDay\n$ReferralService.shareUrl',
         sharePositionOrigin: sharePositionOrigin,
       );
     } else {
       final file = await _saveTempFile(imageBytes, year, month);
       await Share.shareXFiles(
         [XFile(file.path)],
-        text: 'Mon wrapped lecture #LexDay\n$kAppStoreUrl',
+        text: 'Mon wrapped lecture #LexDay\n$ReferralService.shareUrl',
         sharePositionOrigin: sharePositionOrigin,
       );
     }

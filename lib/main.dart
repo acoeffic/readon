@@ -6,6 +6,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'app.dart';
 import 'services/google_books_service.dart';
 import 'services/feed_cache_service.dart';
+import 'services/app_review_service.dart';
 
 // ← ajouter — doit être top-level (pas dans une classe)
 @pragma('vm:entry-point')
@@ -20,6 +21,7 @@ void main() async {
   await Hive.initFlutter();
   await FeedCacheService.init();
   await GoogleBooksService.loadPersistentCache();
+  await AppReviewService.recordFirstLaunchIfNeeded();
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,

@@ -27,7 +27,8 @@ enum AmazonClickSource {
   prizeList,
   curatedList,
   chatCardChip,
-  chatBuySheet;
+  chatBuySheet,
+  searchPreview;
 
   String get analyticsValue {
     switch (this) {
@@ -43,12 +44,14 @@ enum AmazonClickSource {
         return 'chat_card_chip';
       case AmazonClickSource.chatBuySheet:
         return 'chat_buy_sheet';
+      case AmazonClickSource.searchPreview:
+        return 'search_preview';
     }
   }
 }
 
 class AmazonAffiliate {
-  static const String affiliateTag = 'lexday-21';
+  static const String affiliateTag = 'lexday04-21';
   static const String _host = 'www.amazon.fr';
 
   /// Construit l'URL Amazon affiliée pour un livre.

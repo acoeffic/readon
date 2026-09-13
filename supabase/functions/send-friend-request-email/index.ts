@@ -1,6 +1,45 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
+// --- Auth appelant machine --------------------------------------------------
+// Correctif audit 14/08/2026. Avant : AUCUNE verification du header
+// Authorization. La fonction est appelee par le Database Webhook
+// `send_friend_request_email` (AFTER INSERT sur `notifications`), qui presente
+// une cle service_role en Bearer. Sans garde, n'importe qui pouvait boucler
+// dessus avec {record:{type:"friend_request", user_id:"<victime>"}} et
+// bombarder d'e-mails un utilisateur cible depuis hello@lexday.fr.
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let mismatch = 0;
+  for (let i = 0; i < a.length; i++) {
+    mismatch |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return mismatch === 0;
+}
+
+function isServiceRole(req: Request): boolean {
+  const token = (req.headers.get("authorization") ?? "").replace(
+    /^Bearer\s+/i,
+    "",
+  );
+  if (!token) return false;
+  if (SUPABASE_SERVICE_ROLE_KEY && timingSafeEqual(token, SUPABASE_SERVICE_ROLE_KEY)) {
+    return true;
+  }
+  try {
+    const part = token.split(".")[1];
+    if (!part) return false;
+    const b64 = part.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
+    const claims = JSON.parse(atob(padded));
+    return claims?.role === "service_role";
+  } catch {
+    return false;
+  }
+}
+
 // Échappe les valeurs contrôlées par l'utilisateur (display_name) avant de les
 // injecter dans le HTML de l'e-mail. La modération de pseudo ne filtre pas le
 // markup → sans ça, injection de liens/HTML possible dans un e-mail LexDay.
@@ -15,6 +54,10 @@ function escapeHtml(input: string): string {
 
 serve(async (req) => {
   try {
+    if (!isServiceRole(req)) {
+      return new Response("Non autorisé", { status: 401 });
+    }
+
     const payload = await req.json();
     const record = payload.record;
 

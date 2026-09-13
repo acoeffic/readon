@@ -71,6 +71,34 @@ class AppLocalizationsEs extends AppLocalizations {
   String get kindleSyncedAutomatically => 'Kindle sincronizado automáticamente';
 
   @override
+  String get kindleSessionExpired =>
+      'Tu sesión de Kindle ha caducado, vuelve a conectarte para seguir sincronizando';
+
+  @override
+  String get kindleReconnect => 'Reconectar';
+
+  @override
+  String get kindleStopSyncing => 'Dejar de sincronizar';
+
+  @override
+  String get kindleSyncDisabled =>
+      'Sincronización de Kindle desactivada. Puedes reactivarla en los ajustes.';
+
+  @override
+  String get sessionSourceKindle => 'Leído en Kindle · tiempo estimado';
+
+  @override
+  String kindleSessionsAdded(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count lecturas Kindle añadidas',
+      one: 'Tu lectura Kindle se ha añadido',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get enterEmailToReset => 'Introduce tu email para restablecer';
 
   @override
@@ -2094,6 +2122,12 @@ class AppLocalizationsEs extends AppLocalizations {
   String get museClassic => 'Un clásico por descubrir';
 
   @override
+  String get museGiftChip => '🎁 Un libro para regalar';
+
+  @override
+  String get museGiftPrefill => '¿Qué libro podría regalarle a ';
+
+  @override
   String get museAssistantLabel => 'Asistente literario';
 
   @override
@@ -2168,6 +2202,12 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get addToList => 'Añadir a una lista';
+
+  @override
+  String get addToThisList => 'Añadir a la lista';
+
+  @override
+  String get seeAllAuthorBooks => 'Ver todos sus libros';
 
   @override
   String get noPersonalList => 'Ninguna lista personal.';
@@ -2334,6 +2374,39 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get privateListDescription => 'Visible solo para ti';
+
+  @override
+  String get listShareMakePublicTitle => '¿Hacer pública la lista?';
+
+  @override
+  String listShareMakePublicMessage(String title) {
+    return 'Para compartir «$title», la lista debe ser pública. Cualquiera con el enlace podrá verla.';
+  }
+
+  @override
+  String get makePublicButton => 'Hacer pública';
+
+  @override
+  String get listShareLinkOption => 'Compartir el enlace';
+
+  @override
+  String get listShareLinkSubtitle => 'Página web visible sin la app';
+
+  @override
+  String get listShareImageOption => 'Compartir como imagen';
+
+  @override
+  String get listShareImageSubtitle => 'Una tarjeta para Instagram o TikTok';
+
+  @override
+  String listShareText(String title, String url) {
+    return '📚 Mi lista «$title» en LexDay:\n$url';
+  }
+
+  @override
+  String listByOwner(String name) {
+    return 'Lista de $name';
+  }
 
   @override
   String get addBooksTitle => 'Añadir libros';
@@ -2809,6 +2882,39 @@ class AppLocalizationsEs extends AppLocalizations {
   String get startSessionTitle => 'Iniciar';
 
   @override
+  String get startFromBeginning => 'Empezar desde el principio';
+
+  @override
+  String addBookManuallyCta(String query) {
+    return 'Añadir «$query» manualmente';
+  }
+
+  @override
+  String get titleAuthorRequired => 'Título y autor obligatorios';
+
+  @override
+  String get cameraPermissionDenied => 'Acceso a la cámara denegado';
+
+  @override
+  String get cameraPermissionHint =>
+      'Permite el acceso a la cámara en Ajustes para escanear, o busca el libro por título.';
+
+  @override
+  String get searchByTitleButton => 'Buscar por título';
+
+  @override
+  String get scanBookCta => 'Escanear un libro';
+
+  @override
+  String get endActiveSessionCta => 'Terminar la sesión en curso';
+
+  @override
+  String get referralSection => 'Invitaciones';
+
+  @override
+  String get referralInvite => 'Invitar a un amigo · 14 días gratis';
+
+  @override
   String get whatPageAreYouAt => '¿EN QUÉ PÁGINA ESTÁS?';
 
   @override
@@ -3073,6 +3179,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get readingForOther => 'Otro';
 
   @override
+  String get readingForAddPrompt => '¿Leíste para alguien?';
+
+  @override
   String readingForDisplay(String person) {
     return 'Leído para $person';
   }
@@ -3298,6 +3407,9 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get freeIncludedLibrary => 'Biblioteca ilimitada';
+
+  @override
+  String get freeIncludedStats => 'Estadísticas y seguimiento completos';
 
   @override
   String get freeIncludedFeed => 'Feed social';
@@ -3571,6 +3683,9 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get manualSearchTipIsbn =>
       'También puedes pegar un ISBN (10 o 13 dígitos)';
+
+  @override
+  String get manualSearchTrendingTitle => 'Tendencias del momento';
 
   @override
   String get manualSearchNoResults => 'No se encontraron libros';
@@ -3902,4 +4017,636 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get addPastSessionActiveSessionError =>
       'Termina primero tu sesión en curso de este libro.';
+
+  @override
+  String scanIsbnDetected(String code) {
+    return 'ISBN detectado: $code';
+  }
+
+  @override
+  String get scanNoBookForIsbn =>
+      'No se encontró ningún libro para este ISBN. Prueba el escaneo de portada.';
+
+  @override
+  String scanSearchError(String error) {
+    return 'Error de búsqueda: $error';
+  }
+
+  @override
+  String get scanNoTextDetected => 'No se detectó texto en la portada.';
+
+  @override
+  String get scanNoBookFound =>
+      'No se encontró ningún libro. Prueba la búsqueda manual.';
+
+  @override
+  String get scanIsbnTitle => 'Escanear ISBN';
+
+  @override
+  String get scanCoverTitle => 'Escanear portada';
+
+  @override
+  String get manualSearchTooltip => 'Búsqueda manual';
+
+  @override
+  String get coverLabel => 'Portada';
+
+  @override
+  String get scanPaused => 'Escáner en pausa';
+
+  @override
+  String get scanPointCamera => 'Apunta la cámara al código de barras ISBN';
+
+  @override
+  String get scanBarcodeHint => '(en la contraportada, empieza por 978 o 979)';
+
+  @override
+  String get scanNoBarcodeHint =>
+      '¿Sin código de barras? Usa la pestaña \"Portada\"';
+
+  @override
+  String get scanAnalyzingCover => 'Analizando la portada...';
+
+  @override
+  String get scanScannedCover => 'Portada escaneada:';
+
+  @override
+  String get scanDetectedText => 'Texto detectado';
+
+  @override
+  String get scanPhotographCover => 'Fotografía la portada';
+
+  @override
+  String get scanCoverExplain => 'Detectamos el título y encontramos el libro';
+
+  @override
+  String get scanStepDetection => 'Detección';
+
+  @override
+  String get scanStepSearch => 'Búsqueda';
+
+  @override
+  String get scanIsbnAutoDetect =>
+      'Si el ISBN es visible, se detectará automáticamente';
+
+  @override
+  String get scanResults => 'Resultados:';
+
+  @override
+  String bookAddedShort(String title) {
+    return '$title añadido';
+  }
+
+  @override
+  String get emptyLibraryUseSearch =>
+      'Usa la pestaña Buscar para encontrar y añadir libros.';
+
+  @override
+  String get searchBookByTitleAuthorHint => 'Busca un libro por título o autor';
+
+  @override
+  String get chooseCoverTitle => 'Elegir una portada';
+
+  @override
+  String get noCoversAvailable => 'No hay portadas disponibles';
+
+  @override
+  String get coversComingSoon => 'Pronto habrá más portadas.';
+
+  @override
+  String get bookHiddenFromOthers => 'Libro oculto para otros usuarios';
+
+  @override
+  String get bookVisibleToOthers => 'Libro visible para otros usuarios';
+
+  @override
+  String get errorUpdating => 'Error al actualizar';
+
+  @override
+  String get markBookFinishedQuestion => '¿Marcar este libro como terminado?';
+
+  @override
+  String get bookMarkedFinished => '¡Libro marcado como terminado!';
+
+  @override
+  String get bookHiddenTooltip => 'Libro oculto para los demás';
+
+  @override
+  String get hideBookTooltip => 'Ocultar este libro';
+
+  @override
+  String get kindleBook => 'Libro Kindle';
+
+  @override
+  String get scannedBook => 'Libro escaneado';
+
+  @override
+  String get addGenre => 'Añadir un género';
+
+  @override
+  String sessionStartedAtPage(int page) {
+    return 'Iniciada en la página $page';
+  }
+
+  @override
+  String sinceDuration(String duration) {
+    return 'Desde hace $duration';
+  }
+
+  @override
+  String get endThisReading => 'Terminar esta lectura';
+
+  @override
+  String get progressPhotoHint =>
+      'Sigue tu progreso tomando una foto o introduciendo el número de página.';
+
+  @override
+  String get markAsFinished => 'Marcar como terminado';
+
+  @override
+  String currentlyAtPage(String page) {
+    return 'Actualmente en la página $page';
+  }
+
+  @override
+  String remainingAiSummaries(int count, int max) {
+    return '$count/$max resúmenes restantes';
+  }
+
+  @override
+  String get noAnnotationsForBook =>
+      'No hay anotaciones para este libro.\n¡Anota durante tus sesiones!';
+
+  @override
+  String aiSheetExplain(int count) {
+    return 'La IA analiza tus $count anotaciones para crear una ficha de lectura personalizada: temas clave, citas destacadas, progresión y síntesis.';
+  }
+
+  @override
+  String get generateMySheet => 'Generar mi ficha';
+
+  @override
+  String get regenerate => 'Regenerar';
+
+  @override
+  String get sheetSentToNotion => '¡Ficha enviada a Notion!';
+
+  @override
+  String get aiSummaryLabel => 'Resumen IA';
+
+  @override
+  String get summarizing => 'Resumiendo...';
+
+  @override
+  String get summarizeAction => 'Resumir';
+
+  @override
+  String usedMonthlySummaries(int count) {
+    return 'Has usado tus $count resúmenes del mes';
+  }
+
+  @override
+  String get premiumSummariesUpsell =>
+      'Pásate a Premium para resumir todos tus pasajes sin límite';
+
+  @override
+  String get retryNextMonth => 'Vuelve a intentarlo el mes que viene';
+
+  @override
+  String addedToListNamed(String title) {
+    return 'Añadido a \"$title\"';
+  }
+
+  @override
+  String get barcodeLabel => 'Código de barras';
+
+  @override
+  String get scanStepPhoto => 'Foto';
+
+  @override
+  String get chooseGenre => 'Elegir el género';
+
+  @override
+  String get profileCurrentSection => 'Ahora mismo';
+
+  @override
+  String profileCurrentSince(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'desde hace $count días',
+      one: 'desde hace 1 día',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String profilePageProgress(int current, int total) {
+    return 'p. $current / $total';
+  }
+
+  @override
+  String get profileFavoritesSection => 'Sus favoritos';
+
+  @override
+  String get profileCommonSection => 'Los habéis leído ambos';
+
+  @override
+  String get profileCommonSubtitle =>
+      'Libros presentes en vuestras dos bibliotecas';
+
+  @override
+  String get profileYouLabel => 'Tú';
+
+  @override
+  String get profileLibrarySection => 'Su biblioteca';
+
+  @override
+  String get profileToReadChip => 'Deseos';
+
+  @override
+  String get profileSeeFullLibrary => 'Ver toda su biblioteca';
+
+  @override
+  String memberSinceDays(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Miembro desde hace $count días',
+      one: 'Miembro desde hace 1 día',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String memberSinceWeeks(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Miembro desde hace $count semanas',
+      one: 'Miembro desde hace 1 semana',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String memberSinceMonths(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Miembro desde hace $count meses',
+      one: 'Miembro desde hace 1 mes',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String memberSinceYears(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Miembro desde hace $count años',
+      one: 'Miembro desde hace 1 año',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get profileTheirRating => 'Su nota';
+
+  @override
+  String sessionPageRange(int start, int end) {
+    return 'p. $start → $end';
+  }
+
+  @override
+  String get chooseNameTitle => '¿Cómo quieres aparecer?';
+
+  @override
+  String get chooseNameSubtitle =>
+      'Es el nombre que verán tus amigos y otros lectores en LexDay.';
+
+  @override
+  String get feedbackTooltip => 'Enviar mi opinión';
+
+  @override
+  String get feedbackSheetTitle => 'Enviar mi opinión';
+
+  @override
+  String get feedbackSheetSubtitle =>
+      '¿Un error, una idea, algo que te molesta? Cuéntanoslo todo — cada opinión nos ayuda a mejorar LexDay.';
+
+  @override
+  String get feedbackMessageLabel => 'Tu mensaje';
+
+  @override
+  String get feedbackMessageHint => 'Escribe tu opinión aquí…';
+
+  @override
+  String get feedbackSubmitButton => 'Enviar';
+
+  @override
+  String get feedbackSentMessage => '¡Gracias por tu opinión!';
+
+  @override
+  String get feedbackErrorMessage =>
+      'No se pudo enviar tu opinión. Inténtalo de nuevo.';
+
+  @override
+  String get fabLogPastRead => 'Acabo de leer';
+
+  @override
+  String get highlightTitle => 'Subraya el pasaje';
+
+  @override
+  String get highlightAnalyzing => 'Leyendo la foto…';
+
+  @override
+  String get highlightHint => 'Desliza el dedo sobre el pasaje';
+
+  @override
+  String get highlightNoText =>
+      'No se detectó texto. Prueba con una foto más nítida o deja que la IA lea la página.';
+
+  @override
+  String get highlightSelectAll => 'Seleccionar todo';
+
+  @override
+  String get highlightClear => 'Borrar';
+
+  @override
+  String get highlightUse => 'Usar';
+
+  @override
+  String get highlightOneWord => '1 palabra subrayada';
+
+  @override
+  String highlightWordCount(int count) {
+    return '$count palabras subrayadas';
+  }
+
+  @override
+  String get highlightEnhanceAi => 'Corregir con IA';
+
+  @override
+  String get highlightExtractAi => 'Leer con IA';
+
+  @override
+  String get highlightEnhancing => 'Releyendo…';
+
+  @override
+  String get highlightAiDone => 'Pasaje releído por la IA';
+
+  @override
+  String get highlightAiLabel => 'Texto releído por la IA';
+
+  @override
+  String get highlightModeMove => 'Zoom / mover';
+
+  @override
+  String get highlightModeSelect => 'Subrayar';
+
+  @override
+  String get highlightImageError => 'No se puede abrir esta foto.';
+
+  @override
+  String get highlightRetakePhoto => 'Volver a tomar la foto';
+
+  @override
+  String get takePhotoAction => 'Hacer una foto';
+
+  @override
+  String get editHighlight => 'Editar el subrayado';
+
+  @override
+  String pageDetectedSuggestion(int page) {
+    return 'Página $page detectada';
+  }
+
+  @override
+  String get capturePassageFab => 'Guardar un pasaje';
+
+  @override
+  String get capturePassageTitle => 'Guardar este pasaje';
+
+  @override
+  String get capturePassageSave => 'Guardar';
+
+  @override
+  String get capturePassageSaved => 'Pasaje guardado';
+
+  @override
+  String get capturePassageNoBook => 'Elegir un libro';
+
+  @override
+  String get capturePassageNeedBook => 'Elige un libro para este pasaje.';
+
+  @override
+  String get capturePassagePageLabel => 'Página';
+
+  @override
+  String get capturePassageChooseBook => '¿Qué libro?';
+
+  @override
+  String get capturePassageScanCover => 'Escanear la portada de un libro nuevo';
+
+  @override
+  String get capturePassageCameraError => 'No se pudo abrir la cámara.';
+
+  @override
+  String get myPassages => 'Mis pasajes';
+
+  @override
+  String get myPassagesSearchHint => 'Buscar en mis pasajes…';
+
+  @override
+  String get myPassagesNoResult => 'Ningún pasaje coincide con esta búsqueda.';
+
+  @override
+  String get myPassagesEmptyTitle => 'Todavía no has guardado nada';
+
+  @override
+  String get myPassagesEmptyBody =>
+      'Fotografía una página y subraya el pasaje con el dedo: te esperará aquí.';
+
+  @override
+  String myPassagesPage(int page) {
+    return 'p. $page';
+  }
+
+  @override
+  String get myPassagesCopy => 'Copiar el texto';
+
+  @override
+  String get myPassagesCopied => 'Pasaje copiado';
+
+  @override
+  String get myPassagesDeleteTitle => '¿Eliminar este pasaje?';
+
+  @override
+  String get myPassagesDeleteBody =>
+      'El texto y la foto se eliminarán definitivamente.';
+
+  @override
+  String get myPassagesDeleteConfirm => 'Eliminar';
+
+  @override
+  String get myPassagesSourceKindle => 'Kindle';
+
+  @override
+  String get myPassagesNoteLabel => 'Mi nota';
+
+  @override
+  String get myPassagesUnknownBook => 'Libro desconocido';
+
+  @override
+  String myPassagesCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 's',
+      one: '',
+    );
+    return '$count pasaje$_temp0';
+  }
+
+  @override
+  String get startPageOptionalLabel => 'PÁGINA INICIAL · OPCIONAL';
+
+  @override
+  String willResumeAtPage(int page) {
+    return 'Retomarás en la página $page';
+  }
+
+  @override
+  String get willStartAtBeginning => 'Empezarás desde el principio';
+
+  @override
+  String abandonSessionElapsed(String duration) {
+    return 'Llevas leyendo $duration.';
+  }
+
+  @override
+  String get abandonDeletesTime =>
+      'Abandonar elimina definitivamente este tiempo de lectura.';
+
+  @override
+  String get abandonKeepReading => 'Seguir leyendo';
+
+  @override
+  String get abandonEndInstead => 'Terminar la sesión';
+
+  @override
+  String get abandonDiscard => 'Eliminar de todos modos';
+
+  @override
+  String get focusModeSettingsEntry => 'Modo sin distracciones';
+
+  @override
+  String get focusModeTitle => 'Modo sin distracciones';
+
+  @override
+  String get focusModeIntroTitle => 'Silencia las notificaciones mientras lees';
+
+  @override
+  String get focusModeIntroBody =>
+      'Con dos automatizaciones en la app Atajos de Apple, tu iPhone activa «No molestar» al abrir LexDay y vuelve a la normalidad al salir. Configuración única, en 2 minutos.';
+
+  @override
+  String get focusModeAutomation1Title => 'Al abrir LexDay';
+
+  @override
+  String get focusModeAutomation1Subtitle =>
+      'Activar No molestar automáticamente';
+
+  @override
+  String get focusModeAutomation2Title => 'Al cerrar LexDay';
+
+  @override
+  String get focusModeAutomation2Subtitle => 'Desactivar No molestar';
+
+  @override
+  String get focusModeStepOpenShortcuts =>
+      'Abre la app Atajos (preinstalada en tu iPhone)';
+
+  @override
+  String get focusModeStepAutomationTab =>
+      'Ve a la pestaña «Automatización» y toca «Nueva automatización»';
+
+  @override
+  String get focusModeStepChooseApp => 'Elige «App» y selecciona LexDay';
+
+  @override
+  String get focusModeStepIsOpened =>
+      'Marca «Se abre» y «Ejecutar de inmediato»';
+
+  @override
+  String get focusModeStepIsClosed =>
+      'Marca «Se cierra» y «Ejecutar de inmediato»';
+
+  @override
+  String get focusModeStepActionOn =>
+      'Añade la acción «Establecer modo de concentración» → No molestar → Activar';
+
+  @override
+  String get focusModeStepActionOff =>
+      'Añade la acción «Establecer modo de concentración» → No molestar → Desactivar';
+
+  @override
+  String get focusModeOpenShortcuts => 'Abrir Atajos';
+
+  @override
+  String get focusModeNote =>
+      'Es un ajuste 100 % de iOS: LexDay no accede a nada y puedes eliminar la automatización cuando quieras en Atajos.';
+
+  @override
+  String get focusModeShortcutsUnavailable =>
+      'No se pudo abrir Atajos. Reinstálala desde el App Store.';
+
+  @override
+  String get focusSuggestionTitle => '¿Leer sin interrupciones?';
+
+  @override
+  String get focusSuggestionBody =>
+      'Tu iPhone puede activar «No molestar» automáticamente en cada sesión. Configuración única de 2 minutos.';
+
+  @override
+  String get focusSuggestionCta => 'Ver cómo';
+
+  @override
+  String get onboardingFirstSessionReady => '¿Lista para leer?';
+
+  @override
+  String get onboardingFirstSessionHint =>
+      'Con 5 minutos basta para empezar. Para cuando quieras.';
+
+  @override
+  String get onboardingFirstSessionCta => 'Leer 5 minutos ahora';
+
+  @override
+  String get onboardingFirstSessionLater => 'Ahora no';
+
+  @override
+  String get onboardingNoBookTitle => '¡Todo listo!';
+
+  @override
+  String get onboardingNoBookBody =>
+      'Añade un libro cuando quieras para empezar tu primera sesión de lectura.';
+
+  @override
+  String get onboardingNoBookCta => 'Vamos';
+
+  @override
+  String get onboardingReminderTitle => '¿Te lo recordamos mañana?';
+
+  @override
+  String onboardingReminderBody(String title) {
+    return 'Un solo recordatorio para retomar «$title» — y nada más hasta que hayas leído.';
+  }
+
+  @override
+  String get onboardingReminderYes => 'Sí, recuérdamelo';
+
+  @override
+  String get onboardingReminderNo => 'No, gracias';
 }

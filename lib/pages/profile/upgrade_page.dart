@@ -16,7 +16,7 @@ import '../../theme/app_theme.dart';
 /// Ordre d'affichage des features dans le tableau comparatif.
 /// On exclut flowHistory car il est fusionné avec flowManualFreeze.
 const _displayFeatures = [
-  Feature.advancedStats,
+  // advancedStats retiré : les statistiques sont gratuites depuis le 19/08/2026.
   Feature.premiumBadges,
   Feature.aiChat,
   Feature.customLists,
@@ -30,6 +30,7 @@ const _displayFeatures = [
 List<String> _freeIncluded(AppLocalizations l) => [
   l.freeIncludedSessions,
   l.freeIncludedLibrary,
+  l.freeIncludedStats,
   l.freeIncludedFeed,
   l.freeIncludedGoals,
   l.freeIncludedWrapped,

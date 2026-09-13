@@ -10,9 +10,35 @@ import java.io.File
 class MainActivity : FlutterActivity() {
 
     private val storyChannelName = "fr.lexday.app/story_share"
+    private val kindleCookiesChannelName = "fr.lexday.app/kindle_cookies"
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+
+        // Cookies Amazon de la WebView, pour le sync Kindle en arrière-plan
+        // (workmanager, pas de WebView). CookieManager.getCookie renvoie
+        // directement "name=value; name2=value2".
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, kindleCookiesChannelName)
+            .setMethodCallHandler { call, result ->
+                if (call.method == "getAmazonCookies") {
+                    val cm = android.webkit.CookieManager.getInstance()
+                    val parts = mutableListOf<String>()
+                    for (url in listOf("https://read.amazon.com", "https://www.amazon.com")) {
+                        val c = cm.getCookie(url)
+                        if (!c.isNullOrBlank()) parts.add(c)
+                    }
+                    // Dédoublonnage par nom (les deux hôtes partagent .amazon.com).
+                    val seen = LinkedHashMap<String, String>()
+                    for (p in parts.joinToString("; ").split(";")) {
+                        val kv = p.trim()
+                        val i = kv.indexOf('=')
+                        if (i > 0) seen[kv.substring(0, i)] = kv
+                    }
+                    result.success(seen.values.joinToString("; "))
+                } else {
+                    result.notImplemented()
+                }
+            }
 
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, storyChannelName)
             .setMethodCallHandler { call, result ->

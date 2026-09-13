@@ -20,11 +20,87 @@ const corsHeaders = {
 
 const MAX_FREE_MONTHLY_TRANSCRIPTIONS = 3;
 
+// Prompt système pour structurer la transcription brute en note de lecture.
+// Sortie en TEXTE BRUT (les annotations sont affichées via un simple widget
+// Text côté Flutter, pas de rendu Markdown).
+const STRUCTURE_SYSTEM_PROMPT = `Tu transformes la transcription brute d'une note vocale enregistrée pendant une session de lecture en une note claire et structurée.
+
+Règles strictes :
+- Écris dans la même langue que la transcription.
+- Texte brut uniquement : aucun Markdown (pas de **, #, _, etc.). Pour les listes, utilise des puces « • » (une par ligne).
+- Supprime les hésitations, répétitions et tics de langage. Reformule proprement mais reste strictement fidèle au contenu : n'invente rien, n'ajoute aucune information absente de la transcription.
+- Conserve la première personne quand le lecteur parle de lui.
+- Si la note est riche (plusieurs idées) : commence par une ligne de titre très courte résumant la note, puis les idées clés en puces « • ». Si des citations ou passages du livre sont mentionnés, mets-les entre guillemets sur leur propre puce. Si le lecteur exprime une réflexion ou un ressenti personnel, distingue-le sur sa propre puce.
+- Si la note est courte (une ou deux idées seulement) : rends simplement une ou deux phrases propres, sans titre ni puces. Ne force jamais une structure artificielle.
+- Ne réponds que par la note finale, sans commentaire ni préambule.`;
+
 function jsonResponse(body: Record<string, unknown>, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
+}
+
+/**
+ * Structure la transcription brute via gpt-4o-mini.
+ * Retourne null en cas d'échec (le caller retombe sur la transcription brute).
+ */
+async function structureTranscription(
+  transcription: string
+): Promise<string | null> {
+  const MAX_ATTEMPTS = 2;
+
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      const response = await fetch(
+        "https://api.openai.com/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${OPENAI_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "gpt-4o-mini",
+            temperature: 0.3,
+            max_tokens: 700,
+            messages: [
+              { role: "system", content: STRUCTURE_SYSTEM_PROMPT },
+              { role: "user", content: transcription },
+            ],
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(
+          `Structure attempt ${attempt} failed (${response.status}):`,
+          errorText
+        );
+        // Retry uniquement sur erreurs transitoires
+        if (
+          (response.status === 429 || response.status >= 500) &&
+          attempt < MAX_ATTEMPTS
+        ) {
+          await new Promise((r) => setTimeout(r, 1000 * attempt));
+          continue;
+        }
+        return null;
+      }
+
+      const data = await response.json();
+      const structured: string | undefined =
+        data.choices?.[0]?.message?.content?.trim();
+      return structured && structured.length > 0 ? structured : null;
+    } catch (error) {
+      console.error(`Structure attempt ${attempt} error:`, error);
+      if (attempt < MAX_ATTEMPTS) {
+        await new Promise((r) => setTimeout(r, 1000 * attempt));
+      }
+    }
+  }
+  return null;
 }
 
 serve(async (req) => {
@@ -171,10 +247,16 @@ serve(async (req) => {
       return jsonResponse({ error: "Transcription vide" }, 502);
     }
 
-    // --- Update annotation with transcription ---
+    // --- Structure the raw transcription with gpt-4o-mini ---
+    // En cas d'échec de la passe IA, on retombe sur la transcription brute
+    // plutôt que d'échouer (le crédit Whisper est déjà consommé).
+    const structured = await structureTranscription(transcription);
+    const finalContent = structured ?? transcription;
+
+    // --- Update annotation with structured note ---
     await supabase
       .from("annotations")
-      .update({ content: transcription })
+      .update({ content: finalContent })
       .eq("id", annotation_id);
 
     // --- Record usage ---
@@ -187,7 +269,7 @@ serve(async (req) => {
       ? -1
       : Math.max(0, MAX_FREE_MONTHLY_TRANSCRIPTIONS - currentCount - 1);
 
-    return jsonResponse({ transcription, remaining });
+    return jsonResponse({ transcription: finalContent, remaining });
   } catch (error) {
     console.error("Transcribe error:", error);
     return jsonResponse({ error: "Erreur interne" }, 500);

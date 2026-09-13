@@ -7,7 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../services/reaction_service.dart';
 import '../../../providers/subscription_provider.dart';
 import '../../../theme/app_theme.dart';
-import '../../../utils/app_constants.dart';
+import '../../../l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 import '../../../widgets/reaction_picker.dart';
 import '../../../widgets/reactions_bar.dart';
@@ -24,6 +24,7 @@ import '../../sessions/session_detail_page.dart';
 import '../../reading/book_completed_summary_page.dart';
 import '../../books/user_books_page.dart';
 import 'comments_sheet.dart';
+import '../../../services/referral_service.dart';
 
 class FriendActivityCard extends StatefulWidget {
   final Map<String, dynamic> activity;
@@ -147,7 +148,7 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
 
   Future<void> _openReactionPicker() async {
     if (Supabase.instance.client.auth.currentUser == null) {
-      await showRequireAccountSheet(context);
+      await showRequireAccountSheet(context, source: 'activity_reaction_picker');
       return;
     }
     final sub = context.read<SubscriptionProvider>();
@@ -163,7 +164,7 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
 
   Future<void> _toggleReaction(String emoji) async {
     if (Supabase.instance.client.auth.currentUser == null) {
-      await showRequireAccountSheet(context);
+      await showRequireAccountSheet(context, source: 'activity_reaction_toggle');
       return;
     }
     final activityId = (widget.activity['activity_id'] ?? widget.activity['id']) as int;
@@ -300,12 +301,12 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
     final title = bookTitle ?? 'un livre';
     final author = bookAuthor != null ? ' de $bookAuthor' : '';
     if (_isBookFinished()) {
-      return "Je viens de terminer \"$title\"$author ! 📚✨\n\n#Lecture #LexDay\n$kAppStoreUrl";
+      return "Je viens de terminer \"$title\"$author ! 📚✨\n\n#Lecture #LexDay\n$ReferralService.shareUrl";
     }
     final payload = widget.activity['payload'] as Map<String, dynamic>?;
     final pagesRead = payload?['pages_read'] as int?;
     final pages = pagesRead != null ? '$pagesRead pages de ' : '';
-    return "Je viens de lire $pages\"$title\"$author 📖\n\n#Lecture #LexDay\n$kAppStoreUrl";
+    return "Je viens de lire $pages\"$title\"$author 📖\n\n#Lecture #LexDay\n$ReferralService.shareUrl";
   }
 
   Future<void> _showShareSheet(String? bookTitle, String? bookAuthor) async {
@@ -717,6 +718,13 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
                           startPage: startPage,
                           endPage: endPage,
                         ),
+                        // Session créée par le sync Kindle : la durée est
+                        // estimée, on le dit.
+                        if (payload?['source'] ==
+                            ReadingSession.sourceKindle) ...[
+                          const SizedBox(height: 8),
+                          const _KindleSourceBadge(),
+                        ],
                       ],
                     ],
                   );
@@ -901,6 +909,34 @@ class _StatsBar extends StatelessWidget {
 
 /// Badge affiché à la place de la stats bar pour une lecture importée
 /// (livre déjà lu avant LexDay → pas de durée réelle, session "fantôme").
+/// Badge « Lu sur Kindle » sous les stats d'une session créée par le sync
+/// Kindle (voir BooksService._createKindleSession).
+class _KindleSourceBadge extends StatelessWidget {
+  const _KindleSourceBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final muted = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(Icons.tablet_android_rounded, size: 14, color: muted),
+        const SizedBox(width: 6),
+        Text(
+          l10n.sessionSourceKindle,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: muted,
+            letterSpacing: 0.2,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _PreviousReadBadge extends StatelessWidget {
   const _PreviousReadBadge();
 
@@ -1268,7 +1304,7 @@ class _ShareBottomSheet extends StatelessWidget {
 
   Future<void> _shareToLinkedIn(BuildContext context) async {
     final text = Uri.encodeComponent(shareText);
-    final url = Uri.parse('https://www.linkedin.com/sharing/share-offsite/?url=$kAppStoreUrl&summary=$text');
+    final url = Uri.parse('https://www.linkedin.com/sharing/share-offsite/?url=$ReferralService.shareUrl&summary=$text');
     if (await canLaunchUrl(url)) {
       await launchUrl(url, mode: LaunchMode.externalApplication);
     }
@@ -1286,7 +1322,7 @@ class _ShareBottomSheet extends StatelessWidget {
 
   Future<void> _shareToMessenger(BuildContext context) async {
     final text = Uri.encodeComponent(shareText);
-    final url = Uri.parse('fb-messenger://share?link=$kAppStoreUrl&quote=$text');
+    final url = Uri.parse('fb-messenger://share?link=$ReferralService.shareUrl&quote=$text');
     if (await canLaunchUrl(url)) {
       await launchUrl(url, mode: LaunchMode.externalApplication);
     }

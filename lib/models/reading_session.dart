@@ -23,6 +23,14 @@ class ReadingSession {
   /// par opposition à une session trackée en temps réel (chrono/Watch).
   final bool isManual;
 
+  /// Origine de la session. `null` = trackée dans l'app ou saisie
+  /// manuellement ; `'kindle'` = créée automatiquement par le sync Kindle
+  /// depuis le delta de progression (durée ESTIMÉE au rythme personnel).
+  final String? source;
+
+  static const String sourceKindle = 'kindle';
+  bool get isFromKindle => source == sourceKindle;
+
   // Computed fields
   int get pagesRead => endPage != null ? endPage! - startPage : 0;
 
@@ -30,7 +38,9 @@ class ReadingSession {
   /// compte pour les stats/feed/défis mais est exclue du calcul de la flamme,
   /// pour ne pas permettre de réparer un streak a posteriori.
   bool get isBackdated {
-    if (!isManual || endTime == null) return false;
+    // Une session Kindle est datée par Amazon, pas par l'utilisateur : jamais
+    // « antidatée » au sens de la règle de flamme.
+    if (!isManual || endTime == null || isFromKindle) return false;
     final e = endTime!; // déjà en heure locale (fromJson)
     return e.year != createdAt.year ||
         e.month != createdAt.month ||
@@ -60,6 +70,7 @@ class ReadingSession {
     this.isHidden = false,
     this.readingFor,
     this.isManual = false,
+    this.source,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -80,6 +91,7 @@ class ReadingSession {
       isHidden: json['is_hidden'] as bool? ?? false,
       readingFor: json['reading_for'] as String?,
       isManual: json['is_manual'] as bool? ?? false,
+      source: json['source'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String).toLocal(),
       updatedAt: DateTime.parse(json['updated_at'] as String).toLocal(),
     );
@@ -99,6 +111,7 @@ class ReadingSession {
       'is_hidden': isHidden,
       if (readingFor != null) 'reading_for': readingFor,
       'is_manual': isManual,
+      if (source != null) 'source': source,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
     };
@@ -117,6 +130,7 @@ class ReadingSession {
     bool? isHidden,
     String? readingFor,
     bool? isManual,
+    String? source,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -133,6 +147,7 @@ class ReadingSession {
       isHidden: isHidden ?? this.isHidden,
       readingFor: readingFor ?? this.readingFor,
       isManual: isManual ?? this.isManual,
+      source: source ?? this.source,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

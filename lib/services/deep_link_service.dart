@@ -7,10 +7,12 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/book.dart';
 import '../pages/auth/new_password_page.dart';
 import '../pages/books/user_books_page.dart';
+import '../pages/curated_lists/custom_list_detail_page.dart';
 import '../pages/groups/groups_page.dart';
 import '../pages/reading/start_reading_session_page_unified.dart';
 import 'books_service.dart';
 import 'notion_service.dart';
+import 'user_custom_lists_service.dart';
 import 'monthly_notification_service.dart';
 import 'referral_service.dart';
 
@@ -110,12 +112,32 @@ class DeepLinkService {
       return;
     }
 
+    // lexday://list/{listId} — liste de livres partagée (le bouton
+    // « Ouvrir dans LexDay » de la page web lexday.fr/liste/{token}
+    // pointe vers ce scheme). RLS : lisible si is_public = true.
+    if (uri.host == 'list') {
+      final listIdStr =
+          uri.pathSegments.isNotEmpty ? uri.pathSegments.first : null;
+      final listId = listIdStr != null ? int.tryParse(listIdStr) : null;
+      if (listId != null) _navigateToSharedList(listId);
+      return;
+    }
+
     // lexday://friends/requests — lien email « demande d'ami » (la page
     // https://www.lexday.fr/redirect?to=friends/requests rebondit vers ce
     // scheme). On amène l'utilisateur sur la page des notifications, où il
     // peut accepter/refuser la demande.
     if (uri.host == 'friends') {
       _routeTo('notifications');
+      return;
+    }
+
+    // lexday://read — CTA des e-mails de relance « activation »
+    // (https://www.lexday.fr/redirect?to=read). MainNavigation ouvre
+    // directement l'écran de démarrage de session sur le livre en cours :
+    // un tap entre l'e-mail et la lecture, pas quatre.
+    if (uri.host == 'read') {
+      _routeTo('read');
       return;
     }
 
@@ -226,6 +248,23 @@ class DeepLinkService {
       );
     } catch (e) {
       debugPrint('DeepLinkService: cannot navigate to current book — $e');
+    }
+  }
+
+  Future<void> _navigateToSharedList(int listId) async {
+    final nav = navigatorKey.currentState;
+    if (nav == null) return;
+
+    try {
+      final list = await UserCustomListsService().getListWithBooks(listId);
+      nav.push(
+        MaterialPageRoute(
+          builder: (_) => CustomListDetailPage(list: list),
+        ),
+      );
+    } catch (e) {
+      // Liste privée ou supprimée : on ignore silencieusement.
+      debugPrint('Erreur _navigateToSharedList: $e');
     }
   }
 

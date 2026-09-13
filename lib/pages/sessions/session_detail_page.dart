@@ -11,9 +11,10 @@ import '../../providers/subscription_provider.dart';
 import '../../services/native_paywall_service.dart';
 import '../../services/reading_session_service.dart';
 import '../../theme/app_theme.dart';
-import '../../utils/app_constants.dart';
 import '../../widgets/constrained_content.dart';
 import '../../widgets/cached_book_cover.dart';
+import '../../widgets/reading_for_picker.dart';
+import '../../services/referral_service.dart';
 
 class SessionDetailPage extends StatefulWidget {
   final ReadingSession session;
@@ -33,6 +34,10 @@ class SessionDetailPage extends StatefulWidget {
 
 class _SessionDetailPageState extends State<SessionDetailPage> {
   late bool _isHidden;
+
+  /// « Pour qui » modifiable a posteriori (sessions de l'utilisateur courant
+  /// uniquement) — état local, mis à jour en base via updateSessionReadingFor.
+  String? _readingFor;
   Map<String, double> _userAverages = {};
   // null = pas encore chargé. Renseigné seulement quand on regarde la session
   // de quelqu'un d'autre, pour décider si on a le droit d'afficher le bloc
@@ -43,8 +48,14 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
   void initState() {
     super.initState();
     _isHidden = widget.session.isHidden;
+    _readingFor = widget.session.readingFor;
     _loadAverages();
-    if (!widget.isOwn) _loadOwnerPremiumStatus();
+    // Inutile de vérifier le statut premium du propriétaire si les insights
+    // sont gratuits pour tout le monde (advancedStats hors premium).
+    if (!widget.isOwn &&
+        !FeatureFlags.isAvailable(Feature.advancedStats, isPremium: false)) {
+      _loadOwnerPremiumStatus();
+    }
   }
 
   Future<void> _loadAverages() async {
@@ -155,7 +166,7 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
     final duration = _formatDuration(widget.session.durationMinutes);
 
     final text =
-        "Je viens de lire $pages pages de \"$bookTitle\"${author.isNotEmpty ? ' de $author' : ''} en $duration ! \u{1F4DA}\n\n#LexDay #Lecture\n$kAppStoreUrl";
+        "Je viens de lire $pages pages de \"$bookTitle\"${author.isNotEmpty ? ' de $author' : ''} en $duration ! \u{1F4DA}\n\n#LexDay #Lecture\n$ReferralService.shareUrl";
     final box = context.findRenderObject() as RenderBox?;
     final origin = box != null
         ? box.localToGlobal(Offset.zero) & box.size
@@ -273,8 +284,8 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
             // Book Header with progress
             _buildBookHeader(isDark, terracotta, subtitleColor),
 
-            // Reading for badge
-            if (widget.session.readingFor != null) ...[
+            // Reading for badge (modifiable si c'est sa propre session)
+            if (widget.isOwn || _readingFor != null) ...[
               const SizedBox(height: 12),
               _buildReadingForBadge(isDark),
             ],
@@ -312,51 +323,89 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
     );
   }
 
-  String _resolveReadingForLabel(String key, AppLocalizations l) {
-    switch (key) {
-      case 'daughter': return l.readingForDaughter;
-      case 'son': return l.readingForSon;
-      case 'friend': return l.readingForFriend;
-      case 'grandmother': return l.readingForGrandmother;
-      case 'grandfather': return l.readingForGrandfather;
-      case 'father': return l.readingForFather;
-      case 'mother': return l.readingForMother;
-      case 'partner': return l.readingForPartner;
-      case 'other': return l.readingForOther;
-      default: return key;
+  /// Ouvre le sélecteur et enregistre la modification en base.
+  /// 'myself' → NULL (convention identique au démarrage de session).
+  Future<void> _editReadingFor() async {
+    final selected = await showReadingForPicker(
+      context,
+      current: _readingFor ?? 'myself',
+    );
+    if (selected == null || !mounted) return;
+
+    final newValue = selected == 'myself' ? null : selected;
+    if (newValue == _readingFor) return;
+
+    final previous = _readingFor;
+    setState(() => _readingFor = newValue);
+    try {
+      await ReadingSessionService()
+          .updateSessionReadingFor(widget.session.id, newValue);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _readingFor = previous);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context).errorModifying)),
+      );
     }
   }
 
   Widget _buildReadingForBadge(bool isDark) {
     final l = AppLocalizations.of(context);
-    final person = _resolveReadingForLabel(widget.session.readingFor!, l);
+    final hasValue = _readingFor != null;
+    final canEdit = widget.isOwn;
+    final label = hasValue
+        ? l.readingForDisplay(readingForLabel(l, _readingFor!))
+        : l.readingForAddPrompt;
+    final accentText =
+        isDark ? const Color(0xFFCC8B65) : const Color(0xFF9A6840);
+    final mutedText =
+        isDark ? Colors.white.withValues(alpha: 0.5) : Colors.black45;
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: isDark
-            ? const Color(0xFFCC8B65).withValues(alpha: 0.15)
-            : const Color(0xFFCC8B65).withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: const Color(0xFFCC8B65).withValues(alpha: 0.25),
-        ),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Text('\u{1F4D6}', style: TextStyle(fontSize: 16)),
-          const SizedBox(width: 8),
-          Text(
-            l.readingForDisplay(person),
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: isDark ? const Color(0xFFCC8B65) : const Color(0xFF9A6840),
-            ),
+    return GestureDetector(
+      onTap: canEdit ? _editReadingFor : null,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: hasValue
+              ? (isDark
+                  ? const Color(0xFFCC8B65).withValues(alpha: 0.15)
+                  : const Color(0xFFCC8B65).withValues(alpha: 0.08))
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: hasValue
+                ? const Color(0xFFCC8B65).withValues(alpha: 0.25)
+                : mutedText.withValues(alpha: 0.35),
           ),
-        ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              hasValue ? readingForEmoji(_readingFor!) : '\u{1F4D6}',
+              style: const TextStyle(fontSize: 16),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: hasValue ? accentText : mutedText,
+              ),
+            ),
+            if (canEdit) ...[
+              const SizedBox(width: 6),
+              Icon(
+                hasValue ? Icons.edit_rounded : Icons.add_rounded,
+                size: 14,
+                color: (hasValue ? accentText : mutedText)
+                    .withValues(alpha: 0.7),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
@@ -941,20 +990,24 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
   // ── Insights card ──────────────────────────────────────────────────
 
   Widget _buildInsightsCard(bool isDark, Color cardColor) {
-    // Sur la session d'un autre utilisateur, les Insights n'existent que si
-    // ce propriétaire est lui-même premium. On masque tant qu'on ne sait pas
-    // (évite un flash) et on masque définitivement s'il ne l'est pas.
-    if (!widget.isOwn && _ownerIsPremium != true) {
+    // advancedStats est désormais gratuit (19/08/2026) : les insights sont
+    // visibles pour tout le monde. Si la feature redevenait premium, on
+    // retrouve l'ancien comportement (owner premium requis sur la session
+    // d'un autre, valeurs floutées + paywall sur la sienne).
+    final freeForAll =
+        FeatureFlags.isAvailable(Feature.advancedStats, isPremium: false);
+    if (!freeForAll && !widget.isOwn && _ownerIsPremium != true) {
       return const SizedBox.shrink();
     }
 
     final l = AppLocalizations.of(context);
-    final viewerIsPremium = context.watch<SubscriptionProvider>().isPremium;
-    // Valeurs en clair : sur ma session si je suis premium, sur celle d'un
-    // autre toujours en clair (puisqu'on a vérifié plus haut qu'il est premium).
-    final showInClear = widget.isOwn ? viewerIsPremium : true;
+    final viewerUnlocked = FeatureFlags.isAvailable(
+      Feature.advancedStats,
+      isPremium: context.watch<SubscriptionProvider>().isPremium,
+    );
+    final showInClear = widget.isOwn ? viewerUnlocked : true;
     // Le call-to-action paywall n'a de sens que sur ma propre session.
-    final showPaywall = widget.isOwn && !viewerIsPremium;
+    final showPaywall = widget.isOwn && !viewerUnlocked;
     final session = widget.session;
 
     final pagesPerMin = session.durationMinutes > 0
@@ -1032,23 +1085,26 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
             padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
             child: Row(
               children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFD4A54A),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Text(
-                    'PREMIUM',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white,
-                      letterSpacing: 0.5,
+                // Badge PREMIUM seulement si la feature est verrouillée
+                if (showPaywall) ...[
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFD4A54A),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Text(
+                      'PREMIUM',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                        letterSpacing: 0.5,
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 10),
+                  const SizedBox(width: 10),
+                ],
                 Text(
                   'Insights de la session',
                   style: TextStyle(

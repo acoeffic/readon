@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import '../../l10n/app_localizations.dart';
+import '../../services/kindle_auto_sync_service.dart';
 import '../../services/kindle_webview_service.dart';
 import '../../services/books_service.dart';
 import '../../theme/app_theme.dart';
@@ -287,17 +288,24 @@ class _KindleLoginPageState extends State<KindleLoginPage>
   /// Extraction de la bibliothèque (WebView principale)
   Future<void> _extractLibrary() async {
     try {
-      await _waitForLibraryLoaded();
-      await _scrollToBottom(_libraryController);
-      await Future.delayed(const Duration(milliseconds: 300));
-
-      final result = await _libraryController.runJavaScriptReturningResult(
-        KindleWebViewService.extractKindleLibraryScript,
+      // API JSON d'abord (ASIN, titres, couvertures) : elle ne dépend pas du
+      // rendu de la page, inutile d'attendre la bibliothèque ni de scroller.
+      var books = await _service.fetchLibraryViaJson(
+        _libraryController,
+        shouldAbort: () => !mounted,
       );
-      debugPrint('=== KINDLE LIBRARY RESULT ===');
-      debugPrint(result.toString());
-
-      final books = _service.parseKindleLibraryResult(result.toString());
+      if (books.isEmpty) {
+        // Repli DOM : là il faut le rendu complet et toutes les tuiles.
+        await _waitForLibraryLoaded();
+        await _scrollToBottom(_libraryController);
+        await Future.delayed(const Duration(milliseconds: 300));
+        final result = await _libraryController.runJavaScriptReturningResult(
+          KindleWebViewService.extractKindleLibraryScript,
+        );
+        debugPrint('=== KINDLE LIBRARY RESULT (DOM) ===');
+        debugPrint(result.toString());
+        books = _service.parseKindleLibraryResult(result.toString());
+      }
       debugPrint('Kindle Library: ${books.length} livres extraits');
 
       _libraryBooks = books;
@@ -396,8 +404,12 @@ class _KindleLoginPageState extends State<KindleLoginPage>
 
       // Import des livres dans Supabase
       if (books.isNotEmpty) {
-        final tempData = KindleReadingData(books: books);
-        await _service.saveLocally(tempData);
+        // `cacheBooksOnly` et non `saveLocally` : à ce stade les streaks ne
+        // sont pas encore extraites. `saveLocally` écraserait les streaks en
+        // cache avec des nulls ET poserait `kindle_last_sync`, ce qui
+        // verrouillerait l'auto-sync 24 h sur des données incomplètes si
+        // l'import qui suit échoue.
+        await _service.cacheBooksOnly(books);
 
         final imported = await booksService.importKindleBooks(
           books,
@@ -424,6 +436,16 @@ class _KindleLoginPageState extends State<KindleLoginPage>
       );
 
       await _service.saveLocally(finalData);
+      // Cette page n'a pas de phase surlignages, et `saveLocally` vient de
+      // poser `kindle_last_sync` (verrou 24 h de l'auto-sync). Sans ce flag,
+      // un utilisateur qui connecte son Kindle ne verrait ses surlignages que
+      // le lendemain. Le notify déclenche l'auto-sync (avec sa phase
+      // highlights) dès le retour à MainNavigation.
+      // Une reconnexion volontaire vaut consentement : si l'utilisateur avait
+      // coupé la synchro depuis le bandeau « session expirée », on la ré-arme.
+      await KindleAutoSyncService().setAutoSyncEnabled(true);
+      await KindleAutoSyncService().markHighlightsPending();
+      KindleAutoSyncService.notifyConnected();
       try {
         await _service.saveToSupabase(finalData);
       } catch (e) {
@@ -443,6 +465,21 @@ class _KindleLoginPageState extends State<KindleLoginPage>
       // Retourner quand même ce qu'on a
       if (books.isNotEmpty && mounted) {
         final partialData = KindleReadingData(books: books);
+        // La bibliothèque vient bien d'une session authentifiée : on marque le
+        // Kindle comme connecté même si l'import a échoué, sinon
+        // `shouldAutoSync` sortirait à vie sur « Kindle jamais connecté sur ce
+        // device » et l'auto-sync ne se déclencherait plus jamais.
+        try {
+          await _service.saveLocally(partialData);
+          // Même logique que le chemin nominal : l'auto-sync qui suivra
+          // rejouera l'import complet (idempotent) ET les surlignages.
+          // Même consentement implicite que le chemin nominal.
+          await KindleAutoSyncService().setAutoSyncEnabled(true);
+          await KindleAutoSyncService().markHighlightsPending();
+          KindleAutoSyncService.notifyConnected();
+        } catch (e) {
+          debugPrint('Kindle: saveLocally partiel échoué: $e');
+        }
         setState(() => _phase = _SyncPhase.done);
         await Future.delayed(const Duration(milliseconds: 500));
         if (mounted) Navigator.pop(context, partialData);
@@ -639,6 +676,25 @@ class _KindleLoginPageState extends State<KindleLoginPage>
                   height: 1.5,
                 ),
               ),
+
+              // Détail technique de l'erreur. Sans ça, `_errorMessage` était
+              // écrit à trois endroits et lu nulle part : une erreur WebView
+              // pendant le login ne produisait qu'un écran muet, sans le
+              // moindre indice sur ce qui avait échoué.
+              if (_phase == _SyncPhase.error && _errorMessage != null) ...[
+                const SizedBox(height: 12),
+                Text(
+                  _errorMessage!,
+                  textAlign: TextAlign.center,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Colors.black38,
+                    height: 1.4,
+                  ),
+                ),
+              ],
 
               const SizedBox(height: 36),
 

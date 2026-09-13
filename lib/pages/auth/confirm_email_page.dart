@@ -12,6 +12,7 @@ import '../../services/auth_resend_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/back_header.dart';
 import 'auth_gate.dart';
+import '../../widgets/constrained_content.dart';
 
 class ConfirmEmailPage extends StatefulWidget {
   /// Email à confirmer. Si null, le bouton de renvoi est masqué (legacy).
@@ -114,77 +115,79 @@ class _ConfirmEmailPageState extends State<ConfirmEmailPage> {
       data: AppTheme.light(),
       child: Scaffold(
         backgroundColor: AppColors.bgLight,
-        body: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpace.l),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                BackHeader(title: l10n.emailSent),
-                const SizedBox(height: AppSpace.xl),
-                Icon(
-                  Icons.mark_email_read,
-                  size: 90,
-                  color: AppColors.primary.withValues(alpha: 0.9),
-                ),
-                const SizedBox(height: AppSpace.l),
-                Text(
-                  l10n.checkYourEmail,
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        fontSize: 26,
-                        fontWeight: FontWeight.w700,
+        body: ConstrainedContent(
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpace.l),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  BackHeader(title: l10n.emailSent),
+                  const SizedBox(height: AppSpace.xl),
+                  Icon(
+                    Icons.mark_email_read,
+                    size: 90,
+                    color: AppColors.primary.withValues(alpha: 0.9),
+                  ),
+                  const SizedBox(height: AppSpace.l),
+                  Text(
+                    l10n.checkYourEmail,
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                          fontSize: 26,
+                          fontWeight: FontWeight.w700,
+                        ),
+                  ),
+                  const SizedBox(height: AppSpace.s),
+                  Text(
+                    email != null
+                        ? l10n.confirmEmailSentTo(email)
+                        : l10n.confirmEmailSent,
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                  const Spacer(),
+                  if (email != null)
+                    TextButton(
+                      onPressed: canResend ? _resend : null,
+                      child: Text(
+                        cooldownSecs != null
+                            ? l10n.resendConfirmationCooldown(cooldownSecs)
+                            : l10n.resendConfirmationEmail,
+                        style: TextStyle(
+                          color: canResend
+                              ? AppColors.primary
+                              : AppColors.textSecondary,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                ),
-                const SizedBox(height: AppSpace.s),
-                Text(
-                  email != null
-                      ? l10n.confirmEmailSentTo(email)
-                      : l10n.confirmEmailSent,
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-                const Spacer(),
-                if (email != null)
-                  TextButton(
-                    onPressed: canResend ? _resend : null,
-                    child: Text(
-                      cooldownSecs != null
-                          ? l10n.resendConfirmationCooldown(cooldownSecs)
-                          : l10n.resendConfirmationEmail,
-                      style: TextStyle(
-                        color: canResend
-                            ? AppColors.primary
-                            : AppColors.textSecondary,
-                        fontWeight: FontWeight.w600,
+                    ),
+                  const SizedBox(height: AppSpace.s),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: AppColors.white,
+                        padding:
+                            const EdgeInsets.symmetric(vertical: AppSpace.m),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(AppRadius.l),
+                        ),
+                      ),
+                      onPressed: _goToAuthGate,
+                      child: Text(
+                        l10n.iConfirmedMyEmail,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ),
-                const SizedBox(height: AppSpace.s),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: AppColors.white,
-                      padding:
-                          const EdgeInsets.symmetric(vertical: AppSpace.m),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(AppRadius.l),
-                      ),
-                    ),
-                    onPressed: _goToAuthGate,
-                    child: Text(
-                      l10n.iConfirmedMyEmail,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: AppSpace.l),
-              ],
+                  const SizedBox(height: AppSpace.l),
+                ],
+              ),
             ),
           ),
         ),

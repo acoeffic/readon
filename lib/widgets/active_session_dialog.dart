@@ -10,11 +10,16 @@ class ActiveSessionDialog extends StatelessWidget {
   final VoidCallback onResume;
   final VoidCallback onCancel;
 
+  /// Terminer proprement la session en cours : c'est la sortie qui conserve
+  /// le temps lu, là où `onCancel` le supprime définitivement.
+  final VoidCallback? onEndSession;
+
   const ActiveSessionDialog({
     super.key,
     required this.activeSession,
     required this.onResume,
     required this.onCancel,
+    this.onEndSession,
   });
 
   String _formatDuration() {
@@ -87,13 +92,24 @@ class ActiveSessionDialog extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
+          // Dire ce qu'on perd : le bouton « Abandonner » déclenche un DELETE.
+          Text(
+            l.abandonDeletesTime,
+            style: TextStyle(
+              fontSize: 12.5,
+              color: Colors.red.shade400,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 12),
           Text(
             l.whatDoYouWant,
             style: const TextStyle(fontWeight: FontWeight.bold),
           ),
         ],
       ),
+      actionsOverflowDirection: VerticalDirection.down,
       actions: [
         TextButton(
           onPressed: () {
@@ -105,6 +121,14 @@ class ActiveSessionDialog extends StatelessWidget {
             style: TextStyle(color: Colors.red.shade700),
           ),
         ),
+        if (onEndSession != null)
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              onEndSession!();
+            },
+            child: Text(l.abandonEndInstead),
+          ),
         ElevatedButton(
           onPressed: () {
             Navigator.pop(context);

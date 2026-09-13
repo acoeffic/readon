@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
+import 'package:image_gallery_saver_plus/image_gallery_saver_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:screenshot/screenshot.dart';
 import 'package:share_plus/share_plus.dart';
@@ -12,8 +13,8 @@ import '../../models/reading_session.dart';
 import '../../features/wrapped/share/share_format.dart';
 import '../../features/wrapped/share/story_share_service.dart';
 import '../../theme/app_theme.dart';
-import '../../utils/app_constants.dart';
 import 'session_share_card.dart';
+import '../../services/referral_service.dart';
 
 // ==========================================================================
 // Service
@@ -69,7 +70,7 @@ class SessionShareService {
     Rect? sharePositionOrigin,
   }) async {
     final text =
-        'Je viens de lire ${session.pagesRead} pages \uD83D\uDCDA #LexDay\n$kAppStoreUrl';
+        'Je viens de lire ${session.pagesRead} pages \uD83D\uDCDA #LexDay\n$ReferralService.shareUrl';
 
     // Instagram : vrai partage Story (image préchargée en fond). Fallback
     // feuille native si l'app n'est pas installée / non supportée.
@@ -111,16 +112,19 @@ class SessionShareService {
     );
   }
 
-  /// Save the share card image to the device gallery.
+  /// Save the share card image directly to the device photo gallery.
+  /// Same approach as the monthly wrapped share (ImageGallerySaverPlus) —
+  /// no share sheet involved.
   Future<void> saveToGallery(Uint8List bytes, String sessionId) async {
-    final file = await _saveTempFile(bytes, sessionId);
-    // Use share_plus to save — opens the share sheet but user can tap "Save Image"
-    // For direct gallery save, we write to a persistent location.
-    final dir = await getApplicationDocumentsDirectory();
-    final savedFile = File('${dir.path}/lexday_session_$sessionId.png');
-    await savedFile.writeAsBytes(bytes);
-    // Trigger native share with save option
-    await Share.shareXFiles([XFile(file.path)]);
+    final result = await ImageGallerySaverPlus.saveImage(
+      bytes,
+      quality: 100,
+      name: 'lexday_session_$sessionId',
+    );
+    final ok = result != null && (result['isSuccess'] == true);
+    if (!ok) {
+      throw Exception('Gallery save failed: $result');
+    }
   }
 
   Future<File> _saveTempFile(Uint8List bytes, String sessionId) async {

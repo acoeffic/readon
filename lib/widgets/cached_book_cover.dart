@@ -2,6 +2,8 @@
 // Widget réutilisable pour afficher les couvertures de livres avec cache
 
 import 'dart:convert';
+import 'dart:math' as math;
+import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -69,20 +71,28 @@ class CachedBookCover extends StatefulWidget {
   /// Used by the Live Activity and the home-screen widget, so they show
   /// the same cover as the app instead of the raw DB URL (which can be a
   /// Google Books gray placeholder).
+  /// [refresh] : ignore (et remplace) le résultat déjà mémorisé dans
+  /// [_resolvedCache] — y compris un échec (liste vide) mémorisé après un
+  /// timeout ou une coupure réseau. Utilisé par le retry de la Live Activity.
   static Future<List<String>> resolveCoverUrls({
     String? imageUrl,
     String? isbn,
     String? googleId,
     String? title,
     String? author,
-  }) =>
-      _CachedBookCoverState._resolveChainStatic(
-        imageUrl: imageUrl,
-        isbn: isbn,
-        googleId: googleId,
-        title: title,
-        author: author,
-      );
+    bool refresh = false,
+  }) {
+    if (refresh) {
+      _resolvedCache.remove('$imageUrl|$isbn|$googleId');
+    }
+    return _CachedBookCoverState._resolveChainStatic(
+      imageUrl: imageUrl,
+      isbn: isbn,
+      googleId: googleId,
+      title: title,
+      author: author,
+    );
+  }
 
   /// Heuristiques anti-placeholder sur les octets téléchargés, alignées sur
   /// celles de la chaîne de validation :
@@ -97,6 +107,118 @@ class CachedBookCover extends StatefulWidget {
       if (_CachedBookCoverState._isGrayscalePng(bytes)) return false;
     }
     return true;
+  }
+
+  /// Version renforcée de [looksLikeRealCover] : en plus des heuristiques de
+  /// taille, DÉCODE l'image et rejette les images quasi-uniformes (rectangle
+  /// gris) quelle que soit leur origine. Les heuristiques par host ne
+  /// suffisent pas : les URLs signées `books.googleusercontent.com` (issues
+  /// du redirect publisher-content) ou d'autres CDN peuvent servir un
+  /// placeholder gris > 2 Ko qui passait les checks par taille et
+  /// s'affichait tel quel sur la Live Activity / le widget.
+  ///
+  /// Important : le critère est la VARIANCE de luminance, pas la saturation —
+  /// une vraie couverture noir & blanc (photo) a une saturation quasi nulle
+  /// mais une variance élevée, alors qu'un placeholder uni a une variance
+  /// proche de zéro.
+  static Future<bool> looksLikeRealCoverPixels(
+    String url,
+    Uint8List bytes,
+  ) async {
+    // Heuristiques rapides existantes (taille, PNG grayscale Google Books).
+    // Exception : pour Google Books on ne rejette PAS sur la seule taille
+    // (< 10 Ko) si les pixels prouvent une vraie couverture — la vignette
+    // zoom=1 d'une vraie couverture peut faire ~9 Ko.
+    if (bytes.length < 2000) return false;
+    if (url.contains('books.google.com') &&
+        _CachedBookCoverState._isGrayscalePng(bytes)) {
+      return false;
+    }
+
+    try {
+      final codec = await ui.instantiateImageCodec(
+        bytes,
+        targetWidth: 32,
+        allowUpscaling: false,
+      );
+      final frame = await codec.getNextFrame();
+      final image = frame.image;
+      final w = image.width;
+      final h = image.height;
+      final data =
+          await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+      image.dispose();
+      codec.dispose();
+      if (data == null) return false;
+
+      final px = data.buffer.asUint8List();
+      if (px.length < w * h * 4 || w == 0 || h == 0) return false;
+
+      // 1) Variance globale : rejette les images entièrement unies
+      //    (gris Google Books ≈ 0-5 vs vraie couverture, même N&B, ≈ 60+).
+      final globalStd = _lumaStd(px, w, h, 0, 0, w, h);
+      if (globalStd < 8) {
+        debugPrint(
+          'CachedBookCover.looksLikeRealCoverPixels: image quasi-uniforme '
+          'rejetée (std=${globalStd.toStringAsFixed(1)}) pour $url',
+        );
+        return false;
+      }
+
+      // 2) Variance du CENTRE (60 % central) : certains placeholders n'ont
+      //    de détails que sur les bords (bordure, mention "no cover") — la
+      //    variance globale passe, mais affichés croppés en BoxFit.cover il
+      //    ne reste qu'un rectangle uni à l'écran. Seuil très bas (4) pour
+      //    ne rejeter que les centres réellement vides : une vraie
+      //    couverture a quasi toujours du titre/texte dans cette zone.
+      final cx = (w * 0.2).floor();
+      final cy = (h * 0.2).floor();
+      final cw = (w * 0.6).ceil();
+      final ch = (h * 0.6).ceil();
+      final centerStd = _lumaStd(px, w, h, cx, cy, cw, ch);
+      if (centerStd < 4) {
+        debugPrint(
+          'CachedBookCover.looksLikeRealCoverPixels: centre quasi-uniforme '
+          'rejeté (centre std=${centerStd.toStringAsFixed(1)}, '
+          'global std=${globalStd.toStringAsFixed(1)}) pour $url',
+        );
+        return false;
+      }
+      return true;
+    } catch (e) {
+      // Décodage impossible → on retombe sur les heuristiques par taille.
+      debugPrint('looksLikeRealCoverPixels: décodage impossible ($e), '
+          'fallback heuristiques taille pour $url');
+      return looksLikeRealCover(url, bytes);
+    }
+  }
+
+  /// Écart-type de luminance sur la sous-région (x, y, w, h) d'une image
+  /// RGBA de dimensions imgW × imgH.
+  static double _lumaStd(
+    Uint8List px, int imgW, int imgH, int x, int y, int w, int h) {
+    final x1 = math.min(x + w, imgW);
+    final y1 = math.min(y + h, imgH);
+    var count = 0;
+    var sum = 0.0;
+    for (var yy = y; yy < y1; yy++) {
+      for (var xx = x; xx < x1; xx++) {
+        final o = (yy * imgW + xx) * 4;
+        sum += (px[o] + px[o + 1] + px[o + 2]) / 3.0;
+        count++;
+      }
+    }
+    if (count == 0) return 0;
+    final mean = sum / count;
+    var varSum = 0.0;
+    for (var yy = y; yy < y1; yy++) {
+      for (var xx = x; xx < x1; xx++) {
+        final o = (yy * imgW + xx) * 4;
+        final l = (px[o] + px[o + 1] + px[o + 2]) / 3.0;
+        varSum += (l - mean) * (l - mean);
+      }
+    }
+    return math.sqrt(varSum / count);
   }
 
   /// Public wrapper — convert ISBN-13 (978 prefix) to ISBN-10.

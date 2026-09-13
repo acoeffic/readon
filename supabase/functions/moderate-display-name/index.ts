@@ -99,6 +99,43 @@ async function rejectDisplayName(
   }
 }
 
+// --- Auth appelant machine --------------------------------------------------
+// Correctif audit 14/08/2026. Avant : seule la PRESENCE d'un header
+// Authorization etait verifiee, alors que la fonction ecrit en service_role
+// avec un `user_id` venant du body. La cle anon embarquee dans l'app (et
+// n'importe quel access_token utilisateur) fournit un header valide -> IDOR.
+// Meme garde que `moderate-comment`.
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let mismatch = 0;
+  for (let i = 0; i < a.length; i++) {
+    mismatch |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return mismatch === 0;
+}
+
+function isServiceRole(req: Request): boolean {
+  const token = (req.headers.get("authorization") ?? "").replace(
+    /^Bearer\s+/i,
+    "",
+  );
+  if (!token) return false;
+  if (timingSafeEqual(token, SUPABASE_SERVICE_ROLE_KEY!)) return true;
+  // Le secret `service_role_key` du Vault peut etre une autre cle service_role
+  // du meme projet. On retombe alors sur le claim `role` du JWT : avec
+  // verify_jwt = true, la gateway Supabase a deja valide la signature.
+  try {
+    const part = token.split(".")[1];
+    if (!part) return false;
+    const b64 = part.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
+    const claims = JSON.parse(atob(padded));
+    return claims?.role === "service_role";
+  } catch {
+    return false;
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -108,8 +145,7 @@ serve(async (req) => {
     return jsonResponse({ error: "Method not allowed" }, 405);
   }
 
-  const authHeader = req.headers.get("authorization");
-  if (!authHeader) {
+  if (!isServiceRole(req)) {
     return jsonResponse({ error: "Non autorisé" }, 401);
   }
 

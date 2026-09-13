@@ -52,8 +52,15 @@ class WatchControlService {
   Future<void> start({Duration interval = const Duration(seconds: 2)}) async {
     if (!_isIOS || _started) return;
     _started = true;
+    // Le natif notifie `commandReceived` dès qu'une commande Watch arrive :
+    // traitement immédiat, le polling ci-dessous n'est plus qu'un filet de
+    // sécurité (commande arrivée moteur Flutter éteint, notification perdue…).
+    _channel.setMethodCallHandler(_onNativeCall);
     _pollTimer?.cancel();
     _pollTimer = Timer.periodic(interval, (_) => _pollOnce());
+    // Consomme sans attendre une éventuelle commande reçue avant le démarrage
+    // du service (ex. stop envoyé depuis la Watch app iPhone fermée).
+    unawaited(_pollOnce());
     // Reflète sur la Watch les changements de session initiés depuis l'iPhone
     // (démarrage / fin / annulation / pause / reprise) sans polling lourd.
     ReadingSessionService.activeSessionsVersion.addListener(_onSessionsChanged);
@@ -64,7 +71,19 @@ class WatchControlService {
 
   void _onSessionsChanged() => pushState();
 
+  Future<dynamic> _onNativeCall(MethodCall call) async {
+    if (call.method == 'commandReceived') {
+      await _pollOnce();
+    }
+    return null;
+  }
+
+  /// Consomme immédiatement une éventuelle commande Watch en attente.
+  /// Utile au retour au premier plan, avant d'inspecter l'état des sessions.
+  Future<void> pollNow() => _pollOnce();
+
   void stop() {
+    _channel.setMethodCallHandler(null);
     _pollTimer?.cancel();
     _pollTimer = null;
     _started = false;

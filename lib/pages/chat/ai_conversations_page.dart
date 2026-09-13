@@ -10,12 +10,6 @@ import '../../providers/subscription_provider.dart';
 import 'ai_chat_page.dart';
 import '../../widgets/constrained_content.dart';
 
-/// Palette du héros "Muse" — vert forêt profond, indépendante du thème
-/// (le bloc reste sombre en clair comme en sombre).
-const Color _heroBg = Color(0xFF22332B);
-const Color _heroPanel = Color(0xFF2D4339);
-const Color _heroCream = Color(0xFFF4EFE7);
-
 class AiConversationsPage extends StatefulWidget {
   const AiConversationsPage({super.key});
 
@@ -82,23 +76,22 @@ class _AiConversationsPageState extends State<AiConversationsPage> {
         .then((_) => _loadConversations());
   }
 
-  void _startWithMessage(String message) {
-    final text = message.trim();
-    if (text.isEmpty) return;
+  /// Tap sur le champ de saisie : on ouvre directement la vraie page de
+  /// conversation (plein écran, sans FAB ni barre d'onglets) avec le
+  /// clavier ouvert, plutôt que de taper dans l'onglet.
+  void _openComposerAsPage() {
+    final l = AppLocalizations.of(context);
+    final draft = _composerController.text.trim();
+    _composerController.clear();
+    final prefix = _searchMode ? l.museSearchPrefix('') : '';
     Navigator.of(context)
         .push(MaterialPageRoute(
-          builder: (_) => AiChatPage(initialMessage: text),
+          builder: (_) => AiChatPage(
+            autofocus: true,
+            initialDraft: draft.isNotEmpty ? draft : prefix,
+          ),
         ))
         .then((_) => _loadConversations());
-  }
-
-  void _submitComposer() {
-    final text = _composerController.text.trim();
-    if (text.isEmpty) return;
-    final l = AppLocalizations.of(context);
-    final message = _searchMode ? l.museSearchPrefix(text) : text;
-    _composerController.clear();
-    _startWithMessage(message);
   }
 
   void _openConversation(AiConversation conv) {
@@ -188,113 +181,99 @@ class _AiConversationsPageState extends State<AiConversationsPage> {
   // Héros
   // ---------------------------------------------------------------------------
 
+  // Héros compact et theme-aware : fini le bloc vert forêt permanent — la
+  // page reprend le fond, les cartes et les accents du reste de l'app
+  // (context.appColors), et l'en-tête tient sur deux niveaux au lieu de
+  // quatre (back + label/titre sur la même ligne, sous-hint supprimé).
   Widget _buildHero(BuildContext context, double topInset) {
     final l = AppLocalizations.of(context);
+    final c = context.appColors;
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.light,
+      value: c.isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
       child: Container(
-      width: double.infinity,
-      padding: EdgeInsets.fromLTRB(
-        AppSpace.l,
-        topInset + AppSpace.xs,
-        AppSpace.l,
-        AppSpace.m,
-      ),
-      decoration: const BoxDecoration(
-        color: _heroBg,
-        borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              _circleIconButton(
-                icon: Icons.arrow_back,
-                onTap: () => Navigator.of(context).maybePop(),
-              ),
-              const Spacer(),
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.25),
-                  shape: BoxShape.circle,
+        width: double.infinity,
+        padding: EdgeInsets.fromLTRB(
+          AppSpace.l,
+          topInset + AppSpace.xs,
+          AppSpace.l,
+          AppSpace.s,
+        ),
+        color: c.scaffoldBg,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                _circleIconButton(
+                  icon: Icons.arrow_back,
+                  onTap: () => Navigator.of(context).maybePop(),
                 ),
-                child: const Icon(Icons.auto_awesome,
-                    color: _heroCream, size: 20),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpace.xs),
-          Row(
-            children: [
-              const Icon(Icons.auto_awesome, size: 12, color: AppColors.primary),
-              const SizedBox(width: 6),
-              Text(
-                l.museAssistantLabel.toUpperCase(),
-                style: const TextStyle(
-                  color: AppColors.primary,
-                  fontSize: 10.5,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 1.5,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpace.xs),
-          // Titre + sous-titre sur une ligne de base commune pour un héros
-          // plus compact et équilibré.
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              const Text(
-                'Muse',
-                style: TextStyle(
-                  color: _heroCream,
-                  fontSize: 27,
-                  fontWeight: FontWeight.w700,
-                  height: 1.0,
-                  letterSpacing: -0.4,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  l.museHeroSubtitle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: _heroCream.withValues(alpha: 0.65),
-                    fontSize: 13.5,
+                const SizedBox(width: AppSpace.m),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.auto_awesome, size: 11, color: c.primary),
+                          const SizedBox(width: 5),
+                          Text(
+                            l.museAssistantLabel.toUpperCase(),
+                            style: TextStyle(
+                              color: c.primary,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 1.3,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.baseline,
+                        textBaseline: TextBaseline.alphabetic,
+                        children: [
+                          Text(
+                            'Muse',
+                            style: TextStyle(
+                              color: c.textPrimary,
+                              fontSize: 22,
+                              fontWeight: FontWeight.w700,
+                              height: 1.0,
+                              letterSpacing: -0.4,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              l.museHeroSubtitle,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: c.textSecondary,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpace.s),
-          _buildComposer(context),
-          const SizedBox(height: 6),
-          Padding(
-            padding: const EdgeInsets.only(left: 4),
-            child: Text(
-              l.museComposerSubhint,
-              style: TextStyle(
-                color: _heroCream.withValues(alpha: 0.45),
-                fontSize: 12,
-              ),
+              ],
             ),
-          ),
-          const SizedBox(height: AppSpace.s),
-          _buildModeToggle(context),
-        ],
-      ),
+            const SizedBox(height: AppSpace.m),
+            _buildComposer(context),
+            const SizedBox(height: AppSpace.s),
+            _buildModeToggle(context),
+          ],
+        ),
       ),
     );
   }
 
   Widget _circleIconButton({required IconData icon, required VoidCallback onTap}) {
+    final c = context.appColors;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(20),
@@ -302,22 +281,31 @@ class _AiConversationsPageState extends State<AiConversationsPage> {
         width: 40,
         height: 40,
         decoration: BoxDecoration(
-          color: _heroCream.withValues(alpha: 0.1),
+          color: c.cardBg,
           shape: BoxShape.circle,
+          border: Border.all(color: c.border, width: 0.5),
         ),
-        child: Icon(icon, color: _heroCream, size: 20),
+        child: Icon(icon, color: c.textPrimary, size: 20),
       ),
     );
   }
 
   Widget _buildComposer(BuildContext context) {
     final l = AppLocalizations.of(context);
+    final c = context.appColors;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       decoration: BoxDecoration(
-        color: _heroPanel,
+        color: c.cardBg,
         borderRadius: BorderRadius.circular(AppRadius.l),
-        border: Border.all(color: _heroCream.withValues(alpha: 0.08)),
+        border: Border.all(color: c.border, width: 0.5),
+        boxShadow: [
+          BoxShadow(
+            color: c.shadow,
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
@@ -330,28 +318,35 @@ class _AiConversationsPageState extends State<AiConversationsPage> {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.9),
+                color: c.primary.withValues(alpha: c.isDark ? 0.25 : 0.12),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Icon(Icons.add, color: _heroBg, size: 22),
+              child: Icon(Icons.add, color: c.primary, size: 22),
             ),
           ),
           const SizedBox(width: AppSpace.s),
           Expanded(
             child: TextField(
               controller: _composerController,
+              readOnly: true,
+              showCursor: false,
+              onTap: _openComposerAsPage,
               minLines: 1,
               maxLines: 4,
-              cursorColor: AppColors.primary,
-              style: const TextStyle(color: _heroCream, fontSize: 15),
+              cursorColor: c.primary,
+              style: TextStyle(color: c.textPrimary, fontSize: 15),
               textInputAction: TextInputAction.send,
-              onSubmitted: (_) => _submitComposer(),
               decoration: InputDecoration(
                 isDense: true,
+                // Le thème global impose filled: true + fillColor blanc :
+                // sans cet override, le champ affiche une pastille blanche
+                // par-dessus la carte du composer. Le fond de la carte
+                // (cardBg) fait office de fond.
+                filled: false,
                 border: InputBorder.none,
                 hintText: l.museComposerHint,
                 hintStyle: TextStyle(
-                  color: _heroCream.withValues(alpha: 0.45),
+                  color: c.textSecondary.withValues(alpha: 0.8),
                   fontSize: 15,
                 ),
                 contentPadding: const EdgeInsets.symmetric(vertical: 10),
@@ -360,16 +355,17 @@ class _AiConversationsPageState extends State<AiConversationsPage> {
           ),
           const SizedBox(width: AppSpace.s),
           InkWell(
-            onTap: _submitComposer,
+            onTap: _openComposerAsPage,
             borderRadius: BorderRadius.circular(20),
             child: Container(
               width: 40,
               height: 40,
-              decoration: const BoxDecoration(
-                color: _heroCream,
+              decoration: BoxDecoration(
+                color: c.primary,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.arrow_upward, color: _heroBg, size: 20),
+              child: const Icon(Icons.arrow_upward,
+                  color: Colors.white, size: 20),
             ),
           ),
         ],
@@ -404,19 +400,20 @@ class _AiConversationsPageState extends State<AiConversationsPage> {
     required bool selected,
     required VoidCallback onTap,
   }) {
+    final c = context.appColors;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(AppRadius.pill),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: selected ? _heroCream : Colors.transparent,
+          color: selected
+              ? c.primary.withValues(alpha: c.isDark ? 0.3 : 0.15)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(AppRadius.pill),
           border: Border.all(
-            color: selected
-                ? _heroCream
-                : _heroCream.withValues(alpha: 0.25),
+            color: selected ? c.primary : c.border,
           ),
         ),
         child: Row(
@@ -424,14 +421,14 @@ class _AiConversationsPageState extends State<AiConversationsPage> {
           children: [
             Icon(
               icon,
-              size: 16,
-              color: selected ? _heroBg : _heroCream.withValues(alpha: 0.8),
+              size: 15,
+              color: selected ? c.primary : c.textSecondary,
             ),
             const SizedBox(width: 6),
             Text(
               label,
               style: TextStyle(
-                color: selected ? _heroBg : _heroCream.withValues(alpha: 0.8),
+                color: selected ? c.primary : c.textSecondary,
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
               ),
@@ -590,8 +587,8 @@ class _AiConversationsPageState extends State<AiConversationsPage> {
                       child: TextButton(
                         onPressed: () => _openConversation(conv),
                         style: TextButton.styleFrom(
-                          backgroundColor: _heroBg,
-                          foregroundColor: _heroCream,
+                          backgroundColor: context.appColors.primary,
+                          foregroundColor: Colors.white,
                           padding:
                               const EdgeInsets.symmetric(vertical: 12),
                           shape: RoundedRectangleBorder(

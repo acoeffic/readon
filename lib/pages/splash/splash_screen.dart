@@ -104,6 +104,24 @@ class _SplashScreenState extends State<SplashScreen>
     _initializeAndNavigate();
   }
 
+  /// Exécute une init non-critique en best-effort : timeout + try/catch.
+  /// Fix 2026-08-11 : le splash enchaînait des `await` sans timeout ni
+  /// try/catch — une seule init qui pend (Wi-Fi « connecté sans internet »)
+  /// ou qui lève une exception (RevenueCat, notifications…) bloquait l'app
+  /// sur le splash pour toujours. Aucune de ces inits ne doit empêcher
+  /// d'atteindre l'AuthGate.
+  Future<void> _bestEffort(
+    String label,
+    Future<void> Function() init, {
+    Duration timeout = const Duration(seconds: 6),
+  }) async {
+    try {
+      await init().timeout(timeout);
+    } catch (e) {
+      debugPrint('Splash init "$label" ignorée (non bloquante): $e');
+    }
+  }
+
   Future<void> _initializeAndNavigate() async {
     final minDelay = Future.delayed(const Duration(milliseconds: 2500));
 
@@ -117,35 +135,48 @@ class _SplashScreenState extends State<SplashScreen>
     }
 
     // Initialize Supabase
-    assert(Env.supabaseUrl.isNotEmpty,
-        'SUPABASE_URL manquant — utiliser --dart-define-from-file=env.json');
-    assert(Env.supabaseAnonKey.isNotEmpty, 'SUPABASE_ANON_KEY manquant');
+    // Vrai check (pas un assert) : un build release sans dart-defines doit
+    // échouer bruyamment au splash plutôt que produire une app où toute
+    // l'auth casse silencieusement ("No host specified in URI" — cf. incident
+    // AAB 1.0.5+11 d'août 2026).
+    if (Env.supabaseUrl.isEmpty || Env.supabaseAnonKey.isEmpty) {
+      throw StateError(
+          'SUPABASE_URL / SUPABASE_ANON_KEY manquants — build lancé sans '
+          '--dart-define-from-file=env.json');
+    }
+    // Critique (l'app est inutilisable sans) mais 100% local : pas de réseau
+    // dans initialize(), ne peut pas pendre.
     await Supabase.initialize(
       url: Env.supabaseUrl,
       anonKey: Env.supabaseAnonKey,
     );
 
-    // Initialize PostHog (no-op si POSTHOG_API_KEY est vide)
-    await AnalyticsService().init();
-
-    // Initialize RevenueCat
-    await SubscriptionService().initialize();
-
-    // Initialize monthly notifications
+    // Inits non critiques : best-effort, jamais bloquantes.
+    await _bestEffort('posthog', () => AnalyticsService().init());
+    // Doit venir après `Supabase.initialize` : émet signup_completed /
+    // login_succeeded depuis un point unique, quel que soit le fournisseur.
+    AnalyticsService().attachAuthListener();
+    await _bestEffort('revenuecat', () => SubscriptionService().initialize());
     if (!kIsWeb) {
-      await MonthlyNotificationService().initialize();
-    }
-
-    if (!kIsWeb) {
-      await WidgetService().initialize();
+      await _bestEffort(
+          'notifications', () => MonthlyNotificationService().initialize());
+      await _bestEffort('widget', () => WidgetService().initialize());
       // La mise à jour avec les vraies données se fera après l'auth
       // (via AuthGate ou la page d'accueil)
       // Démarre le pont Apple Watch (no-op hors iOS / sans Watch appairée).
-      WatchControlService().start();
+      try {
+        WatchControlService().start();
+      } catch (e) {
+        debugPrint('WatchControlService.start ignoré: $e');
+      }
     }
 
     // Initialize deep link handling (Notion OAuth + book links)
-    DeepLinkService().init();
+    try {
+      DeepLinkService().init();
+    } catch (e) {
+      debugPrint('DeepLinkService.init ignoré: $e');
+    }
 
     // Wait for minimum splash duration
     await minDelay;

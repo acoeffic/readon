@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:posthog_flutter/posthog_flutter.dart';
 import 'package:provider/provider.dart';
 import 'l10n/app_localizations.dart';
 import 'theme/app_theme.dart';
@@ -27,6 +28,11 @@ class LexDayApp extends StatelessWidget {
         builder: (context, themeProvider, _) {
           return MaterialApp(
             navigatorKey: MonthlyNotificationService.navigatorKey,
+            // Tracking d'écran automatique PostHog : chaque route nommée
+            // remonte un `$screen`. Filet de sécurité sous les events métier
+            // explicites — sans lui, un abandon sur un écran non instrumenté
+            // est invisible.
+            navigatorObservers: [PosthogObserver()],
             title: 'LexDay',
             debugShowCheckedModeBanner: false,
             localizationsDelegates: AppLocalizations.localizationsDelegates,

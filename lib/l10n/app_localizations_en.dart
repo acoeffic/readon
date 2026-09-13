@@ -71,6 +71,34 @@ class AppLocalizationsEn extends AppLocalizations {
   String get kindleSyncedAutomatically => 'Kindle synced automatically';
 
   @override
+  String get kindleSessionExpired =>
+      'Your Kindle session has expired, sign in again to keep syncing';
+
+  @override
+  String get kindleReconnect => 'Reconnect';
+
+  @override
+  String get kindleStopSyncing => 'Stop syncing';
+
+  @override
+  String get kindleSyncDisabled =>
+      'Kindle sync turned off. You can turn it back on in Settings.';
+
+  @override
+  String get sessionSourceKindle => 'Read on Kindle · estimated time';
+
+  @override
+  String kindleSessionsAdded(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Kindle readings added',
+      one: 'Your Kindle reading was added',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get enterEmailToReset => 'Enter your email to reset';
 
   @override
@@ -2072,6 +2100,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get museClassic => 'A classic to discover';
 
   @override
+  String get museGiftChip => '🎁 A book to gift';
+
+  @override
+  String get museGiftPrefill => 'Which book could I gift to ';
+
+  @override
   String get museAssistantLabel => 'Literary assistant';
 
   @override
@@ -2146,6 +2180,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get addToList => 'Add to a list';
+
+  @override
+  String get addToThisList => 'Add to the list';
+
+  @override
+  String get seeAllAuthorBooks => 'See all their books';
 
   @override
   String get noPersonalList => 'No personal list.';
@@ -2312,6 +2352,39 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get privateListDescription => 'Visible only to you';
+
+  @override
+  String get listShareMakePublicTitle => 'Make this list public?';
+
+  @override
+  String listShareMakePublicMessage(String title) {
+    return 'To share \"$title\", the list must be public. Anyone with the link will be able to see it.';
+  }
+
+  @override
+  String get makePublicButton => 'Make public';
+
+  @override
+  String get listShareLinkOption => 'Share the link';
+
+  @override
+  String get listShareLinkSubtitle => 'Web page viewable without the app';
+
+  @override
+  String get listShareImageOption => 'Share as an image';
+
+  @override
+  String get listShareImageSubtitle => 'A card for Instagram or TikTok';
+
+  @override
+  String listShareText(String title, String url) {
+    return '📚 My list \"$title\" on LexDay:\n$url';
+  }
+
+  @override
+  String listByOwner(String name) {
+    return '$name\'s list';
+  }
 
   @override
   String get addBooksTitle => 'Add books';
@@ -2784,6 +2857,39 @@ class AppLocalizationsEn extends AppLocalizations {
   String get startSessionTitle => 'Start';
 
   @override
+  String get startFromBeginning => 'Start from the beginning';
+
+  @override
+  String addBookManuallyCta(String query) {
+    return 'Add \"$query\" manually';
+  }
+
+  @override
+  String get titleAuthorRequired => 'Title and author are required';
+
+  @override
+  String get cameraPermissionDenied => 'Camera access denied';
+
+  @override
+  String get cameraPermissionHint =>
+      'Allow camera access in Settings to scan, or search for the book by title.';
+
+  @override
+  String get searchByTitleButton => 'Search by title';
+
+  @override
+  String get scanBookCta => 'Scan a book';
+
+  @override
+  String get endActiveSessionCta => 'End the session in progress';
+
+  @override
+  String get referralSection => 'Referrals';
+
+  @override
+  String get referralInvite => 'Invite a friend · 14 days free';
+
+  @override
   String get whatPageAreYouAt => 'WHAT PAGE ARE YOU AT?';
 
   @override
@@ -3046,6 +3152,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get readingForOther => 'Other';
 
   @override
+  String get readingForAddPrompt => 'Read for someone?';
+
+  @override
   String readingForDisplay(String person) {
     return 'Read for $person';
   }
@@ -3269,6 +3378,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get freeIncludedLibrary => 'Unlimited library';
+
+  @override
+  String get freeIncludedStats => 'Full reading stats & insights';
 
   @override
   String get freeIncludedFeed => 'Social feed';
@@ -3540,6 +3652,9 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get manualSearchTipIsbn =>
       'You can also paste an ISBN (10 or 13 digits)';
+
+  @override
+  String get manualSearchTrendingTitle => 'Trending right now';
 
   @override
   String get manualSearchNoResults => 'No books found';
@@ -3871,4 +3986,633 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get addPastSessionActiveSessionError =>
       'Finish your current session on this book first.';
+
+  @override
+  String scanIsbnDetected(String code) {
+    return 'ISBN detected: $code';
+  }
+
+  @override
+  String get scanNoBookForIsbn =>
+      'No book found for this ISBN. Try the cover scan.';
+
+  @override
+  String scanSearchError(String error) {
+    return 'Search error: $error';
+  }
+
+  @override
+  String get scanNoTextDetected => 'No text detected on the cover.';
+
+  @override
+  String get scanNoBookFound => 'No book found. Try manual search.';
+
+  @override
+  String get scanIsbnTitle => 'Scan ISBN';
+
+  @override
+  String get scanCoverTitle => 'Scan cover';
+
+  @override
+  String get manualSearchTooltip => 'Manual search';
+
+  @override
+  String get coverLabel => 'Cover';
+
+  @override
+  String get scanPaused => 'Scanner paused';
+
+  @override
+  String get scanPointCamera => 'Point the camera at the ISBN barcode';
+
+  @override
+  String get scanBarcodeHint =>
+      '(on the back of the book, starts with 978 or 979)';
+
+  @override
+  String get scanNoBarcodeHint => 'No barcode? Use the \"Cover\" tab';
+
+  @override
+  String get scanAnalyzingCover => 'Analyzing the cover...';
+
+  @override
+  String get scanScannedCover => 'Scanned cover:';
+
+  @override
+  String get scanDetectedText => 'Detected text';
+
+  @override
+  String get scanPhotographCover => 'Photograph the cover';
+
+  @override
+  String get scanCoverExplain => 'We detect the title and find the book';
+
+  @override
+  String get scanStepDetection => 'Detection';
+
+  @override
+  String get scanStepSearch => 'Search';
+
+  @override
+  String get scanIsbnAutoDetect =>
+      'If the ISBN is visible, it will be detected automatically';
+
+  @override
+  String get scanResults => 'Results:';
+
+  @override
+  String bookAddedShort(String title) {
+    return '$title added';
+  }
+
+  @override
+  String get emptyLibraryUseSearch =>
+      'Use the Search tab to find and add books.';
+
+  @override
+  String get searchBookByTitleAuthorHint =>
+      'Search for a book by title or author';
+
+  @override
+  String get chooseCoverTitle => 'Choose a cover';
+
+  @override
+  String get noCoversAvailable => 'No covers available';
+
+  @override
+  String get coversComingSoon => 'More covers coming soon.';
+
+  @override
+  String get bookHiddenFromOthers => 'Book hidden from other users';
+
+  @override
+  String get bookVisibleToOthers => 'Book visible to other users';
+
+  @override
+  String get errorUpdating => 'Update error';
+
+  @override
+  String get markBookFinishedQuestion => 'Mark this book as finished?';
+
+  @override
+  String get bookMarkedFinished => 'Book marked as finished!';
+
+  @override
+  String get bookHiddenTooltip => 'Book hidden from others';
+
+  @override
+  String get hideBookTooltip => 'Hide this book';
+
+  @override
+  String get kindleBook => 'Kindle book';
+
+  @override
+  String get scannedBook => 'Scanned book';
+
+  @override
+  String get addGenre => 'Add a genre';
+
+  @override
+  String sessionStartedAtPage(int page) {
+    return 'Started at page $page';
+  }
+
+  @override
+  String sinceDuration(String duration) {
+    return 'For $duration';
+  }
+
+  @override
+  String get endThisReading => 'End this reading';
+
+  @override
+  String get progressPhotoHint =>
+      'Track your progress by taking a photo or entering the page number.';
+
+  @override
+  String get markAsFinished => 'Mark as finished';
+
+  @override
+  String currentlyAtPage(String page) {
+    return 'Currently at page $page';
+  }
+
+  @override
+  String remainingAiSummaries(int count, int max) {
+    return '$count/$max summaries left';
+  }
+
+  @override
+  String get noAnnotationsForBook =>
+      'No annotations for this book.\nAnnotate during your sessions!';
+
+  @override
+  String aiSheetExplain(int count) {
+    return 'The AI analyzes your $count annotations to create a personalized reading sheet: key themes, standout quotes, progression and synthesis.';
+  }
+
+  @override
+  String get generateMySheet => 'Generate my sheet';
+
+  @override
+  String get regenerate => 'Regenerate';
+
+  @override
+  String get sheetSentToNotion => 'Sheet sent to Notion!';
+
+  @override
+  String get aiSummaryLabel => 'AI summary';
+
+  @override
+  String get summarizing => 'Summarizing...';
+
+  @override
+  String get summarizeAction => 'Summarize';
+
+  @override
+  String usedMonthlySummaries(int count) {
+    return 'You\'ve used your $count summaries this month';
+  }
+
+  @override
+  String get premiumSummariesUpsell =>
+      'Go Premium to summarize all your passages without limits';
+
+  @override
+  String get retryNextMonth => 'Try again next month';
+
+  @override
+  String addedToListNamed(String title) {
+    return 'Added to \"$title\"';
+  }
+
+  @override
+  String get barcodeLabel => 'Barcode';
+
+  @override
+  String get scanStepPhoto => 'Photo';
+
+  @override
+  String get chooseGenre => 'Choose the genre';
+
+  @override
+  String get profileCurrentSection => 'Right now';
+
+  @override
+  String profileCurrentSince(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'for $count days',
+      one: 'for 1 day',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String profilePageProgress(int current, int total) {
+    return 'p. $current / $total';
+  }
+
+  @override
+  String get profileFavoritesSection => 'Their favorites';
+
+  @override
+  String get profileCommonSection => 'You both read these';
+
+  @override
+  String get profileCommonSubtitle => 'Books found in both of your libraries';
+
+  @override
+  String get profileYouLabel => 'You';
+
+  @override
+  String get profileLibrarySection => 'Their library';
+
+  @override
+  String get profileToReadChip => 'Wishlist';
+
+  @override
+  String get profileSeeFullLibrary => 'See their full library';
+
+  @override
+  String memberSinceDays(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Member for $count days',
+      one: 'Member for 1 day',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String memberSinceWeeks(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Member for $count weeks',
+      one: 'Member for 1 week',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String memberSinceMonths(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Member for $count months',
+      one: 'Member for 1 month',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String memberSinceYears(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Member for $count years',
+      one: 'Member for 1 year',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get profileTheirRating => 'Their rating';
+
+  @override
+  String sessionPageRange(int start, int end) {
+    return 'p. $start → $end';
+  }
+
+  @override
+  String get chooseNameTitle => 'What name should we show?';
+
+  @override
+  String get chooseNameSubtitle =>
+      'This is the name your friends and other readers will see on LexDay.';
+
+  @override
+  String get feedbackTooltip => 'Share feedback';
+
+  @override
+  String get feedbackSheetTitle => 'Share feedback';
+
+  @override
+  String get feedbackSheetSubtitle =>
+      'A bug, an idea, something bothering you? Tell us everything — every bit of feedback helps us improve LexDay.';
+
+  @override
+  String get feedbackMessageLabel => 'Your message';
+
+  @override
+  String get feedbackMessageHint => 'Write your feedback here…';
+
+  @override
+  String get feedbackSubmitButton => 'Send';
+
+  @override
+  String get feedbackSentMessage => 'Thanks for your feedback!';
+
+  @override
+  String get feedbackErrorMessage =>
+      'Couldn\'t send your feedback. Please try again.';
+
+  @override
+  String get fabLogPastRead => 'I just read';
+
+  @override
+  String get highlightTitle => 'Highlight the passage';
+
+  @override
+  String get highlightAnalyzing => 'Reading the photo…';
+
+  @override
+  String get highlightHint => 'Swipe your finger over the passage';
+
+  @override
+  String get highlightNoText =>
+      'No text detected. Try a sharper photo, or let AI read the page.';
+
+  @override
+  String get highlightSelectAll => 'Select all';
+
+  @override
+  String get highlightClear => 'Clear';
+
+  @override
+  String get highlightUse => 'Use';
+
+  @override
+  String get highlightOneWord => '1 word highlighted';
+
+  @override
+  String highlightWordCount(int count) {
+    return '$count words highlighted';
+  }
+
+  @override
+  String get highlightEnhanceAi => 'Fix with AI';
+
+  @override
+  String get highlightExtractAi => 'Read with AI';
+
+  @override
+  String get highlightEnhancing => 'Reading…';
+
+  @override
+  String get highlightAiDone => 'Passage re-read by AI';
+
+  @override
+  String get highlightAiLabel => 'Text re-read by AI';
+
+  @override
+  String get highlightModeMove => 'Zoom / move';
+
+  @override
+  String get highlightModeSelect => 'Highlight';
+
+  @override
+  String get highlightImageError => 'This photo can\'t be opened.';
+
+  @override
+  String get highlightRetakePhoto => 'Retake photo';
+
+  @override
+  String get takePhotoAction => 'Take a photo';
+
+  @override
+  String get editHighlight => 'Edit highlight';
+
+  @override
+  String pageDetectedSuggestion(int page) {
+    return 'Page $page detected';
+  }
+
+  @override
+  String get capturePassageFab => 'Save a passage';
+
+  @override
+  String get capturePassageTitle => 'Save this passage';
+
+  @override
+  String get capturePassageSave => 'Save';
+
+  @override
+  String get capturePassageSaved => 'Passage saved';
+
+  @override
+  String get capturePassageNoBook => 'Choose a book';
+
+  @override
+  String get capturePassageNeedBook => 'Pick a book for this passage.';
+
+  @override
+  String get capturePassagePageLabel => 'Page';
+
+  @override
+  String get capturePassageChooseBook => 'Which book?';
+
+  @override
+  String get capturePassageScanCover => 'Scan a new book cover';
+
+  @override
+  String get capturePassageCameraError => 'Couldn\'t open the camera.';
+
+  @override
+  String get myPassages => 'My passages';
+
+  @override
+  String get myPassagesSearchHint => 'Search my passages…';
+
+  @override
+  String get myPassagesNoResult => 'No passage matches this search.';
+
+  @override
+  String get myPassagesEmptyTitle => 'Nothing saved yet';
+
+  @override
+  String get myPassagesEmptyBody =>
+      'Take a photo of a page, highlight the passage with your finger — it\'ll be waiting here.';
+
+  @override
+  String myPassagesPage(int page) {
+    return 'p. $page';
+  }
+
+  @override
+  String get myPassagesCopy => 'Copy text';
+
+  @override
+  String get myPassagesCopied => 'Passage copied';
+
+  @override
+  String get myPassagesDeleteTitle => 'Delete this passage?';
+
+  @override
+  String get myPassagesDeleteBody =>
+      'The text and the photo will be permanently deleted.';
+
+  @override
+  String get myPassagesDeleteConfirm => 'Delete';
+
+  @override
+  String get myPassagesSourceKindle => 'Kindle';
+
+  @override
+  String get myPassagesNoteLabel => 'My note';
+
+  @override
+  String get myPassagesUnknownBook => 'Unknown book';
+
+  @override
+  String myPassagesCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 's',
+      one: '',
+    );
+    return '$count passage$_temp0';
+  }
+
+  @override
+  String get startPageOptionalLabel => 'START PAGE · OPTIONAL';
+
+  @override
+  String willResumeAtPage(int page) {
+    return 'You\'ll pick up at page $page';
+  }
+
+  @override
+  String get willStartAtBeginning => 'You\'ll start from the beginning';
+
+  @override
+  String abandonSessionElapsed(String duration) {
+    return 'You\'ve been reading for $duration.';
+  }
+
+  @override
+  String get abandonDeletesTime =>
+      'Abandoning permanently deletes this reading time.';
+
+  @override
+  String get abandonKeepReading => 'Keep reading';
+
+  @override
+  String get abandonEndInstead => 'End the session instead';
+
+  @override
+  String get abandonDiscard => 'Delete anyway';
+
+  @override
+  String get focusModeSettingsEntry => 'Distraction-free mode';
+
+  @override
+  String get focusModeTitle => 'Distraction-free mode';
+
+  @override
+  String get focusModeIntroTitle => 'Silence notifications while you read';
+
+  @override
+  String get focusModeIntroBody =>
+      'With two automations in Apple\'s Shortcuts app, your iPhone switches to Do Not Disturb whenever you open LexDay, and back to normal when you leave. One-time setup, 2 minutes.';
+
+  @override
+  String get focusModeAutomation1Title => 'When LexDay opens';
+
+  @override
+  String get focusModeAutomation1Subtitle =>
+      'Turn on Do Not Disturb automatically';
+
+  @override
+  String get focusModeAutomation2Title => 'When LexDay closes';
+
+  @override
+  String get focusModeAutomation2Subtitle => 'Turn Do Not Disturb back off';
+
+  @override
+  String get focusModeStepOpenShortcuts =>
+      'Open the Shortcuts app (preinstalled on your iPhone)';
+
+  @override
+  String get focusModeStepAutomationTab =>
+      'Go to the “Automation” tab, then “New Automation”';
+
+  @override
+  String get focusModeStepChooseApp => 'Choose “App”, then select LexDay';
+
+  @override
+  String get focusModeStepIsOpened => 'Check “Is Opened” and “Run Immediately”';
+
+  @override
+  String get focusModeStepIsClosed => 'Check “Is Closed” and “Run Immediately”';
+
+  @override
+  String get focusModeStepActionOn =>
+      'Add the “Set Focus” action → Do Not Disturb → On';
+
+  @override
+  String get focusModeStepActionOff =>
+      'Add the “Set Focus” action → Do Not Disturb → Off';
+
+  @override
+  String get focusModeOpenShortcuts => 'Open Shortcuts';
+
+  @override
+  String get focusModeNote =>
+      'This is a 100% iOS setting: LexDay gets no access to anything, and you can remove the automation anytime in Shortcuts.';
+
+  @override
+  String get focusModeShortcutsUnavailable =>
+      'Couldn\'t open Shortcuts. Reinstall it from the App Store.';
+
+  @override
+  String get focusSuggestionTitle => 'Read without interruptions?';
+
+  @override
+  String get focusSuggestionBody =>
+      'Your iPhone can switch to Do Not Disturb automatically for every session. One-time, 2-minute setup.';
+
+  @override
+  String get focusSuggestionCta => 'Show me how';
+
+  @override
+  String get onboardingFirstSessionReady => 'Ready to read?';
+
+  @override
+  String get onboardingFirstSessionHint =>
+      '5 minutes is enough to get started. Stop whenever you want.';
+
+  @override
+  String get onboardingFirstSessionCta => 'Read 5 minutes now';
+
+  @override
+  String get onboardingFirstSessionLater => 'Not now';
+
+  @override
+  String get onboardingNoBookTitle => 'All set!';
+
+  @override
+  String get onboardingNoBookBody =>
+      'Add a book whenever you like to start your first reading session.';
+
+  @override
+  String get onboardingNoBookCta => 'Let’s go';
+
+  @override
+  String get onboardingReminderTitle => 'Remind you tomorrow?';
+
+  @override
+  String onboardingReminderBody(String title) {
+    return 'A single reminder to pick up “$title” — and nothing else until you’ve read.';
+  }
+
+  @override
+  String get onboardingReminderYes => 'Yes, remind me';
+
+  @override
+  String get onboardingReminderNo => 'No thanks';
 }

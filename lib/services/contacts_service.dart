@@ -13,10 +13,19 @@ class ContactsService {
 
   static const String _prefKeyContactsPromptSeen = 'has_seen_contacts_prompt';
 
-  /// Verifie si c'est la premiere session terminee de l'utilisateur
-  Future<bool> hasCompletedFirstSession() async {
+  /// L'utilisateur a-t-il déjà terminé une première session de lecture ?
+  ///
+  /// Renvoie **`null` quand l'information n'a pas pu être lue** (pas de
+  /// session, réseau, erreur serveur) : les appelants n'ont pas les mêmes
+  /// enjeux face à un état inconnu et doivent trancher eux-mêmes.
+  /// Avant le 18/08/2026 cette méthode renvoyait `true` dans son `catch`, ce
+  /// qui rendait le garde-fou *fail-open* : un réseau instable au lancement
+  /// débloquait paywall ET popup de permission notifications sur quelqu'un
+  /// qui n'avait encore rien lu — exactement ce que le correctif du 15/08
+  /// cherchait à empêcher.
+  Future<bool?> hasCompletedFirstSession() async {
     final user = _supabase.auth.currentUser;
-    if (user == null) return true;
+    if (user == null) return null;
 
     try {
       final result = await _supabase
@@ -28,7 +37,7 @@ class ContactsService {
       return result['has_completed_first_session'] as bool? ?? false;
     } catch (e) {
       debugPrint('Erreur hasCompletedFirstSession: $e');
-      return true;
+      return null;
     }
   }
 
@@ -370,17 +379,19 @@ class ContactsService {
     return result == SendFriendRequestResult.sent;
   }
 
-  /// Retourne le sous-ensemble de [userIds] avec lesquels l'utilisateur
-  /// courant a déjà une relation `friends` (pending, accepted, ...). Utilisé
-  /// pour pré-griser les boutons « Ajouter » dans les carrousels de
-  /// suggestions.
-  Future<Set<String>> getExistingRelationUserIds(
+  /// Retourne, pour le sous-ensemble de [userIds] avec lesquels l'utilisateur
+  /// courant a déjà une relation `friends`, le statut de cette relation
+  /// (`'pending'` ou `'accepted'`). Les ids sans relation sont absents de la
+  /// map. Permet à l'UI de distinguer une vraie demande en attente (bouton
+  /// « En attente ») d'une amitié déjà acceptée (carte à masquer des
+  /// suggestions).
+  Future<Map<String, String>> getRelationStatusesByUserId(
     Iterable<String> userIds,
   ) async {
     final user = _supabase.auth.currentUser;
-    if (user == null) return <String>{};
+    if (user == null) return <String, String>{};
     final ids = userIds.where((id) => id.isNotEmpty).toList();
-    if (ids.isEmpty) return <String>{};
+    if (ids.isEmpty) return <String, String>{};
 
     try {
       final orConditions = ids
@@ -389,20 +400,32 @@ class ContactsService {
           .join(',');
       final res = await _supabase
           .from('friends')
-          .select('requester_id, addressee_id')
+          .select('requester_id, addressee_id, status')
           .or(orConditions);
 
-      final related = <String>{};
+      final statuses = <String, String>{};
       for (final row in (res as List)) {
         final reqId = row['requester_id'] as String;
         final addId = row['addressee_id'] as String;
-        related.add(reqId == user.id ? addId : reqId);
+        final status = row['status'] as String? ?? 'pending';
+        statuses[reqId == user.id ? addId : reqId] = status;
       }
-      return related;
+      return statuses;
     } catch (e) {
-      debugPrint('Erreur getExistingRelationUserIds: $e');
-      return <String>{};
+      debugPrint('Erreur getRelationStatusesByUserId: $e');
+      return <String, String>{};
     }
+  }
+
+  /// Retourne le sous-ensemble de [userIds] avec lesquels l'utilisateur
+  /// courant a déjà une relation `friends` (pending, accepted, ...). Utilisé
+  /// comme garde anti-retap sur les boutons « Ajouter ». Préférer
+  /// [getRelationStatusesByUserId] quand l'UI doit distinguer les statuts.
+  Future<Set<String>> getExistingRelationUserIds(
+    Iterable<String> userIds,
+  ) async {
+    final statuses = await getRelationStatusesByUserId(userIds);
+    return statuses.keys.toSet();
   }
 }
 

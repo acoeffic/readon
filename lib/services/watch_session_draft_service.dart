@@ -5,6 +5,7 @@
 // dialogue de rattrapage propose de compléter/corriger les pages
 // (voir WatchSessionCatchupDialog).
 
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Brouillon d'une session Watch en attente de confirmation des pages.
@@ -25,6 +26,11 @@ class WatchSessionDraft {
 }
 
 class WatchSessionDraftService {
+  /// Bumpé à chaque sauvegarde de brouillon : permet à l'UI (main_navigation)
+  /// de proposer le rattrapage immédiatement, sans attendre le prochain
+  /// retour au premier plan de l'app.
+  static final ValueNotifier<int> draftVersion = ValueNotifier<int>(0);
+
   static const _keySessionId = 'watch_draft_session_id';
   static const _keyStartPage = 'watch_draft_start_page';
   static const _keyEndPage = 'watch_draft_end_page';
@@ -45,6 +51,7 @@ class WatchSessionDraftService {
     } else {
       await prefs.remove(_keyBookTitle);
     }
+    draftVersion.value++;
   }
 
   /// Brouillon en attente, ou null.

@@ -3,6 +3,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 import '../../models/book.dart';
@@ -11,11 +12,16 @@ import '../../models/feature_flags.dart';
 import '../../providers/subscription_provider.dart';
 import '../../services/native_paywall_service.dart';
 import '../../services/books_service.dart';
+import '../../services/app_review_service.dart';
+import '../../services/analytics_service.dart';
+import '../../services/focus_mode_service.dart';
+import '../profile/focus_mode_guide_page.dart';
 import '../../services/flow_service.dart';
 import '../../services/reading_session_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/cached_book_cover.dart';
 import '../../widgets/constrained_content.dart';
+import '../../widgets/reading_for_picker.dart';
 import '../../features/wrapped/share/share_format.dart';
 import '../../navigation/main_navigation.dart';
 import 'session_share_service.dart';
@@ -34,15 +40,96 @@ class ReadingSessionSummaryPage extends StatefulWidget {
 }
 
 class _ReadingSessionSummaryPageState
-    extends State<ReadingSessionSummaryPage> {
+    extends State<ReadingSessionSummaryPage>
+    with SingleTickerProviderStateMixin {
   Book? _book;
   int _currentStreak = 0;
   Map<String, double> _userAverages = {};
 
+  /// Cascade d'entrée de l'écran (header → livre → stats → insights).
+  late final AnimationController _entryController;
+
+  /// « Pour qui » modifiable a posteriori — état local, initialisé depuis la
+  /// session, mis à jour en base via updateSessionReadingFor.
+  String? _readingFor;
+
+  /// Suggestion unique « mode sans distraction » (iOS, ≥ 2e session — cf.
+  /// FocusModeService pour le pourquoi de la cadence).
+  bool _showFocusSuggestion = false;
+
   @override
   void initState() {
     super.initState();
+    _readingFor = widget.session.readingFor;
+    _entryController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1400),
+    );
     _loadData();
+    _maybeShowFocusSuggestion();
+    // Lancée après le premier frame, pour partir d'un écran layouté et
+    // pouvoir lire le réglage d'accessibilité « réduire les animations ».
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (MediaQuery.of(context).disableAnimations) {
+        _entryController.value = 1.0;
+        return;
+      }
+      _entryController.forward();
+      _scheduleStatHaptics();
+    });
+  }
+
+  @override
+  void dispose() {
+    _entryController.dispose();
+    super.dispose();
+  }
+
+  /// Trois petites impulsions calées sur le pop des trois stats
+  /// (la dernière — la série — un peu plus marquée).
+  void _scheduleStatHaptics() {
+    Future.delayed(const Duration(milliseconds: 730), () {
+      if (mounted) HapticFeedback.lightImpact();
+    });
+    Future.delayed(const Duration(milliseconds: 870), () {
+      if (mounted) HapticFeedback.lightImpact();
+    });
+    Future.delayed(const Duration(milliseconds: 1010), () {
+      if (mounted) HapticFeedback.mediumImpact();
+    });
+  }
+
+  /// Fondu + légère translation vers le haut sur un segment de la cascade.
+  Widget _entryReveal({
+    required double begin,
+    required double end,
+    required Widget child,
+  }) {
+    final curved = CurvedAnimation(
+      parent: _entryController,
+      curve: Interval(begin, end, curve: Curves.easeOutCubic),
+    );
+    return FadeTransition(
+      opacity: curved,
+      child: SlideTransition(
+        position: Tween<Offset>(
+          begin: const Offset(0, 0.10),
+          end: Offset.zero,
+        ).animate(curved),
+        child: child,
+      ),
+    );
+  }
+
+  Future<void> _maybeShowFocusSuggestion() async {
+    final show = await FocusModeService()
+        .registerCompletedSessionAndCheckSuggestion();
+    if (!show || !mounted) return;
+    setState(() => _showFocusSuggestion = true);
+    // Cartouche consommée dès l'affichage, quelle que soit la suite.
+    FocusModeService().markSuggestionShown();
+    AnalyticsService().track(AnalyticsEvent.focusSuggestionShown);
   }
 
   Future<void> _loadData() async {
@@ -59,9 +146,24 @@ class _ReadingSessionSummaryPageState
         _currentStreak = flow.currentFlow as int;
         _userAverages = results[2] as Map<String, double>;
       });
+      _maybeAskReviewForStreakMilestone();
     } catch (_) {
       // Non-critical — page still renders with fallback data
     }
+  }
+
+  /// Moment de fierté : streak qui atteint un palier symbolique.
+  /// Les garde-fous (ancienneté, fréquence) sont dans AppReviewService.
+  void _maybeAskReviewForStreakMilestone() {
+    const milestones = {7, 14, 30, 50, 100, 200, 365};
+    if (!milestones.contains(_currentStreak)) return;
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) {
+        AppReviewService.maybeRequestReview(
+          trigger: 'streak_$_currentStreak',
+        );
+      }
+    });
   }
 
   String _formatDuration(int minutes) {
@@ -109,17 +211,43 @@ class _ReadingSessionSummaryPageState
                     children: [
                       _buildAppBar(isDark, l),
                       const SizedBox(height: 8),
-                      _buildHeader(isDark, l),
-                      if (widget.session.readingFor != null) ...[
-                        const SizedBox(height: 8),
-                        _buildReadingForBadge(isDark, l),
-                      ],
+                      _entryReveal(
+                        begin: 0.0,
+                        end: 0.25,
+                        child: _buildHeader(isDark, l),
+                      ),
+                      const SizedBox(height: 8),
+                      _entryReveal(
+                        begin: 0.06,
+                        end: 0.31,
+                        child: _buildReadingForBadge(isDark, l),
+                      ),
                       const SizedBox(height: 14),
-                      _buildBookCard(isDark, l),
+                      _entryReveal(
+                        begin: 0.14,
+                        end: 0.42,
+                        child: _buildBookCard(isDark, l),
+                      ),
                       const SizedBox(height: 10),
-                      _buildFreeStatsCard(isDark, l),
+                      _entryReveal(
+                        begin: 0.28,
+                        end: 0.55,
+                        child: _buildFreeStatsCard(isDark, l),
+                      ),
                       const SizedBox(height: 12),
-                      _buildInsightsSection(isDark),
+                      _entryReveal(
+                        begin: 0.55,
+                        end: 0.85,
+                        child: _buildInsightsSection(isDark),
+                      ),
+                      if (_showFocusSuggestion) ...[
+                        const SizedBox(height: 12),
+                        _entryReveal(
+                          begin: 0.65,
+                          end: 0.95,
+                          child: _buildFocusSuggestionCard(isDark, l),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -156,48 +284,170 @@ class _ReadingSessionSummaryPageState
     );
   }
 
-  // ── Reading for badge ────────────────────────────────────────────────
+  // ── Reading for badge (modifiable a posteriori) ─────────────────────
 
-  String _resolveReadingForLabel(String key, AppLocalizations l) {
-    switch (key) {
-      case 'daughter': return l.readingForDaughter;
-      case 'son': return l.readingForSon;
-      case 'friend': return l.readingForFriend;
-      case 'grandmother': return l.readingForGrandmother;
-      case 'grandfather': return l.readingForGrandfather;
-      case 'father': return l.readingForFather;
-      case 'mother': return l.readingForMother;
-      case 'partner': return l.readingForPartner;
-      case 'other': return l.readingForOther;
-      default: return key;
+  /// Ouvre le sélecteur et enregistre la modification en base.
+  /// 'myself' → NULL (convention identique au démarrage de session).
+  Future<void> _editReadingFor() async {
+    final selected = await showReadingForPicker(
+      context,
+      current: _readingFor ?? 'myself',
+    );
+    if (selected == null || !mounted) return;
+
+    final newValue = selected == 'myself' ? null : selected;
+    if (newValue == _readingFor) return;
+
+    final previous = _readingFor;
+    setState(() => _readingFor = newValue);
+    try {
+      await ReadingSessionService()
+          .updateSessionReadingFor(widget.session.id, newValue);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _readingFor = previous);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context).errorModifying),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     }
   }
 
   Widget _buildReadingForBadge(bool isDark, AppLocalizations l) {
-    final person = _resolveReadingForLabel(widget.session.readingFor!, l);
+    final hasValue = _readingFor != null;
+    final label = hasValue
+        ? l.readingForDisplay(readingForLabel(l, _readingFor!))
+        : l.readingForAddPrompt;
+    final color = hasValue
+        ? AppColors.primary
+        : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondary);
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: isDark
-            ? AppColors.primary.withValues(alpha: 0.15)
-            : AppColors.primary.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: AppColors.primary.withValues(alpha: 0.25),
+    return GestureDetector(
+      onTap: _editReadingFor,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: hasValue
+              ? (isDark
+                  ? AppColors.primary.withValues(alpha: 0.15)
+                  : AppColors.primary.withValues(alpha: 0.08))
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: hasValue
+                ? AppColors.primary.withValues(alpha: 0.25)
+                : color.withValues(alpha: 0.35),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              hasValue ? readingForEmoji(_readingFor!) : '\u{1F4D6}',
+              style: const TextStyle(fontSize: 16),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: color,
+              ),
+            ),
+            const SizedBox(width: 6),
+            Icon(
+              hasValue ? Icons.edit_rounded : Icons.add_rounded,
+              size: 14,
+              color: color.withValues(alpha: 0.7),
+            ),
+          ],
         ),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
+    );
+  }
+
+  // ── Suggestion « mode sans distraction » (unique, iOS) ──────────────
+
+  Widget _buildFocusSuggestionCard(bool isDark, AppLocalizations l) {
+    final secondary = isDark ? Colors.white70 : Colors.black54;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark
+            ? AppColors.primary.withValues(alpha: 0.12)
+            : AppColors.primary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppColors.primary.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('\u{1F4D6}', style: TextStyle(fontSize: 16)),
-          const SizedBox(width: 8),
-          Text(
-            l.readingForDisplay(person),
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: AppColors.primary,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('🌙', style: TextStyle(fontSize: 20)),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l.focusSuggestionTitle,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: isDark ? Colors.white : Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      l.focusSuggestionBody,
+                      style: TextStyle(fontSize: 13, color: secondary),
+                    ),
+                  ],
+                ),
+              ),
+              GestureDetector(
+                onTap: () {
+                  AnalyticsService()
+                      .track(AnalyticsEvent.focusSuggestionDismissed);
+                  setState(() => _showFocusSuggestion = false);
+                },
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 8),
+                  child: Icon(Icons.close_rounded, size: 18, color: secondary),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const FocusModeGuidePage(
+                      source: 'post_session_suggestion',
+                    ),
+                  ),
+                );
+              },
+              style: TextButton.styleFrom(
+                foregroundColor: AppColors.primary,
+                textStyle: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              child: Text(l.focusSuggestionCta),
             ),
           ),
         ],
@@ -445,9 +695,12 @@ class _ReadingSessionSummaryPageState
             Expanded(
               child: _buildFreeStat(
                 emoji: '⏱',
-                value: _formatDuration(session.durationMinutes),
+                valueOf: (t) =>
+                    _formatDuration((session.durationMinutes * t).round()),
                 label: 'durée',
                 isDark: isDark,
+                begin: 0.40,
+                end: 0.60,
               ),
             ),
             VerticalDivider(
@@ -460,9 +713,11 @@ class _ReadingSessionSummaryPageState
             Expanded(
               child: _buildFreeStat(
                 emoji: '📄',
-                value: '${session.pagesRead}',
+                valueOf: (t) => '${(session.pagesRead * t).round()}',
                 label: 'pages lues',
                 isDark: isDark,
+                begin: 0.50,
+                end: 0.70,
               ),
             ),
             VerticalDivider(
@@ -475,9 +730,11 @@ class _ReadingSessionSummaryPageState
             Expanded(
               child: _buildFreeStat(
                 emoji: '🔥',
-                value: '$_currentStreak j.',
+                valueOf: (t) => '${(_currentStreak * t).round()} j.',
                 label: 'série',
                 isDark: isDark,
+                begin: 0.60,
+                end: 0.80,
               ),
             ),
           ],
@@ -488,34 +745,59 @@ class _ReadingSessionSummaryPageState
 
   Widget _buildFreeStat({
     required String emoji,
-    required String value,
+    required String Function(double t) valueOf,
     required String label,
     required bool isDark,
+    required double begin,
+    required double end,
   }) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(emoji, style: const TextStyle(fontSize: 20)),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: isDark ? AppColors.textPrimaryDark : AppColors.primary,
-          ),
-          textAlign: TextAlign.center,
+    // Pop avec un léger rebond, fondu simple, et compteur qui « tourne »
+    // un peu plus longtemps que le pop.
+    final pop = CurvedAnimation(
+      parent: _entryController,
+      curve: Interval(begin, end, curve: Curves.easeOutBack),
+    );
+    final fade = CurvedAnimation(
+      parent: _entryController,
+      curve: Interval(begin, end, curve: Curves.easeOut),
+    );
+    final count = CurvedAnimation(
+      parent: _entryController,
+      curve: Interval(begin, 0.95, curve: Curves.easeOutCubic),
+    );
+    return FadeTransition(
+      opacity: fade,
+      child: ScaleTransition(
+        scale: Tween<double>(begin: 0.6, end: 1).animate(pop),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(emoji, style: const TextStyle(fontSize: 20)),
+            const SizedBox(height: 4),
+            AnimatedBuilder(
+              animation: count,
+              builder: (context, _) => Text(
+                valueOf(count.value),
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? AppColors.textPrimaryDark : AppColors.primary,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
         ),
-        const SizedBox(height: 2),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 11,
-            color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
-          ),
-          textAlign: TextAlign.center,
-        ),
-      ],
+      ),
     );
   }
 
@@ -523,7 +805,12 @@ class _ReadingSessionSummaryPageState
 
   Widget _buildInsightsSection(bool isDark) {
     final l = AppLocalizations.of(context);
-    final isPremium = context.watch<SubscriptionProvider>().isPremium;
+    // Insights de performance : routés via FeatureFlags (advancedStats est
+    // désormais gratuit — 19/08/2026).
+    final insightsUnlocked = FeatureFlags.isAvailable(
+      Feature.advancedStats,
+      isPremium: context.watch<SubscriptionProvider>().isPremium,
+    );
     final session = widget.session;
     final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
 
@@ -598,28 +885,30 @@ class _ReadingSessionSummaryPageState
       ),
       child: Column(
         children: [
-          // Header with PREMIUM badge
+          // Header (badge PREMIUM seulement si la feature est verrouillée)
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
             child: Row(
               children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFD4A54A),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Text(
-                    'PREMIUM',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white,
-                      letterSpacing: 0.5,
+                if (!insightsUnlocked) ...[
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFD4A54A),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Text(
+                      'PREMIUM',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                        letterSpacing: 0.5,
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 10),
+                  const SizedBox(width: 10),
+                ],
                 Text(
                   l.sessionInsights,
                   style: TextStyle(
@@ -643,12 +932,12 @@ class _ReadingSessionSummaryPageState
                     endIndent: 20,
                     color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.grey.shade200,
                   ),
-                _buildInsightRow(insights[i], isDark, isPremium),
+                _buildInsightRow(insights[i], isDark, insightsUnlocked),
               ],
             );
           }),
           // CTA for free users
-          if (!isPremium) ...[
+          if (!insightsUnlocked) ...[
             const SizedBox(height: 4),
             GestureDetector(
               onTap: () => NativePaywallService.present(
@@ -716,7 +1005,7 @@ class _ReadingSessionSummaryPageState
     );
   }
 
-  Widget _buildInsightRow(_InsightRow insight, bool isDark, bool isPremium) {
+  Widget _buildInsightRow(_InsightRow insight, bool isDark, bool unlocked) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       child: Row(
@@ -733,7 +1022,7 @@ class _ReadingSessionSummaryPageState
               ),
             ),
           ),
-          if (isPremium)
+          if (unlocked)
             Flexible(
               child: Text(
                 insight.value,
@@ -796,10 +1085,9 @@ class _ReadingSessionSummaryPageState
       if (!mounted) return;
 
       // Resolve "reading for" label for the share card
-      String? readingForLabel;
-      if (widget.session.readingFor != null) {
-        final person = _resolveReadingForLabel(widget.session.readingFor!, l);
-        readingForLabel = l.readingForDisplay(person);
+      String? readingForText;
+      if (_readingFor != null) {
+        readingForText = l.readingForDisplay(readingForLabel(l, _readingFor!));
       }
 
       final imageBytes = await service.captureCard(
@@ -810,7 +1098,7 @@ class _ReadingSessionSummaryPageState
         totalPages: _book?.pageCount,
         streak: _currentStreak,
         format: ShareFormat.story,
-        readingForLabel: readingForLabel,
+        readingForLabel: readingForText,
       );
       if (!mounted || imageBytes == null) return;
 
@@ -853,10 +1141,9 @@ class _ReadingSessionSummaryPageState
       final coverBytes = await service.downloadCover(resolvedCover ?? _book?.coverUrl);
       if (!mounted) return;
 
-      String? readingForLabel;
-      if (widget.session.readingFor != null) {
-        final person = _resolveReadingForLabel(widget.session.readingFor!, l);
-        readingForLabel = l.readingForDisplay(person);
+      String? readingForText;
+      if (_readingFor != null) {
+        readingForText = l.readingForDisplay(readingForLabel(l, _readingFor!));
       }
 
       final imageBytes = await service.captureCard(
@@ -867,7 +1154,7 @@ class _ReadingSessionSummaryPageState
         totalPages: _book?.pageCount,
         streak: _currentStreak,
         format: ShareFormat.story,
-        readingForLabel: readingForLabel,
+        readingForLabel: readingForText,
       );
       if (!mounted || imageBytes == null) return;
 
@@ -879,7 +1166,8 @@ class _ReadingSessionSummaryPageState
           behavior: SnackBarBehavior.floating,
         ),
       );
-    } catch (_) {
+    } catch (e) {
+      debugPrint('Erreur sauvegarde image: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(

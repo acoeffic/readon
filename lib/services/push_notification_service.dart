@@ -6,11 +6,24 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../features/wrapped/monthly/monthly_wrapped_screen.dart';
+import 'analytics_service.dart';
 import 'monthly_notification_service.dart';
+import 'notification_permission.dart';
 import 'wrapped_banner_service.dart';
 
 /// Handles FCM token capture, storage in Supabase, token refresh,
 /// and notification tap routing.
+///
+/// ⚠️ Découpage important (audit entonnoir du 15/08/2026) :
+///
+///   * [initialize] ne demande **jamais** la permission système. Elle câble le
+///     routage des notifications et, si la permission est *déjà* accordée,
+///     enregistre le token FCM. On l'appelle au login (AuthGate).
+///   * [promptPermissionAndRegister] déclenche la popup système. Elle doit être
+///     appelée à un moment où l'utilisateur a compris la valeur de l'app —
+///     concrètement après sa première session de lecture terminée, pas au
+///     premier lancement (le refus y était quasi systématique, et le canal de
+///     relance J1 perdu avec).
 class PushNotificationService {
   static final PushNotificationService _instance =
       PushNotificationService._internal();
@@ -18,36 +31,122 @@ class PushNotificationService {
   PushNotificationService._internal();
 
   final FirebaseMessaging _messaging = FirebaseMessaging.instance;
-  bool _initialized = false;
+
+  /// Routage des notifications câblé (listeners, cold start).
+  bool _listenersReady = false;
+
+  /// Token FCM récupéré et enregistré en base pour la session courante.
+  bool _tokenRegistered = false;
+
   StreamSubscription<String>? _tokenRefreshSub;
 
   /// Pending FCM message from a cold-start tap. Consumed by MainNavigation.
   static RemoteMessage? pendingInitialMessage;
 
-  /// Initialize push notifications: request permission, get token, listen for refresh.
-  /// Call this after the user is authenticated.
+  /// Câble le routage des notifications et enregistre le token **si la
+  /// permission est déjà accordée**. Ne présente aucune popup système.
+  /// À appeler après l'authentification.
   Future<void> initialize() async {
     if (kIsWeb) return;
-    if (_initialized) return;
-    _initialized = true;
 
-    // 1. Request permission (required on iOS, Android 13+)
-    final settings = await _messaging.requestPermission(
-      alert: true,
-      badge: true,
-      sound: true,
-    );
+    await _setupListeners();
 
-    if (settings.authorizationStatus == AuthorizationStatus.denied) {
-      print('FCM token error: permission denied');
-      _initialized = false;
-      return;
+    // Permission déjà accordée (utilisateur existant, ou nouvelle install
+    // après [promptPermissionAndRegister]) → on peut récupérer le token.
+    if (await hasPermission()) {
+      await _registerToken();
+    }
+  }
+
+  /// Statut courant de la permission notifications. Délègue au helper partagé
+  /// avec `MonthlyNotificationService` (une seule autorisation système pour
+  /// les deux plugins) — voir `notification_permission.dart`.
+  Future<AuthorizationStatus> permissionStatus() =>
+      notificationPermissionStatus();
+
+  /// `true` si l'utilisateur a accordé (ou provisoirement accordé) la
+  /// permission notifications.
+  Future<bool> hasPermission() => hasNotificationPermission();
+
+  /// `true` si la popup système n'a encore jamais été présentée — donc si on
+  /// a encore une (seule) cartouche à tirer.
+  Future<bool> canStillAskPermission() => canStillAskNotificationPermission();
+
+  /// Présente la popup système de permission puis, si elle est accordée,
+  /// enregistre le token FCM.
+  ///
+  /// Retourne `true` si la permission est accordée à l'issue de l'appel.
+  /// Ne fait rien (et retourne le statut courant) si la popup a déjà été
+  /// présentée par le passé : iOS ne la réaffiche pas.
+  Future<bool> promptPermissionAndRegister() async {
+    if (kIsWeb) return false;
+
+    await _setupListeners();
+
+    unawaited(AnalyticsService().track(
+      AnalyticsEvent.pushPermissionRequested,
+    ));
+
+    // Marqué avant l'appel : la popup est réputée consommée dès qu'on la
+    // déclenche. Si le process est tué pendant que l'utilisateur regarde le
+    // dialogue système, on ne le relancera pas au démarrage suivant.
+    await markNotificationPromptShown();
+
+    NotificationSettings settings;
+    try {
+      settings = await _messaging.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+    } catch (e) {
+      debugPrint('PushNotificationService.requestPermission error: $e');
+      return false;
     }
 
-    // 2. Get APNs token first on iOS (required before FCM token)
+    final granted =
+        settings.authorizationStatus == AuthorizationStatus.authorized ||
+            settings.authorizationStatus == AuthorizationStatus.provisional;
+
+    unawaited(AnalyticsService().track(
+      granted
+          ? AnalyticsEvent.pushPermissionGranted
+          : AnalyticsEvent.pushPermissionDenied,
+      properties: {'status': settings.authorizationStatus.name},
+    ));
+
+    if (!granted) {
+      debugPrint(
+          'Push permission not granted: ${settings.authorizationStatus.name}');
+      return false;
+    }
+
+    await _registerToken();
+
+    // Les notifications locales (Wrapped mensuel, rappels de lecture) ont été
+    // ignorées à chaque tentative de planification tant que la permission
+    // manquait. Maintenant qu'elle est accordée, on rattrape immédiatement au
+    // lieu d'attendre le prochain lancement.
+    try {
+      await MonthlyNotificationService().scheduleNextMonthlyNotification();
+    } catch (e) {
+      debugPrint('Replanification post-permission ignorée: $e');
+    }
+
+    return true;
+  }
+
+  // ── Interne ────────────────────────────────────────────────────────────
+
+  /// Récupère le token FCM et l'enregistre en base. Suppose la permission
+  /// accordée. Idempotent sur la durée de vie de la session.
+  Future<void> _registerToken() async {
+    if (_tokenRegistered) return;
+    _tokenRegistered = true;
+
+    // Sur iOS, le token APNs doit être disponible avant le token FCM.
     if (Platform.isIOS) {
       String? apnsToken = await _messaging.getAPNSToken();
-      // APNs token may not be available immediately on iOS — retry a few times
       if (apnsToken == null) {
         for (int i = 0; i < 3; i++) {
           await Future.delayed(const Duration(seconds: 2));
@@ -56,48 +155,56 @@ class PushNotificationService {
         }
       }
       if (apnsToken == null) {
-        print('FCM token error: APNs token not available after retries, will rely on onTokenRefresh');
+        debugPrint(
+            'FCM: APNs token indisponible après retries, on s\'en remet à onTokenRefresh');
       }
     }
 
-    // 3. Get FCM token and save it
     try {
       final token = await _messaging.getToken();
       if (token != null) {
         await _saveToken(token);
       } else {
-        print('FCM token error: getToken() returned null (simulator?)');
+        debugPrint('FCM token error: getToken() returned null (simulator?)');
+        // Laisse une chance à un nouvel essai plus tard dans la session.
+        _tokenRegistered = false;
       }
     } catch (e) {
-      print('FCM token error: $e');
+      debugPrint('FCM token error: $e');
+      _tokenRegistered = false;
     }
 
-    // 4. Listen for token refresh (cancel previous listener if any)
+    // Écoute du refresh de token (annule le listener précédent si besoin).
     _tokenRefreshSub?.cancel();
-    _tokenRefreshSub = _messaging.onTokenRefresh.listen((newToken) {
-      _saveToken(newToken);
-    });
+    _tokenRefreshSub = _messaging.onTokenRefresh.listen(_saveToken);
+  }
 
-    // 5. Configure foreground notification presentation (iOS)
+  /// Câble la présentation en premier plan, le routage des taps et la
+  /// récupération du message de cold start. Idempotent.
+  Future<void> _setupListeners() async {
+    if (_listenersReady) return;
+    _listenersReady = true;
+
+    // Présentation des notifications app au premier plan (iOS).
     await _messaging.setForegroundNotificationPresentationOptions(
       alert: true,
       badge: true,
       sound: true,
     );
 
-    // 6. Handle notification taps (background → foreground)
+    // Tap sur une notification (background → foreground).
     FirebaseMessaging.onMessageOpenedApp.listen(_handleMessageTap);
 
-    // 7. Handle cold start (app was terminated, user tapped notification)
-    // Store the message for consumption by MainNavigation once the navigator is ready.
+    // Cold start : l'app était tuée, l'utilisateur a tapé une notification.
+    // On stocke le message pour consommation par MainNavigation une fois le
+    // navigateur prêt.
     final initialMessage = await _messaging.getInitialMessage();
     if (initialMessage != null) {
       pendingInitialMessage = initialMessage;
       // Pré-enregistre tout de suite l'état de bannière à partir du payload
-      // — comme `initialize()` est `await`-é APRÈS la création de
-      // MainNavigation dans AuthGate, il y a une race condition possible
-      // avec _consumePendingNotification (postFrameCallback). Si la course
-      // est perdue, la bannière dans le feed prend le relais.
+      // — il y a une race condition possible avec _consumePendingNotification
+      // (postFrameCallback). Si la course est perdue, la bannière dans le feed
+      // prend le relais.
       final data = initialMessage.data;
       if (data['type'] == 'monthly_wrapped') {
         final month = int.tryParse(data['month'] ?? '');
@@ -114,7 +221,7 @@ class PushNotificationService {
     try {
       final userId = Supabase.instance.client.auth.currentUser?.id;
       if (userId == null) {
-        print('FCM token error: no authenticated user');
+        debugPrint('FCM token error: no authenticated user');
         return;
       }
 
@@ -122,9 +229,9 @@ class PushNotificationService {
           .from('profiles')
           .upsert({'id': userId, 'fcm_token': token});
 
-      print('FCM token saved: $token');
+      debugPrint('FCM token saved');
     } catch (e) {
-      print('FCM token error: $e');
+      debugPrint('FCM token error: $e');
     }
   }
 
@@ -198,11 +305,11 @@ class PushNotificationService {
       await _messaging.deleteToken();
       _tokenRefreshSub?.cancel();
       _tokenRefreshSub = null;
-      _initialized = false;
+      _tokenRegistered = false;
 
-      print('FCM token cleared');
+      debugPrint('FCM token cleared');
     } catch (e) {
-      print('FCM token error: $e');
+      debugPrint('FCM token error: $e');
     }
   }
 }

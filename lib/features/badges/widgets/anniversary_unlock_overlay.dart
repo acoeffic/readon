@@ -9,9 +9,9 @@ import 'package:screenshot/screenshot.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../models/anniversary_badge.dart';
-import '../../../utils/app_constants.dart';
 import 'anniversary_badge_painter.dart';
 import 'particle_painter.dart';
+import '../../../services/referral_service.dart';
 
 /// Overlay plein écran pour l'unlock d'un badge anniversaire.
 /// 5 phases : Teaser → Burst → Reveal → Stats → Actions
@@ -634,7 +634,7 @@ class _AnniversaryUnlockOverlayState extends State<AnniversaryUnlockOverlay>
       await Share.shareXFiles(
         [XFile(file.path)],
         text:
-            '$yearsText sur LexDay ! ${widget.badge.icon} #LexDay\n$kAppStoreUrl',
+            '$yearsText sur LexDay ! ${widget.badge.icon} #LexDay\n$ReferralService.shareUrl',
         sharePositionOrigin: origin,
       );
     } catch (e) {

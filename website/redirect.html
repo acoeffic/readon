@@ -43,6 +43,31 @@
     text-decoration: none;
   }
   img.logo { width: 48px; height: 48px; border-radius: 10px; }
+  #ref { display: none; margin-top: 24px; }
+  #ref .code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    color: #1a1a1a;
+    background: rgba(107,152,141,0.10);
+    border: 1px dashed rgba(107,152,141,0.45);
+    border-radius: 12px;
+    padding: 14px 18px;
+  }
+  #ref .hint { font-size: 13px; color: #777; margin: 12px 0 0; line-height: 1.5; }
+  #copy {
+    margin-top: 12px;
+    background: none;
+    border: 1px solid rgba(107,152,141,0.45);
+    color: #6B988D;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 9px 20px;
+    border-radius: 50px;
+    cursor: pointer;
+    font-family: inherit;
+  }
 </style>
 </head>
 <body>
@@ -52,6 +77,15 @@
   <p>Si l'application ne s'ouvre pas automatiquement, appuie sur le bouton ci-dessous.</p>
   <a id="open" class="btn" href="#">Ouvrir LexDay</a>
   <a id="store" class="store" href="#" hidden>Télécharger l'application</a>
+
+  <!-- Parrainage : filet de sécurité quand l'app n'est pas encore installée.
+       Android récupère le code automatiquement via le Play Install Referrer ;
+       iOS n'a aucun équivalent, d'où le code affiché en clair à recopier. -->
+  <div id="ref">
+    <div class="code" id="refcode"></div>
+    <button id="copy" type="button">Copier le code</button>
+    <p class="hint" id="refhint"></p>
+  </div>
 </div>
 
 <script>
@@ -62,32 +96,89 @@
   // Cible : ?to=friends/requests → lexday://friends/requests
   // Whitelist stricte des caractères pour éviter toute injection dans
   // l'URL intent:// (l'app ignore de toute façon les hosts inconnus).
-  var to = new URLSearchParams(location.search).get('to') || 'feed';
+  var params = new URLSearchParams(location.search);
+  var to = params.get('to') || 'feed';
   if (!/^[a-zA-Z0-9/_-]+$/.test(to)) to = 'feed';
 
+  // Parrainage : /r/ABC123 est réécrit en ?to=referral&code=ABC123 (voir
+  // vercel.json). Le code voyage dans un paramètre dédié plutôt que dans
+  // `to`, dont la whitelist interdit '?' et '=' — l'y glisser le ferait
+  // silencieusement retomber sur 'feed'.
+  var query = '';
+  var code = '';
+  if (to === 'referral') {
+    code = (params.get('code') || '').toUpperCase();
+    if (/^[A-Z0-9]{4,16}$/.test(code)) {
+      query = '?code=' + code;
+    } else {
+      to = 'feed';
+    }
+  }
+
   var isAndroid = /android/i.test(navigator.userAgent);
+
+  // URL Play Store, avec le referrer quand il s'agit d'un parrainage. Elle
+  // sert à DEUX endroits : le `browser_fallback_url` de l'intent:// (chemin
+  // automatique si l'app n'est pas installée) et le lien « Télécharger »
+  // visible. Oublier le premier ferait perdre le code dans le cas le plus
+  // fréquent.
+  var playUrl = query
+    ? PLAY_URL + '&referrer=' + encodeURIComponent('code=' + code)
+    : PLAY_URL;
 
   var appUrl;
   if (isAndroid) {
     // intent:// : contrairement à lexday://, Chrome Android l'accepte même
     // en redirection automatique, et bascule sur browser_fallback_url
     // (Play Store) si l'app n'est pas installée.
-    appUrl = 'intent://' + to + '#Intent'
+    appUrl = 'intent://' + to + query + '#Intent'
       + ';scheme=lexday'
       + ';package=' + PACKAGE
-      + ';S.browser_fallback_url=' + encodeURIComponent(PLAY_URL)
+      + ';S.browser_fallback_url=' + encodeURIComponent(playUrl)
       + ';end';
   } else {
-    appUrl = 'lexday://' + to;
+    appUrl = 'lexday://' + to + query;
   }
 
   var openBtn = document.getElementById('open');
   openBtn.href = appUrl;
 
-  if (isAndroid) {
-    var storeLink = document.getElementById('store');
-    storeLink.href = PLAY_URL;
-    storeLink.hidden = false;
+  // Lien store visible sur les DEUX plateformes. Il n'était affiché que sur
+  // Android : un destinataire iOS sans l'app tombait sur un bouton « Ouvrir
+  // LexDay » sans effet, et repartait. Or tous les partages sortants pointent
+  // désormais ici.
+  var storeLink = document.getElementById('store');
+  storeLink.href = isAndroid
+    ? playUrl
+    : 'https://apps.apple.com/fr/app/lexday/id6760492023';
+  storeLink.hidden = false;
+
+  // Play Install Referrer : le paramètre `referrer` de playUrl survit à
+  // l'installation et sera lu au premier lancement (cf. ReferralService).
+  // C'est le seul mécanisme d'attribution différée officiel et gratuit.
+
+  // iOS (et desktop) : pas d'attribution différée possible. On affiche le code
+  // pour que le filleul puisse le saisir après installation.
+  if (query && !isAndroid) {
+    document.getElementById('refcode').textContent = code;
+    document.getElementById('refhint').textContent =
+      "Note ce code : tu pourras le saisir dans LexDay, dans Réglages › Parrainage, pour que vous receviez chacun 14 jours offerts.";
+    document.getElementById('ref').style.display = 'block';
+
+    document.getElementById('copy').addEventListener('click', function () {
+      var btn = this;
+      var done = function () { btn.textContent = 'Code copié ✓'; };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(code).then(done, function () {});
+      } else {
+        var t = document.createElement('textarea');
+        t.value = code;
+        document.body.appendChild(t);
+        t.select();
+        try { document.execCommand('copy'); done(); } catch (e) {}
+        document.body.removeChild(t);
+      }
+    });
   }
 
   // Tentative automatique. Sur iOS/desktop un échec est silencieux (le

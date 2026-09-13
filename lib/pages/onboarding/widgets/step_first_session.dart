@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../theme/app_theme.dart';
 import '../../../models/book.dart';
 import '../../../widgets/cached_book_cover.dart';
+import '../../../l10n/app_localizations.dart';
 
 class StepFirstSession extends StatelessWidget {
   final Book? selectedBook;
@@ -27,6 +28,7 @@ class StepFirstSession extends StatelessWidget {
 
   Widget _buildWithBook(BuildContext context) {
     final book = selectedBook!;
+    final l10n = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.all(AppSpace.l),
       child: Column(
@@ -63,12 +65,26 @@ class StepFirstSession extends StatelessWidget {
             ),
           ],
           const SizedBox(height: AppSpace.l),
-          const Text(
-            'Prêt à lire ?',
-            style: TextStyle(
+          Text(
+            l10n.onboardingFirstSessionReady,
+            style: const TextStyle(
               fontSize: 18,
               color: Colors.black87,
               fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: AppSpace.s),
+          // Le diagnostic du 02/09 : 100 % des inscrits d'août qui n'ont pas
+          // lancé de session ICI ne sont jamais revenus. On abaisse donc le
+          // coût perçu du « oui » (5 minutes, arrêt libre) plutôt que de
+          // laisser « Plus tard » à égalité avec « Lire ».
+          Text(
+            l10n.onboardingFirstSessionHint,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 14,
+              color: Colors.black54,
+              height: 1.4,
             ),
           ),
           const Spacer(),
@@ -85,18 +101,20 @@ class StepFirstSession extends StatelessWidget {
               ),
               onPressed: onStartSession,
               icon: const Icon(Icons.play_arrow_rounded, size: 24),
-              label: const Text(
-                'Lire',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              label: Text(
+                l10n.onboardingFirstSessionCta,
+                style: const TextStyle(
+                    fontSize: 16, fontWeight: FontWeight.w600),
               ),
             ),
           ),
-          const SizedBox(height: AppSpace.m),
+          const SizedBox(height: AppSpace.s),
           TextButton(
             onPressed: onSkip,
-            child: const Text(
-              'Plus tard',
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 15),
+            child: Text(
+              l10n.onboardingFirstSessionLater,
+              style: const TextStyle(
+                  color: AppColors.textSecondary, fontSize: 13),
             ),
           ),
         ],
@@ -105,6 +123,7 @@ class StepFirstSession extends StatelessWidget {
   }
 
   Widget _buildNoBook(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.all(AppSpace.l),
       child: Column(
@@ -125,7 +144,7 @@ class StepFirstSession extends StatelessWidget {
           ),
           const SizedBox(height: AppSpace.l),
           Text(
-            'Tout est prêt !',
+            l10n.onboardingNoBookTitle,
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                   fontSize: 22,
@@ -134,10 +153,10 @@ class StepFirstSession extends StatelessWidget {
                 ),
           ),
           const SizedBox(height: AppSpace.s),
-          const Text(
-            'Ajoute un livre quand tu veux pour démarrer ta première session de lecture.',
+          Text(
+            l10n.onboardingNoBookBody,
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 16,
               color: Colors.black54,
               height: 1.4,
@@ -159,9 +178,10 @@ class StepFirstSession extends StatelessWidget {
               // est null — termine l'onboarding proprement.
               onPressed: onStartSession,
               icon: const Icon(Icons.check_rounded, size: 24),
-              label: const Text(
-                'C\'est parti',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              label: Text(
+                l10n.onboardingNoBookCta,
+                style: const TextStyle(
+                    fontSize: 16, fontWeight: FontWeight.w600),
               ),
             ),
           ),

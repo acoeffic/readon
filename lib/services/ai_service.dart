@@ -145,6 +145,54 @@ class AiService {
     }
   }
 
+  /// Relit une zone de photo via un modèle vision (Edge Function `enhance-ocr`)
+  /// quand l'OCR embarqué a mal lu le passage.
+  ///
+  /// [imageBase64] : PNG de la zone surlignée, encodé en base64.
+  /// [hintText] : lecture OCR brute, transmise au modèle comme indice.
+  /// Retourne le texte relu et le nombre d'appels restants ce mois
+  /// (-1 si premium).
+  Future<({String text, int remaining})> enhanceOcr({
+    required String imageBase64,
+    String? hintText,
+  }) async {
+    try {
+      final response = await _supabase.functions.invoke(
+        'enhance-ocr',
+        body: {
+          'image_base64': imageBase64,
+          if (hintText != null && hintText.trim().isNotEmpty)
+            'hint_text': hintText.trim(),
+        },
+      );
+
+      final data = _parseResponse(response.data);
+
+      if (data.containsKey('error')) {
+        _throwFromErrorData(data);
+      }
+
+      return (
+        text: data['text'] as String? ?? '',
+        remaining: data['remaining'] as int? ?? -1,
+      );
+    } on FunctionException catch (e) {
+      final details = e.details;
+      if (details is Map<String, dynamic>) {
+        _throwFromErrorData(details);
+      }
+      if (details is String) {
+        try {
+          final decoded = jsonDecode(details);
+          if (decoded is Map<String, dynamic>) {
+            _throwFromErrorData(decoded);
+          }
+        } catch (_) {}
+      }
+      throw Exception('Erreur du serveur');
+    }
+  }
+
   /// Génère une fiche de lecture IA pour un livre à partir de toutes ses annotations.
   /// Feature 100% premium.
   /// Si [force] est true, regénère même si une fiche existe déjà.

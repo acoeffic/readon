@@ -35,6 +35,10 @@ class _DiscoverReadersSectionState extends State<DiscoverReadersSection> {
   final Set<String> _requested = {};
   final Set<String> _processing = {};
 
+  /// Amis déjà acceptés : leurs cartes sont masquées (une amitié existante
+  /// n'est pas une suggestion — sinon le bouton resterait "En attente" à vie).
+  final Set<String> _acceptedFriends = {};
+
   @override
   void initState() {
     super.initState();
@@ -54,9 +58,17 @@ class _DiscoverReadersSectionState extends State<DiscoverReadersSection> {
         .map((r) => r['user_id'] as String? ?? '')
         .where((id) => id.isNotEmpty);
     if (ids.isEmpty) return;
-    final related = await _contactsService.getExistingRelationUserIds(ids);
-    if (!mounted || related.isEmpty) return;
-    setState(() => _requested.addAll(related));
+    final statuses = await _contactsService.getRelationStatusesByUserId(ids);
+    if (!mounted || statuses.isEmpty) return;
+    setState(() {
+      for (final entry in statuses.entries) {
+        if (entry.value == 'accepted') {
+          _acceptedFriends.add(entry.key);
+        } else {
+          _requested.add(entry.key);
+        }
+      }
+    });
   }
 
   Future<void> _follow(String userId) async {
@@ -89,7 +101,11 @@ class _DiscoverReadersSectionState extends State<DiscoverReadersSection> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.readers.isEmpty) return const SizedBox.shrink();
+    final visibleReaders = widget.readers
+        .where((r) =>
+            !_acceptedFriends.contains(r['user_id'] as String? ?? ''))
+        .toList();
+    if (visibleReaders.isEmpty) return const SizedBox.shrink();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -121,10 +137,10 @@ class _DiscoverReadersSectionState extends State<DiscoverReadersSection> {
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             padding: EdgeInsets.zero,
-            itemCount: widget.readers.length,
+            itemCount: visibleReaders.length,
             separatorBuilder: (_, __) => const SizedBox(width: AppSpace.m),
             itemBuilder: (_, i) {
-              final r = widget.readers[i];
+              final r = visibleReaders[i];
               final id = r['user_id'] as String? ?? '';
               return _ReaderCard(
                 reader: r,

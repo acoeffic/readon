@@ -1,6 +1,16 @@
 // Supabase Edge Function pour envoyer les rappels de streak quotidien
 // Appelée toutes les 15 minutes par pg_cron — filtre les utilisateurs
 // dont l'heure de rappel tombe dans la fenêtre courante.
+//
+// 19/08/2026 — deux changements :
+//  1. Les utilisateurs qui n'ont JAMAIS terminé de session sont exclus du
+//     rappel quotidien. Rappeler chaque soir « continue ta série » à
+//     quelqu'un qui n'a jamais lu est du nag pur (11 suppressions depuis le
+//     2 août pour 5 activations). Ils sont pris en charge par
+//     send-reengagement, piste "activation", plafonnée à 3 messages.
+//  2. Rétablissement de l'écriture dans streak_notification_log, disparue
+//     lors d'un redéploiement (dernière ligne : 07/07/2026) — sans elle on
+//     est aveugle sur ce qui part réellement.
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
@@ -194,9 +204,12 @@ function getLastChanceMessage(streak: number): { title: string, body: string } {
 function getNotificationMessage(streak: number, displayName: string): { title: string, body: string } {
   const name = displayName || 'Lecteur'
   if (streak === 0) {
+    // NB : n'est plus jamais envoyé à un inscrit qui n'a jamais lu (filtre
+    // everRead plus bas). Ne concerne donc qu'un lecteur dont la série est
+    // retombée à 0 — là, le rappel a du sens.
     return {
-      title: "📚 Commence ton flow aujourd'hui !",
-      body: `Salut ${name} ! C'est le moment de lire quelques pages.`
+      title: "📚 Reprends ton flow aujourd'hui !",
+      body: `Salut ${name} ! Quelques pages suffisent pour relancer ta série.`
     }
   } else if (streak < 7) {
     return {
@@ -288,8 +301,31 @@ serve(async (req) => {
     const nowUtcHours = now.getUTCHours()
     const nowUtcMinutes = now.getUTCMinutes()
     const today = now.toISOString().split('T')[0]
+    const windowLabel = `${nowUtcHours}:${String(nowUtcMinutes).padStart(2, '0')}`
 
-    console.log(`🚀 Rappels de flow — fenêtre ${nowUtcHours}:${String(nowUtcMinutes).padStart(2, '0')} UTC`)
+    // Journalisation des envois. Best-effort : un échec d'insert ne doit
+    // jamais empêcher l'envoi suivant, mais il est loggé (c'est la
+    // disparition silencieuse de cet INSERT qui a rendu la table muette
+    // depuis le 07/07).
+    const logNotification = async (
+      userId: string,
+      kind: 'reminder' | 'last_chance',
+      flow: number | null,
+      fcmStatus: string,
+      errorMessage: string | null = null,
+    ) => {
+      const { error } = await supabase.from('streak_notification_log').insert({
+        user_id: userId,
+        kind,
+        flow,
+        window_utc: windowLabel,
+        fcm_status: fcmStatus,
+        error_message: errorMessage,
+      })
+      if (error) console.error('⚠️ streak_notification_log insert KO:', error.message)
+    }
+
+    console.log(`🚀 Rappels de flow — fenêtre ${windowLabel} UTC`)
 
     const profiles = await fetchAllRows<Profile>((from, to) =>
       supabase
@@ -324,8 +360,25 @@ serve(async (req) => {
 
     const usersWhoReadToday = new Set(todayReadings.map(r => r.user_id))
 
-    // Filtrer : bon jour + pas encore lu + heure dans la fenêtre
+    // Utilisateurs ayant terminé AU MOINS UNE session dans leur vie.
+    // Un rappel de flow n'a de sens que pour eux : on ne demande pas à
+    // quelqu'un de continuer une série qu'il n'a jamais commencée.
+    // Les autres relèvent de send-reengagement (piste "activation").
+    const everReadRows = await fetchAllRows<{ user_id: string }>((from, to) =>
+      supabase
+        .from('reading_sessions')
+        .select('user_id')
+        .not('end_time', 'is', null)
+        .order('user_id', { ascending: true })
+        .range(from, to)
+    )
+    const everRead = new Set(everReadRows.map(r => r.user_id))
+
+    let skippedNeverRead = 0
+
+    // Filtrer : a déjà lu une fois + bon jour + pas encore lu + heure dans la fenêtre
     const usersToNotify = (profiles as Profile[]).filter((p) => {
+      if (!everRead.has(p.id)) { skippedNeverRead++; return false }
       if (usersWhoReadToday.has(p.id)) return false
 
       // Compute the day of week in the USER's timezone, not UTC.
@@ -345,19 +398,21 @@ serve(async (req) => {
     // "Dernière chance" : utilisateurs pas encore lus dont l'heure locale est
     // LAST_CHANCE_TIME. Volontairement indépendant de notification_days : un
     // streak se perd n'importe quel jour. N'est envoyée que si flow > 0
-    // (vérifié plus bas, après calcul du flow).
+    // (vérifié plus bas, après calcul du flow) — donc jamais à un non-lecteur,
+    // mais on filtre quand même en amont pour éviter les requêtes inutiles.
     const notifiedIds = new Set(usersToNotify.map((p) => p.id))
     const lastChanceUsers = (profiles as Profile[]).filter((p) => {
+      if (!everRead.has(p.id)) return false
       if (usersWhoReadToday.has(p.id)) return false
       if (notifiedIds.has(p.id)) return false // déjà notifié dans cette fenêtre
       return isInCurrentWindow(LAST_CHANCE_TIME, p.timezone, nowUtcHours, nowUtcMinutes)
     })
 
-    console.log(`🔔 ${usersToNotify.length} rappel(s) + ${lastChanceUsers.length} candidat(s) dernière chance`)
+    console.log(`🔔 ${usersToNotify.length} rappel(s) + ${lastChanceUsers.length} candidat(s) dernière chance (${skippedNeverRead} non-activé(s) écarté(s))`)
 
     if (usersToNotify.length === 0 && lastChanceUsers.length === 0) {
       return new Response(
-        JSON.stringify({ success: true, sent: 0 }),
+        JSON.stringify({ success: true, sent: 0, skipped_never_read: skippedNeverRead }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -375,6 +430,8 @@ serve(async (req) => {
     ]
 
     for (const { user, isLastChance } of queue) {
+      const kind: 'reminder' | 'last_chance' = isLastChance ? 'last_chance' : 'reminder'
+      let currentFlow: number | null = null
       try {
         // Calcul du flow pour cet utilisateur
         const { data: sessions } = await supabase
@@ -393,7 +450,7 @@ serve(async (req) => {
         )]
         const frozenDates = (freezes || []).map(f => f.frozen_date)
 
-        const currentFlow = calculateCurrentFlow(sessionDates, frozenDates)
+        currentFlow = calculateCurrentFlow(sessionDates, frozenDates)
 
         // Dernière chance : seulement si un streak est réellement en jeu
         if (isLastChance && currentFlow === 0) {
@@ -417,22 +474,26 @@ serve(async (req) => {
             .update({ fcm_token: null })
             .eq('id', user.id)
           cleanedTokens++
+          await logNotification(user.id, kind, currentFlow, 'unregistered')
           console.log(`🧹 Token invalide nettoyé pour ${user.display_name}`)
         } else {
           successCount++
+          await logNotification(user.id, kind, currentFlow, 'sent')
           console.log(`✅ Notification${isLastChance ? ' dernière chance' : ''} envoyée à ${user.display_name} (flow: ${currentFlow})`)
         }
       } catch (error) {
         errorCount++
+        await logNotification(user.id, kind, currentFlow, 'error', String((error as Error)?.message ?? error))
         console.error(`❌ Erreur pour ${user.display_name}:`, error)
       }
     }
 
     const result = {
       success: true,
-      window: `${nowUtcHours}:${String(nowUtcMinutes).padStart(2, '0')}`,
+      window: windowLabel,
       total_profiles: profiles.length,
       users_who_read_today: usersWhoReadToday.size,
+      skipped_never_read: skippedNeverRead,
       notifications_sent: successCount,
       last_chance_skipped: lastChanceSkipped,
       cleaned_tokens: cleanedTokens,

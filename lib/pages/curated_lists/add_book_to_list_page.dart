@@ -1,13 +1,19 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import '../../l10n/app_localizations.dart';
 import '../../models/book.dart';
 import '../../services/books_service.dart';
 import '../../services/google_books_service.dart';
 import '../../services/user_custom_lists_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/cached_book_cover.dart';
+import '../../widgets/author_result_card.dart';
 import '../../widgets/constrained_content.dart';
+import '../../widgets/google_book_preview_sheet.dart';
+import '../../widgets/google_book_result_card.dart';
+import '../books/author_books_page.dart';
+import '../books/user_books_page.dart';
 
 class AddBookToListPage extends StatefulWidget {
   final int listId;
@@ -41,6 +47,8 @@ class _AddBookToListPageState extends State<AddBookToListPage>
   bool _isSearching = false;
   final Set<String> _addedGoogleIds = {};
   Timer? _debounce;
+  int _searchSeq = 0;
+  String? _detectedAuthor;
 
   // Library filter
   String _libraryFilter = '';
@@ -107,7 +115,7 @@ class _AddBookToListPageState extends State<AddBookToListPage>
           }
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur : $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text(AppLocalizations.of(context).errorGeneric(e.toString())), backgroundColor: Colors.red),
         );
       }
     }
@@ -117,10 +125,13 @@ class _AddBookToListPageState extends State<AddBookToListPage>
     setState(() {});
     _debounce?.cancel();
     if (value.trim().length < 2) {
-      setState(() => _searchResults = []);
+      setState(() {
+        _searchResults = [];
+        _detectedAuthor = null;
+      });
       return;
     }
-    _debounce = Timer(const Duration(milliseconds: 400), () {
+    _debounce = Timer(const Duration(milliseconds: 300), () {
       _searchBooks(value);
     });
   }
@@ -132,99 +143,28 @@ class _AddBookToListPageState extends State<AddBookToListPage>
       return;
     }
 
+    final seq = ++_searchSeq;
     setState(() => _isSearching = true);
 
     try {
-      // Lancer 2 recherches en parallèle pour de meilleurs résultats
-      final results = await Future.wait([
-        // 1) Recherche FR restreinte
-        _googleBooksService.searchBooks(trimmed, langRestrict: true),
-        // 2) Recherche avec intitle: (toutes langues)
-        _googleBooksService.searchBooks('intitle:$trimmed'),
-      ]);
+      // Recherche optimisée : 2 requêtes en parallèle (voie rapide),
+      // fusion + tri par pertinence, cache mémoire — voir GoogleBooksService.
+      final merged = await _googleBooksService.searchBooksRanked(trimmed);
 
-      final frResults = results[0];
-      final titleResults = results[1];
-
-      // Fusionner et dédupliquer
-      final merged = _mergeAndRank(frResults, titleResults);
-
-      if (mounted) {
+      // Ignorer les réponses obsolètes (l'utilisateur a continué à taper)
+      if (mounted && seq == _searchSeq) {
         setState(() {
           _searchResults = merged;
+          // La requête ressemble-t-elle à un nom d'auteur ?
+          _detectedAuthor =
+              GoogleBooksService.detectAuthorQuery(trimmed, merged);
           _isSearching = false;
         });
       }
     } catch (e) {
       debugPrint('Erreur _searchBooks: $e');
-      if (mounted) setState(() => _isSearching = false);
+      if (mounted && seq == _searchSeq) setState(() => _isSearching = false);
     }
-  }
-
-  /// Fusionne deux listes de résultats, déduplique et trie par pertinence
-  List<GoogleBook> _mergeAndRank(
-      List<GoogleBook> primary, List<GoogleBook> secondary) {
-    final seen = <String>{};
-    final all = <GoogleBook>[];
-
-    void addIfNew(GoogleBook book) {
-      // Déduplier par ID Google
-      if (seen.contains(book.id)) return;
-
-      // Déduplier par ISBN
-      for (final isbn in book.isbns) {
-        if (seen.contains(isbn)) return;
-      }
-
-      // Déduplier par titre+auteur normalisé
-      final key =
-          '${book.title.toLowerCase().trim()}|${book.authorsString.toLowerCase().trim()}';
-      if (seen.contains(key)) return;
-
-      seen.add(book.id);
-      for (final isbn in book.isbns) {
-        seen.add(isbn);
-      }
-      seen.add(key);
-      all.add(book);
-    }
-
-    // Les résultats FR d'abord
-    for (final book in primary) {
-      addIfNew(book);
-    }
-    for (final book in secondary) {
-      addIfNew(book);
-    }
-
-    // Trier par score de pertinence
-    all.sort((a, b) => _relevanceScore(b).compareTo(_relevanceScore(a)));
-
-    return all;
-  }
-
-  /// Score de pertinence : plus c'est haut, plus c'est pertinent
-  int _relevanceScore(GoogleBook book) {
-    int score = 0;
-    if (book.language == 'fr') {
-      score += 5;
-    }
-    if (book.coverUrl != null && !book.coverUrl!.contains('openlibrary')) {
-      score += 3;
-    }
-    if (book.authors.isNotEmpty && book.authors.first != 'Auteur inconnu') {
-      score += 2;
-    }
-    if (book.pageCount != null && book.pageCount! > 0) {
-      score += 1;
-    }
-    if (book.description != null && book.description!.isNotEmpty) {
-      score += 1;
-    }
-    if (book.isbns.isNotEmpty) {
-      score += 1;
-    }
-    return score;
   }
 
   Future<void> _addGoogleBook(GoogleBook googleBook) async {
@@ -242,19 +182,40 @@ class _AddBookToListPageState extends State<AddBookToListPage>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${googleBook.title} ajouté'),
+            content: Text(AppLocalizations.of(context).bookAddedShort(googleBook.title)),
             backgroundColor: Colors.green,
             duration: const Duration(seconds: 1),
           ),
         );
+        // Laisser le temps de voir la coche puis revenir sur la liste
+        await Future.delayed(const Duration(milliseconds: 350));
+        if (mounted) Navigator.of(context).pop(true);
       }
     } catch (e) {
       if (mounted) {
         setState(() => _addedGoogleIds.remove(googleBook.id));
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur : $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text(AppLocalizations.of(context).errorGeneric(e.toString())), backgroundColor: Colors.red),
         );
       }
+    }
+  }
+
+  /// Ouvre la page « tous les livres de cet auteur ».
+  /// Si un livre y est ajouté, on revient directement sur la liste.
+  Future<void> _openAuthorBooks(String author) async {
+    final added = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AuthorBooksPage(
+          author: author,
+          listId: widget.listId,
+          existingGoogleIds: _addedGoogleIds,
+        ),
+      ),
+    );
+    if (added == true && mounted) {
+      Navigator.of(context).pop(true);
     }
   }
 
@@ -262,16 +223,16 @@ class _AddBookToListPageState extends State<AddBookToListPage>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Ajouter des livres'),
+        title: Text(AppLocalizations.of(context).addBooksTitle),
         bottom: TabBar(
           controller: _tabController,
           indicatorColor: AppColors.primary,
           labelColor: AppColors.primary,
           unselectedLabelColor:
               Theme.of(context).textTheme.bodyMedium?.color,
-          tabs: const [
-            Tab(text: 'Ma bibliothèque'),
-            Tab(text: 'Rechercher'),
+          tabs: [
+            Tab(text: AppLocalizations.of(context).myLibrary),
+            Tab(text: AppLocalizations.of(context).searchLabel),
           ],
         ),
       ),
@@ -309,7 +270,7 @@ class _AddBookToListPageState extends State<AddBookToListPage>
               ),
               const SizedBox(height: 16),
               Text(
-                'Bibliothèque vide',
+                AppLocalizations.of(context).emptyLibrary,
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       color: Theme.of(context)
                           .colorScheme
@@ -318,8 +279,8 @@ class _AddBookToListPageState extends State<AddBookToListPage>
                     ),
               ),
               const SizedBox(height: 8),
-              const Text(
-                'Utilise l\'onglet Rechercher pour trouver et ajouter des livres.',
+              Text(
+                AppLocalizations.of(context).emptyLibraryUseSearch,
                 textAlign: TextAlign.center,
               ),
             ],
@@ -344,7 +305,7 @@ class _AddBookToListPageState extends State<AddBookToListPage>
           padding: const EdgeInsets.fromLTRB(AppSpace.m, AppSpace.m, AppSpace.m, 0),
           child: TextField(
             decoration: InputDecoration(
-              hintText: 'Filtrer ma bibliothèque...',
+              hintText: AppLocalizations.of(context).filterLibrary,
               prefixIcon: const Icon(LucideIcons.search, size: 18),
               isDense: true,
               contentPadding: const EdgeInsets.symmetric(vertical: 10),
@@ -400,6 +361,14 @@ class _AddBookToListPageState extends State<AddBookToListPage>
                   ),
                   onPressed: () => _toggleLibraryBook(book),
                 ),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => BookDetailPage(book: book),
+                    ),
+                  );
+                },
               );
             },
           ),
@@ -418,7 +387,7 @@ class _AddBookToListPageState extends State<AddBookToListPage>
             autofocus: false,
             textInputAction: TextInputAction.search,
             decoration: InputDecoration(
-              hintText: 'Rechercher un titre ou un auteur...',
+              hintText: AppLocalizations.of(context).searchTitleAuthor,
               prefixIcon: const Icon(LucideIcons.search),
               suffixIcon: _searchController.text.isNotEmpty
                   ? IconButton(
@@ -426,7 +395,10 @@ class _AddBookToListPageState extends State<AddBookToListPage>
                       onPressed: () {
                         _debounce?.cancel();
                         _searchController.clear();
-                        setState(() => _searchResults = []);
+                        setState(() {
+                          _searchResults = [];
+                          _detectedAuthor = null;
+                        });
                       },
                     )
                   : null,
@@ -438,11 +410,11 @@ class _AddBookToListPageState extends State<AddBookToListPage>
             onChanged: _onSearchChanged,
           ),
         ),
-        if (_isSearching)
-          const Padding(
-            padding: EdgeInsets.all(20),
-            child: Center(child: CircularProgressIndicator()),
-          )
+        // Barre fine pendant la recherche : les résultats précédents
+        // restent visibles au lieu d'être remplacés par un spinner.
+        if (_isSearching) const LinearProgressIndicator(minHeight: 2),
+        if (_searchResults.isEmpty && _isSearching)
+          const Expanded(child: SizedBox.shrink())
         else if (_searchResults.isEmpty && _searchController.text.isNotEmpty)
           Expanded(
             child: Center(
@@ -459,7 +431,7 @@ class _AddBookToListPageState extends State<AddBookToListPage>
                             .withValues(alpha: 0.3)),
                     const SizedBox(height: 12),
                     Text(
-                      'Aucun résultat',
+                      AppLocalizations.of(context).noResult,
                       style: TextStyle(
                         color: Theme.of(context)
                             .colorScheme
@@ -469,7 +441,7 @@ class _AddBookToListPageState extends State<AddBookToListPage>
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Essaie avec un titre plus précis',
+                      AppLocalizations.of(context).tryMoreSpecific,
                       style: TextStyle(
                         fontSize: 12,
                         color: Theme.of(context)
@@ -499,7 +471,7 @@ class _AddBookToListPageState extends State<AddBookToListPage>
                             .withValues(alpha: 0.2)),
                     const SizedBox(height: 12),
                     Text(
-                      'Recherche un livre par titre ou auteur',
+                      AppLocalizations.of(context).searchBookByTitleAuthorHint,
                       style: TextStyle(
                         fontSize: 13,
                         color: Theme.of(context)
@@ -516,154 +488,35 @@ class _AddBookToListPageState extends State<AddBookToListPage>
         else
           Expanded(
             child: ListView.builder(
-              itemCount: _searchResults.length,
+              itemCount: _searchResults.length +
+                  (_detectedAuthor != null ? 1 : 0),
               itemBuilder: (context, index) {
-                final googleBook = _searchResults[index];
+                // Carte auteur en tête quand la requête est un nom d'auteur
+                if (_detectedAuthor != null && index == 0) {
+                  return AuthorResultCard(
+                    authorName: _detectedAuthor!,
+                    onTap: () => _openAuthorBooks(_detectedAuthor!),
+                  );
+                }
+                final googleBook = _searchResults[
+                    _detectedAuthor != null ? index - 1 : index];
                 final isAdded = _addedGoogleIds.contains(googleBook.id);
 
-                return _SearchResultCard(
+                return GoogleBookResultCard(
                   googleBook: googleBook,
                   isAdded: isAdded,
                   onAdd: () => _addGoogleBook(googleBook),
+                  onTap: () => showGoogleBookPreviewSheet(
+                    context,
+                    googleBook: googleBook,
+                    isAdded: isAdded,
+                    onAdd: () => _addGoogleBook(googleBook),
+                  ),
                 );
               },
             ),
           ),
       ],
-    );
-  }
-}
-
-class _SearchResultCard extends StatelessWidget {
-  final GoogleBook googleBook;
-  final bool isAdded;
-  final VoidCallback onAdd;
-
-  const _SearchResultCard({
-    required this.googleBook,
-    required this.isAdded,
-    required this.onAdd,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpace.m, vertical: 4),
-      child: Card(
-        elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadius.m),
-          side: BorderSide(
-            color: Theme.of(context).brightness == Brightness.dark
-                ? Colors.white.withValues(alpha: 0.06)
-                : Colors.black.withValues(alpha: 0.06),
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(10),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Cover
-              CachedBookCover(
-                imageUrl: googleBook.coverUrl,
-                isbn: googleBook.isbn13,
-                googleId: googleBook.id,
-                title: googleBook.title,
-                author: googleBook.authorsString,
-                width: 48,
-                height: 70,
-                borderRadius: BorderRadius.circular(4),
-              ),
-              const SizedBox(width: 10),
-
-              // Info
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      googleBook.title,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      googleBook.authorsString,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onSurface
-                            .withValues(alpha: 0.5),
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-                    // Métadonnées
-                    Row(
-                      children: [
-                        if (googleBook.language != null)
-                          _tag(context, googleBook.language!.toUpperCase()),
-                        if (googleBook.pageCount != null) ...[
-                          if (googleBook.language != null)
-                            const SizedBox(width: 6),
-                          _tag(context, '${googleBook.pageCount} p.'),
-                        ],
-                        if (googleBook.genre != null) ...[
-                          const SizedBox(width: 6),
-                          Flexible(child: _tag(context, googleBook.genre!)),
-                        ],
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 4),
-
-              // Bouton ajouter
-              IconButton(
-                icon: Icon(
-                  isAdded ? Icons.check_circle : Icons.add_circle_outline,
-                  color: isAdded ? const Color(0xFFFF6B35) : null,
-                  size: 26,
-                ),
-                onPressed: isAdded ? null : onAdd,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _tag(BuildContext context, String text) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        color: Theme.of(context)
-            .colorScheme
-            .surfaceContainerHighest
-            .withValues(alpha: 0.6),
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          fontSize: 10,
-          color: Theme.of(context)
-              .colorScheme
-              .onSurface
-              .withValues(alpha: 0.5),
-        ),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
     );
   }
 }

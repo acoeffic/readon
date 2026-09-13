@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.3+6
+version: 1.0.9+14
 
 environment:
   sdk: ^3.9.2
@@ -47,6 +47,7 @@ dependencies:
   share_plus: ^10.1.4               # Share content to social media
   url_launcher: ^6.3.1              # Open URLs in browser
   shared_preferences: ^2.2.2        # Local storage for user preferences
+  in_app_review: ^2.0.12            # Native App Store / Play Store review prompt
   provider: ^6.1.1                  # State management
   webview_flutter: ^4.10.0           # WebView for Kindle auth
   webview_flutter_wkwebview: ^3.16.0 # iOS WebView implementation
@@ -65,6 +66,7 @@ dependencies:
   lucide_icons: ^0.257.0
   flutter_svg: ^2.0.10+1                # SVG rendering for badges
   flutter_local_notifications: ^18.0.1   # Local scheduled notifications
+  workmanager: ^0.7.0                  # Sync Kindle en arrière-plan (BGAppRefresh / WorkManager)
   timezone: ^0.10.0                      # Timezone data for scheduled notifications
   flutter_timezone: ^3.0.1               # Device timezone detection
   geolocator: ^13.0.2                    # GPS location for nearby bookstores
@@ -75,6 +77,7 @@ dependencies:
   sign_in_with_apple: ^6.1.0               # Native Sign in with Apple
   crypto: ^3.0.3                           # SHA-256 nonce for Apple Sign-In
   app_links: ^6.1.0                        # Deep links for Notion OAuth callback
+  android_play_install_referrer: ^0.4.0    # Parrainage : attribution différée Android (aucun équivalent iOS)
   connectivity_plus: ^6.1.1                 # Network connectivity monitoring
   firebase_core: ^3.12.1                     # Firebase core SDK
   firebase_messaging: ^15.2.4                # Firebase Cloud Messaging (push notifications)
@@ -83,6 +86,7 @@ dependencies:
   hive_flutter: ^1.1.0                          # Hive Flutter integration
   showcaseview: ^4.0.1                          # First-launch onboarding tutorial
   posthog_flutter: ^5.24.2                      # Product analytics (events, funnels, replays)
+  package_info_plus: ^8.3.0                     # App version/build for in-app feedback context
 
 dev_dependencies:
   flutter_test:

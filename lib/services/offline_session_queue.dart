@@ -19,6 +19,7 @@ class OfflineSessionQueue {
     required String bookId,
     required int startPage,
     String? startImagePath,
+    String? readingFor,
   }) async {
     final prefs = await SharedPreferences.getInstance();
     final pending = _getList(prefs, _startKey);
@@ -34,6 +35,7 @@ class OfflineSessionQueue {
       'start_time': now.toUtc().toIso8601String(),
       'user_id': userId,
       if (startImagePath != null) 'start_image_path': startImagePath,
+      if (readingFor != null) 'reading_for': readingFor,
     };
 
     pending.add(entry);
@@ -52,15 +54,18 @@ class OfflineSessionQueue {
   }
 
   /// Queue la fin d'une session (terminaison offline)
+  /// [endTime] permet de fournir une fin déjà ajustée (pauses déduites) ;
+  /// à défaut, l'instant courant est utilisé.
   Future<ReadingSession> queueEndSession({
     required ReadingSession activeSession,
     required int endPage,
     String? endImagePath,
+    DateTime? endTime,
   }) async {
     final prefs = await SharedPreferences.getInstance();
     final pending = _getList(prefs, _endKey);
 
-    final now = DateTime.now();
+    final now = endTime ?? DateTime.now();
 
     final entry = {
       'session_id': activeSession.id,
@@ -165,6 +170,9 @@ class OfflineSessionQueue {
         };
         if (entry['start_image_path'] != null) {
           insertData['start_image_path'] = entry['start_image_path'];
+        }
+        if (entry['reading_for'] != null) {
+          insertData['reading_for'] = entry['reading_for'];
         }
 
         final response = await _supabase

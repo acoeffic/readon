@@ -31,6 +31,11 @@ import '../../services/widget_service.dart';
 import '../../widgets/constrained_content.dart';
 import '../../widgets/rate_book_sheet.dart';
 
+/// Timeout des appels réseau post-session (badges, contacts…) : sans ça, une
+/// requête qui pend (Wi-Fi « connecté sans internet ») bloque le spinner de
+/// fin de session pour toujours. Fix 2026-08-11.
+const _kPostSessionTimeout = Duration(seconds: 6);
+
 const _kBgColor = Color(0xFFFAF3E8);
 const _kSageGreen = Color(0xFF6B988D);
 const _kGold = Color(0xFFC6A85A);
@@ -111,9 +116,10 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
 
       final XFile? photo = await _picker.pickImage(
         source: ImageSource.camera,
-        maxWidth: 1920,
-        maxHeight: 1080,
-        imageQuality: 85,
+        // Résolution haute : l'OCR du numéro de page a besoin de pixels.
+        maxWidth: 2400,
+        maxHeight: 2400,
+        imageQuality: 92,
       );
 
       if (photo == null) return;
@@ -242,10 +248,15 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
         return;
       }
 
-      // Vérifier et attribuer les badges standard (non bloquant)
+      // Vérifier et attribuer les badges standard (non bloquant).
+      // Fix 2026-08-11 : timeout sur tous les appels post-session — sans ça,
+      // une requête qui pend (Wi-Fi « connecté sans internet ») bloquait la
+      // page sur le spinner pour toujours.
       List<dynamic> newBadges = [];
       try {
-        newBadges = await _badgesService.checkAndAwardBadges();
+        newBadges = await _badgesService
+            .checkAndAwardBadges()
+            .timeout(_kPostSessionTimeout);
       } catch (e) {
         debugPrint('Erreur checkAndAwardBadges (non bloquante): $e');
       }
@@ -253,10 +264,12 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
       // Vérifier les badges secrets (côté serveur via RPC)
       List<dynamic> newSecretBadges = [];
       try {
-        newSecretBadges = await _badgesService.checkSecretBadges(
-          sessionId: completedSession.id,
-          bookFinished: false,
-        );
+        newSecretBadges = await _badgesService
+            .checkSecretBadges(
+              sessionId: completedSession.id,
+              bookFinished: false,
+            )
+            .timeout(_kPostSessionTimeout);
       } catch (e) {
         debugPrint('Erreur checkSecretBadges (non bloquante): $e');
       }
@@ -267,7 +280,9 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
       // Vérifier et attribuer les badges de flow (non bloquant)
       List<FlowBadgeLevel> newFlowBadges = [];
       try {
-        newFlowBadges = await _flowService.checkAndAwardFlowBadges();
+        newFlowBadges = await _flowService
+            .checkAndAwardFlowBadges()
+            .timeout(_kPostSessionTimeout);
       } catch (e) {
         debugPrint('Erreur checkAndAwardFlowBadges (non bloquante): $e');
       }
@@ -308,11 +323,25 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
       // Vérifier si c'est la première session → afficher suggestion contacts
       if (mounted) {
         final contactsService = ContactsService();
-        final hasCompleted = await contactsService.hasCompletedFirstSession();
-        final hasSeen = await contactsService.hasSeenContactsPrompt();
+        // Timeout + fallback : ne jamais bloquer la navigation vers le résumé.
+        bool hasCompleted = true;
+        bool hasSeen = true;
+        try {
+          // `null` = information indisponible : on garde le défaut `true`,
+          // c'est-à-dire « ne pas pousser la page de suggestion de contacts ».
+          hasCompleted = await contactsService
+                  .hasCompletedFirstSession()
+                  .timeout(_kPostSessionTimeout) ??
+              true;
+          hasSeen = await contactsService
+              .hasSeenContactsPrompt()
+              .timeout(_kPostSessionTimeout);
+        } catch (e) {
+          debugPrint('Erreur checks contacts (non bloquante): $e');
+        }
 
         if (!hasCompleted && !hasSeen) {
-          await contactsService.markFirstSessionCompleted();
+          await contactsService.markFirstSessionCompleted().timeout(_kPostSessionTimeout).catchError((_) {});
           if (!mounted) return;
           Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(
@@ -324,7 +353,7 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
             (route) => route.isFirst,
           );
         } else {
-          if (!hasCompleted) await contactsService.markFirstSessionCompleted();
+          if (!hasCompleted) { await contactsService.markFirstSessionCompleted().timeout(_kPostSessionTimeout).catchError((_) {}); }
           if (!mounted) return;
           Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(
@@ -428,10 +457,12 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
           debugPrint('Erreur createBookFinishedActivity (non bloquante): $e');
         }
 
-        // Vérifier et attribuer les badges (non bloquant)
+        // Vérifier et attribuer les badges (non bloquant, avec timeout)
         List<dynamic> newBadges = [];
         try {
-          newBadges = await _badgesService.checkAndAwardBadges();
+          newBadges = await _badgesService
+              .checkAndAwardBadges()
+              .timeout(_kPostSessionTimeout);
         } catch (e) {
           debugPrint('Erreur checkAndAwardBadges (non bloquante): $e');
         }
@@ -439,10 +470,12 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
         // Vérifier les badges secrets (côté serveur via RPC)
         List<dynamic> newSecretBadges = [];
         try {
-          newSecretBadges = await _badgesService.checkSecretBadges(
-            sessionId: completedSession.id,
-            bookFinished: true,
-          );
+          newSecretBadges = await _badgesService
+              .checkSecretBadges(
+                sessionId: completedSession.id,
+                bookFinished: true,
+              )
+              .timeout(_kPostSessionTimeout);
         } catch (e) {
           debugPrint('Erreur checkSecretBadges (non bloquante): $e');
         }
@@ -453,7 +486,9 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
         // Vérifier et attribuer les badges de flow (non bloquant)
         List<dynamic> newFlowBadges = [];
         try {
-          newFlowBadges = await _flowService.checkAndAwardFlowBadges();
+          newFlowBadges = await _flowService
+              .checkAndAwardFlowBadges()
+              .timeout(_kPostSessionTimeout);
         } catch (e) {
           debugPrint('Erreur checkAndAwardFlowBadges (non bloquante): $e');
         }
@@ -569,11 +604,25 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
         // Vérifier si c'est la première session → afficher suggestion contacts
         if (!mounted) return;
         final contactsService = ContactsService();
-        final hasCompleted = await contactsService.hasCompletedFirstSession();
-        final hasSeen = await contactsService.hasSeenContactsPrompt();
+        // Timeout + fallback : ne jamais bloquer la navigation vers le résumé.
+        bool hasCompleted = true;
+        bool hasSeen = true;
+        try {
+          // `null` = information indisponible : on garde le défaut `true`,
+          // c'est-à-dire « ne pas pousser la page de suggestion de contacts ».
+          hasCompleted = await contactsService
+                  .hasCompletedFirstSession()
+                  .timeout(_kPostSessionTimeout) ??
+              true;
+          hasSeen = await contactsService
+              .hasSeenContactsPrompt()
+              .timeout(_kPostSessionTimeout);
+        } catch (e) {
+          debugPrint('Erreur checks contacts (non bloquante): $e');
+        }
 
         if (!hasCompleted && !hasSeen) {
-          await contactsService.markFirstSessionCompleted();
+          await contactsService.markFirstSessionCompleted().timeout(_kPostSessionTimeout).catchError((_) {});
           if (!mounted) return;
           Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(
@@ -586,7 +635,7 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
             (route) => route.isFirst,
           );
         } else {
-          if (!hasCompleted) await contactsService.markFirstSessionCompleted();
+          if (!hasCompleted) { await contactsService.markFirstSessionCompleted().timeout(_kPostSessionTimeout).catchError((_) {}); }
           if (!mounted) return;
           // La session est déjà terminée côté serveur ; si le livre n'a pas pu
           // être récupéré, on retombe sur le résumé de session classique plutôt

@@ -10,6 +10,7 @@ import '../pages/chat/ai_conversations_page.dart';
 import '../pages/profile/profile_page.dart';
 import '../pages/groups/groups_page.dart';
 import '../pages/reading/active_reading_session_page.dart';
+import '../pages/reading/start_reading_session_page_unified.dart';
 import '../models/reading_session.dart';
 import '../models/book.dart';
 import '../services/reading_session_service.dart';
@@ -23,8 +24,10 @@ import '../features/badges/services/anniversary_service.dart';
 import '../features/badges/widgets/anniversary_unlock_overlay.dart';
 import '../pages/notifications/notifications_page.dart';
 import '../services/books_service.dart';
+import '../services/contacts_service.dart';
 import '../services/deep_link_service.dart';
 import '../services/kindle_auto_sync_service.dart';
+import '../pages/profile/kindle_login_page.dart';
 import '../services/monthly_notification_service.dart';
 import '../services/onboarding_tutorial_service.dart';
 import '../services/paywall_controller.dart';
@@ -32,12 +35,16 @@ import '../services/push_notification_service.dart';
 import '../services/session_pause_service.dart';
 import '../services/freeze_celebration_service.dart';
 import '../services/flow_service.dart';
+import '../services/watch_control_service.dart';
 import '../services/watch_session_draft_service.dart';
 import '../widgets/watch_session_catchup_dialog.dart';
 import '../services/wrapped_banner_service.dart';
 import '../pages/reading/end_reading_session_page.dart';
 import '../features/wrapped/monthly/monthly_wrapped_screen.dart';
+import '../widgets/choose_display_name_sheet.dart';
+import '../widgets/kindle_connect_sheet.dart';
 import '../widgets/kindle_auto_sync_widget.dart';
+import '../services/kindle_background_sync.dart';
 import '../widgets/offline_banner.dart';
 import '../utils/responsive.dart';
 import '../l10n/app_localizations.dart';
@@ -56,6 +63,7 @@ class _MainNavigationState extends State<MainNavigation>
     with WidgetsBindingObserver {
   int _selectedIndex = 0;
   bool _showKindleAutoSync = false;
+  KindleSyncMode _kindleSyncMode = KindleSyncMode.full;
   DateTime? _lastKindleSyncAttempt;
   static const _kindleSyncCooldown = Duration(minutes: 5);
 
@@ -101,6 +109,15 @@ class _MainNavigationState extends State<MainNavigation>
     WidgetsBinding.instance.addObserver(this);
     ReadingSessionService.activeSessionsVersion
         .addListener(_onActiveSessionsChanged);
+    // Dès qu'une session Watch vient d'être terminée (brouillon sauvegardé),
+    // proposer le rattrapage des pages immédiatement — sans attendre le
+    // prochain retour au premier plan de l'app.
+    WatchSessionDraftService.draftVersion.addListener(_onWatchDraftSaved);
+    // Connexion Kindle qui vient d'aboutir (KindleLoginPage) : déclencher
+    // l'auto-sync tout de suite — c'est lui qui porte la phase surlignages,
+    // absente de la synchro de première connexion. Sans ce listener, les
+    // highlights n'arrivaient qu'au prochain retour au premier plan.
+    KindleAutoSyncService.connectedVersion.addListener(_onKindleConnected);
     // Liens profonds internes (ex: lexday://friends/requests) reçus app
     // ouverte : naviguer immédiatement.
     DeepLinkService.onRoute = _handleDeepLinkRoute;
@@ -113,14 +130,29 @@ class _MainNavigationState extends State<MainNavigation>
       _consumePendingNotification();
       _consumePendingDeepLink();
       _updateHomeWidget();
-      // Paywall avant le tutoriel : la sheet native iOS sinon recouvre les
-      // overlays showcase et casse leur positionnement à la fermeture.
-      await _maybeShowPaywall();
+      // Permission push puis paywall, avant le tutoriel : les popups système
+      // et la sheet native iOS recouvrent sinon les overlays showcase et
+      // cassent leur positionnement à la fermeture.
+      await _runValueGatedPrompts();
       if (!mounted) return;
       _maybeStartOnboardingTutorial();
       _checkAutoFreezeCelebration();
-      _maybeShowWatchSessionCatchup();
+      await _maybeShowWatchSessionCatchup();
+      // Comptes sans vrai nom (vide ou dérivé de l'email) : proposer une
+      // fois par lancement de choisir comment apparaître.
+      if (mounted) await maybeShowChooseDisplayNameSheet(context);
     });
+  }
+
+  /// Un brouillon de session Watch vient d'être sauvegardé (stop traité par
+  /// WatchControlService) : rafraîchir l'état des sessions puis proposer le
+  /// rattrapage tout de suite, app déjà au premier plan.
+  Future<void> _onWatchDraftSaved() async {
+    if (!mounted) return;
+    // Le stop vient d'être traité : synchroniser _activeSession avant le
+    // garde-fou "session active" du dialogue de rattrapage.
+    await _checkActiveSession();
+    await _maybeShowWatchSessionCatchup();
   }
 
   /// Une session terminée depuis l'Apple Watch n'a pas de page de fin fiable
@@ -140,6 +172,10 @@ class _MainNavigationState extends State<MainNavigation>
         context: context,
         builder: (_) => WatchSessionCatchupDialog(draft: draft),
       );
+      // Le brouillon a été consommé (enregistré ou ignoré) : réautoriser un
+      // affichage si une nouvelle session Watch se termine sans passage en
+      // arrière-plan entre-temps.
+      _watchCatchupShown = false;
       _updateHomeWidget();
     } catch (e) {
       debugPrint('Erreur _maybeShowWatchSessionCatchup: $e');
@@ -181,17 +217,70 @@ class _MainNavigationState extends State<MainNavigation>
     }
   }
 
-  Future<void> _maybeShowPaywall() async {
-    // Pas de paywall en mode invité — on attend qu'un compte soit créé.
+  /// Les deux sollicitations conditionnées à la valeur délivrée : permission
+  /// notifications, puis paywall. Aucune des deux n'est présentée avant que
+  /// l'utilisateur ait terminé une première session de lecture (audit
+  /// entonnoir du 15/08/2026).
+  ///
+  /// On n'en présente qu'**une seule par lancement** : enchaîner la popup
+  /// système de notifications et la sheet native du paywall dans la même
+  /// seconde est le meilleur moyen de faire refuser les deux.
+  Future<void> _runValueGatedPrompts() async {
+    // Rien en mode invité — on attend qu'un compte soit créé.
     if (!mounted) return;
-    final isGuest = context.read<GuestModeProvider>().isGuest;
-    if (isGuest) return;
+    if (context.read<GuestModeProvider>().isGuest) return;
 
-    // Laisse les premiers frames se poser (banners, header) avant de
-    // pousser le paywall.
+    // `has_completed_first_session` est écrit à la fin d'une session de
+    // lecture (ContactsService.markFirstSessionCompleted), pas à son
+    // démarrage : c'est bien le signal « a vu la valeur de l'app ».
+    // État inconnu (`null` : réseau, erreur serveur, pas de session) → on ne
+    // sollicite rien. Une sollicitation ratée coûte plus cher qu'une
+    // sollicitation reportée d'un lancement.
+    bool firstSessionDone = false;
+    try {
+      firstSessionDone =
+          await ContactsService().hasCompletedFirstSession() ?? false;
+    } catch (e) {
+      debugPrint('Erreur lecture has_completed_first_session: $e');
+      return;
+    }
+    if (!firstSessionDone || !mounted) return;
+
+    // Laisse les premiers frames se poser (banners, header).
     await Future.delayed(const Duration(milliseconds: 600));
     if (!mounted) return;
-    await PaywallController.maybeShowOnAppOpen(context);
+
+    // 1. Permission notifications — le canal de relance J1. Prioritaire sur
+    //    le paywall : c'est ce qui fait revenir l'utilisateur.
+    if (await _maybeAskPushPermission()) return;
+    if (!mounted) return;
+
+    // 2. Paywall.
+    final paywallShown = await PaywallController.maybeShowOnAppOpen(
+      context,
+      hasCompletedFirstSession: true,
+    );
+    if (paywallShown || !mounted) return;
+
+    // 3. Connexion Kindle — uniquement pour les profils « liseuse » / « mix »
+    //    qui ne l'ont pas déjà connectée. Sortie de l'onboarding le 15/08 :
+    //    proposée ici, une seule fois, plutôt qu'imposée à la 60e seconde.
+    await maybeShowKindleConnectSheet(context);
+  }
+
+  /// Présente la popup système de notifications si elle ne l'a jamais été.
+  /// Retourne `true` si la popup a effectivement été présentée à ce lancement
+  /// (auquel cas on ne présente rien d'autre derrière).
+  Future<bool> _maybeAskPushPermission() async {
+    final push = PushNotificationService();
+    try {
+      if (!await push.canStillAskPermission()) return false;
+      await push.promptPermissionAndRegister();
+      return true;
+    } catch (e) {
+      debugPrint('Erreur _maybeAskPushPermission: $e');
+      return false;
+    }
   }
 
   void _onActiveSessionsChanged() {
@@ -252,6 +341,8 @@ class _MainNavigationState extends State<MainNavigation>
     _activeSessionTimer?.cancel();
     ReadingSessionService.activeSessionsVersion
         .removeListener(_onActiveSessionsChanged);
+    WatchSessionDraftService.draftVersion.removeListener(_onWatchDraftSaved);
+    KindleAutoSyncService.connectedVersion.removeListener(_onKindleConnected);
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -312,6 +403,11 @@ class _MainNavigationState extends State<MainNavigation>
 
     _checkAnniversary();
     _checkKindleAutoSync();
+    // Consommer une éventuelle commande Watch en attente (ex. stop reçu
+    // pendant que l'app était en arrière-plan) AVANT de lire l'état des
+    // sessions : sinon la session paraît encore active, le rattrapage est
+    // sauté et le dialogue n'apparaît qu'au prochain retour au premier plan.
+    await WatchControlService().pollNow();
     // Refresh active session, then show recovery modal if needed.
     await _checkActiveSession();
     _maybeShowStaleSessionModal(absence);
@@ -449,6 +545,31 @@ class _MainNavigationState extends State<MainNavigation>
         Navigator.of(context).push(
           MaterialPageRoute(builder: (_) => const NotificationsPage()),
         );
+      case 'read':
+        _openStartSessionOnCurrentBook();
+    }
+  }
+
+  /// Route `read` (e-mail de relance) : ouvre l'écran de démarrage de
+  /// session sur le livre en cours le plus récent. Sans livre en cours, on
+  /// laisse l'utilisateur sur le feed — le FAB reste la porte d'entrée.
+  Future<void> _openStartSessionOnCurrentBook() async {
+    try {
+      if (_activeSession != null) return; // une session tourne déjà
+      final books = await BooksService().getUserBooksWithStatus();
+      final current = books.firstWhere(
+        (b) => b['status'] == 'reading' && b['is_hidden'] != true,
+        orElse: () => books.isNotEmpty ? books.first : <String, dynamic>{},
+      );
+      final book = current['book'];
+      if (book is! Book || !mounted) return;
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => StartReadingSessionPageUnified(book: book),
+        ),
+      );
+    } catch (e) {
+      debugPrint('Erreur route read: $e');
     }
   }
 
@@ -560,6 +681,14 @@ class _MainNavigationState extends State<MainNavigation>
     }
   }
 
+  /// Une connexion Kindle vient d'aboutir : le cooldown mémoire de 5 min ne
+  /// doit pas retenir cette vérification-là (une tentative expirée juste
+  /// avant la reconnexion l'aurait armé), les cookies sont neufs.
+  void _onKindleConnected() {
+    _lastKindleSyncAttempt = null;
+    _checkKindleAutoSync();
+  }
+
   Future<void> _checkKindleAutoSync() async {
     if (!mounted || _showKindleAutoSync) return;
 
@@ -574,13 +703,38 @@ class _MainNavigationState extends State<MainNavigation>
           Provider.of<SubscriptionProvider>(context, listen: false);
       final autoSyncService = KindleAutoSyncService();
 
+      // Tâche d'arrière-plan (palier 2) : enregistrée dès que Kindle est
+      // connecté et l'auto-sync actif, idempotent. Elle vérifie elle-même
+      // premium, espacement et cookies à chaque exécution.
+      if (subscriptionProvider.isPremium &&
+          await autoSyncService.isBackgroundSyncEligible()) {
+        unawaited(KindleBackgroundSync.ensureScheduled());
+      }
+
       final shouldSync = await autoSyncService.shouldAutoSync(
         isPremium: subscriptionProvider.isPremium,
       );
 
       if (shouldSync && mounted) {
         _lastKindleSyncAttempt = DateTime.now();
-        setState(() => _showKindleAutoSync = true);
+        setState(() {
+          _kindleSyncMode = KindleSyncMode.full;
+          _showKindleAutoSync = true;
+        });
+        return;
+      }
+
+      // Pas de sync complet dû : mini-sync progression (« rien à faire » —
+      // la lecture Kindle de la veille devient une session à l'ouverture).
+      final shouldProgress = await autoSyncService.shouldProgressSync(
+        isPremium: subscriptionProvider.isPremium,
+      );
+      if (shouldProgress && mounted) {
+        _lastKindleSyncAttempt = DateTime.now();
+        setState(() {
+          _kindleSyncMode = KindleSyncMode.progressOnly;
+          _showKindleAutoSync = true;
+        });
       }
     } catch (e) {
       debugPrint('Erreur _checkKindleAutoSync: $e');
@@ -592,8 +746,24 @@ class _MainNavigationState extends State<MainNavigation>
     setState(() => _showKindleAutoSync = false);
   }
 
+  /// Des sessions viennent d'être créées depuis la progression Kindle :
+  /// rafraîchir le feed (le notifier « amis » recharge tout le feed) et le
+  /// dire discrètement.
+  void _onKindleSessionsCreated(int count) {
+    if (!mounted) return;
+    FeedPage.notifyFriendsChanged();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(AppLocalizations.of(context).kindleSessionsAdded(count)),
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
   void _onKindleAutoSyncSuccess(_) {
     if (!mounted) return;
+    // Sync OK → la session Amazon est valide, on ré-arme la notif d'expiration.
+    KindleAutoSyncService().clearExpiredNotified();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(AppLocalizations.of(context).kindleSyncedAutomatically),
@@ -603,11 +773,74 @@ class _MainNavigationState extends State<MainNavigation>
     );
   }
 
+  Future<void> _onKindleCookiesExpired() async {
+    if (!mounted) return;
+    final service = KindleAutoSyncService();
+    // Une seule notification par expiration : pas de spam à chaque ouverture.
+    if (await service.hasNotifiedExpired()) return;
+    await service.markExpiredNotified();
+    if (!mounted) return;
+
+    final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.showSnackBar(
+      SnackBar(
+        duration: const Duration(seconds: 8),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(l10n.kindleSessionExpired),
+            const SizedBox(height: 6),
+            // « Je ne veux plus synchroniser » : coupe l'auto-sync — donc la
+            // WebView cachée qui détecte l'expiration — et le bandeau ne
+            // revient jamais. Réactivable dans Réglages, et ré-armé
+            // automatiquement par une reconnexion Kindle réussie.
+            GestureDetector(
+              onTap: () async {
+                await KindleAutoSyncService().setAutoSyncEnabled(false);
+                messenger.hideCurrentSnackBar();
+                messenger.showSnackBar(
+                  SnackBar(
+                    content: Text(l10n.kindleSyncDisabled),
+                    duration: const Duration(seconds: 4),
+                  ),
+                );
+              },
+              child: Text(
+                l10n.kindleStopSyncing,
+                style: const TextStyle(
+                  color: Colors.white70,
+                  decoration: TextDecoration.underline,
+                  decorationColor: Colors.white70,
+                ),
+              ),
+            ),
+          ],
+        ),
+        action: SnackBarAction(
+          label: l10n.kindleReconnect,
+          onPressed: () {
+            if (!mounted) return;
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const KindleLoginPage()),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
   void _onItemTapped(int index) {
     // Mode invité : Muse (1) et Mon espace (3) nécessitent un compte.
     final isGuest = context.read<GuestModeProvider>().isGuest;
     if (isGuest && (index == 1 || index == 3)) {
-      showRequireAccountSheet(context);
+      // Muse et Mon espace sont deux hameçons très différents : on les
+      // distingue pour savoir lequel donne envie de créer un compte.
+      showRequireAccountSheet(
+        context,
+        source: index == 1 ? 'tab_muse' : 'tab_profile',
+      );
       return;
     }
     // Re-tap sur l'onglet feed déjà sélectionné : remonter en haut.
@@ -664,8 +897,11 @@ class _MainNavigationState extends State<MainNavigation>
         ),
         if (_showKindleAutoSync)
           KindleAutoSyncWidget(
+            mode: _kindleSyncMode,
             onCompleted: _onKindleAutoSyncCompleted,
             onSyncSuccess: _onKindleAutoSyncSuccess,
+            onCookiesExpired: _onKindleCookiesExpired,
+            onKindleSessionsCreated: _onKindleSessionsCreated,
           ),
       ],
     );

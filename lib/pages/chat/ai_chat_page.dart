@@ -24,11 +24,21 @@ class AiChatPage extends StatefulWidget {
   final String? initialTitle;
   final String? initialMessage;
 
+  /// Texte pré-rempli (non envoyé) dans le composer, ex. préfixe de
+  /// recherche de livre.
+  final String? initialDraft;
+
+  /// Ouvre le clavier dès l'affichage (nouvelle conversation lancée depuis
+  /// le champ de saisie de l'onglet Muse).
+  final bool autofocus;
+
   const AiChatPage({
     super.key,
     this.conversationId,
     this.initialTitle,
     this.initialMessage,
+    this.initialDraft,
+    this.autofocus = false,
   });
 
   @override
@@ -72,6 +82,18 @@ class _AiChatPageState extends State<AiChatPage> {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           _sendMessage(widget.initialMessage);
         });
+      } else {
+        final draft = widget.initialDraft;
+        if (draft != null && draft.isNotEmpty) {
+          _controller.text = draft;
+          _controller.selection =
+              TextSelection.collapsed(offset: draft.length);
+        }
+        if (widget.autofocus) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) _focusNode.requestFocus();
+          });
+        }
       }
     }
   }
@@ -298,6 +320,7 @@ class _AiChatPageState extends State<AiChatPage> {
                 _buildSuggestionChip(l.museRecommendNovel),
                 _buildSuggestionChip(l.museSimilarBook),
                 _buildSuggestionChip(l.museClassic),
+                _buildGiftChip(l),
               ],
             ),
           ],
@@ -387,6 +410,21 @@ class _AiChatPageState extends State<AiChatPage> {
           ],
         ),
       ),
+    );
+  }
+
+  /// Chip « 🎁 Un livre à offrir » : pré-remplit le champ de saisie (il reste
+  /// le prénom de l'ami à taper) au lieu d'envoyer directement.
+  Widget _buildGiftChip(AppLocalizations l) {
+    return ActionChip(
+      label: Text(l.museGiftChip, style: const TextStyle(fontSize: 13)),
+      backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+      onPressed: () {
+        _controller.text = l.museGiftPrefill;
+        _controller.selection =
+            TextSelection.collapsed(offset: _controller.text.length);
+        _focusNode.requestFocus();
+      },
     );
   }
 

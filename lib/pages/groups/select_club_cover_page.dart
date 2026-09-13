@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../services/club_covers_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/back_header.dart';
@@ -43,7 +44,7 @@ class _SelectClubCoverPageState extends State<SelectClubCoverPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 BackHeader(
-                  title: 'Choisir une couverture',
+                  title: AppLocalizations.of(context).chooseCoverTitle,
                   titleColor: Theme.of(context).colorScheme.onSurface,
                 ),
                 const SizedBox(height: AppSpace.m),
@@ -186,7 +187,7 @@ class _SelectClubCoverPageState extends State<SelectClubCoverPage> {
                   _future = _service.getAvailable(forceRefresh: true);
                 });
               },
-              child: const Text('Réessayer'),
+              child: Text(AppLocalizations.of(context).retry),
             ),
           ],
         ),
@@ -208,7 +209,7 @@ class _SelectClubCoverPageState extends State<SelectClubCoverPage> {
             ),
             const SizedBox(height: 12),
             Text(
-              'Aucune couverture disponible',
+              AppLocalizations.of(context).noCoversAvailable,
               style: Theme.of(context)
                   .textTheme
                   .titleMedium
@@ -216,7 +217,7 @@ class _SelectClubCoverPageState extends State<SelectClubCoverPage> {
             ),
             const SizedBox(height: 4),
             Text(
-              'La bibliothèque sera bientôt enrichie.',
+              AppLocalizations.of(context).coversComingSoon,
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Theme.of(context)

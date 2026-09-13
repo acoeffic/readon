@@ -1,5 +1,11 @@
+import 'dart:io';
+
+import 'package:android_play_install_referrer/android_play_install_referrer.dart';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../utils/app_constants.dart';
 
 /// Résultat de l'application d'un code de parrainage.
 enum ApplyReferralResult {
@@ -25,8 +31,43 @@ class ReferralService {
 
   static const _pendingCodeKey = 'pending_referral_code';
 
+  /// Le Play Install Referrer n'est lisible qu'une fois : on note qu'on l'a
+  /// consulté pour ne pas interroger le Play Store à chaque lancement.
+  static const _installReferrerCheckedKey = 'install_referrer_checked';
+
   /// Base du lien de partage (le site redirige vers l'app / le store).
   static const String _referralBaseUrl = 'https://www.lexday.fr/r/';
+
+  /// Lien personnel mis en cache, pour un accès **synchrone** depuis les
+  /// constructeurs de textes de partage (`buildShareText` & co. ne sont pas
+  /// async, et les rendre async contaminerait une dizaine d'appelants).
+  ///
+  /// Rempli par [primeShareLink] au démarrage. Tant qu'il est vide, on
+  /// retombe sur la page de renvoi neutre — jamais sur `kAppStoreUrl`, qui
+  /// laisserait un destinataire Android sans rien.
+  static String? _cachedShareLink;
+
+  /// URL à faire figurer dans TOUT partage sortant : lien de parrainage
+  /// personnel si disponible, page de renvoi neutre sinon.
+  ///
+  /// Transforme une sortie d'app en porte d'entrée attribuée : le destinataire
+  /// arrive avec le code de son parrain, et les deux gagnent 14 jours.
+  static String get shareUrl => _cachedShareLink ?? kShareLandingUrl;
+
+  /// À appeler après l'authentification. Best-effort : un échec laisse
+  /// simplement le lien neutre en place.
+  Future<void> primeShareLink() async {
+    try {
+      final link = await getShareLink();
+      if (link != null) _cachedShareLink = link;
+    } catch (_) {
+      // Silencieux : le partage doit fonctionner même sans code.
+    }
+  }
+
+  /// Vide le cache (déconnexion) pour ne pas partager le code du compte
+  /// précédent.
+  static void clearShareLinkCache() => _cachedShareLink = null;
 
   /// Code de parrainage de l'utilisateur courant.
   Future<String?> getMyCode() async {
@@ -105,6 +146,43 @@ class ReferralService {
   Future<void> storePendingCode(String code) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_pendingCodeKey, code.trim().toUpperCase());
+  }
+
+  /// Récupère le code transmis par le Play Store à l'installation.
+  ///
+  /// C'est le seul mécanisme d'**attribution différée** officiel et gratuit :
+  /// le lien `/r/CODE` envoie vers le Play Store avec `&referrer=code%3DCODE`,
+  /// et Google le restitue ici au premier lancement, même si l'app vient
+  /// d'être installée. iOS n'a aucun équivalent — là-bas, le filleul saisit
+  /// son code à la main (le lien affiche le code à recopier).
+  ///
+  /// Best-effort et exécuté une seule fois. À appeler au démarrage, AVANT
+  /// [applyPendingCode].
+  Future<void> captureInstallReferrer() async {
+    if (kIsWeb || !Platform.isAndroid) return;
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getBool(_installReferrerCheckedKey) == true) return;
+
+    try {
+      final details = await AndroidPlayInstallReferrer.installReferrer;
+      final raw = details.installReferrer;
+      await prefs.setBool(_installReferrerCheckedKey, true);
+      if (raw == null || raw.isEmpty) return;
+
+      // Le referrer est une query string : `code=ABC123` éventuellement
+      // accompagnée des utm_* que Play ajoute de son côté.
+      final code = Uri.splitQueryString(raw)['code'];
+      if (code == null || code.trim().isEmpty) return;
+
+      // Ne pas écraser un code déjà en attente (deep link plus récent).
+      if (prefs.getString(_pendingCodeKey)?.isNotEmpty == true) return;
+      await storePendingCode(code);
+      debugPrint('Install referrer: code de parrainage capté');
+    } catch (e) {
+      debugPrint('Install referrer indisponible: $e');
+      // Pas de nouvelle tentative : l'API n'est fiable qu'au premier lancement.
+      await prefs.setBool(_installReferrerCheckedKey, true);
+    }
   }
 
   /// Applique le code en attente (le cas échéant) et le supprime en cas de

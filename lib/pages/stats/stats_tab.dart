@@ -296,8 +296,11 @@ class _StatsTabState extends State<StatsTab> {
   }
 
   Widget? _buildYoYChip(ReadingStatistics stats) {
-    final isPremium = context.watch<SubscriptionProvider>().isPremium;
-    if (!isPremium) return null;
+    final unlocked = FeatureFlags.isAvailable(
+      Feature.advancedStats,
+      isPremium: context.watch<SubscriptionProvider>().isPremium,
+    );
+    if (!unlocked) return null;
     if (stats.period != StatsPeriod.thisYear) return null;
     final prev = stats.previousPeriodPages;
     if (prev == null || prev <= 0) return null;

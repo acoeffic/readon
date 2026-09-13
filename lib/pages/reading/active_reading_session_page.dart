@@ -19,10 +19,11 @@ import '../../services/annotation_service.dart';
 import '../../services/reading_session_service.dart';
 import '../../services/session_pause_service.dart';
 import '../../services/ai_service.dart';
-import '../../services/ocr_service.dart';
 import 'end_reading_session_page.dart';
+import 'highlight_passage_page.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/cached_book_cover.dart';
+import '../../widgets/abandon_session_sheet.dart';
 import '../../l10n/app_localizations.dart';
 import '../../widgets/constrained_content.dart';
 
@@ -222,26 +223,29 @@ class _ActiveReadingSessionPageState extends State<ActiveReadingSessionPage>
   }
 
   Future<void> _cancelSession() async {
-    final l = AppLocalizations.of(context);
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l.abandonSessionTitle),
-        content: Text(l.abandonSessionMessage),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(l.no),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: Text(l.yes, style: const TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
+    // `cancelSession()` fait un DELETE : le temps déjà lu disparaît. On dit
+    // désormais combien de temps est en jeu, et surtout on propose la sortie
+    // qui le préserve — terminer la session — plutôt que de n'offrir que
+    // « oui / non » sur une destruction.
+    final choice = await showAbandonSessionSheet(
+      context,
+      session: widget.activeSession,
     );
 
-    if (confirm == true && mounted) {
+    if (!mounted) return;
+
+    switch (choice) {
+      case null:
+      case AbandonSessionChoice.keepReading:
+        return;
+      case AbandonSessionChoice.endSession:
+        await _endSession();
+        return;
+      case AbandonSessionChoice.discard:
+        break;
+    }
+
+    if (mounted) {
       try {
         await ReadingSessionService().cancelSession(widget.activeSession.id);
       } catch (e) {
@@ -935,13 +939,14 @@ class _AnnotationBottomSheetState extends State<_AnnotationBottomSheet> {
   final _contentController = TextEditingController();
   final _pageController = TextEditingController();
   final _annotationService = AnnotationService();
-  final _ocrService = OCRService();
   final _picker = ImagePicker();
 
   _AnnotationMode _mode = _AnnotationMode.text;
   XFile? _capturedImage;
-  bool _isProcessingOcr = false;
   bool _isSaving = false;
+
+  /// Numéro de page lu en tête/pied de la photo, proposé au lecteur.
+  int? _suggestedPage;
 
   // Voice recording state
   AudioRecorder? _audioRecorder;
@@ -966,7 +971,6 @@ class _AnnotationBottomSheetState extends State<_AnnotationBottomSheet> {
   void dispose() {
     _contentController.dispose();
     _pageController.dispose();
-    _ocrService.dispose();
     _recordingTimer?.cancel();
     _audioRecorder?.dispose();
     _audioPlayer?.dispose();
@@ -1075,33 +1079,39 @@ class _AnnotationBottomSheetState extends State<_AnnotationBottomSheet> {
     return '$minutes:$seconds';
   }
 
-  Future<void> _takePhoto() async {
+  Future<void> _pickImage(ImageSource source) async {
     final image = await _picker.pickImage(
-      source: ImageSource.camera,
-      maxWidth: 1200,
-      maxHeight: 1200,
-      imageQuality: 85,
+      source: source,
+      // Haute résolution : c'est le premier levier de qualité pour l'OCR.
+      // (L'ancienne limite à 1200 px rendait les petits caractères illisibles.)
+      maxWidth: 3000,
+      maxHeight: 3000,
+      imageQuality: 95,
     );
-    if (image == null) return;
+    if (image == null || !mounted) return;
+
+    setState(() => _capturedImage = image);
+    await _openHighlighter(image.path);
+  }
+
+  /// Ouvre la page de surlignage : le lecteur passe le doigt sur le passage
+  /// qui l'intéresse, seul ce texte revient dans l'annotation.
+  Future<void> _openHighlighter(String imagePath) async {
+    final result = await Navigator.of(context).push<HighlightPassageResult>(
+      MaterialPageRoute(
+        builder: (_) => HighlightPassagePage(imagePath: imagePath),
+      ),
+    );
+    if (!mounted || result == null) return;
 
     setState(() {
-      _capturedImage = image;
-      _isProcessingOcr = true;
+      _contentController.text = result.text;
+      final detected = result.detectedPage;
+      _suggestedPage =
+          (detected != null && detected.toString() != _pageController.text)
+              ? detected
+              : null;
     });
-
-    try {
-      final text = await _ocrService.extractAllText(image.path);
-      if (mounted) {
-        setState(() {
-          _contentController.text = text;
-          _isProcessingOcr = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _isProcessingOcr = false);
-      }
-    }
   }
 
   Future<void> _save() async {
@@ -1142,7 +1152,9 @@ class _AnnotationBottomSheetState extends State<_AnnotationBottomSheet> {
 
         // 4. Transcrire si pas de contenu manuel
         if (content.isEmpty) {
-          setState(() => _isTranscribing = true);
+          // La feuille peut avoir été fermée pendant l'upload : on continue la
+          // transcription (c'est du serveur) mais sans toucher à l'UI.
+          if (mounted) setState(() => _isTranscribing = true);
           try {
             final aiService = AiService();
             await aiService.transcribeAudio(annotation.id);
@@ -1161,13 +1173,31 @@ class _AnnotationBottomSheetState extends State<_AnnotationBottomSheet> {
           );
         }
       } else if (_mode == _AnnotationMode.photo && _capturedImage != null) {
-        await _annotationService.createAnnotation(
+        // La photo source est conservée : si l'OCR s'est trompé, c'est le seul
+        // recours de l'utilisateur pour retrouver le texte exact. Elle était
+        // jetée jusqu'ici (annotation créée en `text`, `imagePath` jamais
+        // renseigné) alors que le bucket et l'upload existaient déjà.
+        final annotation = await _annotationService.createAnnotation(
           bookId: widget.bookId,
           sessionId: widget.sessionId,
           content: _contentController.text.trim(),
           pageNumber: int.tryParse(_pageController.text),
-          type: AnnotationType.text,
+          type: AnnotationType.photo,
         );
+
+        // Un échec d'upload ne doit pas faire perdre le texte, déjà en base.
+        try {
+          final storagePath = await _annotationService.uploadAnnotationImage(
+            annotation.id,
+            _capturedImage!.path,
+          );
+          await _annotationService.setAnnotationImagePath(
+            annotation.id,
+            storagePath,
+          );
+        } catch (e) {
+          debugPrint('Upload de la photo d\'annotation échoué: $e');
+        }
 
         if (mounted) {
           Navigator.pop(context);
@@ -1293,18 +1323,38 @@ class _AnnotationBottomSheetState extends State<_AnnotationBottomSheet> {
                 // Photo mode: capture button + preview
                 if (_mode == _AnnotationMode.photo) ...[
                   if (_capturedImage == null)
-                    OutlinedButton.icon(
-                      onPressed: _takePhoto,
-                      icon: const Icon(Icons.camera_alt),
-                      label: const Text('Prendre une photo'),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.all(14),
-                        foregroundColor: AppColors.primary,
-                        side: const BorderSide(color: AppColors.primary),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () => _pickImage(ImageSource.camera),
+                            icon: const Icon(Icons.camera_alt),
+                            label: Text(l.takePhotoAction),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.all(14),
+                              foregroundColor: AppColors.primary,
+                              side: const BorderSide(color: AppColors.primary),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          ),
                         ),
-                      ),
+                        const SizedBox(width: 8),
+                        IconButton(
+                          tooltip: l.chooseFromGallery,
+                          onPressed: () => _pickImage(ImageSource.gallery),
+                          icon: const Icon(Icons.photo_library_outlined),
+                          style: IconButton.styleFrom(
+                            foregroundColor: AppColors.primary,
+                            padding: const EdgeInsets.all(14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              side: const BorderSide(color: AppColors.border),
+                            ),
+                          ),
+                        ),
+                      ],
                     )
                   else ...[
                     // Image preview
@@ -1318,28 +1368,37 @@ class _AnnotationBottomSheetState extends State<_AnnotationBottomSheet> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    // Retake button
-                    TextButton.icon(
-                      onPressed: _takePhoto,
-                      icon: const Icon(Icons.refresh, size: 18),
-                      label: Text(l.retakePhoto),
-                      style: TextButton.styleFrom(
-                        foregroundColor: AppColors.primary,
-                      ),
-                    ),
-                  ],
-                  if (_isProcessingOcr) ...[
-                    const SizedBox(height: 12),
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
+                        Expanded(
+                          child: TextButton.icon(
+                            onPressed: () =>
+                                _openHighlighter(_capturedImage!.path),
+                            icon: const Icon(Icons.brush_outlined, size: 18),
+                            label: Text(
+                              l.editHighlight,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            style: TextButton.styleFrom(
+                              foregroundColor: AppColors.primary,
+                            ),
+                          ),
                         ),
-                        const SizedBox(width: 8),
-                        Text(l.extractingText),
+                        Expanded(
+                          child: TextButton.icon(
+                            onPressed: () => _pickImage(ImageSource.camera),
+                            icon: const Icon(Icons.refresh, size: 18),
+                            label: Text(
+                              l.retakePhoto,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            style: TextButton.styleFrom(
+                              foregroundColor: AppColors.textSecondary,
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   ],
@@ -1534,6 +1593,23 @@ class _AnnotationBottomSheetState extends State<_AnnotationBottomSheet> {
                     ),
                   ),
                 ),
+                // Numéro de page repéré sur la photo (tête ou pied de page)
+                if (_suggestedPage != null) ...[
+                  const SizedBox(height: 8),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: ActionChip(
+                      avatar: const Icon(Icons.auto_stories, size: 16),
+                      label: Text(l.pageDetectedSuggestion(_suggestedPage!)),
+                      onPressed: () {
+                        setState(() {
+                          _pageController.text = _suggestedPage.toString();
+                          _suggestedPage = null;
+                        });
+                      },
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 16),
 
                 // Save button

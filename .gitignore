@@ -39,3 +39,14 @@ flutter/
 .claude/settings.local.json
 supabase/.temp/
 commit_and_push.sh
+
+# Web app (projet séparé, cf. WEBAPP_SPEC.md)
+lexday-web/
+
+# Archive locale des sources HD badges (non versionnée)
+badges_hd_archive/
+telecharge_badges_hd.sh
+
+# Scratch et rushes vidéo (>100 Mo, refusés par GitHub)
+_to_delete/
+remotion/public/rushes/*.mp4

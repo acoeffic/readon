@@ -95,6 +95,23 @@ class GoogleBooksService {
     return completer.future;
   }
 
+  /// --- Voie rapide pour les recherches interactives ---
+  /// Bypasse la file sérialisée (réservée aux appels d'arrière-plan comme
+  /// les couvertures) mais respecte le circuit breaker et le retry.
+  /// À réserver aux actions utilisateur déjà debouncées.
+  static Future<http.Response> _fastGet(Uri uri) {
+    if (_isCircuitOpen) {
+      return Future.value(http.Response('Service Unavailable', 503));
+    }
+    return _executeWithRetry(uri);
+  }
+
+  /// Restreint la réponse de l'API aux seuls champs parsés par
+  /// [GoogleBook.fromJson] — réponse ~3-5x plus légère, parsing plus rapide.
+  static const String _searchFields =
+      'items(id,volumeInfo(title,authors,publisher,publishedDate,description,'
+      'pageCount,imageLinks,industryIdentifiers,language,categories))';
+
   /// Execute a GET request with retry + exponential backoff on 5xx errors.
   static Future<http.Response> _executeWithRetry(Uri uri, {Map<String, String>? headers}) async {
     for (int attempt = 0; attempt <= _maxRetries; attempt++) {
@@ -167,16 +184,21 @@ class GoogleBooksService {
   /// Vide le cache (utile pour les tests ou un refresh forcé)
   static void clearCache() {
     _isbnCache.clear();
+    _searchCache.clear();
     _persistentCoverCache?.clear();
     _savePersistentCache();
   }
 
-  /// Rechercher des livres via Google Books API (1 seul appel)
-  Future<List<GoogleBook>> searchBooks(String query, {bool langRestrict = false}) async {
+  /// Rechercher des livres via Google Books API (1 seul appel).
+  /// [fast] : bypasse la file d'attente sérialisée (recherche interactive).
+  Future<List<GoogleBook>> searchBooks(String query,
+      {bool langRestrict = false, bool fast = false, int maxResults = 10}) async {
     try {
       final langParam = langRestrict ? '&langRestrict=fr' : '';
-      final uri = Uri.parse('$_baseUrl?q=${Uri.encodeComponent(query)}&maxResults=10$langParam&key=$_apiKey');
-      final response = await throttledGet(uri);
+      final uri = Uri.parse(
+          '$_baseUrl?q=${Uri.encodeComponent(query)}&maxResults=$maxResults$langParam'
+          '&fields=${Uri.encodeComponent(_searchFields)}&key=$_apiKey');
+      final response = await (fast ? _fastGet(uri) : throttledGet(uri));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -258,6 +280,189 @@ class GoogleBooksService {
   Future<List<GoogleBook>> searchByTitleAuthor(String title, String author) async {
     final query = 'intitle:$title+inauthor:$author';
     return searchBooks(query);
+  }
+
+  /// --- Recherche interactive : cache mémoire des requêtes ---
+  static final Map<String, List<GoogleBook>> _searchCache = {};
+  static const int _searchCacheMax = 40;
+
+  /// Recherche interactive optimisée : 2 requêtes lancées en VRAI parallèle
+  /// (FR restreinte + intitle toutes langues) via la voie rapide, puis
+  /// fusion, déduplication et tri par pertinence. Les résultats sont mis en
+  /// cache en mémoire (retaper/corriger une requête est instantané).
+  Future<List<GoogleBook>> searchBooksRanked(String query) async {
+    final q = query.trim();
+    if (q.isEmpty) return [];
+
+    final cacheKey = q.toLowerCase();
+    final cached = _searchCache[cacheKey];
+    if (cached != null) return cached;
+
+    final results = await Future.wait([
+      searchBooks(q, langRestrict: true, fast: true),
+      searchBooks('intitle:$q', fast: true),
+    ]);
+
+    final merged = mergeAndRank(results[0], results[1], query: q);
+
+    if (merged.isNotEmpty) {
+      _searchCache[cacheKey] = merged;
+      if (_searchCache.length > _searchCacheMax) {
+        _searchCache.remove(_searchCache.keys.first);
+      }
+    }
+    return merged;
+  }
+
+  /// Fusionne deux listes de résultats, déduplique (id Google, ISBN,
+  /// titre+auteur normalisé) et trie par pertinence.
+  static List<GoogleBook> mergeAndRank(
+      List<GoogleBook> primary, List<GoogleBook> secondary,
+      {String? query}) {
+    final seen = <String>{};
+    final all = <GoogleBook>[];
+
+    void addIfNew(GoogleBook book) {
+      if (seen.contains(book.id)) return;
+      for (final isbn in book.isbns) {
+        if (seen.contains(isbn)) return;
+      }
+      final key =
+          '${book.title.toLowerCase().trim()}|${book.authorsString.toLowerCase().trim()}';
+      if (seen.contains(key)) return;
+
+      seen.add(book.id);
+      seen.addAll(book.isbns);
+      seen.add(key);
+      all.add(book);
+    }
+
+    for (final book in primary) {
+      addIfNew(book);
+    }
+    for (final book in secondary) {
+      addIfNew(book);
+    }
+
+    all.sort(
+        (a, b) => relevanceScore(b, query: query)
+            .compareTo(relevanceScore(a, query: query)));
+    return all;
+  }
+
+  /// Score de pertinence : plus c'est haut, plus c'est pertinent.
+  /// [query] permet de booster les correspondances de titre exactes.
+  static int relevanceScore(GoogleBook book, {String? query}) {
+    int score = 0;
+
+    // Correspondance du titre avec la requête tapée
+    if (query != null && query.isNotEmpty) {
+      final title = book.title.toLowerCase().trim();
+      final q = query.toLowerCase().trim();
+      if (title == q) {
+        score += 8;
+      } else if (title.startsWith(q)) {
+        score += 5;
+      } else if (title.contains(q)) {
+        score += 2;
+      }
+    }
+
+    if (book.language == 'fr') {
+      score += 5;
+    }
+    if (book.coverUrl != null && !book.coverUrl!.contains('openlibrary')) {
+      score += 3;
+    }
+    if (book.authors.isNotEmpty && book.authors.first != 'Auteur inconnu') {
+      score += 2;
+    }
+    if (book.pageCount != null && book.pageCount! > 0) {
+      score += 1;
+    }
+    if (book.description != null && book.description!.isNotEmpty) {
+      score += 1;
+    }
+    if (book.isbns.isNotEmpty) {
+      score += 1;
+    }
+    return score;
+  }
+
+  /// Tous les livres d'un auteur : requête inauthor stricte, 40 résultats
+  /// par langue, en parallèle via la voie rapide, filtrés pour ne garder que
+  /// les livres dont l'auteur correspond vraiment (inauthor est flou).
+  Future<List<GoogleBook>> searchBooksByAuthor(String author) async {
+    final a = author.trim();
+    if (a.isEmpty) return [];
+
+    final cacheKey = 'inauthor:${a.toLowerCase()}';
+    final cached = _searchCache[cacheKey];
+    if (cached != null) return cached;
+
+    final query = 'inauthor:"$a"';
+    final results = await Future.wait([
+      searchBooks(query, langRestrict: true, fast: true, maxResults: 40),
+      searchBooks(query, fast: true, maxResults: 40),
+    ]);
+
+    final folded = foldForCompare(a);
+    final merged = mergeAndRank(results[0], results[1])
+        .where((book) => book.authors
+            .any((name) => foldForCompare(name).contains(folded)))
+        .toList();
+
+    if (merged.isNotEmpty) {
+      _searchCache[cacheKey] = merged;
+      if (_searchCache.length > _searchCacheMax) {
+        _searchCache.remove(_searchCache.keys.first);
+      }
+    }
+    return merged;
+  }
+
+  /// Détecte si [query] est vraisemblablement un nom d'auteur au vu des
+  /// [results] : retourne le nom d'auteur (forme d'affichage) le plus
+  /// fréquent qui correspond à la requête, s'il signe au moins 3 résultats.
+  static String? detectAuthorQuery(String query, List<GoogleBook> results) {
+    final q = foldForCompare(query.trim());
+    if (q.length < 3 || results.isEmpty) return null;
+
+    final counts = <String, int>{};
+    final displayNames = <String, String>{};
+
+    for (final book in results) {
+      for (final author in book.authors) {
+        if (author == 'Auteur inconnu') continue;
+        final folded = foldForCompare(author);
+        if (folded.contains(q) || q.contains(folded)) {
+          counts[folded] = (counts[folded] ?? 0) + 1;
+          displayNames[folded] ??= author;
+        }
+      }
+    }
+
+    if (counts.isEmpty) return null;
+    final best =
+        counts.entries.reduce((a, b) => a.value >= b.value ? a : b);
+    if (best.value < 3) return null;
+    return displayNames[best.key];
+  }
+
+  /// Normalisation pour comparaison : minuscules + accents repliés.
+  static String foldForCompare(String input) {
+    var out = input.toLowerCase();
+    const accents = {
+      'à': 'a', 'â': 'a', 'ä': 'a', 'á': 'a', 'ã': 'a', 'å': 'a',
+      'ç': 'c',
+      'é': 'e', 'è': 'e', 'ê': 'e', 'ë': 'e',
+      'î': 'i', 'ï': 'i', 'í': 'i', 'ì': 'i',
+      'ô': 'o', 'ö': 'o', 'ó': 'o', 'ò': 'o', 'õ': 'o',
+      'ù': 'u', 'û': 'u', 'ü': 'u', 'ú': 'u',
+      'ÿ': 'y', 'ñ': 'n', 'œ': 'oe', 'æ': 'ae',
+    };
+    accents.forEach((k, v) => out = out.replaceAll(k, v));
+    return out;
   }
 }
 

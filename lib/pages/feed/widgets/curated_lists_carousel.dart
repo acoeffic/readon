@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'dart:ui';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../../models/curated_list.dart';
@@ -32,7 +33,7 @@ class _CuratedListsCarouselState extends State<CuratedListsCarousel> {
   int _currentPage = 0;
 
   /// 5 listes aléatoires + 1 carte CTA
-  late final List<CuratedList> _displayedLists;
+  late List<CuratedList> _displayedLists;
   static const int _maxDisplayed = 5;
 
   int get _totalItems => _displayedLists.length + 1;
@@ -42,6 +43,19 @@ class _CuratedListsCarouselState extends State<CuratedListsCarousel> {
     super.initState();
     _displayedLists = _pickRandomLists();
     _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void didUpdateWidget(covariant CuratedListsCarousel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Le catalogue peut arriver du réseau après le premier build
+    // (CuratedListsRepository) : on re-tire les listes affichées si le
+    // contenu a changé.
+    final oldIds = oldWidget.lists.map((l) => l.id).toList();
+    final newIds = widget.lists.map((l) => l.id).toList();
+    if (!listEquals(oldIds, newIds)) {
+      _displayedLists = _pickRandomLists();
+    }
   }
 
   List<CuratedList> _pickRandomLists() {

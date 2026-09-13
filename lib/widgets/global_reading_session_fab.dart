@@ -7,7 +7,10 @@ import '../services/books_service.dart';
 import '../services/reading_session_service.dart';
 import '../pages/reading/start_reading_session_page_unified.dart';
 import '../pages/reading/active_reading_session_page.dart';
+import '../pages/reading/add_past_session_page.dart';
+import '../pages/reading/end_reading_session_page.dart';
 import '../pages/books/scan_book_cover_page.dart';
+import '../pages/reading/capture_passage_flow.dart';
 import '../pages/books/user_books_page.dart';
 import '../services/google_books_service.dart';
 import '../models/book.dart';
@@ -25,8 +28,11 @@ final _supabase = Supabase.instance.client;
 class GlobalReadingSessionFAB extends StatelessWidget {
   const GlobalReadingSessionFAB({super.key});
 
-  Future<void> _scanAndStartSession(BuildContext context) async {
-    // 1. Scanner la couverture
+  /// Scan d'une couverture puis ajout en bibliothèque.
+  /// Renvoie le livre créé, ou `null` si l'utilisateur a annulé le scan ou si
+  /// l'ajout a échoué. Extrait de `_scanAndStartSession` pour servir aussi de
+  /// porte de sortie aux états « bibliothèque vide ».
+  Future<Book?> _scanAndAddBook(BuildContext context) async {
     final GoogleBook? googleBook = await Navigator.push<GoogleBook>(
       context,
       MaterialPageRoute(
@@ -34,9 +40,8 @@ class GlobalReadingSessionFAB extends StatelessWidget {
       ),
     );
 
-    if (googleBook == null || !context.mounted) return;
+    if (googleBook == null || !context.mounted) return null;
 
-    // 2. Ajouter le livre à la BDD
     final booksService = BooksService();
 
     try {
@@ -48,20 +53,24 @@ class GlobalReadingSessionFAB extends StatelessWidget {
 
       final book = await booksService.addBookFromGoogleBooks(googleBook);
 
-      if (!context.mounted) return;
+      if (!context.mounted) return null;
       Navigator.pop(context); // Fermer le loading
-
-      // 3. Démarrer la session de lecture
-      await _startSession(context, book);
-
+      return book;
     } catch (e) {
-      if (!context.mounted) return;
+      if (!context.mounted) return null;
       Navigator.pop(context);
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red),
       );
+      return null;
     }
+  }
+
+  Future<void> _scanAndStartSession(BuildContext context) async {
+    final book = await _scanAndAddBook(context);
+    if (book == null || !context.mounted) return;
+    await _startSession(context, book);
   }
 
   Future<void> _selectFromLibraryAndStart(BuildContext context) async {
@@ -74,9 +83,12 @@ class GlobalReadingSessionFAB extends StatelessWidget {
       if (!context.mounted) return;
 
       if (allBooks.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context).libraryEmpty)),
-        );
+        // Bibliothèque vide : le snackbar « votre bibliothèque est vide »
+        // n'offrait aucune action et le parcours mourait là. La seule suite
+        // possible étant d'ajouter un livre, on y va directement.
+        final book = await _scanAndAddBook(context);
+        if (book == null || !context.mounted) return;
+        await _startSession(context, book);
         return;
       }
 
@@ -119,11 +131,81 @@ class GlobalReadingSessionFAB extends StatelessWidget {
     }
   }
 
+  /// « J'ai lu » : saisie a posteriori d'une lecture déjà effectuée,
+  /// téléphone en main APRÈS la lecture — jamais pendant. Même niveau que
+  /// le démarrage de session : c'est un mode d'enregistrement à part
+  /// entière, pas un mode de secours.
+  ///
+  /// Volontairement PAS bloqué par une session active globale : une
+  /// session en cours sur un autre livre n'empêche pas de logger une
+  /// lecture passée (le conflit par livre est géré dans
+  /// AddPastSessionPage via _hasActiveSessionOnBook).
+  Future<void> _selectBookAndLogPastRead(BuildContext context) async {
+    final booksService = BooksService();
+
+    try {
+      // Trié par lecture récente : le livre en cours apparaît en premier.
+      final allBooks = await booksService.getUserBooksByLastRead();
+
+      if (!context.mounted) return;
+
+      if (allBooks.isEmpty) {
+        // Cul-de-sac : le snackbar n'offrait aucune suite. On propose
+        // l'action qui débloque réellement — ajouter un livre.
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context).libraryEmpty),
+            action: SnackBarAction(
+              label: AppLocalizations.of(context).scanBookCta,
+              onPressed: () async {
+                final added = await _scanAndAddBook(context);
+                if (added == null || !context.mounted) return;
+                await _selectBookAndLogPastRead(context);
+              },
+            ),
+          ),
+        );
+        return;
+      }
+
+      final selectedBook = await showModalBottomSheet<Book>(
+        context: context,
+        builder: (context) => _UnifiedBookSelectorSheet(books: allBooks),
+      );
+
+      if (selectedBook == null || !context.mounted) return;
+
+      // Pré-remplir la page de départ avec la dernière page connue,
+      // comme dans user_books_page (_addPastSession).
+      final stats = await ReadingSessionService()
+          .getBookStats(selectedBook.id.toString());
+
+      if (!context.mounted) return;
+
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => AddPastSessionPage(
+            book: selectedBook,
+            initialStartPage: stats.currentPage,
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return _ExpandableFAB(
+      onCapturePassagePressed: () => capturePassage(context, source: 'fab'),
       onScanPressed: () => _handleScan(context),
       onLibraryPressed: () => _handleLibrary(context),
+      onLogPastReadPressed: () => _handleLogPastRead(context),
       onAiChatPressed: () => _handleAiChat(context),
       checkActiveSession: () => _checkActiveSession(context),
     );
@@ -140,7 +222,13 @@ class GlobalReadingSessionFAB extends StatelessWidget {
       if (activeSessions.isNotEmpty) {
         final activeSession = activeSessions.first;
 
-        showDialog(
+        // `onCancel` est un VoidCallback appelé juste après le pop du dialog :
+        // on capture le Future qu'il lance pour pouvoir l'attendre ici. Sans
+        // ça, abandonner la session tuait aussi l'action demandée (scanner /
+        // choisir un livre) — il fallait tout recommencer depuis le FAB.
+        Future<bool>? cancelFuture;
+
+        await showDialog(
           context: context,
           builder: (context) => ActiveSessionDialog(
             activeSession: activeSession,
@@ -174,28 +262,51 @@ class GlobalReadingSessionFAB extends StatelessWidget {
                 }
               }
             },
-            onCancel: () async {
+            onCancel: () {
+              cancelFuture = _cancelActiveSession(
+                context,
+                sessionService,
+                activeSession.id.toString(),
+              );
+            },
+            // Changer de livre ne devrait pas coûter la session en cours :
+            // on offre de la terminer proprement, ce qui conserve le temps lu.
+            onEndSession: () async {
               try {
-                await sessionService.cancelSession(activeSession.id.toString());
-
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(AppLocalizations.of(context).sessionAbandoned),
-                      backgroundColor: Colors.orange,
+                final bookData = await _supabase
+                    .from('books')
+                    .select()
+                    .eq('id', int.parse(activeSession.bookId))
+                    .single();
+                final book = Book.fromJson(bookData);
+                if (!context.mounted) return;
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => EndReadingSessionPage(
+                      activeSession: activeSession,
+                      book: book,
                     ),
-                  );
-                }
+                  ),
+                );
               } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red),
-                  );
-                }
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Erreur: $e'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
               }
             },
           ),
         );
+
+        // Session abandonnée : plus rien ne bloque, l'appelant poursuit.
+        if (cancelFuture != null) {
+          final cancelled = await cancelFuture!;
+          return !cancelled;
+        }
         return true; // Session active trouvée
       }
     } catch (e) {
@@ -210,9 +321,37 @@ class GlobalReadingSessionFAB extends StatelessWidget {
     return false; // Pas de session active
   }
 
+  /// Abandonne la session en cours. Renvoie `true` si elle a bien été
+  /// supprimée — auquel cas l'action demandée par l'utilisateur peut reprendre.
+  Future<bool> _cancelActiveSession(
+    BuildContext context,
+    ReadingSessionService sessionService,
+    String sessionId,
+  ) async {
+    try {
+      await sessionService.cancelSession(sessionId);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context).sessionAbandoned),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+      return true;
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red),
+        );
+      }
+      return false;
+    }
+  }
+
   Future<void> _handleScan(BuildContext context) async {
     if (Supabase.instance.client.auth.currentUser == null) {
-      await showRequireAccountSheet(context);
+      await showRequireAccountSheet(context, source: 'fab_scan');
       return;
     }
     if (await _checkActiveSession(context)) return;
@@ -222,7 +361,7 @@ class GlobalReadingSessionFAB extends StatelessWidget {
 
   Future<void> _handleLibrary(BuildContext context) async {
     if (Supabase.instance.client.auth.currentUser == null) {
-      await showRequireAccountSheet(context);
+      await showRequireAccountSheet(context, source: 'fab_library');
       return;
     }
     if (await _checkActiveSession(context)) return;
@@ -230,9 +369,17 @@ class GlobalReadingSessionFAB extends StatelessWidget {
     await _selectFromLibraryAndStart(context);
   }
 
+  Future<void> _handleLogPastRead(BuildContext context) async {
+    if (Supabase.instance.client.auth.currentUser == null) {
+      await showRequireAccountSheet(context, source: 'fab_log_past_read');
+      return;
+    }
+    await _selectBookAndLogPastRead(context);
+  }
+
   void _handleAiChat(BuildContext context) {
     if (Supabase.instance.client.auth.currentUser == null) {
-      showRequireAccountSheet(context);
+      showRequireAccountSheet(context, source: 'fab_ai_chat');
       return;
     }
     Navigator.push(
@@ -244,14 +391,18 @@ class GlobalReadingSessionFAB extends StatelessWidget {
 
 /// FAB Expandable avec design Liquid Glass — utilise un Overlay pour le menu
 class _ExpandableFAB extends StatefulWidget {
+  final VoidCallback onCapturePassagePressed;
   final VoidCallback onScanPressed;
   final VoidCallback onLibraryPressed;
+  final VoidCallback onLogPastReadPressed;
   final VoidCallback onAiChatPressed;
   final Future<bool> Function() checkActiveSession;
 
   const _ExpandableFAB({
+    required this.onCapturePassagePressed,
     required this.onScanPressed,
     required this.onLibraryPressed,
+    required this.onLogPastReadPressed,
     required this.onAiChatPressed,
     required this.checkActiveSession,
   });
@@ -411,7 +562,7 @@ class _ExpandableFABState extends State<_ExpandableFAB> with TickerProviderState
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     _buildLiquidGlassOption(
-                      index: 1,
+                      index: 3,
                       label: l10n.newBook,
                       icon: Icons.camera_alt_rounded,
                       accentColor: const Color(0xFF8B5CF6),
@@ -423,13 +574,43 @@ class _ExpandableFABState extends State<_ExpandableFAB> with TickerProviderState
                     ),
                     const SizedBox(height: 12),
                     _buildLiquidGlassOption(
-                      index: 0,
+                      index: 2,
                       label: l10n.myLibraryFab,
                       icon: Icons.menu_book_rounded,
                       accentColor: const Color(0xFF10B981),
                       onTap: () {
                         _close();
                         widget.onLibraryPressed();
+                      },
+                      isDark: isDark,
+                    ),
+                    const SizedBox(height: 12),
+                    // « J'ai lu » : en bas du menu (le plus proche du pouce),
+                    // au même niveau que le démarrage de session.
+                    _buildLiquidGlassOption(
+                      index: 1,
+                      label: l10n.fabLogPastRead,
+                      icon: Icons.check_circle_rounded,
+                      accentColor: const Color(0xFFF59E0B),
+                      onTap: () {
+                        _close();
+                        widget.onLogPastReadPressed();
+                      },
+                      isDark: isDark,
+                    ),
+                    const SizedBox(height: 12),
+                    // « Garder un passage » : l'action la plus basse, donc la
+                    // plus proche du pouce. C'est la seule qui rend quelque
+                    // chose à l'utilisateur sans rien lui demander en retour
+                    // (ni session, ni numéro de page obligatoire).
+                    _buildLiquidGlassOption(
+                      index: 0,
+                      label: l10n.capturePassageFab,
+                      icon: Icons.format_quote_rounded,
+                      accentColor: const Color(0xFF2563EB),
+                      onTap: () {
+                        _close();
+                        widget.onCapturePassagePressed();
                       },
                       isDark: isDark,
                     ),

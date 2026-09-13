@@ -207,6 +207,38 @@ class UserCustomListsService {
     }
   }
 
+  // ---- Partage ----
+
+  /// Rend la liste publique si besoin et retourne son share_token
+  /// (utilisé pour l'URL web https://www.lexday.fr/liste/{token}).
+  Future<String> ensurePublicShareToken(UserCustomList list) async {
+    if (!list.isPublic) {
+      await updateList(list.id, isPublic: true);
+    }
+    if (list.shareToken != null) return list.shareToken!;
+    final response = await _supabase
+        .from('user_custom_lists')
+        .select('share_token')
+        .eq('id', list.id)
+        .single();
+    return response['share_token'] as String;
+  }
+
+  /// Nom d'affichage du propriétaire d'une liste partagée (profil public).
+  Future<String?> getListOwnerName(String userId) async {
+    try {
+      final response = await _supabase
+          .from('profiles')
+          .select('display_name')
+          .eq('id', userId)
+          .maybeSingle();
+      return response?['display_name'] as String?;
+    } catch (e) {
+      debugPrint('Erreur getListOwnerName: $e');
+      return null;
+    }
+  }
+
   // ---- Book management ----
 
   Future<void> addBookToList(int listId, int bookId) async {

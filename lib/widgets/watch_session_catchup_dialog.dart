@@ -58,8 +58,8 @@ class _WatchSessionCatchupDialogState extends State<WatchSessionCatchupDialog> {
     try {
       final photo = await ImagePicker().pickImage(
         source: ImageSource.camera,
-        maxWidth: 1500,
-        imageQuality: 85,
+        maxWidth: 2400,
+        imageQuality: 92,
       );
       if (photo == null || !mounted) return;
       setState(() {

@@ -51,3 +51,10 @@ entrypoint = "./functions/moderate-comment/index.ts"
 enabled = true
 verify_jwt = false
 entrypoint = "./functions/notion-oauth-redirect/index.ts"
+
+# Appelée uniquement par le trigger SQL `trg_report_email_after_insert`
+# (Bearer service_role via Vault). Auth service_role vérifiée en code.
+[functions.send-report-email]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/send-report-email/index.ts"

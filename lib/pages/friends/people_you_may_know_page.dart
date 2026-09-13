@@ -131,18 +131,36 @@ class _PeopleYouMayKnowPageState extends State<PeopleYouMayKnowPage> {
         _loading = false;
       });
 
-      // Pré-charge les relations existantes pour pré-griser les boutons
-      // « Ajouter » des utilisateurs déjà invités/amis (sinon retap → erreur).
+      // Pré-charge les relations existantes : les demandes pending grisent le
+      // bouton « Ajouter » en « En attente » (garde anti-retap), tandis que
+      // les amitiés déjà acceptées sont retirées des suggestions (couvre le
+      // fallback profils publics, qui ne filtre pas les relations existantes
+      // côté requête).
       final ids = <String>{
         ...pymk.map((p) => p.userId),
         ...filteredReaders
             .map((r) => r['user_id'] as String? ?? '')
             .where((id) => id.isNotEmpty),
       };
-      final related =
-          await _contactsService.getExistingRelationUserIds(ids);
-      if (!mounted || related.isEmpty) return;
-      setState(() => _requested.addAll(related));
+      final statuses =
+          await _contactsService.getRelationStatusesByUserId(ids);
+      if (!mounted || statuses.isEmpty) return;
+      final accepted = statuses.entries
+          .where((e) => e.value == 'accepted')
+          .map((e) => e.key)
+          .toSet();
+      final pending = statuses.keys.where((id) => !accepted.contains(id));
+      setState(() {
+        _requested.addAll(pending);
+        if (accepted.isNotEmpty) {
+          _suggestions = _suggestions
+              .where((s) => !accepted.contains(s.userId))
+              .toList();
+          _popularReaders = _popularReaders
+              .where((r) => !accepted.contains(r['user_id'] as String? ?? ''))
+              .toList();
+        }
+      });
     } catch (_) {
       if (!mounted) return;
       setState(() => _loading = false);

@@ -75,6 +75,18 @@ class _ReferralPageState extends State<ReferralPage> {
     _snack('Code copié !');
   }
 
+  /// Colle le contenu du presse-papier dans le champ, s'il ressemble à un
+  /// code de parrainage. Déclenché uniquement par un tap de l'utilisateur.
+  Future<void> _pasteCode() async {
+    final data = await Clipboard.getData(Clipboard.kTextPlain);
+    final text = (data?.text ?? '').trim().toUpperCase();
+    if (!RegExp(r'^[A-Z0-9]{4,16}$').hasMatch(text)) {
+      _snack('Aucun code valide dans le presse-papier');
+      return;
+    }
+    setState(() => _codeController.text = text);
+  }
+
   Future<void> _applyEnteredCode() async {
     final code = _codeController.text.trim();
     if (code.isEmpty || _applying) return;
@@ -230,6 +242,17 @@ class _ReferralPageState extends State<ReferralPage> {
                           ),
                         ),
                         const SizedBox(width: 12),
+                        // iOS n'a pas d'attribution différée : le filleul
+                        // arrive avec le code dans le presse-papier (la page
+                        // /r/CODE propose de le copier). Lecture uniquement
+                        // sur action explicite — un accès silencieux
+                        // déclencherait l'alerte système « a collé depuis ».
+                        IconButton(
+                          tooltip: 'Coller le code',
+                          icon: const Icon(Icons.content_paste_rounded),
+                          onPressed: _applying ? null : _pasteCode,
+                        ),
+                        const SizedBox(width: 4),
                         FilledButton(
                           onPressed: _applying ? null : _applyEnteredCode,
                           child: _applying

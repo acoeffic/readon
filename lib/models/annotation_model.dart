@@ -3,7 +3,11 @@
 enum AnnotationType {
   text,
   photo,
-  voice;
+  voice,
+
+  /// Surlignage importé depuis le Kindle de l'utilisateur
+  /// (scraping de read.amazon.com/notebook par le sync auto).
+  kindle;
 
   static AnnotationType fromString(String value) {
     return AnnotationType.values.firstWhere(
@@ -24,6 +28,14 @@ class Annotation {
   final String? imagePath;
   final String? audioPath;
   final String? aiSummary;
+
+  /// Note personnelle attachée au surlignage (import Kindle uniquement).
+  final String? note;
+
+  /// Clé de déduplication des passages importés (voir migration
+  /// 20260820_kindle_highlights_annotations). NULL pour les annotations
+  /// créées dans l'app.
+  final String? sourceKey;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -38,6 +50,8 @@ class Annotation {
     this.imagePath,
     this.audioPath,
     this.aiSummary,
+    this.note,
+    this.sourceKey,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -54,6 +68,8 @@ class Annotation {
       imagePath: json['image_path'] as String?,
       audioPath: json['audio_path'] as String?,
       aiSummary: json['ai_summary'] as String?,
+      note: json['note'] as String?,
+      sourceKey: json['source_key'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String).toLocal(),
       updatedAt: DateTime.parse(json['updated_at'] as String).toLocal(),
     );
@@ -71,6 +87,8 @@ class Annotation {
       'image_path': imagePath,
       'audio_path': audioPath,
       'ai_summary': aiSummary,
+      'note': note,
+      'source_key': sourceKey,
       'created_at': createdAt.toUtc().toIso8601String(),
       'updated_at': updatedAt.toUtc().toIso8601String(),
     };
@@ -87,6 +105,8 @@ class Annotation {
     String? imagePath,
     String? audioPath,
     String? aiSummary,
+    String? note,
+    String? sourceKey,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -101,6 +121,8 @@ class Annotation {
       imagePath: imagePath ?? this.imagePath,
       audioPath: audioPath ?? this.audioPath,
       aiSummary: aiSummary ?? this.aiSummary,
+      note: note ?? this.note,
+      sourceKey: sourceKey ?? this.sourceKey,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
