@@ -43,6 +43,20 @@ subprojects {
                     sourceCompatibility = JavaVersion.VERSION_11
                     targetCompatibility = JavaVersion.VERSION_11
                 }
+            // Certains plugins (workmanager 0.7.0) fixent jvmTarget = 1.8 via
+            // `android.kotlinOptions`, que le plugin Kotlin applique APRÈS
+            // l'évaluation du sous-projet — ce qui écrase le configureEach
+            // ci-dessus. On repasse donc derrière eux, dans afterEvaluate,
+            // à la fois sur l'extension Kotlin et sur les tâches.
+            extensions.findByType(org.jetbrains.kotlin.gradle.dsl.KotlinAndroidProjectExtension::class.java)
+                ?.compilerOptions
+                ?.jvmTarget
+                ?.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
+            tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+                compilerOptions {
+                    jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
+                }
+            }
         }
     }
 }
