@@ -4030,6 +4030,12 @@ abstract class AppLocalizations {
   /// **'Ajouter à la liste'**
   String get addToThisList;
 
+  /// No description provided for @addToMyLibrary.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajouter à ma bibliothèque'**
+  String get addToMyLibrary;
+
   /// No description provided for @seeAllAuthorBooks.
   ///
   /// In fr, this message translates to:

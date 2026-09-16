@@ -2185,6 +2185,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get addToThisList => 'Add to the list';
 
   @override
+  String get addToMyLibrary => 'Add to my library';
+
+  @override
   String get seeAllAuthorBooks => 'See all their books';
 
   @override

@@ -2214,6 +2214,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get addToThisList => 'Ajouter à la liste';
 
   @override
+  String get addToMyLibrary => 'Ajouter à ma bibliothèque';
+
+  @override
   String get seeAllAuthorBooks => 'Voir tous ses livres';
 
   @override

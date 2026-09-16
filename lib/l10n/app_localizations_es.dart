@@ -2207,6 +2207,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get addToThisList => 'Añadir a la lista';
 
   @override
+  String get addToMyLibrary => 'Añadir a mi biblioteca';
+
+  @override
   String get seeAllAuthorBooks => 'Ver todos sus libros';
 
   @override

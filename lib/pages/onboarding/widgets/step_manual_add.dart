@@ -136,6 +136,7 @@ class _StepManualAddState extends State<StepManualAdd> {
             children: [
               Expanded(
                 child: TextField(
+                  textCapitalization: TextCapitalization.sentences,
                   controller: _searchController,
                   decoration: const InputDecoration(
                     hintText: 'Titre ou auteur...',
