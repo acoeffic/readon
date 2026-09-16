@@ -963,6 +963,7 @@ class _UnifiedBookSelectorSheetState extends State<_UnifiedBookSelectorSheet> {
           Semantics(
             identifier: 'book_search_field',
             child: TextField(
+              textCapitalization: TextCapitalization.sentences,
               decoration: InputDecoration(
                 hintText: AppLocalizations.of(context).searchEllipsis,
                 prefixIcon: const Icon(Icons.search),

@@ -1528,6 +1528,7 @@ class _AnnotationBottomSheetState extends State<_AnnotationBottomSheet> {
                 // Content text field (hidden in voice mode until recording is done)
                 if (_mode != _AnnotationMode.voice || _hasRecording) ...[
                   TextField(
+                    textCapitalization: TextCapitalization.sentences,
                     controller: _contentController,
                     minLines: 4,
                     maxLines: 10,

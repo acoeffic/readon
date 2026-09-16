@@ -517,6 +517,7 @@ class _PassageBookPickerState extends State<_PassageBookPicker> {
           ),
           const SizedBox(height: 8),
           TextField(
+            textCapitalization: TextCapitalization.sentences,
             decoration: InputDecoration(
               hintText: l.searchEllipsis,
               prefixIcon: const Icon(Icons.search),

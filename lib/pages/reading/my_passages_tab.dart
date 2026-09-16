@@ -171,6 +171,7 @@ class _MyPassagesTabState extends State<MyPassagesTab>
             children: [
               Expanded(
                 child: TextField(
+                  textCapitalization: TextCapitalization.sentences,
                   decoration: InputDecoration(
                     hintText: l.myPassagesSearchHint,
                     prefixIcon: const Icon(Icons.search, size: 20),
