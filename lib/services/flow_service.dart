@@ -127,6 +127,30 @@ class FlowService {
     }
   }
 
+  /// Jours de lecture Kindle (calendrier Amazon, table `kindle_read_days`,
+  /// alimentée par le sync Kindle). Own rows uniquement (RLS), comme les
+  /// freezes : le flow d'un ami ne les inclut pas.
+  Future<List<DateTime>> getKindleReadDays() async {
+    try {
+      final userId = _supabase.auth.currentUser?.id;
+      if (userId == null) return [];
+      final rows = await _supabase
+          .from('kindle_read_days')
+          .select('day')
+          .eq('user_id', userId)
+          .order('day', ascending: false)
+          .limit(2000);
+      return (rows as List)
+          .map((r) => DateTime.tryParse(r['day'] as String? ?? ''))
+          .whereType<DateTime>()
+          .map((d) => DateTime(d.year, d.month, d.day))
+          .toList();
+    } catch (e) {
+      debugPrint('Erreur getKindleReadDays: $e');
+      return [];
+    }
+  }
+
   /// Vérifie si un auto-freeze doit être appliqué (fallback client du cron serveur).
   /// Fonctionne pour tous les utilisateurs (le SQL gère les limites free/premium).
   Future<bool> checkAndUseAutoFreeze() async {
@@ -192,17 +216,27 @@ class FlowService {
           .not('end_time', 'is', null)
           .order('end_time', ascending: false);
 
-      // Récupérer les dates frozen et le statut du freeze en parallèle
+      // Récupérer les dates frozen, le statut du freeze et les jours Kindle
+      // en parallèle
       final freezeResults = await Future.wait([
         getFrozenDates(),
         getFreezeStatus(),
+        getKindleReadDays(),
       ]);
       final frozenDates = freezeResults[0] as List<DateTime>;
       final freezeStatus = freezeResults[1] as FlowFreezeStatus;
+      final kindleDays = freezeResults[2] as List<DateTime>;
 
       // Extraire les dates uniques (format YYYY-MM-DD)
       final Set<String> uniqueDates = {};
       final List<DateTime> readDates = [];
+
+      // Un jour lu sur Kindle (selon Amazon) vaut un jour lu — même sans
+      // session LexDay. Miroir serveur : get_user_streak_stats.
+      for (final d in kindleDays) {
+        final key = _dateToKey(d);
+        if (uniqueDates.add(key)) readDates.add(d);
+      }
 
       for (final session in response) {
         final endTime = session['end_time'] as String?;
@@ -548,6 +582,12 @@ class FlowService {
           .limit(1000);
 
       final Map<String, int> history = {};
+
+      // Jours Kindle : comptent comme une lecture le jour dit (heatmap).
+      for (final d in await getKindleReadDays()) {
+        final key = _dateToKey(d);
+        history[key] = (history[key] ?? 0) + 1;
+      }
 
       for (final session in response as List) {
         final endTime = session['end_time'] as String?;

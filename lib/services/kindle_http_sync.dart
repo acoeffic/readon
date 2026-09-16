@@ -19,6 +19,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import 'books_service.dart';
+import 'kindle_auto_sync_service.dart';
 import 'kindle_webview_service.dart';
 
 class KindleHttpSyncResult {
@@ -226,12 +227,16 @@ class KindleHttpSync {
           final prev = stored[b.asin];
           return prev != null && b.percentComplete! > prev;
         });
-        if (hasDelta) {
+        final gate = KindleAutoSyncService();
+        if (hasDelta || await gate.isCalendarSyncDue()) {
           final r = await _get(insightsUrl);
           if (r.statusCode == 200) {
             final days = parseInsightsDaysRead(r.body);
             if (days.isNotEmpty) {
               calendar = KindleInsightsCalendar(daysRead: days, finishedAt: const {});
+              // Jours lus → flamme, même sans delta de progression.
+              await booksService.upsertKindleReadDays(days);
+              await gate.recordCalendarSync();
             }
           }
         }

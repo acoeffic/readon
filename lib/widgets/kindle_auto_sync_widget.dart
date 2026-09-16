@@ -530,6 +530,12 @@ class _KindleAutoSyncWidgetState extends State<KindleAutoSyncWidget> {
         'KindleAutoSync: calendrier Amazon — '
         '${_calendar?.daysRead.length ?? 0} jours lus, dernier: $last',
       );
+      // Jours lus → flamme (table kindle_read_days), une fois par jour.
+      final days = _calendar?.daysRead;
+      if (days != null && days.isNotEmpty) {
+        await BooksService().upsertKindleReadDays(days);
+        await _autoSyncService.recordCalendarSync();
+      }
     } catch (e) {
       debugPrint('KindleAutoSync: calendrier Amazon KO: $e');
     }
@@ -923,7 +929,11 @@ class _KindleAutoSyncWidgetState extends State<KindleAutoSyncWidget> {
       }
       // Mini-sync : le sync complet a déjà lu le calendrier sur Insights ;
       // ici on ne charge la page que s'il y a un delta à dater.
-      if (_progressOnly && _calendar == null && !_disposed && await _hasProgressDelta()) {
+      if (_progressOnly &&
+          _calendar == null &&
+          !_disposed &&
+          (await _hasProgressDelta() ||
+              await _autoSyncService.isCalendarSyncDue())) {
         try {
           await _controller.loadRequest(Uri.parse(_readingInsightsUrl));
           if (await _waitForHost('www.amazon.com')) {

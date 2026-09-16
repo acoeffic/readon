@@ -230,6 +230,25 @@ class KindleAutoSyncService {
     }
   }
 
+  // ─── Calendrier Amazon (jours lus → flamme) ───
+  static const String _calendarSyncedAtKey = 'kindle_calendar_synced_at';
+  static const Duration _calendarSyncInterval = Duration(hours: 20);
+
+  /// Le mini-sync / l'arrière-plan doivent-ils recharger Insights pour
+  /// rafraîchir `kindle_read_days` ? Une fois par jour suffit (en plus des
+  /// cas « delta à dater »).
+  Future<bool> isCalendarSyncDue() async {
+    final prefs = await SharedPreferences.getInstance();
+    final at = DateTime.tryParse(prefs.getString(_calendarSyncedAtKey) ?? '');
+    if (at == null) return true;
+    return DateTime.now().difference(at) >= _calendarSyncInterval;
+  }
+
+  Future<void> recordCalendarSync() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_calendarSyncedAtKey, DateTime.now().toIso8601String());
+  }
+
   /// Sync mené à son terme : on repart d'un backoff neuf.
   Future<void> recordSuccess() async {
     final prefs = await SharedPreferences.getInstance();
