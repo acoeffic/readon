@@ -386,6 +386,7 @@ class _RateBookSheetState extends State<_RateBookSheet> {
         const SizedBox(height: 16),
         // Avis texte
         TextField(
+          textCapitalization: TextCapitalization.sentences,
           controller: _reviewController,
           enabled: !_submitting,
           maxLines: 3,

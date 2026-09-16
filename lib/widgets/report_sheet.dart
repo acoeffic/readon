@@ -213,6 +213,7 @@ class _ReportSheetState extends State<_ReportSheet> {
               }),
               const SizedBox(height: 12),
               TextField(
+                textCapitalization: TextCapitalization.sentences,
                 controller: _detailsController,
                 enabled: !_submitting,
                 maxLines: 3,

@@ -304,6 +304,7 @@ class _AddBookToListPageState extends State<AddBookToListPage>
         Padding(
           padding: const EdgeInsets.fromLTRB(AppSpace.m, AppSpace.m, AppSpace.m, 0),
           child: TextField(
+            textCapitalization: TextCapitalization.sentences,
             decoration: InputDecoration(
               hintText: AppLocalizations.of(context).filterLibrary,
               prefixIcon: const Icon(LucideIcons.search, size: 18),
@@ -383,6 +384,7 @@ class _AddBookToListPageState extends State<AddBookToListPage>
         Padding(
           padding: const EdgeInsets.all(AppSpace.m),
           child: TextField(
+            textCapitalization: TextCapitalization.sentences,
             controller: _searchController,
             autofocus: false,
             textInputAction: TextInputAction.search,

@@ -505,6 +505,7 @@ class _CommentsSheetState extends State<CommentsSheet> {
           children: [
             Expanded(
               child: TextField(
+                textCapitalization: TextCapitalization.sentences,
                 controller: _controller,
                 focusNode: _focusNode,
                 decoration: InputDecoration(
