@@ -390,6 +390,7 @@ class _UserBooksPageState extends State<UserBooksPage> {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
       child: TextField(
+        textCapitalization: TextCapitalization.sentences,
         controller: _searchController,
         decoration: InputDecoration(
           hintText: l10n.searchBook,
@@ -3311,6 +3312,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
+              textCapitalization: TextCapitalization.sentences,
               controller: contentController,
               minLines: 4,
               maxLines: 10,

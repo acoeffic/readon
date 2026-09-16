@@ -16,6 +16,8 @@ import '../../widgets/google_book_result_card.dart';
 ///   (utilisé depuis la recherche manuelle, qui pop elle-même ensuite).
 /// - [listId] fourni : tap → fiche du livre, ajout à la liste, puis pop
 ///   avec `true` pour que la page appelante revienne à la liste.
+/// - ni l'un ni l'autre (recherche globale) : tap → fiche du livre, ajout
+///   direct à la bibliothèque de l'utilisateur (statut « à lire »).
 class AuthorBooksPage extends StatefulWidget {
   final String author;
   final bool selectionMode;
@@ -66,8 +68,39 @@ class _AuthorBooksPageState extends State<AuthorBooksPage> {
     }
   }
 
+  bool get _libraryMode => !widget.selectionMode && widget.listId == null;
+
+  /// Mode bibliothèque : ajout direct à la bibliothèque (pas de pop).
+  Future<void> _addToLibrary(GoogleBook googleBook) async {
+    if (_addedGoogleIds.contains(googleBook.id)) return;
+    setState(() => _addedGoogleIds.add(googleBook.id));
+    try {
+      await _booksService.addBookFromGoogleBooks(googleBook);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)
+                .bookAddedToLibrary(googleBook.title)),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _addedGoogleIds.remove(googleBook.id));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text(AppLocalizations.of(context)
+                  .errorGeneric(e.toString())),
+              backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
   Future<void> _addToList(GoogleBook googleBook) async {
-    if (widget.listId == null) return;
+    if (widget.listId == null) return _addToLibrary(googleBook);
     if (_addedGoogleIds.contains(googleBook.id)) return;
 
     setState(() => _addedGoogleIds.add(googleBook.id));
@@ -107,11 +140,13 @@ class _AuthorBooksPageState extends State<AuthorBooksPage> {
       Navigator.of(context).pop(googleBook);
       return;
     }
+    final l10n = AppLocalizations.of(context);
     showGoogleBookPreviewSheet(
       context,
       googleBook: googleBook,
       isAdded: _addedGoogleIds.contains(googleBook.id),
       onAdd: () => _addToList(googleBook),
+      addButtonLabel: _libraryMode ? l10n.addToMyLibrary : null,
     );
   }
 

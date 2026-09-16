@@ -298,12 +298,23 @@ class GoogleBooksService {
     final cached = _searchCache[cacheKey];
     if (cached != null) return cached;
 
+    // Google Books indexe le texte intégral : « un coup de hache » sans
+    // guillemets matche des dictionnaires numérisés du XIXe qui contiennent
+    // ces mots. Et `intitle:un coup de hache` n'applique intitle qu'au 1er
+    // mot. On lance donc 3 requêtes en parallèle :
+    //  1. phrase exacte dans le titre, FR  → le bon livre en tête
+    //  2. phrase exacte dans le titre, toutes langues
+    //  3. requête brute FR → tolère un dernier mot incomplet pendant la frappe
+    final phrase = q.replaceAll('"', '');
     final results = await Future.wait([
+      searchBooks('intitle:"$phrase"', langRestrict: true, fast: true),
+      searchBooks('intitle:"$phrase"', fast: true),
       searchBooks(q, langRestrict: true, fast: true),
-      searchBooks('intitle:$q', fast: true),
     ]);
 
-    final merged = mergeAndRank(results[0], results[1], query: q);
+    final merged = mergeAndRank(
+        [...results[0], ...results[1]], results[2],
+        query: q);
 
     if (merged.isNotEmpty) {
       _searchCache[cacheKey] = merged;
@@ -350,6 +361,25 @@ class GoogleBooksService {
     return all;
   }
 
+  /// Minuscules, sans accents ni ponctuation, espaces réduits.
+  static String _normalize(String s) {
+    const from = 'àâäáãåçéèêëíìîïñóòôöõúùûüýÿœæ';
+    const to = 'aaaaaaceeeeiiiinooooouuuuyyoa';
+    final sb = StringBuffer();
+    for (final ch in s.toLowerCase().runes) {
+      final c = String.fromCharCode(ch);
+      final i = from.indexOf(c);
+      if (i >= 0) {
+        sb.write(to[i]);
+      } else if (RegExp(r'[a-z0-9 ]').hasMatch(c)) {
+        sb.write(c);
+      } else {
+        sb.write(' ');
+      }
+    }
+    return sb.toString().replaceAll(RegExp(r'\s+'), ' ').trim();
+  }
+
   /// Score de pertinence : plus c'est haut, plus c'est pertinent.
   /// [query] permet de booster les correspondances de titre exactes.
   static int relevanceScore(GoogleBook book, {String? query}) {
@@ -357,15 +387,32 @@ class GoogleBooksService {
 
     // Correspondance du titre avec la requête tapée
     if (query != null && query.isNotEmpty) {
-      final title = book.title.toLowerCase().trim();
-      final q = query.toLowerCase().trim();
+      final title = _normalize(book.title);
+      final q = _normalize(query);
       if (title == q) {
-        score += 8;
+        score += 10;
       } else if (title.startsWith(q)) {
-        score += 5;
+        score += 7;
       } else if (title.contains(q)) {
-        score += 2;
+        score += 4;
+      } else {
+        // Proportion des mots de la requête présents dans le titre
+        // (tolère un dernier mot incomplet pendant la frappe).
+        final words = q.split(' ').where((w) => w.length >= 2).toList();
+        if (words.isNotEmpty) {
+          final hits = words.where((w) => title.contains(w)).length;
+          score += (4 * hits / words.length).round();
+        }
       }
+    }
+
+    // Vieux scans plein texte (dictionnaires, journaux du XIXe) : pénalité
+    final year = int.tryParse((book.publishedDate ?? '').split('-').first);
+    if (year != null && year < 1950) {
+      score -= 4;
+    }
+    if (book.isbns.isEmpty) {
+      score -= 2;
     }
 
     if (book.language == 'fr') {

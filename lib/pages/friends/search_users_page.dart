@@ -1,17 +1,26 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/book.dart';
 import '../../services/books_service.dart';
+import '../../services/google_books_service.dart';
+import '../../services/trending_books_service.dart';
 import '../../services/mutual_friends_service.dart';
 import '../../services/people_you_may_know_service.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/author_result_card.dart';
 import '../../widgets/back_header.dart';
+import '../../widgets/google_book_preview_sheet.dart';
+import '../../widgets/google_book_result_card.dart';
+import '../../widgets/require_account_sheet.dart';
 import '../../widgets/mutual_friends_badge.dart';
 import '../../widgets/user_search_card.dart';
 import '../../models/reading_group.dart';
 import '../../models/user_search_result.dart';
+import '../books/author_books_page.dart';
 import '../groups/group_detail_page.dart';
 import 'friend_profile_page.dart';
 import 'people_you_may_know_page.dart';
@@ -30,6 +39,8 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
   final _booksService = BooksService();
   final _mutualFriendsService = MutualFriendsService();
   final _peopleService = PeopleYouMayKnowService();
+  final _googleBooksService = GoogleBooksService();
+  final _trendingService = TrendingBooksService();
   List<UserSearchResult> _userResults = [];
   List<ReadingGroup> _groupResults = [];
   Map<String, bool> _pendingRequests = {}; // user_id -> isPending
@@ -38,14 +49,44 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
   List<UserSearchResult> _suggestions = [];
   bool _loadingSuggestions = true;
   bool _loading = false;
-  int _selectedTab = 0; // 0 = Amis, 1 = Groupes
+  int _selectedTab = 0; // 0 = Amis, 1 = Groupes, 2 = Livres
   Book? _currentReadingBook;
+
+  // ── Onglet Livres (Google Books, même moteur que la recherche manuelle)
+  Timer? _bookDebounce;
+  int _bookSearchSeq = 0;
+  List<GoogleBook> _bookResults = [];
+  String? _detectedAuthor;
+  String _lastBookQuery = '';
+  // google_id des livres déjà dans la bibliothèque → coche + bouton grisé.
+  final Set<String> _libraryGoogleIds = {};
 
   @override
   void initState() {
     super.initState();
     _loadCurrentBook();
     _loadSuggestions();
+    _loadLibraryGoogleIds();
+  }
+
+  Future<void> _loadLibraryGoogleIds() async {
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == null) return;
+    try {
+      final data = await Supabase.instance.client
+          .from('user_books')
+          .select('books(google_id)')
+          .eq('user_id', userId);
+      if (!mounted) return;
+      final ids = <String>{};
+      for (final row in (data as List)) {
+        final gid = (row['books'] as Map?)?['google_id'] as String?;
+        if (gid != null && gid.isNotEmpty) ids.add(gid);
+      }
+      setState(() => _libraryGoogleIds.addAll(ids));
+    } catch (e) {
+      debugPrint('Erreur _loadLibraryGoogleIds: $e');
+    }
   }
 
   Future<void> _loadSuggestions() async {
@@ -107,6 +148,10 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
   }
 
   Future<void> _search(String term) async {
+    if (_selectedTab == 2) {
+      _onBookQueryChanged(term);
+      return;
+    }
     final query = term.trim();
     if (query.length < 2) {
       setState(() {
@@ -214,6 +259,135 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
         SnackBar(content: Text(AppLocalizations.of(context).errorDuringSearch)),
       );
     }
+  }
+
+  // ── Livres ─────────────────────────────────────────────────────────
+
+  void _onBookQueryChanged(String value) {
+    _bookDebounce?.cancel();
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) {
+      _bookSearchSeq++;
+      setState(() {
+        _bookResults = [];
+        _detectedAuthor = null;
+        _lastBookQuery = '';
+        _loading = false;
+      });
+      return;
+    }
+    if (trimmed.length < 3) {
+      setState(() => _loading = false);
+      return;
+    }
+    _bookDebounce = Timer(const Duration(milliseconds: 350), () {
+      _runBookSearch(trimmed);
+    });
+  }
+
+  bool _looksLikeIsbn(String query) {
+    final clean = query.replaceAll(RegExp(r'[\s\-]'), '');
+    if (clean.length == 13 &&
+        (clean.startsWith('978') || clean.startsWith('979'))) {
+      return true;
+    }
+    return clean.length == 10 && RegExp(r'^\d{9}[\dXx]$').hasMatch(clean);
+  }
+
+  Future<void> _runBookSearch(String query) async {
+    final seq = ++_bookSearchSeq;
+    setState(() {
+      _loading = true;
+      _lastBookQuery = query;
+    });
+    try {
+      List<GoogleBook> results;
+      if (_looksLikeIsbn(query)) {
+        final clean = query.replaceAll(RegExp(r'[\s\-]'), '');
+        final book = await _googleBooksService.searchByISBN(clean);
+        results =
+            book != null ? [book] : await _googleBooksService.searchBooks(clean);
+      } else {
+        results = await _googleBooksService.searchBooksRanked(query);
+        if (results.length > 1) {
+          final popularity = await _trendingService.getPopularity(results);
+          if (seq == _bookSearchSeq) {
+            results =
+                TrendingBooksService.boostByPopularity(results, popularity);
+          }
+        }
+      }
+      if (!mounted || seq != _bookSearchSeq) return;
+      setState(() {
+        _bookResults = results;
+        _detectedAuthor = _looksLikeIsbn(query)
+            ? null
+            : GoogleBooksService.detectAuthorQuery(query, results);
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted || seq != _bookSearchSeq) return;
+      setState(() => _loading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context).errorGoogleBooks)),
+      );
+    }
+  }
+
+  /// Ajout direct à la bibliothèque (statut « à lire »), comme la fiche
+  /// de recherche manuelle.
+  Future<void> _addBookToLibrary(GoogleBook googleBook) async {
+    if (Supabase.instance.client.auth.currentUser == null) {
+      await showRequireAccountSheet(context, source: 'search_books');
+      return;
+    }
+    if (_libraryGoogleIds.contains(googleBook.id)) return;
+    setState(() => _libraryGoogleIds.add(googleBook.id));
+    try {
+      await _booksService.addBookFromGoogleBooks(googleBook);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+              AppLocalizations.of(context).bookAddedToLibrary(googleBook.title)),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    } catch (e) {
+      debugPrint('Erreur _addBookToLibrary: $e');
+      if (!mounted) return;
+      setState(() => _libraryGoogleIds.remove(googleBook.id));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context).errorGeneric(e.toString())),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  void _openBookSheet(GoogleBook googleBook) {
+    showGoogleBookPreviewSheet(
+      context,
+      googleBook: googleBook,
+      isAdded: _libraryGoogleIds.contains(googleBook.id),
+      onAdd: () => _addBookToLibrary(googleBook),
+      addButtonLabel: AppLocalizations.of(context).addToMyLibrary,
+    );
+  }
+
+  Future<void> _openAuthorBooks(String author) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => AuthorBooksPage(
+          author: author,
+          existingGoogleIds: _libraryGoogleIds,
+        ),
+      ),
+    );
+    // Un livre a pu être ajouté depuis la page auteur.
+    _loadLibraryGoogleIds();
   }
 
   Future<void> _checkPendingRequests(List<String> userIds) async {
@@ -340,18 +514,29 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
   }
 
   void _switchTab(int index) {
+    if (index == _selectedTab) return;
+    _bookDebounce?.cancel();
+    _bookSearchSeq++;
     setState(() {
       _selectedTab = index;
       _userResults = [];
       _groupResults = [];
+      _bookResults = [];
+      _detectedAuthor = null;
+      _lastBookQuery = '';
+      _loading = false;
     });
-    if (_controller.text.trim().length >= 2) {
+    final text = _controller.text.trim();
+    if (index == 2) {
+      if (text.length >= 3) _runBookSearch(text);
+    } else if (text.length >= 2) {
       _search(_controller.text);
     }
   }
 
   @override
   void dispose() {
+    _bookDebounce?.cancel();
     _controller.dispose();
     super.dispose();
   }
@@ -384,56 +569,9 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
                 padding: const EdgeInsets.all(4),
                 child: Row(
                   children: [
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () => _switchTab(0),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                          decoration: BoxDecoration(
-                            color: _selectedTab == 0
-                                ? AppColors.primary
-                                : Colors.transparent,
-                            borderRadius: BorderRadius.circular(AppRadius.m),
-                          ),
-                          child: Center(
-                            child: Text(
-                              l.friends,
-                              style: TextStyle(
-                                color: _selectedTab == 0
-                                    ? AppColors.white
-                                    : AppColors.primary,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () => _switchTab(1),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                          decoration: BoxDecoration(
-                            color: _selectedTab == 1
-                                ? AppColors.primary
-                                : Colors.transparent,
-                            borderRadius: BorderRadius.circular(AppRadius.m),
-                          ),
-                          child: Center(
-                            child: Text(
-                              l.groups,
-                              style: TextStyle(
-                                color: _selectedTab == 1
-                                    ? AppColors.white
-                                    : AppColors.primary,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
+                    _buildTab(0, l.friends),
+                    _buildTab(1, l.groups),
+                    _buildTab(2, l.books),
                   ],
                 ),
               ),
@@ -441,11 +579,14 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
               const SizedBox(height: AppSpace.m),
 
               TextField(
+                textCapitalization: TextCapitalization.sentences,
                 controller: _controller,
                 decoration: InputDecoration(
-                  hintText: _selectedTab == 0
-                      ? l.searchByName
-                      : l.groupName,
+                  hintText: switch (_selectedTab) {
+                    0 => l.searchByName,
+                    1 => l.groupName,
+                    _ => l.searchBookHint,
+                  },
                   prefixIcon: const Icon(Icons.search),
                 ),
                 onChanged: _search,
@@ -454,76 +595,12 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
               const SizedBox(height: AppSpace.m),
               if (_loading) const LinearProgressIndicator(),
 
-              // Bouton partager l'app (onglet Amis uniquement)
-              if (_selectedTab == 0) ...[
-                GestureDetector(
-                  onTap: _shareApp,
-                  child: Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: AppColors.feedHeader,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.feedHeader.withValues(alpha: 0.3),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Icon(Icons.share, size: 20, color: Colors.white),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                l.inviteToRead,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 15,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                l.shareWhatYouRead,
-                                style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.8),
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Icon(
-                          Icons.arrow_forward_ios,
-                          size: 16,
-                          color: Colors.white.withValues(alpha: 0.7),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: AppSpace.s),
-                _buildDiscoverReadersCta(l),
-                const SizedBox(height: AppSpace.m),
-              ],
-
               Expanded(
-                child: _selectedTab == 0
-                    ? _buildUserResults(l)
-                    : _buildGroupResults(l),
+                child: switch (_selectedTab) {
+                  0 => _buildUserResults(l),
+                  1 => _buildGroupResults(l),
+                  _ => _buildBookResults(l),
+                },
               ),
             ],
           ),
@@ -533,47 +610,243 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
     );
   }
 
+  Widget _buildTab(int index, String label) {
+    final selected = _selectedTab == index;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => _switchTab(index),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: selected ? AppColors.primary : Colors.transparent,
+            borderRadius: BorderRadius.circular(AppRadius.m),
+          ),
+          child: Center(
+            child: Text(
+              label,
+              style: TextStyle(
+                color: selected ? AppColors.white : AppColors.primary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBookResults(AppLocalizations l) {
+    if (_bookResults.isEmpty && !_loading) {
+      return Center(
+        child: Text(
+          _lastBookQuery.isNotEmpty ? l.noResult : l.searchBookHint,
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
+      );
+    }
+    final hasAuthorCard = _detectedAuthor != null;
+    return ListView.builder(
+      padding: EdgeInsets.zero,
+      itemCount: _bookResults.length + (hasAuthorCard ? 1 : 0),
+      itemBuilder: (context, index) {
+        if (hasAuthorCard && index == 0) {
+          return AuthorResultCard(
+            authorName: _detectedAuthor!,
+            padding: const EdgeInsets.only(bottom: AppSpace.s),
+            onTap: () => _openAuthorBooks(_detectedAuthor!),
+          );
+        }
+        final googleBook = _bookResults[hasAuthorCard ? index - 1 : index];
+        return GoogleBookResultCard(
+          googleBook: googleBook,
+          isAdded: _libraryGoogleIds.contains(googleBook.id),
+          onAdd: () => _addBookToLibrary(googleBook),
+          onTap: () => _openBookSheet(googleBook),
+        );
+      },
+    );
+  }
+
   Widget _buildUserResults(AppLocalizations l) {
     final hasQuery = _controller.text.trim().length >= 2;
 
-    // Pas de recherche en cours → on tente de remplir le vide avec des
-    // suggestions multi-signal au lieu du message « tape 2 caractères ».
+    // Pas de recherche en cours → CTA en tête, puis suggestions multi-signal
+    // (ou un état vide) — le tout dans un seul fil scrollable.
     if (!hasQuery && _userResults.isEmpty && !_loading) {
       if (_loadingSuggestions) {
-        return const Center(child: CircularProgressIndicator());
+        return _buildScrollWithCtas(
+          l,
+          ctasFirst: true,
+          children: const [
+            SizedBox(height: AppSpace.xl),
+            Center(child: CircularProgressIndicator()),
+          ],
+        );
       }
       if (_suggestions.isNotEmpty) {
         return _buildSuggestionsList(l);
       }
-      return Center(
-        child: Text(
-          l.typeMin2Chars,
-          style: Theme.of(context).textTheme.bodyMedium,
-        ),
+      return _buildScrollWithCtas(
+        l,
+        ctasFirst: true,
+        children: [_buildEmptyText(l.typeMin2Chars)],
       );
     }
 
-    // Cas standard : champ rempli, on affiche les résultats live.
+    // Cas standard : champ rempli, résultats en premier, CTA en fin de fil.
     if (_userResults.isEmpty && !_loading) {
-      return Center(
-        child: Text(
-          l.typeMin2Chars,
-          style: Theme.of(context).textTheme.bodyMedium,
-        ),
+      return _buildScrollWithCtas(
+        l,
+        ctasFirst: false,
+        children: [_buildEmptyText(hasQuery ? l.noResult : l.typeMin2Chars)],
       );
     }
 
-    return ListView.separated(
-      itemCount: _userResults.length,
-      separatorBuilder: (_, __) => const SizedBox(height: AppSpace.xs),
-      itemBuilder: (context, index) {
-        final user = _userResults[index];
-        final isPending = _pendingRequests[user.id] ?? false;
-
-        return _buildSimpleUserItem(user, isPending, l);
-      },
+    return _buildScrollWithCtas(
+      l,
+      ctasFirst: false,
+      children: [
+        for (var i = 0; i < _userResults.length; i++) ...[
+          if (i > 0) const SizedBox(height: AppSpace.xs),
+          _buildSimpleUserItem(
+            _userResults[i],
+            _pendingRequests[_userResults[i].id] ?? false,
+            l,
+          ),
+        ],
+      ],
     );
   }
+
+  Widget _buildEmptyText(String text) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppSpace.xl),
+      child: Center(
+        child: Text(text, style: Theme.of(context).textTheme.bodyMedium),
+      ),
+    );
+  }
+
+  /// Fil unique : les CTA « inviter » / « découvrir » scrollent avec le
+  /// contenu, en tête (`ctasFirst`) ou en pied.
+  Widget _buildScrollWithCtas(
+    AppLocalizations l, {
+    required bool ctasFirst,
+    required List<Widget> children,
+  }) {
+    final ctas = _ctaItems(l);
+    return ListView(
+      padding: EdgeInsets.zero,
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+      children: ctasFirst
+          ? [...ctas, const SizedBox(height: AppSpace.m), ...children]
+          : [...children, const SizedBox(height: AppSpace.l), ...ctas],
+    );
+  }
+
+  Widget _buildSuggestionsList(AppLocalizations l) {
+    return _buildScrollWithCtas(
+      l,
+      ctasFirst: true,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(
+            bottom: AppSpace.s,
+            top: AppSpace.xs,
+          ),
+          child: Text(
+            l.suggestionsForYou,
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.7),
+                ),
+          ),
+        ),
+        for (var i = 0; i < _suggestions.length; i++) ...[
+          if (i > 0) const SizedBox(height: AppSpace.xs),
+          _buildSimpleUserItem(
+            _suggestions[i],
+            _pendingRequests[_suggestions[i].id] ?? false,
+            l,
+          ),
+        ],
+      ],
+    );
+  }
+
+  /// Carte « Invite tes amis à lire » (partage de l'app).
+  Widget _buildInviteCard(AppLocalizations l) {
+    return GestureDetector(
+      onTap: _shareApp,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.feedHeader,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.feedHeader.withValues(alpha: 0.3),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.share, size: 20, color: Colors.white),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l.inviteToRead,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    l.shareWhatYouRead,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.8),
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.arrow_forward_ios,
+              size: 16,
+              color: Colors.white.withValues(alpha: 0.7),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Les deux CTA (inviter + découvrir) qui vivent DANS le fil scrollable,
+  /// au-dessus des suggestions sans recherche, sous les résultats avec.
+  List<Widget> _ctaItems(AppLocalizations l) => [
+        _buildInviteCard(l),
+        const SizedBox(height: AppSpace.s),
+        _buildDiscoverReadersCta(l),
+      ];
 
   Widget _buildDiscoverReadersCta(AppLocalizations l) {
     return GestureDetector(
@@ -639,37 +912,6 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildSuggestionsList(AppLocalizations l) {
-    return ListView.separated(
-      padding: EdgeInsets.zero,
-      itemCount: _suggestions.length + 1,
-      separatorBuilder: (_, __) => const SizedBox(height: AppSpace.xs),
-      itemBuilder: (context, index) {
-        if (index == 0) {
-          return Padding(
-            padding: const EdgeInsets.only(
-              bottom: AppSpace.s,
-              top: AppSpace.xs,
-            ),
-            child: Text(
-              l.suggestionsForYou,
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onSurface
-                        .withValues(alpha: 0.7),
-                  ),
-            ),
-          );
-        }
-        final user = _suggestions[index - 1];
-        final isPending = _pendingRequests[user.id] ?? false;
-        return _buildSimpleUserItem(user, isPending, l);
-      },
     );
   }
 

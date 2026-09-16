@@ -233,6 +233,7 @@ class _ManualBookSearchPageState extends State<ManualBookSearchPage> {
         AppSpace.m,
       ),
       child: TextField(
+        textCapitalization: TextCapitalization.sentences,
         controller: _controller,
         focusNode: _focusNode,
         onChanged: _onChanged,

@@ -497,7 +497,7 @@ class BooksService {
         // "courante" et faire reculer la page du livre.
         _supabase
             .from('reading_sessions')
-            .select('book_id, end_page')
+            .select('book_id, end_page, end_time')
             .eq('user_id', userId)
             .not('end_time', 'is', null)
             .order('end_time', ascending: false)
@@ -509,7 +509,11 @@ class BooksService {
           .toSet();
       final sessions = results[1] as List;
 
-      if (sessions.isEmpty) return null;
+      // Candidat Kindle : livre dont la progression Kindle a bougé en dernier.
+      // Il l'emporte si sa progression est plus récente que la dernière
+      // session LexDay — un lecteur 100 % Kindle a ainsi un « livre en
+      // cours » sans rien saisir.
+      final kindleCandidate = await _kindleCurrentCandidate(userId);
 
       // Trouver la première session dont le livre n'est pas terminé
       Map<String, dynamic>? candidate;
@@ -521,6 +525,17 @@ class BooksService {
         if (int.tryParse(bookIdStr) == null) continue;
         candidate = session as Map<String, dynamic>;
         break;
+      }
+
+      if (kindleCandidate != null) {
+        final kindleAt = kindleCandidate['at'] as DateTime;
+        final sessionAt = candidate == null
+            ? null
+            : DateTime.tryParse(candidate['end_time'] as String? ?? '');
+        if (candidate == null || sessionAt == null || kindleAt.isAfter(sessionAt)) {
+          kindleCandidate.remove('at');
+          return kindleCandidate;
+        }
       }
 
       if (candidate == null) return null;
@@ -562,6 +577,79 @@ class BooksService {
       };
     } catch (e) {
       debugPrint('Erreur getCurrentReadingBook: $e');
+      return null;
+    }
+  }
+
+  /// Enregistre les jours lus sur Kindle (calendrier Amazon) dans
+  /// `kindle_read_days` — ils comptent pour la flamme. Idempotent (PK
+  /// user_id+day, upsert ignoreDuplicates). Fenêtre : [maxDays] derniers.
+  Future<int> upsertKindleReadDays(List<DateTime> days, {int maxDays = 120}) async {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null || days.isEmpty) return 0;
+    final sorted = [...days]..sort();
+    final window = sorted.length > maxDays
+        ? sorted.sublist(sorted.length - maxDays)
+        : sorted;
+    final rows = [
+      for (final d in window)
+        {
+          'user_id': userId,
+          'day':
+              '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}',
+        },
+    ];
+    try {
+      final res = await _supabase
+          .from('kindle_read_days')
+          .upsert(rows, onConflict: 'user_id,day', ignoreDuplicates: true)
+          .select('day');
+      final inserted = (res as List).length;
+      if (inserted > 0) {
+        debugPrint('upsertKindleReadDays: $inserted nouveau(x) jour(s) Kindle');
+      }
+      return inserted;
+    } catch (e) {
+      debugPrint('upsertKindleReadDays KO: $e');
+      return 0;
+    }
+  }
+
+  /// Livre « en cours » côté Kindle : le user_book non terminé avec la
+  /// progression Kindle la plus récente. Candidat pour [getCurrentReadingBook]
+  /// quand l'utilisateur lit sur Kindle sans session LexDay.
+  Future<Map<String, dynamic>?> _kindleCurrentCandidate(String userId) async {
+    try {
+      final rows = await _supabase
+          .from('user_books')
+          .select('book_id, kindle_percent, kindle_progress_at, books(*)')
+          .eq('user_id', userId)
+          .neq('status', 'finished')
+          .eq('is_hidden', false)
+          .not('kindle_progress_at', 'is', null)
+          .gt('kindle_percent', 0)
+          .lt('kindle_percent', 100)
+          .order('kindle_progress_at', ascending: false)
+          .limit(1);
+      if ((rows as List).isEmpty) return null;
+      final row = rows[0] as Map<String, dynamic>;
+      final bookJson = row['books'];
+      if (bookJson is! Map<String, dynamic>) return null;
+      final at = DateTime.tryParse(row['kindle_progress_at'] as String? ?? '');
+      if (at == null) return null;
+      final book = Book.fromJson(bookJson);
+      final page = kindlePageFromRow({
+        'kindle_percent': row['kindle_percent'],
+        'books': {'page_count': book.pageCount},
+      });
+      return {
+        'book': book,
+        'current_page': page ?? 0,
+        'total_pages': book.pageCount,
+        'at': at,
+      };
+    } catch (e) {
+      debugPrint('Erreur _kindleCurrentCandidate: $e');
       return null;
     }
   }
@@ -774,7 +862,10 @@ class BooksService {
     final userId = _supabase.auth.currentUser?.id;
     if (userId == null) return 0;
 
-    for (final kindleBook in kindleBooks) {
+    // Du moins récent au plus récent (l'API Amazon trie par récence) : le
+    // livre le plus récent reçoit ainsi le `kindle_progress_at` le plus
+    // tardif, et gagne le rôle de « livre en cours » dès la baseline.
+    for (final kindleBook in kindleBooks.reversed) {
       try {
         // Vérifier si le livre existe déjà (par titre + source kindle).
         // `.limit(1)` plutôt que `.maybeSingle()` : deux éditions peuvent
