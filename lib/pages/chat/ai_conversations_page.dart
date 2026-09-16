@@ -327,6 +327,7 @@ class _AiConversationsPageState extends State<AiConversationsPage> {
           const SizedBox(width: AppSpace.s),
           Expanded(
             child: TextField(
+              textCapitalization: TextCapitalization.sentences,
               controller: _composerController,
               readOnly: true,
               showCursor: false,

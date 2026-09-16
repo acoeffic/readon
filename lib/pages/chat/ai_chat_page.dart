@@ -972,6 +972,7 @@ class _AiChatPageState extends State<AiChatPage> {
         children: [
           Expanded(
             child: TextField(
+              textCapitalization: TextCapitalization.sentences,
               controller: _controller,
               focusNode: _focusNode,
               decoration: InputDecoration(
