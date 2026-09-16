@@ -11,6 +11,7 @@ import { AdTenMin, AD_TENMIN_DURATION } from './compositions/ad-ten-min/AdTenMin
 import { AdNightReader, AD_NIGHT_DURATION } from './compositions/ad-night-reader/AdNightReader';
 import { AdRentree, AD_RENTREE_DURATION } from './compositions/ad-rentree/AdRentree';
 import { AdPacteS1, AD_PACTE_S1_DURATION } from './compositions/ad-pacte-s1/AdPacteS1';
+import { AdMuse, AD_MUSE_DURATION } from './compositions/ad-muse/AdMuse';
 import {
   ReadingSessionInput,
   BookFinishedInput,
@@ -233,6 +234,17 @@ export const RemotionRoot: React.FC = () => {
         id="AdPacteS1"
         component={AdPacteS1}
         durationInFrames={AD_PACTE_S1_DURATION}
+        fps={FPS}
+        width={1080}
+        height={1920}
+        defaultProps={{}}
+      />
+
+      {/* Pub TikTok — « J'ai laissé une IA choisir mon prochain livre » (9:16, 15 s) */}
+      <Composition
+        id="AdMuse"
+        component={AdMuse}
+        durationInFrames={AD_MUSE_DURATION}
         fps={FPS}
         width={1080}
         height={1920}
