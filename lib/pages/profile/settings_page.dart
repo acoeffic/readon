@@ -573,6 +573,7 @@ if (!allowedExtensions.contains(fileExtension)) {
         ),
         title: Text(AppLocalizations.of(context).editNameTitle),
         content: TextField(
+          textCapitalization: TextCapitalization.words,
           controller: controller,
           decoration: InputDecoration(
             labelText: AppLocalizations.of(context).displayName,
@@ -697,6 +698,7 @@ if (!allowedExtensions.contains(fileExtension)) {
                   Text(AppLocalizations.of(context).typeDeleteToConfirm),
                   const SizedBox(height: AppSpace.m),
                   TextField(
+                    textCapitalization: TextCapitalization.characters,
                     controller: confirmController,
                     autofocus: true,
                     decoration: InputDecoration(

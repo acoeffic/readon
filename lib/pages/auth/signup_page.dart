@@ -348,6 +348,7 @@ class _SignUpPageState extends State<SignUpPage> {
                 Text(AppLocalizations.of(context).name, style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: AppSpace.xs),
                 TextField(
+                  textCapitalization: TextCapitalization.words,
                   controller: nameController,
                   decoration: InputDecoration(hintText: AppLocalizations.of(context).yourName),
                 ),
