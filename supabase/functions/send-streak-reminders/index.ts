@@ -11,6 +11,9 @@
 //  2. Rétablissement de l'écriture dans streak_notification_log, disparue
 //     lors d'un redéploiement (dernière ligne : 07/07/2026) — sans elle on
 //     est aveugle sur ce qui part réellement.
+// 13/09/2026 — les jours lus sur Kindle (table kindle_read_days) comptent :
+//     pas de rappel si l'utilisateur a lu sur Kindle aujourd'hui, et ils
+//     entrent dans le calcul du flow.
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
@@ -360,6 +363,20 @@ serve(async (req) => {
 
     const usersWhoReadToday = new Set(todayReadings.map(r => r.user_id))
 
+    // Jours lus sur Kindle (calendrier Amazon, alimenté par le sync Kindle) :
+    // un lecteur qui a lu sur sa liseuse aujourd'hui n'a pas à être rappelé,
+    // et ses jours Kindle comptent dans son flow (miroir de
+    // get_user_streak_stats / FlowService).
+    const kindleToday = await fetchAllRows<{ user_id: string }>((from, to) =>
+      supabase
+        .from('kindle_read_days')
+        .select('user_id')
+        .eq('day', today)
+        .order('user_id', { ascending: true })
+        .range(from, to)
+    )
+    for (const r of kindleToday) usersWhoReadToday.add(r.user_id)
+
     // Utilisateurs ayant terminé AU MOINS UNE session dans leur vie.
     // Un rappel de flow n'a de sens que pour eux : on ne demande pas à
     // quelqu'un de continuer une série qu'il n'a jamais commencée.
@@ -445,9 +462,15 @@ serve(async (req) => {
           .select('frozen_date')
           .eq('user_id', user.id)
 
-        const sessionDates = [...new Set(
-          (sessions || []).map(s => s.end_time.split('T')[0])
-        )]
+        const { data: kindleDays } = await supabase
+          .from('kindle_read_days')
+          .select('day')
+          .eq('user_id', user.id)
+
+        const sessionDates = [...new Set([
+          ...(sessions || []).map(s => s.end_time.split('T')[0]),
+          ...(kindleDays || []).map(k => k.day),
+        ])]
         const frozenDates = (freezes || []).map(f => f.frozen_date)
 
         currentFlow = calculateCurrentFlow(sessionDates, frozenDates)
