@@ -366,6 +366,7 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                         child: Column(
                           children: [
                             TextFormField(
+                              textCapitalization: TextCapitalization.sentences,
                               controller: _nameController,
                               decoration: InputDecoration(
                                 labelText: l.groupNameRequired,
@@ -387,6 +388,7 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                             ),
                             const SizedBox(height: AppSpace.m),
                             TextFormField(
+                              textCapitalization: TextCapitalization.sentences,
                               controller: _descriptionController,
                               decoration: InputDecoration(
                                 labelText: l.description,

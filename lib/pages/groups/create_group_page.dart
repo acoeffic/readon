@@ -209,6 +209,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
 
                 // Group name
                 TextFormField(
+                  textCapitalization: TextCapitalization.sentences,
                   controller: _nameController,
                   decoration: InputDecoration(
                     labelText: l.groupNameRequired,
@@ -227,6 +228,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
 
                 // Description
                 TextFormField(
+                  textCapitalization: TextCapitalization.sentences,
                   controller: _descriptionController,
                   decoration: InputDecoration(
                     labelText: l.descriptionOptional,

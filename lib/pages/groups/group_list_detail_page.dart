@@ -431,6 +431,7 @@ class _AddBookSheetState extends State<_AddBookSheet> {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: TextField(
+                  textCapitalization: TextCapitalization.sentences,
                   controller: _searchCtrl,
                   autofocus: true,
                   onChanged: _onChanged,

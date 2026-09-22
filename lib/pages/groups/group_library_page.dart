@@ -468,6 +468,7 @@ class _CreateListDialogState extends State<_CreateListDialog> {
         mainAxisSize: MainAxisSize.min,
         children: [
           TextField(
+            textCapitalization: TextCapitalization.sentences,
             controller: _titleCtrl,
             autofocus: true,
             textInputAction: TextInputAction.next,
@@ -478,6 +479,7 @@ class _CreateListDialogState extends State<_CreateListDialog> {
           ),
           const SizedBox(height: 12),
           TextField(
+            textCapitalization: TextCapitalization.sentences,
             controller: _descCtrl,
             textInputAction: TextInputAction.done,
             maxLines: 2,

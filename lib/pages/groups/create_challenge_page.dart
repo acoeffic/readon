@@ -197,6 +197,7 @@ class _CreateChallengePageState extends State<CreateChallengePage> {
 
                 // Title
                 TextFormField(
+                  textCapitalization: TextCapitalization.sentences,
                   controller: _titleController,
                   decoration: InputDecoration(
                     labelText: l.challengeTitleRequired,
@@ -215,6 +216,7 @@ class _CreateChallengePageState extends State<CreateChallengePage> {
 
                 // Description
                 TextFormField(
+                  textCapitalization: TextCapitalization.sentences,
                   controller: _descriptionController,
                   decoration: InputDecoration(
                     labelText: l.descriptionOptional,
@@ -737,6 +739,7 @@ class _BookSearchDialogState extends State<_BookSearchDialog> {
             ),
             const SizedBox(height: AppSpace.m),
             TextField(
+              textCapitalization: TextCapitalization.sentences,
               controller: _searchController,
               decoration: InputDecoration(
                 hintText: l.searchBookHint,
