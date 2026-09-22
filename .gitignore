@@ -50,3 +50,6 @@ telecharge_badges_hd.sh
 # Scratch et rushes vidéo (>100 Mo, refusés par GitHub)
 _to_delete/
 remotion/public/rushes/*.mp4
+
+# Rendus vidéo publicitaires (livrables marketing, pas du code)
+Claude outputs/
