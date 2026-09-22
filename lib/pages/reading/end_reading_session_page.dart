@@ -29,6 +29,7 @@ import '../friends/contacts_suggestion_page.dart';
 import '../chat/ai_chat_page.dart';
 import '../../services/widget_service.dart';
 import '../../widgets/constrained_content.dart';
+import '../../services/push_notification_service.dart';
 import '../../widgets/rate_book_sheet.dart';
 
 /// Timeout des appels réseau post-session (badges, contacts…) : sans ça, une
@@ -105,6 +106,25 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
     _manualPageController.dispose();
     _pageFocusNode.dispose();
     super.dispose();
+  }
+
+  /// Fix 2026-09-22 (diagnostic fcm_token) : la popup système de permission
+  /// notifications n'était jusqu'ici redemandée qu'au prochain cold-start de
+  /// l'app (MainNavigation._runValueGatedPrompts), qui peut n'arriver que des
+  /// jours plus tard — alors que l'activation est quasi exclusivement jour 0.
+  /// On la déclenche donc aussi ici, immédiatement après la toute première
+  /// session de lecture terminée (le moment où la valeur de l'app vient
+  /// d'être délivrée). `canStillAskPermission()` garantit qu'on ne la
+  /// présente jamais deux fois.
+  Future<void> _maybeAskPushPermissionAfterFirstSession() async {
+    try {
+      final push = PushNotificationService();
+      if (!await push.canStillAskPermission()) return;
+      if (!mounted) return;
+      await push.promptPermissionAndRegister();
+    } catch (e) {
+      debugPrint('Erreur _maybeAskPushPermissionAfterFirstSession: $e');
+    }
   }
 
   Future<void> _takePicture() async {
@@ -342,6 +362,7 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
 
         if (!hasCompleted && !hasSeen) {
           await contactsService.markFirstSessionCompleted().timeout(_kPostSessionTimeout).catchError((_) {});
+          await _maybeAskPushPermissionAfterFirstSession();
           if (!mounted) return;
           Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(
@@ -353,7 +374,10 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
             (route) => route.isFirst,
           );
         } else {
-          if (!hasCompleted) { await contactsService.markFirstSessionCompleted().timeout(_kPostSessionTimeout).catchError((_) {}); }
+          if (!hasCompleted) {
+            await contactsService.markFirstSessionCompleted().timeout(_kPostSessionTimeout).catchError((_) {});
+            await _maybeAskPushPermissionAfterFirstSession();
+          }
           if (!mounted) return;
           Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(
@@ -623,6 +647,7 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
 
         if (!hasCompleted && !hasSeen) {
           await contactsService.markFirstSessionCompleted().timeout(_kPostSessionTimeout).catchError((_) {});
+          await _maybeAskPushPermissionAfterFirstSession();
           if (!mounted) return;
           Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(
@@ -635,7 +660,10 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
             (route) => route.isFirst,
           );
         } else {
-          if (!hasCompleted) { await contactsService.markFirstSessionCompleted().timeout(_kPostSessionTimeout).catchError((_) {}); }
+          if (!hasCompleted) {
+            await contactsService.markFirstSessionCompleted().timeout(_kPostSessionTimeout).catchError((_) {});
+            await _maybeAskPushPermissionAfterFirstSession();
+          }
           if (!mounted) return;
           // La session est déjà terminée côté serveur ; si le livre n'a pas pu
           // être récupéré, on retombe sur le résumé de session classique plutôt
