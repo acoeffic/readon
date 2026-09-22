@@ -12,6 +12,7 @@ import { AdNightReader, AD_NIGHT_DURATION } from './compositions/ad-night-reader
 import { AdRentree, AD_RENTREE_DURATION } from './compositions/ad-rentree/AdRentree';
 import { AdPacteS1, AD_PACTE_S1_DURATION } from './compositions/ad-pacte-s1/AdPacteS1';
 import { AdMuse, AD_MUSE_DURATION } from './compositions/ad-muse/AdMuse';
+import { AdPacteS2, AD_PACTE_S2_DURATION } from './compositions/ad-pacte-s2/AdPacteS2';
 import {
   ReadingSessionInput,
   BookFinishedInput,
@@ -245,6 +246,17 @@ export const RemotionRoot: React.FC = () => {
         id="AdMuse"
         component={AdMuse}
         durationInFrames={AD_MUSE_DURATION}
+        fps={FPS}
+        width={1080}
+        height={1920}
+        defaultProps={{}}
+      />
+
+      {/* Pub TikTok — « Pacte : la rédemption » (9:16, 15 s) */}
+      <Composition
+        id="AdPacteS2"
+        component={AdPacteS2}
+        durationInFrames={AD_PACTE_S2_DURATION}
         fps={FPS}
         width={1080}
         height={1920}
