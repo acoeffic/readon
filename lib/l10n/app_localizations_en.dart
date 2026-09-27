@@ -434,11 +434,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get manageSubscriptionTitle => 'Manage subscription';
 
   @override
-  String get manageSubscriptionButton => 'Manage in App Store';
+  String manageSubscriptionButton(String store) {
+    return 'Manage in $store';
+  }
 
   @override
-  String get manageSubscriptionHint =>
-      'To change or cancel your subscription, open the App Store subscription manager. Cancellation takes effect at the end of the current period.';
+  String manageSubscriptionHint(String store) {
+    return 'To change or cancel your subscription, open the $store subscription manager. Cancellation takes effect at the end of the current period.';
+  }
 
   @override
   String get subPlanLabel => 'Plan';
@@ -2518,6 +2521,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get errorModifying => 'Error modifying';
 
   @override
+  String get sessionTooLongBanner =>
+      'This session is over 6h long: it won\'t count toward your streak or badges, but it stays on this book. Try wrapping up your sessions sooner next time.';
+
+  @override
+  String get sessionTooFastBanner =>
+      'This session\'s pace looks too fast to count toward your stats. It stays on this book.';
+
+  @override
+  String get surpriseSessionBanner => 'Perfect session — today\'s little bonus';
+
+  @override
   String get errorDeleting => 'Error deleting';
 
   @override
@@ -2992,6 +3006,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get offlineBanner => 'Offline — sessions will sync automatically';
+
+  @override
+  String get updateAvailableBanner => 'A new version of LexDay is available';
+
+  @override
+  String get updateAvailableAction => 'Update';
 
   @override
   String get sessionSavedOffline =>

@@ -1,8 +1,12 @@
 // lib/pages/profile/upgrade_page.dart
 // Page paywall pour s'abonner à LexDay Premium
 
+import 'dart:async' show unawaited;
+import 'dart:io' show Platform;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:intl/intl.dart';
 import '../../l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
@@ -94,7 +98,20 @@ class _UpgradePageState extends State<UpgradePage> {
 
   Future<void> _purchase() async {
     final package = _selectedPackage;
-    if (package == null || _purchasing) return;
+    if (_purchasing) return;
+    if (package == null) {
+      // Ne jamais laisser le bouton sans réaction visible : Google Play a
+      // signalé ce cas comme un bouton non réactif quand les offerings
+      // RevenueCat n'ont pas (encore) été chargées.
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context).cannotLoadOffers),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      unawaited(_loadOfferings());
+      return;
+    }
 
     setState(() => _purchasing = true);
 
@@ -775,46 +792,88 @@ class _UpgradePageState extends State<UpgradePage> {
     );
   }
 
+  /// Nom du store affiché dans les mentions légales d'abonnement : ne
+  /// doit JAMAIS être en dur sur "App Store", sinon l'app expose une
+  /// mention iOS aux utilisateurs Android (violation Google Play
+  /// "Subscriptions policy" constatée le 23/09/2026).
+  String get _storeName => Platform.isIOS ? 'App Store' : 'Google Play';
+
   /// Construit le texte de termes d'abonnement avec les prix dynamiques
   /// fournis par RevenueCat (priceString = format localisé "$3.99" ou
-  /// "3,99 €" selon la région du compte App Store / Play Store).
+  /// "3,99 €" selon la région du compte du store). Le texte suit la
+  /// langue courante de l'app (au lieu d'être toujours en français) et
+  /// le nom du store suit la plateforme (App Store / Google Play), pour
+  /// rester conforme aux règles d'abonnement des deux stores.
   String _buildTermsText() {
     final offering = _offerings?.current;
     final annual = offering?.annual;
     final monthly = offering?.monthly;
+    final store = _storeName;
+    final lang = Localizations.localeOf(context).languageCode;
+
+    String formatMonthlyEquivalent(double amount, String currencyCode) {
+      try {
+        return NumberFormat.simpleCurrency(name: currencyCode).format(amount);
+      } catch (_) {
+        return '${amount.toStringAsFixed(2)} $currencyCode';
+      }
+    }
 
     if (_annualSelected) {
-      // Prix annuel + équivalent mensuel calculé localement.
+      // Prix annuel + équivalent mensuel calculé localement, toujours
+      // formaté dans la devise réelle du produit (jamais une devise
+      // supposée en dur, source du signalement "Currency differences").
       String annualPrice = '39,99 €';
       String monthlyEquivalent = '3,33 €';
       if (annual != null) {
         annualPrice = annual.storeProduct.priceString;
         final m = annual.storeProduct.price / 12;
-        final code = annual.storeProduct.currencyCode;
-        final formatted = m.toStringAsFixed(2).replaceAll('.', ',');
-        if (code == 'EUR') {
-          monthlyEquivalent = '$formatted €';
-        } else if (code == 'USD') {
-          monthlyEquivalent = '\$$formatted';
-        } else {
-          monthlyEquivalent = '$formatted $code';
-        }
+        monthlyEquivalent =
+            formatMonthlyEquivalent(m, annual.storeProduct.currencyCode);
       }
-      return 'LexDay Premium — abonnement annuel à $annualPrice/an '
-          '(≈ $monthlyEquivalent/mois).\n'
-          'Essai gratuit de 7 jours. Renouvellement automatique jusqu\'à '
-          'annulation dans les réglages App Store, au moins 24 h avant '
-          'la fin de la période en cours.';
+      switch (lang) {
+        case 'en':
+          return 'LexDay Premium — annual subscription at $annualPrice/year '
+              '(≈ $monthlyEquivalent/month).\n'
+              '7-day free trial. Auto-renews until cancelled in $store '
+              'settings, at least 24 hours before the end of the current '
+              'period.';
+        case 'es':
+          return 'LexDay Premium: suscripción anual de $annualPrice/año '
+              '(≈ $monthlyEquivalent/mes).\n'
+              'Prueba gratuita de 7 días. Se renueva automáticamente hasta '
+              'que se cancele en los ajustes de $store, al menos 24 horas '
+              'antes de que finalice el periodo actual.';
+        default:
+          return 'LexDay Premium — abonnement annuel à $annualPrice/an '
+              '(≈ $monthlyEquivalent/mois).\n'
+              'Essai gratuit de 7 jours. Renouvellement automatique jusqu\'à '
+              'annulation dans les réglages $store, au moins 24 h avant '
+              'la fin de la période en cours.';
+      }
     }
 
     String monthlyPrice = '3,99 €';
     if (monthly != null) {
       monthlyPrice = monthly.storeProduct.priceString;
     }
-    return 'LexDay Premium — abonnement mensuel à $monthlyPrice/mois. '
-        'Renouvellement automatique jusqu\'à annulation dans les '
-        'réglages App Store, au moins 24 h avant la fin de la '
-        'période en cours.';
+    switch (lang) {
+      case 'en':
+        return 'LexDay Premium — monthly subscription at '
+            '$monthlyPrice/month. Auto-renews until cancelled in $store '
+            'settings, at least 24 hours before the end of the current '
+            'period.';
+      case 'es':
+        return 'LexDay Premium: suscripción mensual de $monthlyPrice/mes. '
+            'Se renueva automáticamente hasta que se cancele en los '
+            'ajustes de $store, al menos 24 horas antes de que finalice '
+            'el periodo actual.';
+      default:
+        return 'LexDay Premium — abonnement mensuel à $monthlyPrice/mois. '
+            'Renouvellement automatique jusqu\'à annulation dans les '
+            'réglages $store, au moins 24 h avant la fin de la '
+            'période en cours.';
+    }
   }
 
   /// Apple-compliant subscription terms block :

@@ -439,11 +439,14 @@ class AppLocalizationsEs extends AppLocalizations {
   String get manageSubscriptionTitle => 'Gestionar mi suscripción';
 
   @override
-  String get manageSubscriptionButton => 'Gestionar en App Store';
+  String manageSubscriptionButton(String store) {
+    return 'Gestionar en $store';
+  }
 
   @override
-  String get manageSubscriptionHint =>
-      'Para modificar o cancelar tu suscripción, abre el gestor de suscripciones de la App Store. La cancelación surtirá efecto al final del período en curso.';
+  String manageSubscriptionHint(String store) {
+    return 'Para modificar o cancelar tu suscripción, abre el gestor de suscripciones de $store. La cancelación surtirá efecto al final del período en curso.';
+  }
 
   @override
   String get subPlanLabel => 'Plan';
@@ -2541,6 +2544,17 @@ class AppLocalizationsEs extends AppLocalizations {
   String get errorModifying => 'Error al modificar';
 
   @override
+  String get sessionTooLongBanner =>
+      'Esta sesión dura más de 6h: no cuenta para tu racha ni tus insignias, pero queda registrada en este libro. Intenta terminar tus sesiones antes la próxima vez.';
+
+  @override
+  String get sessionTooFastBanner =>
+      'El ritmo de esta sesión parece demasiado rápido para contar en tus estadísticas. Queda registrada en este libro.';
+
+  @override
+  String get surpriseSessionBanner => 'Sesión perfecta — pequeño bono del día';
+
+  @override
   String get errorDeleting => 'Error al eliminar';
 
   @override
@@ -3018,6 +3032,13 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get offlineBanner =>
       'Sin conexión — las sesiones se sincronizarán automáticamente';
+
+  @override
+  String get updateAvailableBanner =>
+      'Hay una nueva versión de LexDay disponible';
+
+  @override
+  String get updateAvailableAction => 'Actualizar';
 
   @override
   String get sessionSavedOffline =>

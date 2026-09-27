@@ -196,8 +196,22 @@
     }
   },
   "manageSubscriptionTitle": "Gestionar mi suscripción",
-  "manageSubscriptionButton": "Gestionar en App Store",
-  "manageSubscriptionHint": "Para modificar o cancelar tu suscripción, abre el gestor de suscripciones de la App Store. La cancelación surtirá efecto al final del período en curso.",
+  "manageSubscriptionButton": "Gestionar en {store}",
+  "@manageSubscriptionButton": {
+    "placeholders": {
+      "store": {
+        "type": "String"
+      }
+    }
+  },
+  "manageSubscriptionHint": "Para modificar o cancelar tu suscripción, abre el gestor de suscripciones de {store}. La cancelación surtirá efecto al final del período en curso.",
+  "@manageSubscriptionHint": {
+    "placeholders": {
+      "store": {
+        "type": "String"
+      }
+    }
+  },
   "subPlanLabel": "Plan",
   "subPriceLabel": "Precio",
   "subStartDateLabel": "Suscrito desde",
@@ -1322,6 +1336,9 @@
   "deleteSessionMessage": "¿Realmente quieres eliminar esta sesión de lectura? Esta acción es irreversible.",
   "sessionVisible": "Sesión visible en los rankings",
   "errorModifying": "Error al modificar",
+  "sessionTooLongBanner": "Esta sesión dura más de 6h: no cuenta para tu racha ni tus insignias, pero queda registrada en este libro. Intenta terminar tus sesiones antes la próxima vez.",
+  "sessionTooFastBanner": "El ritmo de esta sesión parece demasiado rápido para contar en tus estadísticas. Queda registrada en este libro.",
+  "surpriseSessionBanner": "Sesión perfecta — pequeño bono del día",
   "errorDeleting": "Error al eliminar",
   "endSessionError": "No se pudo terminar la sesión. Inténtalo de nuevo en un momento.",
   "loadingError": "Error de carga",
@@ -1534,6 +1551,8 @@
   "navigate": "Navegar",
   "searchingBookstores": "Buscando librerías...",
   "offlineBanner": "Sin conexión — las sesiones se sincronizarán automáticamente",
+  "updateAvailableBanner": "Hay una nueva versión de LexDay disponible",
+  "updateAvailableAction": "Actualizar",
   "sessionSavedOffline": "Sesión guardada sin conexión. Se sincronizará al reconectarse.",
   "offlineSyncSuccess": "{count, plural, =1{1 sesión sincronizada} other{{count} sesiones sincronizadas}}",
   "@offlineSyncSuccess": {

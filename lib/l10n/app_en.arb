@@ -196,8 +196,22 @@
     }
   },
   "manageSubscriptionTitle": "Manage subscription",
-  "manageSubscriptionButton": "Manage in App Store",
-  "manageSubscriptionHint": "To change or cancel your subscription, open the App Store subscription manager. Cancellation takes effect at the end of the current period.",
+  "manageSubscriptionButton": "Manage in {store}",
+  "@manageSubscriptionButton": {
+    "placeholders": {
+      "store": {
+        "type": "String"
+      }
+    }
+  },
+  "manageSubscriptionHint": "To change or cancel your subscription, open the {store} subscription manager. Cancellation takes effect at the end of the current period.",
+  "@manageSubscriptionHint": {
+    "placeholders": {
+      "store": {
+        "type": "String"
+      }
+    }
+  },
   "subPlanLabel": "Plan",
   "subPriceLabel": "Price",
   "subStartDateLabel": "Subscribed since",
@@ -1346,6 +1360,9 @@
   "deleteSessionMessage": "Do you really want to delete this reading session? This action is irreversible.",
   "sessionVisible": "Session visible in rankings",
   "errorModifying": "Error modifying",
+  "sessionTooLongBanner": "This session is over 6h long: it won't count toward your streak or badges, but it stays on this book. Try wrapping up your sessions sooner next time.",
+  "sessionTooFastBanner": "This session's pace looks too fast to count toward your stats. It stays on this book.",
+  "surpriseSessionBanner": "Perfect session — today's little bonus",
   "errorDeleting": "Error deleting",
   "endSessionError": "Couldn't end the session right now. Please try again in a moment.",
   "loadingError": "Loading error",
@@ -1572,6 +1589,8 @@
   "searchingBookstores": "Searching for bookstores...",
   "loadMoreBookstores": "Show more bookstores",
   "offlineBanner": "Offline — sessions will sync automatically",
+  "updateAvailableBanner": "A new version of LexDay is available",
+  "updateAvailableAction": "Update",
   "sessionSavedOffline": "Session saved offline. It will sync when you reconnect.",
   "offlineSyncSuccess": "{count, plural, =1{1 session synced} other{{count} sessions synced}}",
   "@offlineSyncSuccess": {

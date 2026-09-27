@@ -859,14 +859,14 @@ abstract class AppLocalizations {
   /// No description provided for @manageSubscriptionButton.
   ///
   /// In fr, this message translates to:
-  /// **'Gérer sur l\'App Store'**
-  String get manageSubscriptionButton;
+  /// **'Gérer sur {store}'**
+  String manageSubscriptionButton(String store);
 
   /// No description provided for @manageSubscriptionHint.
   ///
   /// In fr, this message translates to:
-  /// **'Pour modifier ou annuler ton abonnement, ouvre la gestion des abonnements de l\'App Store. L\'annulation prend effet à la fin de la période en cours.'**
-  String get manageSubscriptionHint;
+  /// **'Pour modifier ou annuler ton abonnement, ouvre la gestion des abonnements de {store}. L\'annulation prend effet à la fin de la période en cours.'**
+  String manageSubscriptionHint(String store);
 
   /// No description provided for @subPlanLabel.
   ///
@@ -4612,6 +4612,24 @@ abstract class AppLocalizations {
   /// **'Erreur lors de la modification'**
   String get errorModifying;
 
+  /// No description provided for @sessionTooLongBanner.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cette session dépasse 6h : elle ne compte pas dans ton flow ni tes badges, mais reste enregistrée sur ce livre. Pense à clôturer tes sessions plus tôt la prochaine fois.'**
+  String get sessionTooLongBanner;
+
+  /// No description provided for @sessionTooFastBanner.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le rythme de cette session semble trop rapide pour compter dans tes stats. Elle reste enregistrée sur ce livre.'**
+  String get sessionTooFastBanner;
+
+  /// No description provided for @surpriseSessionBanner.
+  ///
+  /// In fr, this message translates to:
+  /// **'Session parfaite — petit bonus du jour'**
+  String get surpriseSessionBanner;
+
   /// No description provided for @errorDeleting.
   ///
   /// In fr, this message translates to:
@@ -5487,6 +5505,18 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Hors ligne — les sessions seront synchronisées automatiquement'**
   String get offlineBanner;
+
+  /// No description provided for @updateAvailableBanner.
+  ///
+  /// In fr, this message translates to:
+  /// **'Une nouvelle version de LexDay est disponible'**
+  String get updateAvailableBanner;
+
+  /// No description provided for @updateAvailableAction.
+  ///
+  /// In fr, this message translates to:
+  /// **'Mettre à jour'**
+  String get updateAvailableAction;
 
   /// No description provided for @sessionSavedOffline.
   ///

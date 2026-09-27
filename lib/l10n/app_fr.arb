@@ -196,8 +196,22 @@
     }
   },
   "manageSubscriptionTitle": "Gérer mon abonnement",
-  "manageSubscriptionButton": "Gérer sur l'App Store",
-  "manageSubscriptionHint": "Pour modifier ou annuler ton abonnement, ouvre la gestion des abonnements de l'App Store. L'annulation prend effet à la fin de la période en cours.",
+  "manageSubscriptionButton": "Gérer sur {store}",
+  "@manageSubscriptionButton": {
+    "placeholders": {
+      "store": {
+        "type": "String"
+      }
+    }
+  },
+  "manageSubscriptionHint": "Pour modifier ou annuler ton abonnement, ouvre la gestion des abonnements de {store}. L'annulation prend effet à la fin de la période en cours.",
+  "@manageSubscriptionHint": {
+    "placeholders": {
+      "store": {
+        "type": "String"
+      }
+    }
+  },
   "subPlanLabel": "Formule",
   "subPriceLabel": "Prix",
   "subStartDateLabel": "Abonné depuis",
@@ -1346,6 +1360,9 @@
   "deleteSessionMessage": "Voulez-vous vraiment supprimer cette session de lecture ? Cette action est irréversible.",
   "sessionVisible": "Session visible dans les classements",
   "errorModifying": "Erreur lors de la modification",
+  "sessionTooLongBanner": "Cette session dépasse 6h : elle ne compte pas dans ton flow ni tes badges, mais reste enregistrée sur ce livre. Pense à clôturer tes sessions plus tôt la prochaine fois.",
+  "sessionTooFastBanner": "Le rythme de cette session semble trop rapide pour compter dans tes stats. Elle reste enregistrée sur ce livre.",
+  "surpriseSessionBanner": "Session parfaite — petit bonus du jour",
   "errorDeleting": "Erreur lors de la suppression",
   "endSessionError": "Impossible de terminer la session pour le moment. Réessaie dans un instant.",
   "loadingError": "Erreur de chargement",
@@ -1572,6 +1589,8 @@
   "searchingBookstores": "Recherche de librairies...",
   "loadMoreBookstores": "Voir plus de librairies",
   "offlineBanner": "Hors ligne — les sessions seront synchronisées automatiquement",
+  "updateAvailableBanner": "Une nouvelle version de LexDay est disponible",
+  "updateAvailableAction": "Mettre à jour",
   "sessionSavedOffline": "Session enregistrée hors ligne. Elle sera synchronisée à la reconnexion.",
   "offlineSyncSuccess": "{count, plural, =1{1 session synchronisée} other{{count} sessions synchronisées}}",
   "@offlineSyncSuccess": {

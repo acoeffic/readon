@@ -2,6 +2,8 @@
 // Écran de gestion d'abonnement : infos + redirection vers le store pour
 // se désabonner. Conforme aux directives Apple (cancel = écran natif).
 
+import 'dart:io' show Platform;
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -24,6 +26,11 @@ class _ManageSubscriptionPageState extends State<ManageSubscriptionPage> {
   SubscriptionDetails? _details;
   bool _loading = true;
   bool _restoring = false;
+
+  /// Nom du store affiché dans les mentions d'abonnement : dépend de la
+  /// plateforme (jamais "App Store" en dur sur Android — violation Google
+  /// Play "Subscriptions policy" constatée le 23/09/2026).
+  String get _storeName => Platform.isIOS ? 'App Store' : 'Google Play';
 
   @override
   void initState() {
@@ -231,7 +238,7 @@ class _ManageSubscriptionPageState extends State<ManageSubscriptionPage> {
       ),
       const SizedBox(height: AppSpace.l),
       Text(
-        l.manageSubscriptionHint,
+        l.manageSubscriptionHint(_storeName),
         style: TextStyle(
           fontSize: 12,
           color: colors.textPrimary.withValues(alpha: 0.55),
@@ -246,7 +253,7 @@ class _ManageSubscriptionPageState extends State<ManageSubscriptionPage> {
           onPressed: _openManageSubscriptions,
           icon: const Icon(Icons.open_in_new_rounded, size: 18),
           label: Text(
-            l.manageSubscriptionButton,
+            l.manageSubscriptionButton(_storeName),
             style: const TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w700,
