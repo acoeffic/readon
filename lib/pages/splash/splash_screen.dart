@@ -152,15 +152,30 @@ class _SplashScreenState extends State<SplashScreen>
     );
 
     // Inits non critiques : best-effort, jamais bloquantes.
-    await _bestEffort('posthog', () => AnalyticsService().init());
+    //
+    // Fix 2026-09-28 : ces 4 inits étaient auparavant awaitées l'une après
+    // l'autre (jusqu'à 4 × 6s de timeout bout à bout, ~24s pire cas, avant
+    // même d'atteindre l'écran de connexion — cf. audit friction du 18/08,
+    // même défaut que les 3 vérifications de badges corrigées le 26/09 en
+    // fin de session). On les lance toutes en même temps : le temps
+    // d'attente réel devient le plus lent des quatre, pas leur somme.
+    final nonCriticalInits = <Future<void>>[
+      _bestEffort('posthog', () => AnalyticsService().init()),
+      _bestEffort('revenuecat', () => SubscriptionService().initialize()),
+    ];
+    if (!kIsWeb) {
+      nonCriticalInits.add(_bestEffort(
+          'notifications', () => MonthlyNotificationService().initialize()));
+      nonCriticalInits
+          .add(_bestEffort('widget', () => WidgetService().initialize()));
+    }
+    await Future.wait(nonCriticalInits);
+
     // Doit venir après `Supabase.initialize` : émet signup_completed /
     // login_succeeded depuis un point unique, quel que soit le fournisseur.
     AnalyticsService().attachAuthListener();
-    await _bestEffort('revenuecat', () => SubscriptionService().initialize());
+
     if (!kIsWeb) {
-      await _bestEffort(
-          'notifications', () => MonthlyNotificationService().initialize());
-      await _bestEffort('widget', () => WidgetService().initialize());
       // La mise à jour avec les vraies données se fera après l'auth
       // (via AuthGate ou la page d'accueil)
       // Démarre le pont Apple Watch (no-op hors iOS / sans Watch appairée).

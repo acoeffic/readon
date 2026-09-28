@@ -21,6 +21,13 @@
     State<AuthGate> createState() => _AuthGateState();
   }
 
+  /// Fix 2026-09-28 : `identify`, `loginUser` et la lecture du profil
+  /// s'enchaînaient sans AUCUN timeout (pas même les 6s du splash) — un seul
+  /// appel qui pend (Wi-Fi « connecté sans internet ») bloquait le spinner
+  /// pour toujours, juste avant l'écran qui décide onboarding vs app. Cf.
+  /// `SplashScreen._bestEffort`, jamais repris ici (audit friction 18/08).
+  const _kAuthGateTimeout = Duration(seconds: 6);
+
   class _AuthGateState extends State<AuthGate> {
     bool _loading = true;
     Widget? _destination;
@@ -63,24 +70,33 @@
         final userId = user.id;
 
         // Identifier l'utilisateur côté PostHog (lie events anonymes ↔ user)
-        await AnalyticsService().identify(
-          userId: userId,
-          properties: {
-            if (user.email != null) 'email': user.email!,
-            'auth_provider':
-                (user.appMetadata['provider'] as String?) ?? 'email',
-          },
-        );
-
-        // Associer l'utilisateur à RevenueCat
-        await SubscriptionService().loginUser(userId);
+        // et l'associer à RevenueCat : best-effort, jamais bloquant — ni
+        // l'un ni l'autre ne doit retarder l'arrivée dans l'app.
+        try {
+          await AnalyticsService().identify(
+            userId: userId,
+            properties: {
+              if (user.email != null) 'email': user.email!,
+              'auth_provider':
+                  (user.appMetadata['provider'] as String?) ?? 'email',
+            },
+          ).timeout(_kAuthGateTimeout);
+        } catch (e) {
+          debugPrint('AnalyticsService.identify ignoré (non bloquant): $e');
+        }
+        try {
+          await SubscriptionService().loginUser(userId).timeout(_kAuthGateTimeout);
+        } catch (e) {
+          debugPrint('SubscriptionService.loginUser ignoré (non bloquant): $e');
+        }
 
         // Verifier si le profil existe
         final profile = await Supabase.instance.client
             .from('profiles')
             .select('onboarding_completed')
             .eq('id', userId)
-            .maybeSingle();
+            .maybeSingle()
+            .timeout(_kAuthGateTimeout);
 
         // Si le profil n'existe pas (signup avec confirmation email),
         // le creer maintenant avec les metadata de l'utilisateur
@@ -91,7 +107,7 @@
             'email': user.email,
             'display_name': meta['display_name'] ?? meta['full_name'] ?? meta['name'] ?? '',
             'created_at': DateTime.now().toIso8601String(),
-          });
+          }).timeout(_kAuthGateTimeout);
 
           if (!mounted) return;
           setState(() {
