@@ -115,14 +115,17 @@ class _OnboardingPageState extends State<OnboardingPage> {
       // désormais proposée après la première session de lecture terminée
       // (cf. maybeShowKindleConnectSheet) et reste accessible dans les
       // réglages.
+      //
+      // 28/09/2026 : le bouton « Passer cette étape » a été retiré. Le
+      // diagnostic du 02/09 montrait que ~23 % des inscrits terminaient tout
+      // l'onboarding sans jamais ajouter de livre (skip ici → onboarding
+      // marqué complet plus loin sans aucun livre) et ne revenaient
+      // quasiment jamais. Le bouton « Suivant » reste désactivé tant
+      // qu'aucun livre n'est ajouté ; il n'y a plus d'échappatoire.
       StepManualAdd(
         addedBooks: _importedBooks,
         onBookAdded: _handleBookAdded,
         onNext: _goToNext,
-        onSkip: () {
-          _trackStepSkipped();
-          _skipToSuggestedReaders();
-        },
       ),
     ];
 
@@ -192,29 +195,6 @@ class _OnboardingPageState extends State<OnboardingPage> {
   }
 
   // --- Common handlers ---
-
-  void _skipToSuggestedReaders() {
-    // Skip the import step but still go through the suggested readers step
-    // (second to last) before reaching StepFirstSession.
-    final steps = _buildSteps();
-    _loadBooksAndGoTo(steps.length - 2);
-  }
-
-  Future<void> _loadBooksAndGoTo(int page) async {
-    try {
-      final booksWithStatus = await _booksService.getUserBooksWithStatus();
-      final books = booksWithStatus
-          .where((b) => b['is_hidden'] != true)
-          .map((b) => b['book'] as Book)
-          .toList();
-      if (mounted) {
-        setState(() => _importedBooks = books);
-        _goToPage(page);
-      }
-    } catch (_) {
-      if (mounted) _goToPage(page);
-    }
-  }
 
   /// Fin d'onboarding. `started_first_session` distingue les deux sorties :
   /// « Lire » (l'utilisateur enchaîne sur une session) et « Plus tard » /

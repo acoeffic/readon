@@ -9,14 +9,12 @@ import '../../../widgets/cached_book_cover.dart';
 class StepManualAdd extends StatefulWidget {
   final ValueChanged<Book> onBookAdded;
   final VoidCallback onNext;
-  final VoidCallback onSkip;
   final List<Book> addedBooks;
 
   const StepManualAdd({
     super.key,
     required this.onBookAdded,
     required this.onNext,
-    required this.onSkip,
     required this.addedBooks,
   });
 
@@ -94,7 +92,7 @@ class _StepManualAddState extends State<StepManualAdd> {
         children: [
           const SizedBox(height: AppSpace.l),
           Text(
-            'Ajoute tes livres',
+            'Quel livre lis-tu en ce moment ?',
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                   fontSize: 24,
                   fontWeight: FontWeight.w700,
@@ -103,7 +101,7 @@ class _StepManualAddState extends State<StepManualAdd> {
           ),
           const SizedBox(height: AppSpace.s),
           const Text(
-            'Scanne ou recherche un livre',
+            'Scanne sa couverture ou recherche-le par titre pour commencer',
             style: TextStyle(fontSize: 15, color: Colors.black54),
           ),
           const SizedBox(height: AppSpace.l),
@@ -215,16 +213,6 @@ class _StepManualAddState extends State<StepManualAdd> {
               child: const Text(
                 'Suivant',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-              ),
-            ),
-          ),
-          const SizedBox(height: AppSpace.s),
-          Center(
-            child: TextButton(
-              onPressed: widget.onSkip,
-              child: const Text(
-                'Passer cette étape',
-                style: TextStyle(color: AppColors.textSecondary, fontSize: 15),
               ),
             ),
           ),
