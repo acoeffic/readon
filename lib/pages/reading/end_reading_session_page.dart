@@ -37,6 +37,15 @@ import '../../widgets/rate_book_sheet.dart';
 /// fin de session pour toujours. Fix 2026-08-11.
 const _kPostSessionTimeout = Duration(seconds: 6);
 
+/// Durée plancher de l'écran de confetti « livre terminé ». Fix 2026-09-26 :
+/// avant, un `Future.delayed` de 2s bloquait tout appel réseau derrière un
+/// écran figé, PUIS les vérifications de badges s'enchaînaient en
+/// séquentiel (jusqu'à 3 × 6s de timeout) avant le premier dialogue de
+/// récompense. Le confetti démarre maintenant en même temps que l'appel
+/// serveur ; cette constante garantit juste que l'animation n'est pas
+/// coupée net si la réponse arrive très vite.
+const _kFinishBookAnimMinDuration = Duration(milliseconds: 1400);
+
 const _kBgColor = Color(0xFFFAF3E8);
 const _kSageGreen = Color(0xFF6B988D);
 const _kGold = Color(0xFFC6A85A);
@@ -216,6 +225,57 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
     }
   }
 
+  /// Affiche les récompenses débloquées à la fin d'une session.
+  ///
+  /// Avant le 28/09/2026, chaque badge (standard, secret, palier de flow)
+  /// ouvrait sa propre modale plein écran, enchaînées une par une à coups de
+  /// `await` — jusqu'à 6 dismiss avant même la note du livre ou la
+  /// proposition Muse (9 au total sur un livre terminé). Personne ne
+  /// convertit mieux à la 4e modale qu'à la 1re ; on ne montre donc que la
+  /// plus significative tout de suite, et on résume le reste en un mot.
+  Future<void> _showUnlockedRewards({
+    required List<UserBadge> badges,
+    required List<UserBadge> secretBadges,
+    required List<FlowBadgeLevel> flowBadges,
+  }) async {
+    final total = badges.length + secretBadges.length + flowBadges.length;
+    if (total == 0 || !mounted) return;
+
+    if (badges.isNotEmpty) {
+      await showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => BadgeUnlockedDialog(badge: badges.first),
+      );
+    } else if (secretBadges.isNotEmpty) {
+      await showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => BadgeUnlockedDialog(badge: secretBadges.first),
+      );
+    } else {
+      await showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => _FlowBadgeDialog(badgeLevel: flowBadges.first),
+      );
+    }
+
+    final remaining = total - 1;
+    if (remaining > 0 && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            remaining == 1
+                ? '+1 autre récompense débloquée — à retrouver dans ton profil'
+                : '+$remaining autres récompenses débloquées — à retrouver dans ton profil',
+          ),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+
   Future<void> _endSession() async {
     final pageNumber = _detectedPageNumber ?? _manualPageNumber;
 
@@ -268,77 +328,56 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
         return;
       }
 
-      // Vérifier et attribuer les badges standard (non bloquant).
+      // Vérifier et attribuer les badges (non bloquant).
       // Fix 2026-08-11 : timeout sur tous les appels post-session — sans ça,
       // une requête qui pend (Wi-Fi « connecté sans internet ») bloquait la
       // page sur le spinner pour toujours.
-      List<dynamic> newBadges = [];
-      try {
-        newBadges = await _badgesService
-            .checkAndAwardBadges()
-            .timeout(_kPostSessionTimeout);
-      } catch (e) {
-        debugPrint('Erreur checkAndAwardBadges (non bloquante): $e');
-      }
-
-      // Vérifier les badges secrets (côté serveur via RPC)
-      List<dynamic> newSecretBadges = [];
-      try {
-        newSecretBadges = await _badgesService
-            .checkSecretBadges(
-              sessionId: completedSession.id,
-              bookFinished: false,
-            )
-            .timeout(_kPostSessionTimeout);
-      } catch (e) {
-        debugPrint('Erreur checkSecretBadges (non bloquante): $e');
-      }
+      // Fix 2026-09-26 : les 3 appels étaient auparavant awaités l'un après
+      // l'autre (jusqu'à 3 × 6s de timeout bout à bout avant le premier
+      // dialogue de récompense). On les déclenche tous en même temps — le
+      // temps d'attente réel devient le plus lent des trois, pas leur somme.
+      final badgesFuture =
+          _badgesService.checkAndAwardBadges().timeout(_kPostSessionTimeout);
+      final secretBadgesFuture = _badgesService
+          .checkSecretBadges(
+            sessionId: completedSession.id,
+            bookFinished: false,
+          )
+          .timeout(_kPostSessionTimeout);
+      final flowBadgesFuture =
+          _flowService.checkAndAwardFlowBadges().timeout(_kPostSessionTimeout);
 
       // Mettre à jour le widget iOS (non bloquant)
       WidgetService().updateWidget().catchError((_) {});
 
-      // Vérifier et attribuer les badges de flow (non bloquant)
+      List<UserBadge> newBadges = [];
+      try {
+        newBadges = await badgesFuture;
+      } catch (e) {
+        debugPrint('Erreur checkAndAwardBadges (non bloquante): $e');
+      }
+
+      List<UserBadge> newSecretBadges = [];
+      try {
+        newSecretBadges = await secretBadgesFuture;
+      } catch (e) {
+        debugPrint('Erreur checkSecretBadges (non bloquante): $e');
+      }
+
       List<FlowBadgeLevel> newFlowBadges = [];
       try {
-        newFlowBadges = await _flowService
-            .checkAndAwardFlowBadges()
-            .timeout(_kPostSessionTimeout);
+        newFlowBadges = await flowBadgesFuture;
       } catch (e) {
         debugPrint('Erreur checkAndAwardFlowBadges (non bloquante): $e');
       }
 
-      // Afficher les badges standard débloqués
-      if (newBadges.isNotEmpty && mounted) {
-        for (final badge in newBadges) {
-          await showDialog(
-            context: context,
-            barrierDismissible: false,
-            builder: (context) => BadgeUnlockedDialog(badge: badge),
-          );
-        }
-      }
-
-      // Afficher les badges secrets débloqués
-      if (newSecretBadges.isNotEmpty && mounted) {
-        for (final badge in newSecretBadges) {
-          await showDialog(
-            context: context,
-            barrierDismissible: false,
-            builder: (context) => BadgeUnlockedDialog(badge: badge),
-          );
-        }
-      }
-
-      // Afficher les badges de flow débloqués
-      if (newFlowBadges.isNotEmpty && mounted) {
-        for (final badgeLevel in newFlowBadges) {
-          await showDialog(
-            context: context,
-            barrierDismissible: false,
-            builder: (context) => _FlowBadgeDialog(badgeLevel: badgeLevel),
-          );
-        }
-      }
+      // Afficher les récompenses débloquées (une seule modale, cf.
+      // _showUnlockedRewards).
+      await _showUnlockedRewards(
+        badges: newBadges,
+        secretBadges: newSecretBadges,
+        flowBadges: newFlowBadges,
+      );
 
       // Vérifier si c'est la première session → afficher suggestion contacts
       if (mounted) {
@@ -430,13 +469,14 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
     );
 
     if (confirm == true) {
-      // Déclencher l'animation
-      setState(() => _showFinishBookAnimation = true);
-
-      // Attendre l'animation
-      await Future.delayed(const Duration(milliseconds: 2000));
-
-      setState(() => _isProcessing = true);
+      // Déclencher l'animation ET démarrer le travail réel en même temps.
+      // Fix 2026-09-26 : avant, un `Future.delayed(2000ms)` bloquait tout
+      // appel réseau derrière un écran figé — 2s de pure attente ajoutées
+      // par-dessus la latence serveur, avant même le premier octet envoyé.
+      setState(() {
+        _showFinishBookAnimation = true;
+        _isProcessing = true;
+      });
 
       try {
         // Utiliser le pageCount du livre si aucune page n'a été saisie.
@@ -454,12 +494,20 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
             ?? startPage;
         if (pageNumber < startPage) pageNumber = startPage;
 
-        // Terminer la session avec le livre marqué comme terminé
-        final completedSession = await _sessionService.endSession(
+        // Terminer la session avec le livre marqué comme terminé. L'appel
+        // réseau part immédiatement ; on n'attend que le plus lent entre lui
+        // et la durée plancher du confetti, au lieu de les mettre bout à
+        // bout.
+        final sessionFuture = _sessionService.endSession(
           sessionId: widget.activeSession.id,
           imagePath: _imageFile?.path,
           manualPageNumber: pageNumber,
         );
+        await Future.wait<Object?>([
+          sessionFuture,
+          Future<void>.delayed(_kFinishBookAnimMinDuration),
+        ]);
+        final completedSession = await sessionFuture;
 
         // Marquer le livre comme terminé
         final bookIdInt = int.tryParse(widget.activeSession.bookId);
@@ -481,38 +529,42 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
           debugPrint('Erreur createBookFinishedActivity (non bloquante): $e');
         }
 
-        // Vérifier et attribuer les badges (non bloquant, avec timeout)
-        List<dynamic> newBadges = [];
-        try {
-          newBadges = await _badgesService
-              .checkAndAwardBadges()
-              .timeout(_kPostSessionTimeout);
-        } catch (e) {
-          debugPrint('Erreur checkAndAwardBadges (non bloquante): $e');
-        }
-
-        // Vérifier les badges secrets (côté serveur via RPC)
-        List<dynamic> newSecretBadges = [];
-        try {
-          newSecretBadges = await _badgesService
-              .checkSecretBadges(
-                sessionId: completedSession.id,
-                bookFinished: true,
-              )
-              .timeout(_kPostSessionTimeout);
-        } catch (e) {
-          debugPrint('Erreur checkSecretBadges (non bloquante): $e');
-        }
+        // Vérifier et attribuer badges standard / secrets / flow — les 3
+        // appels partent en même temps (voir fix 2026-09-26 dans
+        // _endSession) plutôt que bout à bout derrière l'écran de confetti.
+        final badgesFuture = _badgesService
+            .checkAndAwardBadges()
+            .timeout(_kPostSessionTimeout);
+        final secretBadgesFuture = _badgesService
+            .checkSecretBadges(
+              sessionId: completedSession.id,
+              bookFinished: true,
+            )
+            .timeout(_kPostSessionTimeout);
+        final flowBadgesFuture = _flowService
+            .checkAndAwardFlowBadges()
+            .timeout(_kPostSessionTimeout);
 
         // Mettre à jour le widget iOS (non bloquant)
         WidgetService().updateWidget().catchError((_) {});
 
-        // Vérifier et attribuer les badges de flow (non bloquant)
-        List<dynamic> newFlowBadges = [];
+        List<UserBadge> newBadges = [];
         try {
-          newFlowBadges = await _flowService
-              .checkAndAwardFlowBadges()
-              .timeout(_kPostSessionTimeout);
+          newBadges = await badgesFuture;
+        } catch (e) {
+          debugPrint('Erreur checkAndAwardBadges (non bloquante): $e');
+        }
+
+        List<UserBadge> newSecretBadges = [];
+        try {
+          newSecretBadges = await secretBadgesFuture;
+        } catch (e) {
+          debugPrint('Erreur checkSecretBadges (non bloquante): $e');
+        }
+
+        List<FlowBadgeLevel> newFlowBadges = [];
+        try {
+          newFlowBadges = await flowBadgesFuture;
         } catch (e) {
           debugPrint('Erreur checkAndAwardFlowBadges (non bloquante): $e');
         }
@@ -522,38 +574,13 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
         // Masquer l'animation de fin de livre
         setState(() => _showFinishBookAnimation = false);
 
-        // Afficher les nouveaux badges débloqués
-        if (newBadges.isNotEmpty) {
-          for (final badge in newBadges) {
-            await showDialog(
-              context: context,
-              barrierDismissible: false,
-              builder: (context) => BadgeUnlockedDialog(badge: badge),
-            );
-          }
-        }
-
-        // Afficher les badges secrets débloqués
-        if (newSecretBadges.isNotEmpty && mounted) {
-          for (final badge in newSecretBadges) {
-            await showDialog(
-              context: context,
-              barrierDismissible: false,
-              builder: (context) => BadgeUnlockedDialog(badge: badge),
-            );
-          }
-        }
-
-        // Afficher les badges de flow débloqués
-        if (newFlowBadges.isNotEmpty && mounted) {
-          for (final badgeLevel in newFlowBadges) {
-            await showDialog(
-              context: context,
-              barrierDismissible: false,
-              builder: (context) => _FlowBadgeDialog(badgeLevel: badgeLevel as FlowBadgeLevel),
-            );
-          }
-        }
+        // Afficher les récompenses débloquées (une seule modale, cf.
+        // _showUnlockedRewards).
+        await _showUnlockedRewards(
+          badges: newBadges,
+          secretBadges: newSecretBadges,
+          flowBadges: newFlowBadges,
+        );
 
         // Récupérer le livre pour la page de résumé
         Book? book = widget.book;
