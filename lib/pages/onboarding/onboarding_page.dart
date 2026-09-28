@@ -175,14 +175,6 @@ class _OnboardingPageState extends State<OnboardingPage> {
     }
   }
 
-  void _goToPage(int page) {
-    _pageController.animateToPage(
-      page,
-      duration: const Duration(milliseconds: 350),
-      curve: Curves.easeInOut,
-    );
-  }
-
   // --- Book handlers ---
 
   void _handleBookAdded(Book book) {
