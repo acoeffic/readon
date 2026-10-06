@@ -36,6 +36,7 @@ import '../../services/push_notification_service.dart';
 import 'package:lexday/features/badges/services/badges_service.dart';
 import '../../services/books_service.dart';
 import '../../services/analytics_service.dart';
+import '../../services/session_watcher.dart';
 import '../../services/focus_mode_service.dart';
 import '../../services/feed_cache_service.dart';
 import 'package:lexday/features/badges/widgets/badge_unlocked_dialog.dart';
@@ -792,6 +793,7 @@ if (!allowedExtensions.contains(fileExtension)) {
       // Déconnexion Supabase AVANT la navigation pour que
       // AuthGate voit session == null et affiche LoginPage
       try {
+        SessionWatcher.expectSignOut();
         await Supabase.instance.client.auth.signOut();
       } catch (_) {}
 
@@ -1544,6 +1546,7 @@ if (!allowedExtensions.contains(fileExtension)) {
                       await SubscriptionService().logoutUser();
                       await AnalyticsService().track(AnalyticsEvent.logout);
                       await AnalyticsService().reset();
+                      SessionWatcher.expectSignOut();
                       await Supabase.instance.client.auth.signOut();
 
                       if (context.mounted) {

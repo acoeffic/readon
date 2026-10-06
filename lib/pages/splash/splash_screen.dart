@@ -8,6 +8,7 @@ import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
 
 import '../../config/env.dart';
 import '../../services/analytics_service.dart';
+import '../../services/session_watcher.dart';
 import '../../services/subscription_service.dart';
 import '../../services/monthly_notification_service.dart';
 import '../../services/deep_link_service.dart';
@@ -174,6 +175,9 @@ class _SplashScreenState extends State<SplashScreen>
     // Doit venir après `Supabase.initialize` : émet signup_completed /
     // login_succeeded depuis un point unique, quel que soit le fournisseur.
     AnalyticsService().attachAuthListener();
+    // Session supprimée par gotrue sans déconnexion (refresh refusé) →
+    // retour propre à l'écran de connexion au lieu de murs « Crée un compte ».
+    SessionWatcher.start();
 
     if (!kIsWeb) {
       // La mise à jour avec les vraies données se fera après l'auth

@@ -21,6 +21,7 @@ import '../pages/auth/login_page.dart';
 import '../pages/auth/signup_page.dart';
 import '../providers/guest_mode_provider.dart';
 import '../services/analytics_service.dart';
+import '../services/session_watcher.dart';
 import '../theme/app_theme.dart';
 
 /// Helper principal : appeler depuis n'importe quelle action gated.
@@ -64,6 +65,18 @@ Future<void> showRequireAccountSheet(
   BuildContext context, {
   required String source,
 }) async {
+  // Pas de session ET pas en mode invité = session perdue (refresh token
+  // refusé, cf. SessionWatcher) : ce n'est pas un invité à convertir mais un
+  // utilisateur connecté à renvoyer vers la connexion, avec le bon message.
+  bool isGuest = true;
+  try {
+    isGuest = context.read<GuestModeProvider>().isGuest;
+  } catch (_) {}
+  if (!isGuest) {
+    SessionWatcher.redirectToLogin(sessionExpired: true);
+    return;
+  }
+
   final colors = context.appColors;
   final l = AppLocalizations.of(context);
 

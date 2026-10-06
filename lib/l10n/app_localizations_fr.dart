@@ -171,6 +171,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get guestRequireAccountTitle => 'Crée un compte gratuit';
 
   @override
+  String get sessionExpiredReconnect =>
+      'Ta session a expiré, reconnecte-toi pour continuer.';
+
+  @override
   String get guestRequireAccountSubtitle =>
       'Cette action nécessite un compte LexDay. Crée le tien en quelques secondes pour continuer.';
 
@@ -4683,4 +4687,49 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get onboardingReminderNo => 'Non merci';
+
+  @override
+  String get firstSessionGoalTitle => 'Fixe-toi un petit objectif';
+
+  @override
+  String get firstSessionGoalBody =>
+      'Choisis-en un pour garder le rythme. Tu pourras le changer quand tu veux.';
+
+  @override
+  String get firstSessionGoalPresetMinutes => '10 min par jour';
+
+  @override
+  String get firstSessionGoalPresetDays => '3 jours par semaine';
+
+  @override
+  String get firstSessionGoalPresetBook => '1 livre par mois';
+
+  @override
+  String get firstSessionGoalLater => 'Plus tard';
+
+  @override
+  String get firstSessionGoalSaved => 'Objectif enregistré ✓';
+
+  @override
+  String get goalReminderTitle => 'On te rappelle pour ton objectif ?';
+
+  @override
+  String goalReminderBody(String goal) {
+    return 'Un rappel par jour pour tenir « $goal », tant que tu n’as pas lu. Tu peux le couper quand tu veux dans les réglages.';
+  }
+
+  @override
+  String get friendChallengeTitle => 'Lis avec un ami';
+
+  @override
+  String get friendChallengeBody =>
+      'Un défi à deux, c\'est plus facile de s\'y tenir : 10 minutes par jour pendant 7 jours. On t\'écrit le message.';
+
+  @override
+  String get friendChallengeCta => 'Envoyer le défi';
+
+  @override
+  String friendChallengeShareText(String link) {
+    return '📚 Défi : on lit 10 minutes par jour pendant 7 jours ?\n\nJe suis sur LexDay pour suivre ma lecture, rejoins-moi et on se motive !\n$link';
+  }
 }

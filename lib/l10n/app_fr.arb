@@ -62,6 +62,7 @@
   "guestModeBannerTitle": "Mode invité",
   "guestModeBannerSubtitle": "Crée un compte pour profiter de toutes les fonctionnalités.",
   "guestRequireAccountTitle": "Crée un compte gratuit",
+  "sessionExpiredReconnect": "Ta session a expiré, reconnecte-toi pour continuer.",
   "guestRequireAccountSubtitle": "Cette action nécessite un compte LexDay. Crée le tien en quelques secondes pour continuer.",
   "guestSignUpCta": "Créer un compte",
   "guestSignInCta": "J'ai déjà un compte",
@@ -2442,5 +2443,22 @@
   "onboardingReminderBody": "Un seul rappel pour reprendre « {title} » — et rien d’autre tant que tu n’as pas lu.",
   "onboardingReminderYes": "Oui, rappelle-moi",
   "onboardingReminderNo": "Non merci",
-  "@onboardingReminderBody": {"placeholders": {"title": {"type": "String"}}}
+  "@onboardingReminderBody": {"placeholders": {"title": {"type": "String"}}},
+  "firstSessionGoalTitle": "Fixe-toi un petit objectif",
+  "firstSessionGoalBody": "Choisis-en un pour garder le rythme. Tu pourras le changer quand tu veux.",
+  "firstSessionGoalPresetMinutes": "10 min par jour",
+  "firstSessionGoalPresetDays": "3 jours par semaine",
+  "firstSessionGoalPresetBook": "1 livre par mois",
+  "firstSessionGoalLater": "Plus tard",
+  "firstSessionGoalSaved": "Objectif enregistré ✓",
+  "goalReminderTitle": "On te rappelle pour ton objectif ?",
+  "goalReminderBody": "Un rappel par jour pour tenir « {goal} », tant que tu n’as pas lu. Tu peux le couper quand tu veux dans les réglages.",
+  "@goalReminderBody": {"placeholders": {"goal": {"type": "String"}}},
+  "friendChallengeTitle": "Lis avec un ami",
+  "friendChallengeBody": "Un défi à deux, c'est plus facile de s'y tenir : 10 minutes par jour pendant 7 jours. On t'écrit le message.",
+  "friendChallengeCta": "Envoyer le défi",
+  "friendChallengeShareText": "📚 Défi : on lit 10 minutes par jour pendant 7 jours ?\n\nJe suis sur LexDay pour suivre ma lecture, rejoins-moi et on se motive !\n{link}",
+  "@friendChallengeShareText": {
+    "placeholders": { "link": { "type": "String" } }
+  }
 }

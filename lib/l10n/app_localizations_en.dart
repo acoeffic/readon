@@ -171,6 +171,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get guestRequireAccountTitle => 'Create a free account';
 
   @override
+  String get sessionExpiredReconnect =>
+      'Your session has expired, please sign in again.';
+
+  @override
   String get guestRequireAccountSubtitle =>
       'This action needs a LexDay account. Create yours in seconds to continue.';
 
@@ -4638,4 +4642,49 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get onboardingReminderNo => 'No thanks';
+
+  @override
+  String get firstSessionGoalTitle => 'Set a small goal';
+
+  @override
+  String get firstSessionGoalBody =>
+      'Pick one to keep your rhythm. You can change it anytime.';
+
+  @override
+  String get firstSessionGoalPresetMinutes => '10 min a day';
+
+  @override
+  String get firstSessionGoalPresetDays => '3 days a week';
+
+  @override
+  String get firstSessionGoalPresetBook => '1 book a month';
+
+  @override
+  String get firstSessionGoalLater => 'Later';
+
+  @override
+  String get firstSessionGoalSaved => 'Goal saved ✓';
+
+  @override
+  String get goalReminderTitle => 'Remind you about your goal?';
+
+  @override
+  String goalReminderBody(String goal) {
+    return 'One reminder a day to help you stick to “$goal”, until you’ve read. You can turn it off anytime in settings.';
+  }
+
+  @override
+  String get friendChallengeTitle => 'Read with a friend';
+
+  @override
+  String get friendChallengeBody =>
+      'A challenge for two is easier to stick to: 10 minutes a day for 7 days. We\'ll write the message for you.';
+
+  @override
+  String get friendChallengeCta => 'Send the challenge';
+
+  @override
+  String friendChallengeShareText(String link) {
+    return '📚 Challenge: shall we read 10 minutes a day for 7 days?\n\nI\'m using LexDay to track my reading, join me and let\'s keep each other going!\n$link';
+  }
 }

@@ -388,6 +388,12 @@ abstract class AppLocalizations {
   /// **'Crée un compte gratuit'**
   String get guestRequireAccountTitle;
 
+  /// No description provided for @sessionExpiredReconnect.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ta session a expiré, reconnecte-toi pour continuer.'**
+  String get sessionExpiredReconnect;
+
   /// No description provided for @guestRequireAccountSubtitle.
   ///
   /// In fr, this message translates to:
@@ -8307,6 +8313,84 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Non merci'**
   String get onboardingReminderNo;
+
+  /// No description provided for @firstSessionGoalTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fixe-toi un petit objectif'**
+  String get firstSessionGoalTitle;
+
+  /// No description provided for @firstSessionGoalBody.
+  ///
+  /// In fr, this message translates to:
+  /// **'Choisis-en un pour garder le rythme. Tu pourras le changer quand tu veux.'**
+  String get firstSessionGoalBody;
+
+  /// No description provided for @firstSessionGoalPresetMinutes.
+  ///
+  /// In fr, this message translates to:
+  /// **'10 min par jour'**
+  String get firstSessionGoalPresetMinutes;
+
+  /// No description provided for @firstSessionGoalPresetDays.
+  ///
+  /// In fr, this message translates to:
+  /// **'3 jours par semaine'**
+  String get firstSessionGoalPresetDays;
+
+  /// No description provided for @firstSessionGoalPresetBook.
+  ///
+  /// In fr, this message translates to:
+  /// **'1 livre par mois'**
+  String get firstSessionGoalPresetBook;
+
+  /// No description provided for @firstSessionGoalLater.
+  ///
+  /// In fr, this message translates to:
+  /// **'Plus tard'**
+  String get firstSessionGoalLater;
+
+  /// No description provided for @firstSessionGoalSaved.
+  ///
+  /// In fr, this message translates to:
+  /// **'Objectif enregistré ✓'**
+  String get firstSessionGoalSaved;
+
+  /// No description provided for @goalReminderTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'On te rappelle pour ton objectif ?'**
+  String get goalReminderTitle;
+
+  /// No description provided for @goalReminderBody.
+  ///
+  /// In fr, this message translates to:
+  /// **'Un rappel par jour pour tenir « {goal} », tant que tu n’as pas lu. Tu peux le couper quand tu veux dans les réglages.'**
+  String goalReminderBody(String goal);
+
+  /// No description provided for @friendChallengeTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Lis avec un ami'**
+  String get friendChallengeTitle;
+
+  /// No description provided for @friendChallengeBody.
+  ///
+  /// In fr, this message translates to:
+  /// **'Un défi à deux, c\'est plus facile de s\'y tenir : 10 minutes par jour pendant 7 jours. On t\'écrit le message.'**
+  String get friendChallengeBody;
+
+  /// No description provided for @friendChallengeCta.
+  ///
+  /// In fr, this message translates to:
+  /// **'Envoyer le défi'**
+  String get friendChallengeCta;
+
+  /// No description provided for @friendChallengeShareText.
+  ///
+  /// In fr, this message translates to:
+  /// **'📚 Défi : on lit 10 minutes par jour pendant 7 jours ?\n\nJe suis sur LexDay pour suivre ma lecture, rejoins-moi et on se motive !\n{link}'**
+  String friendChallengeShareText(String link);
 }
 
 class _AppLocalizationsDelegate

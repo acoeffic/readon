@@ -62,6 +62,7 @@
   "guestModeBannerTitle": "Modo invitado",
   "guestModeBannerSubtitle": "Crea una cuenta para disfrutar de todas las funciones.",
   "guestRequireAccountTitle": "Crea una cuenta gratis",
+  "sessionExpiredReconnect": "Tu sesión ha caducado, vuelve a iniciar sesión.",
   "guestRequireAccountSubtitle": "Esta acción requiere una cuenta LexDay. Crea la tuya en segundos para continuar.",
   "guestSignUpCta": "Crear cuenta",
   "guestSignInCta": "Ya tengo una cuenta",
@@ -2414,5 +2415,22 @@
   "onboardingReminderBody": "Un solo recordatorio para retomar «{title}» — y nada más hasta que hayas leído.",
   "onboardingReminderYes": "Sí, recuérdamelo",
   "onboardingReminderNo": "No, gracias",
-  "@onboardingReminderBody": {"placeholders": {"title": {"type": "String"}}}
+  "@onboardingReminderBody": {"placeholders": {"title": {"type": "String"}}},
+  "firstSessionGoalTitle": "Fíjate un pequeño objetivo",
+  "firstSessionGoalBody": "Elige uno para mantener el ritmo. Puedes cambiarlo cuando quieras.",
+  "firstSessionGoalPresetMinutes": "10 min al día",
+  "firstSessionGoalPresetDays": "3 días a la semana",
+  "firstSessionGoalPresetBook": "1 libro al mes",
+  "firstSessionGoalLater": "Más tarde",
+  "firstSessionGoalSaved": "Objetivo guardado ✓",
+  "goalReminderTitle": "¿Te recordamos tu objetivo?",
+  "goalReminderBody": "Un recordatorio al día para mantener «{goal}», mientras no hayas leído. Puedes desactivarlo cuando quieras en los ajustes.",
+  "@goalReminderBody": {"placeholders": {"goal": {"type": "String"}}},
+  "friendChallengeTitle": "Lee con un amigo",
+  "friendChallengeBody": "Un reto de dos es más fácil de cumplir: 10 minutos al día durante 7 días. Te escribimos el mensaje.",
+  "friendChallengeCta": "Enviar el reto",
+  "friendChallengeShareText": "📚 Reto: ¿leemos 10 minutos al día durante 7 días?\n\nUso LexDay para seguir mis lecturas, únete y nos motivamos juntos.\n{link}",
+  "@friendChallengeShareText": {
+    "placeholders": { "link": { "type": "String" } }
+  }
 }

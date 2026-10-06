@@ -14,11 +14,25 @@
 // mêmes portes (Kindle connecté, auto-sync activé), même import
 // (`importKindleBooks` → sessions). Premium vérifié en base
 // (`profiles.is_premium`), le provider n'existant pas ici.
+//
+// ⚠️ Session Supabase : LECTURE SEULE dans cet isolate (fix 05/10/2026).
+// `Supabase.initialize()` avec les options par défaut relisait la session
+// persistée et, si le JWT (1 h) était expiré, la RAFRAÎCHISSAIT ici. Les
+// refresh tokens Supabase tournent à chaque usage : l'app au premier plan,
+// qui gardait l'ancien token en mémoire, échouait à son propre refresh au
+// retour (« Invalid Refresh Token: Already Used »), gotrue supprimait alors
+// la session (`_removeSession` + `signedOut`) et supabase_flutter effaçait
+// la session persistée. Résultat vécu : utilisateur connecté/premium, mais
+// `currentUser == null` → murs « Crée un compte » partout, puis écran de
+// connexion au lancement suivant. Ici on ne rafraîchit JAMAIS : JWT encore
+// valide → on l'utilise tel quel ; expiré → on saute l'exécution.
+import 'dart:convert';
 import 'dart:io';
 import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:workmanager/workmanager.dart';
 
@@ -102,18 +116,102 @@ class KindleBackgroundSync {
     await KindleCookieStore.clear();
   }
 
+  /// Clé SharedPreferences où supabase_flutter persiste la session — même
+  /// formule que `Supabase.initialize` quand aucun `localStorage` n'est
+  /// fourni (`supabase.dart`, 2.10.x).
+  static String get _sessionPrefsKey =>
+      'sb-${Uri.parse(Env.supabaseUrl).host.split('.').first}-auth-token';
+
+  /// Marge sous laquelle on ne lance pas la sync : un JWT qui expire pendant
+  /// l'exécution ferait échouer les inserts, sans qu'on puisse (ni veuille)
+  /// le rafraîchir ici.
+  static const _minJwtValidity = Duration(minutes: 2);
+
+  /// Session persistée par l'app, si son JWT est encore valide. Retourne le
+  /// JSON tel que stocké (celui que `setInitialSession` attend), sinon null.
+  static Future<String?> _readValidSessionJson() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_sessionPrefsKey);
+    if (raw == null || raw.isEmpty) return null;
+    final exp = _jwtExpiry(raw);
+    if (exp == null) return null;
+    final remaining = exp.difference(DateTime.now());
+    if (remaining < _minJwtValidity) {
+      debugPrint(
+        'KindleBackgroundSync: JWT expiré ou presque '
+        '(${remaining.inSeconds}s), skip — jamais de refresh ici',
+      );
+      return null;
+    }
+    return raw;
+  }
+
+  /// Date d'expiration du JWT contenu dans la session persistée (claim `exp`
+  /// de l'access token ; `expires_at` en secours). Null si illisible.
+  static DateTime? _jwtExpiry(String sessionJson) {
+    try {
+      var map = jsonDecode(sessionJson) as Map<String, dynamic>;
+      // Ancien format supabase_flutter 1.x : {"currentSession": {...}}.
+      if (map['currentSession'] is Map<String, dynamic>) {
+        map = map['currentSession'] as Map<String, dynamic>;
+      }
+      final token = map['access_token'] as String?;
+      if (token != null) {
+        final parts = token.split('.');
+        if (parts.length == 3) {
+          final payload = jsonDecode(
+            utf8.decode(base64Url.decode(base64Url.normalize(parts[1]))),
+          ) as Map<String, dynamic>;
+          final exp = payload['exp'];
+          if (exp is int) {
+            return DateTime.fromMillisecondsSinceEpoch(exp * 1000);
+          }
+        }
+      }
+      final expiresAt = map['expires_at'];
+      if (expiresAt is int) {
+        return DateTime.fromMillisecondsSinceEpoch(expiresAt * 1000);
+      }
+    } catch (e) {
+      debugPrint('KindleBackgroundSync: session persistée illisible: $e');
+    }
+    return null;
+  }
+
   /// Une exécution complète dans l'isolate headless.
   static Future<void> runOnce() async {
     DartPluginRegistrant.ensureInitialized();
 
     if (Env.supabaseUrl.isEmpty || Env.supabaseAnonKey.isEmpty) return;
+
+    final sessionJson = await _readValidSessionJson();
+    if (sessionJson == null) {
+      debugPrint('KindleBackgroundSync: pas de session valide, skip');
+      return;
+    }
+
     try {
       await Supabase.initialize(
         url: Env.supabaseUrl,
         anonKey: Env.supabaseAnonKey,
+        authOptions: FlutterAuthClientOptions(
+          // Jamais de refresh dans l'isolate (cf. en-tête).
+          autoRefreshToken: false,
+          // Et jamais d'écriture/suppression de la session persistée : seule
+          // l'app au premier plan en est propriétaire.
+          localStorage: _ReadOnlySessionStorage(sessionJson),
+        ),
       );
     } catch (_) {
-      // Déjà initialisé dans cet isolate : on continue.
+      // Déjà initialisé dans cet isolate (réutilisé par workmanager) : on
+      // recharge simplement la session la plus récente écrite par l'app,
+      // sans réseau.
+      try {
+        await Supabase.instance.client.auth.setInitialSession(sessionJson);
+      } catch (e) {
+        debugPrint('KindleBackgroundSync: setInitialSession KO: $e');
+        return;
+      }
     }
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) {
@@ -209,4 +307,30 @@ class KindleBackgroundSync {
     }
     return const Locale('fr');
   }
+}
+
+/// Stockage de session en lecture seule pour l'isolate headless : expose la
+/// session persistée par l'app, ignore toute écriture ou suppression.
+/// Sans lui, supabase_flutter réécrit la session à chaque `initialSession` /
+/// `tokenRefreshed` et l'efface sur `signedOut` — depuis un isolate qui n'a
+/// pas à toucher à la session de l'app.
+class _ReadOnlySessionStorage extends LocalStorage {
+  const _ReadOnlySessionStorage(this._sessionJson);
+
+  final String _sessionJson;
+
+  @override
+  Future<void> initialize() async {}
+
+  @override
+  Future<bool> hasAccessToken() async => true;
+
+  @override
+  Future<String?> accessToken() async => _sessionJson;
+
+  @override
+  Future<void> persistSession(String persistSessionString) async {}
+
+  @override
+  Future<void> removePersistedSession() async {}
 }
