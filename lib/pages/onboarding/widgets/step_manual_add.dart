@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../../theme/app_theme.dart';
 import '../../../models/book.dart';
 import '../../../services/books_service.dart';
@@ -45,7 +46,10 @@ class _StepManualAddState extends State<StepManualAdd> {
         });
       }
     } catch (_) {
-      if (mounted) setState(() => _searching = false);
+      if (mounted) {
+        setState(() => _searching = false);
+        _showError();
+      }
     }
   }
 
@@ -73,8 +77,19 @@ class _StepManualAddState extends State<StepManualAdd> {
         });
       }
     } catch (_) {
-      if (mounted) setState(() => _adding = false);
+      if (mounted) {
+        setState(() => _adding = false);
+        _showError();
+      }
     }
+  }
+
+  /// Cette étape bloque « Suivant » tant qu'aucun livre n'est ajouté : un
+  /// échec silencieux laissait l'utilisateur sans issue.
+  void _showError() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(AppLocalizations.of(context).errorOccurredRetryLater)),
+    );
   }
 
   @override
@@ -85,6 +100,7 @@ class _StepManualAddState extends State<StepManualAdd> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.all(AppSpace.l),
       child: Column(
@@ -92,7 +108,7 @@ class _StepManualAddState extends State<StepManualAdd> {
         children: [
           const SizedBox(height: AppSpace.l),
           Text(
-            'Quel livre lis-tu en ce moment ?',
+            l10n.onboardingAddBookTitle,
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                   fontSize: 24,
                   fontWeight: FontWeight.w700,
@@ -100,8 +116,8 @@ class _StepManualAddState extends State<StepManualAdd> {
                 ),
           ),
           const SizedBox(height: AppSpace.s),
-          const Text(
-            'Scanne sa couverture ou recherche-le par titre pour commencer',
+          Text(
+            l10n.onboardingAddBookSubtitle,
             style: TextStyle(fontSize: 15, color: Colors.black54),
           ),
           const SizedBox(height: AppSpace.l),
@@ -118,8 +134,8 @@ class _StepManualAddState extends State<StepManualAdd> {
               ),
               onPressed: _openScanner,
               icon: const Icon(Icons.camera_alt_outlined, size: 20),
-              label: const Text(
-                'Scanner un livre',
+              label: Text(
+                l10n.scanBookCta,
                 style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
               ),
             ),
@@ -136,9 +152,9 @@ class _StepManualAddState extends State<StepManualAdd> {
                 child: TextField(
                   textCapitalization: TextCapitalization.sentences,
                   controller: _searchController,
-                  decoration: const InputDecoration(
-                    hintText: 'Titre ou auteur...',
-                    hintStyle: TextStyle(color: Colors.grey),
+                  decoration: InputDecoration(
+                    hintText: l10n.onboardingSearchHint,
+                    hintStyle: const TextStyle(color: Colors.grey),
                   ),
                   textInputAction: TextInputAction.search,
                   onSubmitted: (_) => _search(),
@@ -187,7 +203,7 @@ class _StepManualAddState extends State<StepManualAdd> {
             Padding(
               padding: const EdgeInsets.only(bottom: AppSpace.s),
               child: Text(
-                '${widget.addedBooks.length} livre${widget.addedBooks.length > 1 ? 's' : ''} ajouté${widget.addedBooks.length > 1 ? 's' : ''}',
+                l10n.onboardingBooksAddedCount(widget.addedBooks.length),
                 style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -210,8 +226,8 @@ class _StepManualAddState extends State<StepManualAdd> {
               ),
               onPressed:
                   widget.addedBooks.isNotEmpty ? widget.onNext : null,
-              child: const Text(
-                'Suivant',
+              child: Text(
+                l10n.tutorialNext,
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
             ),
@@ -225,8 +241,8 @@ class _StepManualAddState extends State<StepManualAdd> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Livres ajoutés',
+        Text(
+          AppLocalizations.of(context).onboardingBooksAddedHeader,
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,

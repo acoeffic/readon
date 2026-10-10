@@ -59,9 +59,9 @@ class PeopleYouMayKnowSection extends StatelessWidget {
           children: [
             const Text('🤝', style: TextStyle(fontSize: 16)),
             const SizedBox(width: AppSpace.s),
-            const Expanded(
+            Expanded(
               child: Text(
-                'Tu pourrais connaître',
+                AppLocalizations.of(context).feedPeopleYouMayKnow,
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
@@ -76,7 +76,7 @@ class PeopleYouMayKnowSection extends StatelessWidget {
                   minimumSize: Size.zero,
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
-                child: const Text('Voir tout'),
+                child: Text(AppLocalizations.of(context).seeAll),
               ),
           ],
         ),
@@ -234,7 +234,7 @@ class _PymkCard extends StatelessWidget {
                       ),
                       child: Text(
                         isRequested
-                            ? 'En attente'
+                            ? AppLocalizations.of(context).feedRequestPending
                             : '+ ${AppLocalizations.of(context).addButton}',
                         style: const TextStyle(
                           fontSize: 12.5,

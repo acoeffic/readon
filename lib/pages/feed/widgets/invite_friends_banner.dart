@@ -2,6 +2,7 @@
 // Bannière d'invitation d'amis pour réduire le cold start
 
 import 'package:flutter/material.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../../theme/app_theme.dart';
 
 class InviteFriendsBanner extends StatelessWidget {
@@ -48,7 +49,7 @@ class InviteFriendsBanner extends StatelessWidget {
           ),
           const SizedBox(height: AppSpace.m),
           Text(
-            'Ton feed est vide',
+            AppLocalizations.of(context).feedEmptyTitle,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                   fontSize: 18,
@@ -56,7 +57,7 @@ class InviteFriendsBanner extends StatelessWidget {
           ),
           const SizedBox(height: AppSpace.s),
           Text(
-            'Invite des amis pour le remplir !',
+            AppLocalizations.of(context).feedEmptySubtitle,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: Theme.of(context)
                       .colorScheme
@@ -69,7 +70,7 @@ class InviteFriendsBanner extends StatelessWidget {
           FilledButton.icon(
             onPressed: onShare,
             icon: const Icon(Icons.share, size: 18),
-            label: const Text('Partager le lien'),
+            label: Text(AppLocalizations.of(context).feedShareLink),
             style: FilledButton.styleFrom(
               backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
@@ -86,7 +87,7 @@ class InviteFriendsBanner extends StatelessWidget {
           TextButton(
             onPressed: onFindFriends,
             child: Text(
-              'Ou cherche des amis sur LexDay',
+              AppLocalizations.of(context).feedOrSearchFriends,
               style: TextStyle(
                 color: AppColors.primary,
                 fontSize: 13,

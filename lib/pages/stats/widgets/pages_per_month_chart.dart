@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../../models/reading_statistics.dart';
 import '../../../theme/app_theme.dart';
 
@@ -103,7 +104,7 @@ class PagesPerMonthChart extends StatelessWidget {
         children: [
           if (showHeader) ...[
             Text(
-              'Pages lues par mois',
+              AppLocalizations.of(context).pagesReadByMonth,
               style: Theme.of(context)
                   .textTheme
                   .titleMedium

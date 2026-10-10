@@ -2069,6 +2069,194 @@ class AppLocalizationsEn extends AppLocalizations {
       'Cannot access your contacts. Try again later.';
 
   @override
+  String get badgeUnlockedByFriend => 'unlocked a badge';
+
+  @override
+  String get timeAgoRecently => 'Recently';
+
+  @override
+  String get onboardingAddBookTitle => 'What book are you reading right now?';
+
+  @override
+  String get onboardingAddBookSubtitle =>
+      'Scan its cover or search by title to get started';
+
+  @override
+  String get onboardingSearchHint => 'Title or author...';
+
+  @override
+  String get onboardingBooksAddedHeader => 'Books added';
+
+  @override
+  String onboardingBooksAddedCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 's',
+      one: '',
+    );
+    return '$count book$_temp0 added';
+  }
+
+  @override
+  String get feedFindFriendsTitle => 'Read with your friends!';
+
+  @override
+  String get feedFindFriendsSubtitle => 'Add friends to discover what they read\nand share your sessions with them';
+
+  @override
+  String get feedEmptyTitle => 'Your feed is empty';
+
+  @override
+  String get feedEmptySubtitle => 'Invite friends to fill it!';
+
+  @override
+  String get feedOrSearchFriends => 'Or look for friends on LexDay';
+
+  @override
+  String get feedShareLink => 'Share the link';
+
+  @override
+  String get feedPeopleYouMayKnow => 'People you may know';
+
+  @override
+  String get feedRequestPending => 'Pending';
+
+  @override
+  String get feedReadersToDiscover => 'Readers to discover';
+
+  @override
+  String get feedTrendingBooksTitle => 'Top books right now';
+
+  @override
+  String get feedListsCuratedBy => 'Curated picks by lexday';
+
+  @override
+  String get feedSeeAllArrow => 'See all →';
+
+  @override
+  String get feedSeeAllListsArrow => 'See all\nlists →';
+
+  @override
+  String get feedDiscoverCommunity => 'Discover the community';
+
+  @override
+  String get feedActiveReadersTitle => 'Currently reading';
+
+  @override
+  String get feedLiveBadge => 'LIVE';
+
+  @override
+  String feedSinceMinutes(int minutes) => 'For ${minutes} min';
+
+  @override
+  String feedSinceHours(int hours) => 'For ${hours}h';
+
+  @override
+  String feedPageOfTotal(int current, int total) => 'Page ${current} / ${total}';
+
+  @override
+  String get feedBookFinishedShout => 'BOOK FINISHED';
+
+  @override
+  String get statsPeriodAllTime => 'All time';
+
+  @override
+  String get statsHeroWeekEyebrow => 'YOUR WEEK';
+
+  @override
+  String get statsHeroMonthEyebrow => 'YOUR MONTH';
+
+  @override
+  String get statsHeroYearEyebrow => 'YOUR YEAR IN READING';
+
+  @override
+  String get statsHeroAllTimeEyebrow => 'YOUR LIBRARY';
+
+  @override
+  String get statsHeroWeekSubtitle => 'pages this week';
+
+  @override
+  String get statsHeroMonthSubtitle => 'pages this month';
+
+  @override
+  String get statsHeroYearSubtitle => 'pages since January';
+
+  @override
+  String get statsHeroAllTimeSubtitle => 'pages since your first session';
+
+  @override
+  String get statsHeadlineDefault => 'Your reading, month after month';
+
+  @override
+  String statsHeadlinePeakMonth(String month) => '${month} is still your busiest month';
+
+  @override
+  String get statsHeadlineLibrary => 'What makes up your library';
+
+  @override
+  String statsHeadlineTopGenre(String genre) => '${genre} is still your compass';
+
+  @override
+  String get statsNoDataYet => 'No data yet';
+
+  @override
+  String get statsGenreOne => 'GENRE';
+
+  @override
+  String get statsGenreMany => 'GENRES';
+
+  @override
+  String get statsYourBadges => 'Your badges';
+
+  @override
+  String get statsNoBadgeUnlocked => 'No badges unlocked yet';
+
+  @override
+  String get statsPersonalRecords => 'Personal records';
+
+  @override
+  String get statsRecordLongestSession => 'Longest session';
+
+  @override
+  String get statsRecordBestFlow => 'Best flow';
+
+  @override
+  String get statsRecordPagesRead => 'Pages read';
+
+  @override
+  String get statsRecordBooksFinished => 'Books finished';
+
+  @override
+  String get statsRecordSessions => 'Sessions';
+
+  @override
+  String get statsRecordReadingHours => 'Reading hours';
+
+  @override
+  String statsDaysShort(int days) => '${days}d';
+
+  @override
+  String get statsSlotMorning => 'Morning';
+
+  @override
+  String get statsSlotNoon => 'Noon';
+
+  @override
+  String get statsSlotEvening => 'Evening';
+
+  @override
+  String get statsSlotNight => 'Night';
+
+  @override
+  String get purchasePending =>
+      'Purchase not confirmed yet. If you were charged, your Premium access will activate once the store confirms it — you can also tap "Restore purchases".';
+
+  @override
+  String get purchaseFailed =>
+      'The purchase could not be completed. Check your connection and payment method, then try again.';
+
+  @override
   String get errorOccurred => 'An error occurred';
 
   @override
@@ -4320,6 +4508,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get chooseNameSubtitle =>
       'This is the name your friends and other readers will see on LexDay.';
+
+  @override
+  String get nameRejected =>
+      'This name couldn\'t be accepted. Please try another one.';
 
   @override
   String get feedbackTooltip => 'Share feedback';

@@ -115,7 +115,7 @@ class _DiscoverReadersSectionState extends State<DiscoverReadersSection> {
             const SizedBox(width: AppSpace.s),
             Expanded(
               child: Text(
-                'Lecteurs à découvrir',
+                AppLocalizations.of(context).feedReadersToDiscover,
                 style: Theme.of(context).textTheme.titleMedium,
               ),
             ),
@@ -127,7 +127,7 @@ class _DiscoverReadersSectionState extends State<DiscoverReadersSection> {
                   minimumSize: Size.zero,
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
-                child: const Text('Voir tout'),
+                child: Text(AppLocalizations.of(context).seeAll),
               ),
           ],
         ),
@@ -318,7 +318,7 @@ class _ReaderCard extends StatelessWidget {
                       ),
                       child: Text(
                         isRequested
-                            ? 'En attente'
+                            ? AppLocalizations.of(context).feedRequestPending
                             : '+ ${AppLocalizations.of(context).addButton}',
                         style: const TextStyle(
                           fontSize: 12.5,

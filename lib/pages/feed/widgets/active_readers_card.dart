@@ -2,6 +2,7 @@
 // Carousel horizontal des lecteurs actuellement en session (profils publics)
 
 import 'package:flutter/material.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../../theme/app_theme.dart';
 import '../../../widgets/cached_book_cover.dart';
 import '../../../widgets/cached_profile_avatar.dart';
@@ -24,7 +25,7 @@ class ActiveReadersCard extends StatelessWidget {
             const _PulsingDot(),
             const SizedBox(width: 8),
             Text(
-              'En train de lire',
+              AppLocalizations.of(context).feedActiveReadersTitle,
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(width: 8),
@@ -34,8 +35,8 @@ class ActiveReadersCard extends StatelessWidget {
                 color: const Color(0xFF4CAF50).withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(AppRadius.pill),
               ),
-              child: const Text(
-                'EN DIRECT',
+              child: Text(
+                AppLocalizations.of(context).feedLiveBadge,
                 style: TextStyle(
                   fontSize: 9,
                   fontWeight: FontWeight.w700,
@@ -96,17 +97,17 @@ class _ActiveReaderItem extends StatelessWidget {
     this.onTap,
   });
 
-  String _getSinceText() {
-    if (startTime == null) return 'En cours';
+  String _getSinceText(AppLocalizations l) {
+    if (startTime == null) return l.inProgressTag;
     try {
       final start = DateTime.parse(startTime!);
       final minutes = DateTime.now().difference(start).inMinutes;
-      if (minutes < 1) return 'À l\'instant';
-      if (minutes < 60) return 'Depuis ${minutes}min';
+      if (minutes < 1) return l.justNow;
+      if (minutes < 60) return l.feedSinceMinutes(minutes);
       final hours = (minutes / 60).floor();
-      return 'Depuis ${hours}h';
+      return l.feedSinceHours(hours);
     } catch (_) {
-      return 'En cours';
+      return l.inProgressTag;
     }
   }
 
@@ -210,7 +211,7 @@ class _ActiveReaderItem extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    _getSinceText(),
+                    _getSinceText(AppLocalizations.of(context)),
                     style: TextStyle(
                       fontSize: 9,
                       color: Color(isDark ? 0xFF81C784 : 0xFF388E3C),

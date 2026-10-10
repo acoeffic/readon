@@ -3808,6 +3808,360 @@ abstract class AppLocalizations {
   /// **'Impossible d\'accéder à tes contacts. Réessaie plus tard.'**
   String get cannotAccessContactsRetry;
 
+  /// No description provided for @badgeUnlockedByFriend.
+  ///
+  /// In fr, this message translates to:
+  /// **'a débloqué un badge'**
+  String get badgeUnlockedByFriend;
+
+  /// No description provided for @timeAgoRecently.
+  ///
+  /// In fr, this message translates to:
+  /// **'Récemment'**
+  String get timeAgoRecently;
+
+  /// No description provided for @onboardingAddBookTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Quel livre lis-tu en ce moment ?'**
+  String get onboardingAddBookTitle;
+
+  /// No description provided for @onboardingAddBookSubtitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Scanne sa couverture ou recherche-le par titre pour commencer'**
+  String get onboardingAddBookSubtitle;
+
+  /// No description provided for @onboardingSearchHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Titre ou auteur...'**
+  String get onboardingSearchHint;
+
+  /// No description provided for @onboardingBooksAddedHeader.
+  ///
+  /// In fr, this message translates to:
+  /// **'Livres ajoutés'**
+  String get onboardingBooksAddedHeader;
+
+  /// No description provided for @onboardingBooksAddedCount.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count} livre{count, plural, =1{} other{s}} ajouté{count, plural, =1{} other{s}}'**
+  String onboardingBooksAddedCount(int count);
+
+  /// No description provided for @feedFindFriendsTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Lis avec tes amis !'**
+  String get feedFindFriendsTitle;
+
+  /// No description provided for @feedFindFriendsSubtitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajoute des amis pour découvrir leurs lectures\net partager tes sessions avec eux'**
+  String get feedFindFriendsSubtitle;
+
+  /// No description provided for @feedEmptyTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ton feed est vide'**
+  String get feedEmptyTitle;
+
+  /// No description provided for @feedEmptySubtitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Invite des amis pour le remplir !'**
+  String get feedEmptySubtitle;
+
+  /// No description provided for @feedOrSearchFriends.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ou cherche des amis sur LexDay'**
+  String get feedOrSearchFriends;
+
+  /// No description provided for @feedShareLink.
+  ///
+  /// In fr, this message translates to:
+  /// **'Partager le lien'**
+  String get feedShareLink;
+
+  /// No description provided for @feedPeopleYouMayKnow.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tu pourrais connaître'**
+  String get feedPeopleYouMayKnow;
+
+  /// No description provided for @feedRequestPending.
+  ///
+  /// In fr, this message translates to:
+  /// **'En attente'**
+  String get feedRequestPending;
+
+  /// No description provided for @feedReadersToDiscover.
+  ///
+  /// In fr, this message translates to:
+  /// **'Lecteurs à découvrir'**
+  String get feedReadersToDiscover;
+
+  /// No description provided for @feedTrendingBooksTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Top livres du moment'**
+  String get feedTrendingBooksTitle;
+
+  /// No description provided for @feedListsCuratedBy.
+  ///
+  /// In fr, this message translates to:
+  /// **'Sélections curatées par lexday'**
+  String get feedListsCuratedBy;
+
+  /// No description provided for @feedSeeAllArrow.
+  ///
+  /// In fr, this message translates to:
+  /// **'Voir tout →'**
+  String get feedSeeAllArrow;
+
+  /// No description provided for @feedSeeAllListsArrow.
+  ///
+  /// In fr, this message translates to:
+  /// **'Voir toutes\nles listes →'**
+  String get feedSeeAllListsArrow;
+
+  /// No description provided for @feedDiscoverCommunity.
+  ///
+  /// In fr, this message translates to:
+  /// **'Découvre la communauté'**
+  String get feedDiscoverCommunity;
+
+  /// No description provided for @feedActiveReadersTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'En train de lire'**
+  String get feedActiveReadersTitle;
+
+  /// No description provided for @feedLiveBadge.
+  ///
+  /// In fr, this message translates to:
+  /// **'EN DIRECT'**
+  String get feedLiveBadge;
+
+  /// No description provided for @feedSinceMinutes.
+  ///
+  /// In fr, this message translates to:
+  /// **'Depuis {minutes}min'**
+  String feedSinceMinutes(int minutes);
+
+  /// No description provided for @feedSinceHours.
+  ///
+  /// In fr, this message translates to:
+  /// **'Depuis {hours}h'**
+  String feedSinceHours(int hours);
+
+  /// No description provided for @feedPageOfTotal.
+  ///
+  /// In fr, this message translates to:
+  /// **'Page {current} / {total}'**
+  String feedPageOfTotal(int current, int total);
+
+  /// No description provided for @feedBookFinishedShout.
+  ///
+  /// In fr, this message translates to:
+  /// **'LIVRE TERMINÉ'**
+  String get feedBookFinishedShout;
+
+  /// No description provided for @statsPeriodAllTime.
+  ///
+  /// In fr, this message translates to:
+  /// **'Toujours'**
+  String get statsPeriodAllTime;
+
+  /// No description provided for @statsHeroWeekEyebrow.
+  ///
+  /// In fr, this message translates to:
+  /// **'VOTRE SEMAINE'**
+  String get statsHeroWeekEyebrow;
+
+  /// No description provided for @statsHeroMonthEyebrow.
+  ///
+  /// In fr, this message translates to:
+  /// **'VOTRE MOIS'**
+  String get statsHeroMonthEyebrow;
+
+  /// No description provided for @statsHeroYearEyebrow.
+  ///
+  /// In fr, this message translates to:
+  /// **'VOTRE ANNÉE EN LECTURE'**
+  String get statsHeroYearEyebrow;
+
+  /// No description provided for @statsHeroAllTimeEyebrow.
+  ///
+  /// In fr, this message translates to:
+  /// **'VOTRE BIBLIOTHÈQUE'**
+  String get statsHeroAllTimeEyebrow;
+
+  /// No description provided for @statsHeroWeekSubtitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'pages, cette semaine'**
+  String get statsHeroWeekSubtitle;
+
+  /// No description provided for @statsHeroMonthSubtitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'pages, ce mois'**
+  String get statsHeroMonthSubtitle;
+
+  /// No description provided for @statsHeroYearSubtitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'pages, depuis janvier'**
+  String get statsHeroYearSubtitle;
+
+  /// No description provided for @statsHeroAllTimeSubtitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'pages, depuis votre première session'**
+  String get statsHeroAllTimeSubtitle;
+
+  /// No description provided for @statsHeadlineDefault.
+  ///
+  /// In fr, this message translates to:
+  /// **'Vos lectures, mois après mois'**
+  String get statsHeadlineDefault;
+
+  /// No description provided for @statsHeadlinePeakMonth.
+  ///
+  /// In fr, this message translates to:
+  /// **'{month} reste votre mois le plus dense'**
+  String statsHeadlinePeakMonth(String month);
+
+  /// No description provided for @statsHeadlineLibrary.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce qui compose votre bibliothèque'**
+  String get statsHeadlineLibrary;
+
+  /// No description provided for @statsHeadlineTopGenre.
+  ///
+  /// In fr, this message translates to:
+  /// **'{genre} reste votre boussole'**
+  String statsHeadlineTopGenre(String genre);
+
+  /// No description provided for @statsNoDataYet.
+  ///
+  /// In fr, this message translates to:
+  /// **'Pas encore de données'**
+  String get statsNoDataYet;
+
+  /// No description provided for @statsGenreOne.
+  ///
+  /// In fr, this message translates to:
+  /// **'GENRE'**
+  String get statsGenreOne;
+
+  /// No description provided for @statsGenreMany.
+  ///
+  /// In fr, this message translates to:
+  /// **'GENRES'**
+  String get statsGenreMany;
+
+  /// No description provided for @statsYourBadges.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tes badges'**
+  String get statsYourBadges;
+
+  /// No description provided for @statsNoBadgeUnlocked.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun badge débloqué'**
+  String get statsNoBadgeUnlocked;
+
+  /// No description provided for @statsPersonalRecords.
+  ///
+  /// In fr, this message translates to:
+  /// **'Records personnels'**
+  String get statsPersonalRecords;
+
+  /// No description provided for @statsRecordLongestSession.
+  ///
+  /// In fr, this message translates to:
+  /// **'Plus longue session'**
+  String get statsRecordLongestSession;
+
+  /// No description provided for @statsRecordBestFlow.
+  ///
+  /// In fr, this message translates to:
+  /// **'Meilleur flow'**
+  String get statsRecordBestFlow;
+
+  /// No description provided for @statsRecordPagesRead.
+  ///
+  /// In fr, this message translates to:
+  /// **'Pages lues'**
+  String get statsRecordPagesRead;
+
+  /// No description provided for @statsRecordBooksFinished.
+  ///
+  /// In fr, this message translates to:
+  /// **'Livres terminés'**
+  String get statsRecordBooksFinished;
+
+  /// No description provided for @statsRecordSessions.
+  ///
+  /// In fr, this message translates to:
+  /// **'Sessions'**
+  String get statsRecordSessions;
+
+  /// No description provided for @statsRecordReadingHours.
+  ///
+  /// In fr, this message translates to:
+  /// **'Heures de lecture'**
+  String get statsRecordReadingHours;
+
+  /// No description provided for @statsDaysShort.
+  ///
+  /// In fr, this message translates to:
+  /// **'{days}j'**
+  String statsDaysShort(int days);
+
+  /// No description provided for @statsSlotMorning.
+  ///
+  /// In fr, this message translates to:
+  /// **'Matin'**
+  String get statsSlotMorning;
+
+  /// No description provided for @statsSlotNoon.
+  ///
+  /// In fr, this message translates to:
+  /// **'Midi'**
+  String get statsSlotNoon;
+
+  /// No description provided for @statsSlotEvening.
+  ///
+  /// In fr, this message translates to:
+  /// **'Soir'**
+  String get statsSlotEvening;
+
+  /// No description provided for @statsSlotNight.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nuit'**
+  String get statsSlotNight;
+
+  /// No description provided for @purchasePending.
+  ///
+  /// In fr, this message translates to:
+  /// **'Achat en attente de confirmation'**
+  String get purchasePending;
+
+  /// No description provided for @purchaseFailed.
+  ///
+  /// In fr, this message translates to:
+  /// **'L\'achat n\'a pas pu aboutir'**
+  String get purchaseFailed;
+
   /// No description provided for @errorOccurred.
   ///
   /// In fr, this message translates to:
@@ -7743,6 +8097,12 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'C\'est le nom que verront tes amis et les autres lecteurs sur LexDay.'**
   String get chooseNameSubtitle;
+
+  /// No description provided for @nameRejected.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce pseudo n\'a pas pu être accepté. Essaie-en un autre.'**
+  String get nameRejected;
 
   /// No description provided for @feedbackTooltip.
   ///

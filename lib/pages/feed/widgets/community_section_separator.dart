@@ -2,6 +2,7 @@
 // Separateur visuel "Decouvre la communaute" pour le feed mixte
 
 import 'package:flutter/material.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../../theme/app_theme.dart';
 
 class CommunitySectionSeparator extends StatelessWidget {
@@ -30,7 +31,7 @@ class CommunitySectionSeparator extends StatelessWidget {
                 ),
                 const SizedBox(width: 6),
                 Text(
-                  'Découvre la communauté',
+                  AppLocalizations.of(context).feedDiscoverCommunity,
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,

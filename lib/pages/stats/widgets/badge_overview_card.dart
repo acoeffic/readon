@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import '../../../l10n/app_localizations.dart';
 import 'package:lexday/features/badges/services/badges_service.dart';
 import '../../../theme/app_theme.dart';
 import '../../profile/all_badges_page.dart';
@@ -34,7 +35,7 @@ class BadgeOverviewCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Tes badges',
+                AppLocalizations.of(context).statsYourBadges,
                 style: Theme.of(context)
                     .textTheme
                     .titleMedium
@@ -45,7 +46,7 @@ class BadgeOverviewCard extends StatelessWidget {
                   MaterialPageRoute(builder: (_) => const AllBadgesPage()),
                 ),
                 child: Text(
-                  'Voir tout \u2192',
+                  AppLocalizations.of(context).feedSeeAllArrow,
                   style: TextStyle(
                     color: AppColors.primary,
                     fontSize: 13,
@@ -93,7 +94,7 @@ class BadgeOverviewCard extends StatelessWidget {
               Expanded(
                 child: recentBadges.isEmpty
                     ? Text(
-                        'Aucun badge débloqué',
+                        AppLocalizations.of(context).statsNoBadgeUnlocked,
                         style: TextStyle(
                           color: Theme.of(context)
                               .colorScheme

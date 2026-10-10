@@ -1,8 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../../theme/app_theme.dart';
 
-const _timeSlotLabels = ['Matin', 'Midi', 'Soir', 'Nuit'];
-const _dayLabels = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+
+List<String> _timeSlotLabels(AppLocalizations l) =>
+    [l.statsSlotMorning, l.statsSlotNoon, l.statsSlotEvening, l.statsSlotNight];
+
+/// Initiales des jours (lundi → dimanche) dans la langue de l'app.
+List<String> _dayLabels(BuildContext context) {
+  final locale = Localizations.localeOf(context).toString();
+  final fmt = DateFormat('EEEEE', locale);
+  // 1er janvier 2024 = lundi.
+  return List.generate(7, (i) => fmt.format(DateTime(2024, 1, 1 + i)));
+}
 
 class ReadingHeatmap extends StatelessWidget {
   final Map<int, Map<int, int>> data; // weekday (1-7) -> {timeSlot (0-3) -> minutes}
@@ -54,7 +65,7 @@ class ReadingHeatmap extends StatelessWidget {
         Row(
           children: [
             const SizedBox(width: 50),
-            ..._dayLabels.map((label) => Expanded(
+            ..._dayLabels(context).map((label) => Expanded(
                   child: Text(
                     label,
                     textAlign: TextAlign.center,
@@ -80,7 +91,7 @@ class ReadingHeatmap extends StatelessWidget {
                   SizedBox(
                     width: 50,
                     child: Text(
-                      _timeSlotLabels[slotIndex],
+                      _timeSlotLabels(AppLocalizations.of(context))[slotIndex],
                       style: TextStyle(
                         fontSize: 12,
                         color: Theme.of(context)
@@ -130,7 +141,7 @@ class ReadingHeatmap extends StatelessWidget {
         children: [
           if (showHeader) ...[
             Text(
-              'Quand lis-tu',
+              AppLocalizations.of(context).whenDoYouRead,
               style: Theme.of(context)
                   .textTheme
                   .titleMedium
@@ -138,7 +149,7 @@ class ReadingHeatmap extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              'Tes horaires favoris de la semaine',
+              AppLocalizations.of(context).favoriteSchedules,
               style: TextStyle(fontSize: 13, color: subtitleColor),
             ),
             const SizedBox(height: AppSpace.l),

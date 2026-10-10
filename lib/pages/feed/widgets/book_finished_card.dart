@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import '../../../l10n/app_localizations.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -628,7 +629,7 @@ class _BookFinishedCardState extends State<BookFinishedCard>
                           borderRadius: BorderRadius.circular(AppRadius.pill),
                         ),
                         child: Text(
-                          '🎉  LIVRE TERMINÉ',
+                          '🎉  ${AppLocalizations.of(context).feedBookFinishedShout}',
                           style: GoogleFonts.jetBrainsMono(
                             fontSize: 12,
                             fontWeight: FontWeight.w700,

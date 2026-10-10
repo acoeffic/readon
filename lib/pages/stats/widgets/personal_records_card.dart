@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../../models/reading_statistics.dart';
 import '../../../theme/app_theme.dart';
 
@@ -19,7 +20,7 @@ class PersonalRecordsCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Records personnels',
+            AppLocalizations.of(context).statsPersonalRecords,
             style: Theme.of(context)
                 .textTheme
                 .titleMedium
@@ -37,37 +38,37 @@ class PersonalRecordsCard extends StatelessWidget {
               _RecordTile(
                 emoji: '\u26A1',
                 value: records.formattedLongestSession,
-                label: 'Plus longue session',
+                label: AppLocalizations.of(context).statsRecordLongestSession,
                 context: context,
               ),
               _RecordTile(
                 emoji: '\uD83D\uDD25',
-                value: '${records.bestFlow}j',
-                label: 'Meilleur flow',
+                value: AppLocalizations.of(context).statsDaysShort(records.bestFlow),
+                label: AppLocalizations.of(context).statsRecordBestFlow,
                 context: context,
               ),
               _RecordTile(
                 emoji: '\uD83D\uDCD6',
                 value: _formatNumber(records.totalPagesAllTime),
-                label: 'Pages lues',
+                label: AppLocalizations.of(context).statsRecordPagesRead,
                 context: context,
               ),
               _RecordTile(
                 emoji: '\uD83D\uDCDA',
                 value: '${records.totalBooksFinished}',
-                label: 'Livres terminés',
+                label: AppLocalizations.of(context).statsRecordBooksFinished,
                 context: context,
               ),
               _RecordTile(
                 emoji: '\uD83C\uDFAF',
                 value: '${records.totalSessionsAllTime}',
-                label: 'Sessions',
+                label: AppLocalizations.of(context).statsRecordSessions,
                 context: context,
               ),
               _RecordTile(
                 emoji: '\u23F1\uFE0F',
                 value: records.formattedTotalTime,
-                label: 'Heures de lecture',
+                label: AppLocalizations.of(context).statsRecordReadingHours,
                 context: context,
               ),
             ],

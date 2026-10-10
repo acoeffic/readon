@@ -2,6 +2,7 @@
 // CTA discret pour encourager l'ajout d'amis
 
 import 'package:flutter/material.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../../theme/app_theme.dart';
 
 class FindFriendsCta extends StatelessWidget {
@@ -34,14 +35,14 @@ class FindFriendsCta extends StatelessWidget {
           ),
           const SizedBox(height: AppSpace.m),
           Text(
-            'Lis avec tes amis !',
+            AppLocalizations.of(context).feedFindFriendsTitle,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
           ),
           const SizedBox(height: AppSpace.s),
           Text(
-            'Ajoute des amis pour découvrir leurs lectures\net partager tes sessions avec eux',
+            AppLocalizations.of(context).feedFindFriendsSubtitle,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: Theme.of(context)
                       .colorScheme
@@ -54,7 +55,7 @@ class FindFriendsCta extends StatelessWidget {
           FilledButton.icon(
             onPressed: onFindFriends,
             icon: const Icon(Icons.person_add, size: 18),
-            label: const Text('Trouver mes amis'),
+            label: Text(AppLocalizations.of(context).findMyFriends),
             style: FilledButton.styleFrom(
               backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,

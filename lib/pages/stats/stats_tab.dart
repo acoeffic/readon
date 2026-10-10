@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../l10n/app_localizations.dart';
@@ -239,58 +240,63 @@ class _StatsTabState extends State<StatsTab> {
 
   // ── Editorial helpers ───────────────────────────────────────────────────
 
-  static const _fullMonthNames = [
-    'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
-    'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre',
-  ];
+  /// Nom complet du mois dans la langue de l'app (intl), 1re lettre en majuscule.
+  String _fullMonthName(int month) {
+    final locale = Localizations.localeOf(context).toString();
+    final name = DateFormat.MMMM(locale).format(DateTime(2000, month));
+    return name.isEmpty ? name : name[0].toUpperCase() + name.substring(1);
+  }
 
   String _peakMonthHeadline(ReadingStatistics stats) {
-    if (stats.pagesPerMonth.isEmpty) return 'Vos lectures, mois après mois';
+    final l = AppLocalizations.of(context);
+    if (stats.pagesPerMonth.isEmpty) return l.statsHeadlineDefault;
     final peak = stats.pagesPerMonth.reduce(
       (a, b) => a.pages >= b.pages ? a : b,
     );
-    if (peak.pages == 0) return 'Vos lectures, mois après mois';
+    if (peak.pages == 0) return l.statsHeadlineDefault;
     final fullName = (peak.month >= 1 && peak.month <= 12)
-        ? _fullMonthNames[peak.month - 1]
+        ? _fullMonthName(peak.month)
         : peak.label;
-    return '$fullName reste votre mois le plus dense';
+    return l.statsHeadlinePeakMonth(fullName);
   }
 
   String _topGenreHeadline(ReadingStatistics stats) {
+    final l = AppLocalizations.of(context);
     if (stats.genreDistribution.isEmpty) {
-      return 'Ce qui compose votre bibliothèque';
+      return l.statsHeadlineLibrary;
     }
     final top = stats.genreDistribution.first;
-    return '${top.name} reste votre boussole';
+    return l.statsHeadlineTopGenre(top.name);
   }
 
   ({String eyebrow, int pages, String subtitle}) _heroContent(
     ReadingStatistics stats,
   ) {
+    final l = AppLocalizations.of(context);
     switch (stats.period) {
       case StatsPeriod.thisWeek:
         return (
-          eyebrow: 'VOTRE SEMAINE',
+          eyebrow: l.statsHeroWeekEyebrow,
           pages: stats.pagesInPeriod,
-          subtitle: 'pages, cette semaine',
+          subtitle: l.statsHeroWeekSubtitle,
         );
       case StatsPeriod.thisMonth:
         return (
-          eyebrow: 'VOTRE MOIS',
+          eyebrow: l.statsHeroMonthEyebrow,
           pages: stats.pagesInPeriod,
-          subtitle: 'pages, ce mois',
+          subtitle: l.statsHeroMonthSubtitle,
         );
       case StatsPeriod.thisYear:
         return (
-          eyebrow: 'VOTRE ANNÉE EN LECTURE',
+          eyebrow: l.statsHeroYearEyebrow,
           pages: stats.pagesInPeriod,
-          subtitle: 'pages, depuis janvier',
+          subtitle: l.statsHeroYearSubtitle,
         );
       case StatsPeriod.allTime:
         return (
-          eyebrow: 'VOTRE BIBLIOTHÈQUE',
+          eyebrow: l.statsHeroAllTimeEyebrow,
           pages: stats.records.totalPagesAllTime,
-          subtitle: 'pages, depuis votre première session',
+          subtitle: l.statsHeroAllTimeSubtitle,
         );
     }
   }
@@ -398,10 +404,10 @@ class _StatsTabState extends State<StatsTab> {
   Widget _buildPeriodChips() {
     final now = DateTime.now();
     final periods = [
-      (StatsPeriod.thisWeek, 'Cette semaine'),
-      (StatsPeriod.thisMonth, 'Ce mois'),
+      (StatsPeriod.thisWeek, AppLocalizations.of(context).thisWeek),
+      (StatsPeriod.thisMonth, AppLocalizations.of(context).thisMonth),
       (StatsPeriod.thisYear, '${now.year}'),
-      (StatsPeriod.allTime, 'Toujours'),
+      (StatsPeriod.allTime, AppLocalizations.of(context).statsPeriodAllTime),
     ];
     return SizedBox(
       height: 36,

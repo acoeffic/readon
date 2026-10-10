@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../../models/reading_goal.dart';
 import '../../../theme/app_theme.dart';
 import '../../profile/reading_goals_page.dart';
@@ -28,7 +29,7 @@ class ActivityRingsCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Tes objectifs',
+            AppLocalizations.of(context).yourGoals,
             style: Theme.of(context)
                 .textTheme
                 .titleMedium
@@ -53,7 +54,7 @@ class ActivityRingsCard extends StatelessWidget {
                   .withValues(alpha: 0.3)),
           const SizedBox(height: AppSpace.m),
           Text(
-            'Aucun objectif défini',
+            AppLocalizations.of(context).noGoalDefined,
             style: TextStyle(
               color: Theme.of(context)
                   .colorScheme
@@ -73,7 +74,7 @@ class ActivityRingsCard extends StatelessWidget {
               backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
             ),
-            child: const Text('Définir tes objectifs'),
+            child: Text(AppLocalizations.of(context).defineGoals),
           ),
         ],
       ),

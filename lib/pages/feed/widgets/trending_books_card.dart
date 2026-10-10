@@ -2,6 +2,7 @@
 // Carousel horizontal des livres les plus lus cette semaine
 
 import 'package:flutter/material.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../../theme/app_theme.dart';
 import '../../../widgets/cached_book_cover.dart';
 
@@ -23,7 +24,7 @@ class TrendingBooksCard extends StatelessWidget {
             const Text('🏆', style: TextStyle(fontSize: 18)),
             const SizedBox(width: AppSpace.s),
             Text(
-              'Top livres du moment',
+              AppLocalizations.of(context).feedTrendingBooksTitle,
               style: Theme.of(context).textTheme.titleMedium,
             ),
           ],

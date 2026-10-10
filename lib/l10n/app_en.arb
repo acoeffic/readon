@@ -1091,6 +1091,117 @@
   "invite": "Invite",
   "authorizeContacts": "To find your friends, allow access to your contacts.",
   "cannotAccessContactsRetry": "Cannot access your contacts. Try again later.",
+  "badgeUnlockedByFriend": "unlocked a badge",
+  "timeAgoRecently": "Recently",
+  "onboardingAddBookTitle": "What book are you reading right now?",
+  "onboardingAddBookSubtitle": "Scan its cover or search by title to get started",
+  "onboardingSearchHint": "Title or author...",
+  "onboardingBooksAddedHeader": "Books added",
+  "onboardingBooksAddedCount": "{count} book{count, plural, =1{} other{s}} added",
+  "@onboardingBooksAddedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "feedFindFriendsTitle": "Read with your friends!",
+  "feedFindFriendsSubtitle": "Add friends to discover what they read\nand share your sessions with them",
+  "feedEmptyTitle": "Your feed is empty",
+  "feedEmptySubtitle": "Invite friends to fill it!",
+  "feedOrSearchFriends": "Or look for friends on LexDay",
+  "feedShareLink": "Share the link",
+  "feedPeopleYouMayKnow": "People you may know",
+  "feedRequestPending": "Pending",
+  "feedReadersToDiscover": "Readers to discover",
+  "feedTrendingBooksTitle": "Top books right now",
+  "feedListsCuratedBy": "Curated picks by lexday",
+  "feedSeeAllArrow": "See all →",
+  "feedSeeAllListsArrow": "See all\nlists →",
+  "feedDiscoverCommunity": "Discover the community",
+  "feedActiveReadersTitle": "Currently reading",
+  "feedLiveBadge": "LIVE",
+  "feedSinceMinutes": "For {minutes} min",
+  "@feedSinceMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "feedSinceHours": "For {hours}h",
+  "@feedSinceHours": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "feedPageOfTotal": "Page {current} / {total}",
+  "@feedPageOfTotal": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "feedBookFinishedShout": "BOOK FINISHED",
+  "statsPeriodAllTime": "All time",
+  "statsHeroWeekEyebrow": "YOUR WEEK",
+  "statsHeroMonthEyebrow": "YOUR MONTH",
+  "statsHeroYearEyebrow": "YOUR YEAR IN READING",
+  "statsHeroAllTimeEyebrow": "YOUR LIBRARY",
+  "statsHeroWeekSubtitle": "pages this week",
+  "statsHeroMonthSubtitle": "pages this month",
+  "statsHeroYearSubtitle": "pages since January",
+  "statsHeroAllTimeSubtitle": "pages since your first session",
+  "statsHeadlineDefault": "Your reading, month after month",
+  "statsHeadlinePeakMonth": "{month} is still your busiest month",
+  "@statsHeadlinePeakMonth": {
+    "placeholders": {
+      "month": {
+        "type": "String"
+      }
+    }
+  },
+  "statsHeadlineLibrary": "What makes up your library",
+  "statsHeadlineTopGenre": "{genre} is still your compass",
+  "@statsHeadlineTopGenre": {
+    "placeholders": {
+      "genre": {
+        "type": "String"
+      }
+    }
+  },
+  "statsNoDataYet": "No data yet",
+  "statsGenreOne": "GENRE",
+  "statsGenreMany": "GENRES",
+  "statsYourBadges": "Your badges",
+  "statsNoBadgeUnlocked": "No badges unlocked yet",
+  "statsPersonalRecords": "Personal records",
+  "statsRecordLongestSession": "Longest session",
+  "statsRecordBestFlow": "Best flow",
+  "statsRecordPagesRead": "Pages read",
+  "statsRecordBooksFinished": "Books finished",
+  "statsRecordSessions": "Sessions",
+  "statsRecordReadingHours": "Reading hours",
+  "statsDaysShort": "{days}d",
+  "@statsDaysShort": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "statsSlotMorning": "Morning",
+  "statsSlotNoon": "Noon",
+  "statsSlotEvening": "Evening",
+  "statsSlotNight": "Night",
+  "purchasePending": "Purchase not confirmed yet. If you were charged, your Premium access will activate once the store confirms it — you can also tap \"Restore purchases\".",
+  "purchaseFailed": "The purchase could not be completed. Check your connection and payment method, then try again.",
   "errorOccurred": "An error occurred",
   "shareInviteToLexDay": "Join me on LexDay to track our reading together! Download the app: https://apps.apple.com/fr/app/lexday/id6760492023",
   "friendRequests": "Friend requests",
@@ -2301,6 +2412,7 @@
   },
   "chooseNameTitle": "What name should we show?",
   "chooseNameSubtitle": "This is the name your friends and other readers will see on LexDay.",
+  "nameRejected": "This name couldn't be accepted. Please try another one.",
   "feedbackTooltip": "Share feedback",
   "feedbackSheetTitle": "Share feedback",
   "feedbackSheetSubtitle": "A bug, an idea, something bothering you? Tell us everything — every bit of feedback helps us improve LexDay.",
@@ -2446,5 +2558,54 @@
   "friendChallengeShareText": "📚 Challenge: shall we read 10 minutes a day for 7 days?\n\nI'm using LexDay to track my reading, join me and let's keep each other going!\n{link}",
   "@friendChallengeShareText": {
     "placeholders": { "link": { "type": "String" } }
+  },
+  "ffTitleAdvancedReactions": "Advanced reactions",
+  "ffTitleFlowManualFreeze": "Manual freeze",
+  "ffTitleAdvancedStats": "Advanced stats",
+  "ffTitleCustomThemes": "Custom themes",
+  "ffTitlePremiumBadges": "Premium badges",
+  "ffTitleFlowHistory": "Streak history",
+  "ffTitleKindleAutoSync": "Automatic Kindle sync",
+  "ffTitleCustomLists": "Reading lists",
+  "ffTitleAiChat": "Muse - Reading advisor",
+  "ffTitleAiSummary": "AI summaries",
+  "ffTitleReadingSheet": "AI reading sheet",
+  "ffDescAdvancedReactions": "React to your friends' activity with unique emojis",
+  "ffDescFlowManualFreeze": "Manually protect your streak when you can't read",
+  "ffDescAdvancedStats": "Get detailed statistics about your reading",
+  "ffDescCustomThemes": "Customize the look of your app",
+  "ffDescPremiumBadges": "Unlock 65+ exclusive, animated and secret badges",
+  "ffDescFlowHistory": "Browse your whole reading history month by month",
+  "ffDescKindleAutoSync": "Automatically sync your Kindle library every time you open the app",
+  "ffDescCustomLists": "Create your own custom reading lists",
+  "ffDescAiChat": "Chat with Muse to get personalized book recommendations",
+  "ffDescAiSummary": "Summarize your annotated passages in one tap with AI",
+  "ffDescReadingSheet": "Generate a structured reading sheet from all your annotations",
+  "ffFreeBasic": "Basic",
+  "ffFreeLocked": "Locked",
+  "ffFreeAiChat": "3 msgs/month",
+  "ffFreeAiSummary": "3/month",
+  "ffFreeCustomLists": "5 max",
+  "ffFreeCustomThemes": "Light / Dark",
+  "ffFreeManual": "Manual",
+  "ffFreeSimpleCounter": "Simple counter",
+  "ffFreeLikes": "Likes",
+  "ffFreeUnavailable": "Not available",
+  "ffPremAdvancedStats": "Rings, heatmap, charts",
+  "ffPremPremiumBadges": "Animated, secret, genres",
+  "ffPremUnlimited": "Unlimited",
+  "ffPremUnlimitedPlural": "Unlimited",
+  "ffPremCustomThemes": "Extra themes",
+  "ffPremAutomatic": "Automatic",
+  "ffPremFreezeHistory": "Freeze + history",
+  "ffPremAdvancedReactions": "Custom emojis",
+  "ffPremReadingSheet": "Unlimited",
+  "priceSlashYear": "{price}/year",
+  "@priceSlashYear": {
+    "placeholders": { "price": { "type": "String" } }
+  },
+  "priceSlashMonth": "{price}/month",
+  "@priceSlashMonth": {
+    "placeholders": { "price": { "type": "String" } }
   }
 }

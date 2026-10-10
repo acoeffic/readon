@@ -2,6 +2,7 @@
 // Card pour afficher la progression de lecture
 
 import 'package:flutter/material.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../../theme/app_theme.dart';
 
 class ProgressCard extends StatelessWidget {
@@ -73,7 +74,7 @@ class ProgressCard extends StatelessWidget {
               children: [
                 if (currentPage != null && totalPages != null)
                   Text(
-                    'Page $currentPage / $totalPages',
+                    AppLocalizations.of(context).feedPageOfTotal(currentPage!, totalPages!),
                     style: TextStyle(
                       fontSize: 12,
                       color: Colors.grey.shade600,

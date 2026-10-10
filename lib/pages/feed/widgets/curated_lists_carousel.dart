@@ -2,6 +2,7 @@ import 'dart:math';
 import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import '../../../l10n/app_localizations.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../../models/curated_list.dart';
 import '../../../theme/app_theme.dart';
@@ -153,14 +154,14 @@ class _CuratedListsCarouselState extends State<CuratedListsCarousel> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Listes pour toi',
+                AppLocalizations.of(context).feedSectionListsForYou,
                 style: Theme.of(context)
                     .textTheme
                     .titleMedium
                     ?.copyWith(fontWeight: FontWeight.bold),
               ),
               Text(
-                'Sélections curatées par lexday',
+                AppLocalizations.of(context).feedListsCuratedBy,
                 style: TextStyle(
                   fontSize: 12,
                   color: Theme.of(context)
@@ -174,8 +175,8 @@ class _CuratedListsCarouselState extends State<CuratedListsCarousel> {
         ),
         TextButton(
           onPressed: widget.onSeeAll,
-          child: const Text(
-            'Voir tout →',
+          child: Text(
+            AppLocalizations.of(context).feedSeeAllArrow,
             style: TextStyle(
               color: AppColors.primary,
               fontWeight: FontWeight.w600,
@@ -451,8 +452,8 @@ class _CtaCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 12),
-              const Text(
-                'Voir toutes\nles listes →',
+              Text(
+                AppLocalizations.of(context).feedSeeAllListsArrow,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: AppColors.primary,

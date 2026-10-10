@@ -1091,6 +1091,117 @@
   "invite": "Inviter",
   "authorizeContacts": "Pour trouver tes amis, autorise l'accès à tes contacts.",
   "cannotAccessContactsRetry": "Impossible d'accéder à tes contacts. Réessaie plus tard.",
+  "badgeUnlockedByFriend": "a débloqué un badge",
+  "timeAgoRecently": "Récemment",
+  "onboardingAddBookTitle": "Quel livre lis-tu en ce moment ?",
+  "onboardingAddBookSubtitle": "Scanne sa couverture ou recherche-le par titre pour commencer",
+  "onboardingSearchHint": "Titre ou auteur...",
+  "onboardingBooksAddedHeader": "Livres ajoutés",
+  "onboardingBooksAddedCount": "{count} livre{count, plural, =1{} other{s}} ajouté{count, plural, =1{} other{s}}",
+  "@onboardingBooksAddedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "feedFindFriendsTitle": "Lis avec tes amis !",
+  "feedFindFriendsSubtitle": "Ajoute des amis pour découvrir leurs lectures\net partager tes sessions avec eux",
+  "feedEmptyTitle": "Ton feed est vide",
+  "feedEmptySubtitle": "Invite des amis pour le remplir !",
+  "feedOrSearchFriends": "Ou cherche des amis sur LexDay",
+  "feedShareLink": "Partager le lien",
+  "feedPeopleYouMayKnow": "Tu pourrais connaître",
+  "feedRequestPending": "En attente",
+  "feedReadersToDiscover": "Lecteurs à découvrir",
+  "feedTrendingBooksTitle": "Top livres du moment",
+  "feedListsCuratedBy": "Sélections curatées par lexday",
+  "feedSeeAllArrow": "Voir tout →",
+  "feedSeeAllListsArrow": "Voir toutes\nles listes →",
+  "feedDiscoverCommunity": "Découvre la communauté",
+  "feedActiveReadersTitle": "En train de lire",
+  "feedLiveBadge": "EN DIRECT",
+  "feedSinceMinutes": "Depuis {minutes}min",
+  "@feedSinceMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "feedSinceHours": "Depuis {hours}h",
+  "@feedSinceHours": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "feedPageOfTotal": "Page {current} / {total}",
+  "@feedPageOfTotal": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "feedBookFinishedShout": "LIVRE TERMINÉ",
+  "statsPeriodAllTime": "Toujours",
+  "statsHeroWeekEyebrow": "VOTRE SEMAINE",
+  "statsHeroMonthEyebrow": "VOTRE MOIS",
+  "statsHeroYearEyebrow": "VOTRE ANNÉE EN LECTURE",
+  "statsHeroAllTimeEyebrow": "VOTRE BIBLIOTHÈQUE",
+  "statsHeroWeekSubtitle": "pages, cette semaine",
+  "statsHeroMonthSubtitle": "pages, ce mois",
+  "statsHeroYearSubtitle": "pages, depuis janvier",
+  "statsHeroAllTimeSubtitle": "pages, depuis votre première session",
+  "statsHeadlineDefault": "Vos lectures, mois après mois",
+  "statsHeadlinePeakMonth": "{month} reste votre mois le plus dense",
+  "@statsHeadlinePeakMonth": {
+    "placeholders": {
+      "month": {
+        "type": "String"
+      }
+    }
+  },
+  "statsHeadlineLibrary": "Ce qui compose votre bibliothèque",
+  "statsHeadlineTopGenre": "{genre} reste votre boussole",
+  "@statsHeadlineTopGenre": {
+    "placeholders": {
+      "genre": {
+        "type": "String"
+      }
+    }
+  },
+  "statsNoDataYet": "Pas encore de données",
+  "statsGenreOne": "GENRE",
+  "statsGenreMany": "GENRES",
+  "statsYourBadges": "Tes badges",
+  "statsNoBadgeUnlocked": "Aucun badge débloqué",
+  "statsPersonalRecords": "Records personnels",
+  "statsRecordLongestSession": "Plus longue session",
+  "statsRecordBestFlow": "Meilleur flow",
+  "statsRecordPagesRead": "Pages lues",
+  "statsRecordBooksFinished": "Livres terminés",
+  "statsRecordSessions": "Sessions",
+  "statsRecordReadingHours": "Heures de lecture",
+  "statsDaysShort": "{days}j",
+  "@statsDaysShort": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "statsSlotMorning": "Matin",
+  "statsSlotNoon": "Midi",
+  "statsSlotEvening": "Soir",
+  "statsSlotNight": "Nuit",
+  "purchasePending": "Achat annulé ou non confirmé pour l'instant. Si tu as été débité, ton accès Premium s'activera dès la confirmation du store — tu peux aussi toucher « Restaurer mes achats ».",
+  "purchaseFailed": "L'achat n'a pas pu aboutir. Vérifie ta connexion et ton moyen de paiement, puis réessaie.",
   "errorOccurred": "Une erreur est survenue",
   "shareInviteToLexDay": "Rejoins-moi sur LexDay pour suivre nos lectures ensemble ! Télécharge l'app : https://apps.apple.com/fr/app/lexday/id6760492023",
   "friendRequests": "Demandes d'amis",
@@ -2315,6 +2426,7 @@
   },
   "chooseNameTitle": "Comment veux-tu apparaître ?",
   "chooseNameSubtitle": "C'est le nom que verront tes amis et les autres lecteurs sur LexDay.",
+  "nameRejected": "Ce pseudo n'a pas pu être accepté. Essaie-en un autre.",
   "feedbackTooltip": "Donner mon avis",
   "feedbackSheetTitle": "Donner mon avis",
   "feedbackSheetSubtitle": "Un bug, une idée, quelque chose qui te gêne ? Dis-nous tout — chaque retour nous aide à améliorer LexDay.",
@@ -2460,5 +2572,54 @@
   "friendChallengeShareText": "📚 Défi : on lit 10 minutes par jour pendant 7 jours ?\n\nJe suis sur LexDay pour suivre ma lecture, rejoins-moi et on se motive !\n{link}",
   "@friendChallengeShareText": {
     "placeholders": { "link": { "type": "String" } }
+  },
+  "ffTitleAdvancedReactions": "Réactions avancées",
+  "ffTitleFlowManualFreeze": "Freeze manuel",
+  "ffTitleAdvancedStats": "Statistiques avancées",
+  "ffTitleCustomThemes": "Thèmes personnalisés",
+  "ffTitlePremiumBadges": "Badges Premium",
+  "ffTitleFlowHistory": "Historique du flow",
+  "ffTitleKindleAutoSync": "Sync Kindle automatique",
+  "ffTitleCustomLists": "Listes de lecture",
+  "ffTitleAiChat": "Muse - Conseillère lecture",
+  "ffTitleAiSummary": "Résumés IA",
+  "ffTitleReadingSheet": "Fiche de lecture IA",
+  "ffDescAdvancedReactions": "Réagis aux activités de tes amis avec des emojis uniques",
+  "ffDescFlowManualFreeze": "Protège manuellement ton flow quand tu ne peux pas lire",
+  "ffDescAdvancedStats": "Accède à des statistiques détaillées sur ta lecture",
+  "ffDescCustomThemes": "Personnalise l'apparence de ton application",
+  "ffDescPremiumBadges": "Débloque 65+ badges exclusifs, animés et secrets",
+  "ffDescFlowHistory": "Navigue dans tout ton historique de lecture mois par mois",
+  "ffDescKindleAutoSync": "Synchronise automatiquement ta bibliothèque Kindle à chaque ouverture",
+  "ffDescCustomLists": "Crée tes propres listes de lecture personnalisées",
+  "ffDescAiChat": "Discute avec Muse pour obtenir des recommandations de livres personnalisées",
+  "ffDescAiSummary": "Résume tes passages annotés en un tap grâce à l'IA",
+  "ffDescReadingSheet": "Génère une fiche de lecture structurée à partir de toutes tes annotations",
+  "ffFreeBasic": "Basiques",
+  "ffFreeLocked": "Verrouillés",
+  "ffFreeAiChat": "3 msg/mois",
+  "ffFreeAiSummary": "3/mois",
+  "ffFreeCustomLists": "5 max",
+  "ffFreeCustomThemes": "Clair / Sombre",
+  "ffFreeManual": "Manuel",
+  "ffFreeSimpleCounter": "Compteur simple",
+  "ffFreeLikes": "Likes",
+  "ffFreeUnavailable": "Non disponible",
+  "ffPremAdvancedStats": "Anneaux, heatmap, graphiques",
+  "ffPremPremiumBadges": "Animés, secrets, genres",
+  "ffPremUnlimited": "Illimité",
+  "ffPremUnlimitedPlural": "Illimitées",
+  "ffPremCustomThemes": "Thèmes supplémentaires",
+  "ffPremAutomatic": "Automatique",
+  "ffPremFreezeHistory": "Freeze + historique",
+  "ffPremAdvancedReactions": "Emojis personnalisés",
+  "ffPremReadingSheet": "Illimitée",
+  "priceSlashYear": "{price}/an",
+  "@priceSlashYear": {
+    "placeholders": { "price": { "type": "String" } }
+  },
+  "priceSlashMonth": "{price}/mois",
+  "@priceSlashMonth": {
+    "placeholders": { "price": { "type": "String" } }
   }
 }

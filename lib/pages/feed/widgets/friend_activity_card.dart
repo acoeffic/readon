@@ -550,13 +550,13 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
                     ),
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.auto_awesome, color: Colors.white, size: 16),
-                      SizedBox(width: 6),
+                      const Icon(Icons.auto_awesome, color: Colors.white, size: 16),
+                      const SizedBox(width: 6),
                       Text(
-                        'Livre terminé !',
+                        AppLocalizations.of(context).bookCompletedTitle,
                         style: TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,

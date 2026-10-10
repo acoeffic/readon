@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../../models/reading_statistics.dart';
 import '../../../theme/app_theme.dart';
 
@@ -30,7 +31,7 @@ class GenreDistributionChart extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: AppSpace.l),
           child: Text(
-            'Pas encore de données',
+            AppLocalizations.of(context).statsNoDataYet,
             style: TextStyle(
               color: Theme.of(context)
                   .colorScheme
@@ -52,7 +53,7 @@ class GenreDistributionChart extends StatelessWidget {
           children: [
             if (showHeader) ...[
               Text(
-                'Répartition des genres',
+                AppLocalizations.of(context).genreDistribution,
                 style: Theme.of(context)
                     .textTheme
                     .titleMedium
@@ -95,7 +96,7 @@ class GenreDistributionChart extends StatelessWidget {
                         ),
                   ),
                   Text(
-                    totalBooks > 1 ? 'GENRES' : 'GENRE',
+                    totalBooks > 1 ? AppLocalizations.of(context).statsGenreMany : AppLocalizations.of(context).statsGenreOne,
                     style: TextStyle(
                       fontSize: 9,
                       letterSpacing: 1.2,
@@ -188,7 +189,7 @@ class GenreDistributionChart extends StatelessWidget {
         children: [
           if (showHeader) ...[
             Text(
-              'Répartition des genres',
+              AppLocalizations.of(context).genreDistribution,
               style: Theme.of(context)
                   .textTheme
                   .titleMedium
