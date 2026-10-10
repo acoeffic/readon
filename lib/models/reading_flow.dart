@@ -70,7 +70,7 @@ class ReadingFlow {
 
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    final yesterday = today.subtract(const Duration(days: 1));
+    final yesterday = DateTime(today.year, today.month, today.day - 1);
 
     // Vérifier si hier est un jour frozen
     final yesterdayIsFrozen = frozenDates.any((d) =>

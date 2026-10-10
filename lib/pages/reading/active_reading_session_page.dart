@@ -250,6 +250,13 @@ class _ActiveReadingSessionPageState extends State<ActiveReadingSessionPage>
         await ReadingSessionService().cancelSession(widget.activeSession.id);
       } catch (e) {
         debugPrint('cancelSession failed: $e');
+        if (!mounted) return;
+        // La session existe toujours côté serveur : on reste dessus au lieu
+        // de faire croire à l'utilisateur qu'elle a été supprimée.
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context).errorOccurred)),
+        );
+        return;
       }
       await _pauseService.clearAll();
       if (!mounted) return;

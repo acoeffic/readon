@@ -171,6 +171,8 @@ class FlowService {
           flow.lastReadDate!.day,
         );
         if (lastRead == today) return false;
+        // Lu hier : rien à protéger (sinon on gaspille un freeze du quota).
+        if (lastRead == _previousDay(today)) return false;
       }
 
       // Vérifier si un freeze est disponible (quota + consécutif)
@@ -339,6 +341,10 @@ class FlowService {
     }
   }
 
+  /// Veille calendaire (minuit local). Ne pas utiliser subtract(Duration(days: 1)) :
+  /// 24 h absolues tombent à 01:00/23:00 lors des changements d'heure.
+  static DateTime _previousDay(DateTime d) => DateTime(d.year, d.month, d.day - 1);
+
   /// Calculer le flow actuel et le record
   Map<String, int> _calculateFlow(List<DateTime> sortedDates) {
     if (sortedDates.isEmpty) {
@@ -347,7 +353,7 @@ class FlowService {
 
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    final yesterday = today.subtract(const Duration(days: 1));
+    final yesterday = _previousDay(today);
 
     int currentFlow = 0;
     int longestFlow = 0;
@@ -371,7 +377,7 @@ class FlowService {
         if (i == 0 || expectedDate == today || expectedDate == yesterday) {
           currentFlow = tempFlow;
         }
-        expectedDate = date.subtract(const Duration(days: 1));
+        expectedDate = _previousDay(date);
       } else {
         // Flow cassé, enregistrer le record
         if (tempFlow > longestFlow) {
@@ -379,7 +385,7 @@ class FlowService {
         }
         // Recommencer un nouveau flow
         tempFlow = 1;
-        expectedDate = date.subtract(const Duration(days: 1));
+        expectedDate = _previousDay(date);
       }
     }
 
@@ -440,12 +446,12 @@ class FlowService {
           currentFlow++;
         }
         longestFlow = currentFlow > longestFlow ? currentFlow : longestFlow;
-        checkDate = checkDate.subtract(const Duration(days: 1));
+        checkDate = _previousDay(checkDate);
       } else {
         // Jour manquant - on vérifie si c'est aujourd'hui (pas encore lu)
         if (checkDate == today) {
           // Pas encore lu aujourd'hui, on continue avec hier
-          checkDate = checkDate.subtract(const Duration(days: 1));
+          checkDate = _previousDay(checkDate);
           continue;
         }
         // Flow cassé
@@ -462,7 +468,10 @@ class FlowService {
       if (previousDate == null) {
         tempFlow = 1;
       } else {
-        final diff = previousDate.difference(date).inDays;
+        // Différence en jours CALENDAIRES (insensible aux changements d'heure).
+        final diff = DateTime.utc(previousDate.year, previousDate.month, previousDate.day)
+            .difference(DateTime.utc(date.year, date.month, date.day))
+            .inDays;
         if (diff == 1) {
           tempFlow++;
         } else {

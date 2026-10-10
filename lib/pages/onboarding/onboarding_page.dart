@@ -300,9 +300,37 @@ class _OnboardingPageState extends State<OnboardingPage> {
     return answer == true;
   }
 
+  /// Garde anti double-tap sur les handlers de fin d'onboarding.
+  bool _finishing = false;
+
+  /// Marque l'onboarding terminé. Retourne false (et prévient l'utilisateur)
+  /// si l'écriture échoue, pour qu'il puisse réessayer au lieu de rester
+  /// face à un bouton inerte.
+  Future<bool> _markOnboardingCompleted(String userId) async {
+    try {
+      await Supabase.instance.client.from('profiles').update({
+        'onboarding_completed': true,
+        'reading_habit': _readingHabit,
+      }).eq('id', userId);
+      return true;
+    } catch (e) {
+      debugPrint('onboarding_completed update failed: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context).errorOccurredRetryLater),
+          ),
+        );
+      }
+      return false;
+    }
+  }
+
   Future<void> _completeOnboarding() async {
+    if (_finishing) return;
     final userId = Supabase.instance.client.auth.currentUser?.id;
     if (userId == null) return;
+    _finishing = true;
 
     // Mark book as reading if selected
     if (_selectedBook != null) {
@@ -311,10 +339,10 @@ class _OnboardingPageState extends State<OnboardingPage> {
       } catch (_) {}
     }
 
-    await Supabase.instance.client.from('profiles').update({
-      'onboarding_completed': true,
-      'reading_habit': _readingHabit,
-    }).eq('id', userId);
+    if (!await _markOnboardingCompleted(userId)) {
+      _finishing = false;
+      return;
+    }
 
     // Volontairement : aucun paywall ici. Il est déclenché depuis
     // MainNavigation une fois la première session de lecture terminée
@@ -336,8 +364,10 @@ class _OnboardingPageState extends State<OnboardingPage> {
       return;
     }
 
+    if (_finishing) return;
     final userId = Supabase.instance.client.auth.currentUser?.id;
     if (userId == null) return;
+    _finishing = true;
 
     // Mark book as reading
     try {
@@ -345,10 +375,10 @@ class _OnboardingPageState extends State<OnboardingPage> {
     } catch (_) {}
 
     // Mark onboarding complete
-    await Supabase.instance.client.from('profiles').update({
-      'onboarding_completed': true,
-      'reading_habit': _readingHabit,
-    }).eq('id', userId);
+    if (!await _markOnboardingCompleted(userId)) {
+      _finishing = false;
+      return;
+    }
 
     _trackOnboardingCompleted(startedFirstSession: true);
 

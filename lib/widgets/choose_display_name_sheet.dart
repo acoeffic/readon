@@ -10,6 +10,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../l10n/app_localizations.dart';
 import '../theme/app_theme.dart';
+import '../utils/display_name_moderation.dart';
 
 bool _shownThisLaunch = false;
 
@@ -23,15 +24,17 @@ Future<void> maybeShowChooseDisplayNameSheet(BuildContext context) async {
 
   String? displayName;
   String? email;
+  var wasRejected = false;
   try {
     final profile = await supabase
         .from('profiles')
-        .select('display_name, email')
+        .select('display_name, email, display_name_moderation_status')
         .eq('id', user.id)
         .maybeSingle();
     if (profile == null) return;
     displayName = (profile['display_name'] as String?)?.trim();
     email = profile['email'] as String? ?? user.email;
+    wasRejected = profile['display_name_moderation_status'] == 'rejected';
   } catch (e) {
     debugPrint('Erreur maybeShowChooseDisplayNameSheet: $e');
     return;
@@ -50,14 +53,21 @@ Future<void> maybeShowChooseDisplayNameSheet(BuildContext context) async {
   await showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
-    builder: (ctx) => _ChooseDisplayNameSheet(initialName: localPart),
+    builder: (ctx) => _ChooseDisplayNameSheet(
+      initialName: localPart,
+      wasRejected: wasRejected,
+    ),
   );
 }
 
 class _ChooseDisplayNameSheet extends StatefulWidget {
   final String initialName;
+  final bool wasRejected;
 
-  const _ChooseDisplayNameSheet({required this.initialName});
+  const _ChooseDisplayNameSheet({
+    required this.initialName,
+    this.wasRejected = false,
+  });
 
   @override
   State<_ChooseDisplayNameSheet> createState() =>
@@ -67,6 +77,7 @@ class _ChooseDisplayNameSheet extends StatefulWidget {
 class _ChooseDisplayNameSheetState extends State<_ChooseDisplayNameSheet> {
   late final TextEditingController _controller;
   bool _saving = false;
+  late bool _rejected = widget.wasRejected;
 
   @override
   void initState() {
@@ -114,12 +125,23 @@ class _ChooseDisplayNameSheetState extends State<_ChooseDisplayNameSheet> {
         UserAttributes(data: {'display_name': cleaned}),
       );
 
-      if (mounted) {
-        Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l.nameUpdated)),
-        );
+      // La modération est asynchrone : on attend son verdict avant de fermer.
+      final rejected = await isDisplayNameRejectedAfterSave(
+        supabase,
+        user.id,
+        expectedName: cleaned,
+      );
+      if (!mounted) return;
+      if (rejected) {
+        setState(() {
+          _saving = false;
+          _rejected = true;
+        });
+        return;
       }
+      final messenger = ScaffoldMessenger.of(context);
+      Navigator.of(context).pop();
+      messenger.showSnackBar(SnackBar(content: Text(l.nameUpdated)));
     } catch (e) {
       debugPrint('Erreur choose_display_name save: $e');
       if (mounted) setState(() => _saving = false);
@@ -167,6 +189,17 @@ class _ChooseDisplayNameSheetState extends State<_ChooseDisplayNameSheet> {
               color: colors.textSecondary,
             ),
           ),
+          if (_rejected) ...[
+            const SizedBox(height: 10),
+            Text(
+              l.nameRejected,
+              style: const TextStyle(
+                fontSize: 13,
+                height: 1.35,
+                color: Colors.red,
+              ),
+            ),
+          ],
           const SizedBox(height: 18),
           TextField(
             controller: _controller,

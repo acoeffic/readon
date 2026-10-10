@@ -58,6 +58,21 @@ class SubscriptionDetails {
       );
 }
 
+/// Résultat d'une tentative d'achat, pour que l'UI puisse réagir.
+enum PurchaseOutcome {
+  /// Entitlement premium actif.
+  success,
+
+  /// Annulé par l'utilisateur (aucun message à afficher).
+  cancelled,
+
+  /// Paiement en attente / non encore confirmé par le store.
+  pending,
+
+  /// Échec (réseau, produit indisponible, paiement refusé…).
+  failed,
+}
+
 class SubscriptionService {
   static String get _apiKeyIOS => Env.revenueCatApiKeyIOS;
   static String get _apiKeyAndroid => Env.revenueCatApiKeyAndroid;
@@ -159,24 +174,31 @@ class SubscriptionService {
     }
   }
 
-  /// Acheter un package
-  Future<bool> purchasePackage(Package package) async {
-    if (isDevPremium) return true;
+  /// Acheter un package (true = entitlement actif).
+  Future<bool> purchasePackage(Package package) async =>
+      (await purchasePackageWithOutcome(package)) == PurchaseOutcome.success;
+
+  /// Acheter un package en distinguant les cas pour l'UI.
+  Future<PurchaseOutcome> purchasePackageWithOutcome(Package package) async {
+    if (isDevPremium) return PurchaseOutcome.success;
     try {
       final result = await Purchases.purchasePackage(package);
-      final customerInfo = result.customerInfo;
-      final isPremium =
-          customerInfo.entitlements.active.containsKey(entitlementId);
-
-      return isPremium;
+      final isPremium = result.customerInfo.entitlements.active
+          .containsKey(entitlementId);
+      // Achat passé côté store mais entitlement pas encore visible : on ne
+      // dit pas « échec » (l'utilisateur a peut-être été débité).
+      return isPremium ? PurchaseOutcome.success : PurchaseOutcome.pending;
     } on PlatformException catch (e) {
       final errorCode = PurchasesErrorHelper.getErrorCode(e);
       if (errorCode == PurchasesErrorCode.purchaseCancelledError) {
         debugPrint('Achat annulé par l\'utilisateur');
-      } else {
-        debugPrint('Erreur achat: $e');
+        return PurchaseOutcome.cancelled;
       }
-      return false;
+      debugPrint('Erreur achat: $e');
+      if (errorCode == PurchasesErrorCode.paymentPendingError) {
+        return PurchaseOutcome.pending;
+      }
+      return PurchaseOutcome.failed;
     }
   }
 
@@ -200,7 +222,18 @@ class SubscriptionService {
     if (isDevPremium) return true;
     try {
       final customerInfo = await Purchases.getCustomerInfo();
-      return customerInfo.entitlements.active.containsKey(entitlementId);
+      if (customerInfo.entitlements.active.containsKey(entitlementId)) {
+        return true;
+      }
+      // RevenueCat ne voit rien d'actif : ça peut être une désynchro (achat
+      // non rattaché à l'app_user_id en mode Observer). On consulte le cache
+      // serveur avant de conclure « gratuit ».
+      try {
+        final result = await _supabase.rpc('check_premium_status');
+        return result['is_premium'] as bool? ?? false;
+      } catch (_) {
+        return false;
+      }
     } catch (e) {
       debugPrint('Erreur isPremium RC, fallback Supabase: $e');
       // Fallback Supabase

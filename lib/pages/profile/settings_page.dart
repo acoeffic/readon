@@ -9,6 +9,7 @@ import '../../widgets/back_header.dart';
 import '../../providers/theme_provider.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../../utils/display_name_moderation.dart';
 import '../../providers/subscription_provider.dart';
 import '../../services/subscription_service.dart';
 import 'blocked_users_page.dart';
@@ -38,6 +39,7 @@ import '../../services/books_service.dart';
 import '../../services/analytics_service.dart';
 import '../../services/session_watcher.dart';
 import '../../services/focus_mode_service.dart';
+import '../../services/feed_cache.dart';
 import '../../services/feed_cache_service.dart';
 import 'package:lexday/features/badges/widgets/badge_unlocked_dialog.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -630,6 +632,24 @@ if (!allowedExtensions.contains(fileExtension)) {
         UserAttributes(data: {'display_name': cleaned}),
       );
 
+      // La modération du pseudo est asynchrone : on attend son verdict.
+      final rejected = await isDisplayNameRejectedAfterSave(
+        supabase,
+        user.id,
+        expectedName: cleaned,
+      );
+      if (rejected) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(AppLocalizations.of(context).nameRejected),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -785,6 +805,7 @@ if (!allowedExtensions.contains(fileExtension)) {
 
       // Nettoyer les caches et le token FCM AVANT la déconnexion
       await FeedCacheService.clear();
+      FeedCache.invalidate();
       await PushNotificationService().clearToken();
                       ReferralService.clearShareLinkCache();
       await AnalyticsService().track(AnalyticsEvent.logout);
@@ -1541,6 +1562,7 @@ if (!allowedExtensions.contains(fileExtension)) {
                       GoogleBooksService.clearCache();
                       await AvatarCacheService.instance.clear();
                       await FeedCacheService.clear();
+                      FeedCache.invalidate();
                       await PushNotificationService().clearToken();
                       ReferralService.clearShareLinkCache();
                       await SubscriptionService().logoutUser();

@@ -89,7 +89,7 @@ class DeepLinkService {
 
     // Notion OAuth callback
     if (uri.host == 'notion' && uri.path.startsWith('/callback')) {
-      NotionService().handleDeepLink(uri);
+      unawaited(NotionService().handleDeepLink(uri));
       return;
     }
 

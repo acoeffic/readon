@@ -128,8 +128,15 @@ serve(async (req) => {
         .eq("id", uid);
     }
 
-    // Marque récompensé (même si un grant a échoué : l'op est idempotente,
-    // et on évite de re-spammer RevenueCat à chaque session suivante).
+    // Si un grant a échoué, on laisse le parrainage en « pending » pour qu'un
+    // prochain appel puisse le retenter (sinon la récompense serait perdue).
+    if (!okReferrer || !okReferred) {
+      return jsonResponse(
+        { success: false, referrer_ok: okReferrer, referred_ok: okReferred },
+        502,
+      );
+    }
+
     await supabase
       .from("referrals")
       .update({ status: "rewarded", rewarded_at: new Date().toISOString() })

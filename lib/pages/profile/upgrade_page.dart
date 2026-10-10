@@ -116,27 +116,51 @@ class _UpgradePageState extends State<UpgradePage> {
     setState(() => _purchasing = true);
 
     try {
-      final success = await _service.purchasePackage(package);
+      final outcome = await _service.purchasePackageWithOutcome(package);
+      if (!mounted) return;
 
-      if (success && mounted) {
-        await context.read<SubscriptionProvider>().onPurchaseCompleted();
-
-        if (mounted) {
+      switch (outcome) {
+        case PurchaseOutcome.success:
+          await context.read<SubscriptionProvider>().onPurchaseCompleted();
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(AppLocalizations.of(context).welcomePremium),
+                backgroundColor: Colors.green,
+              ),
+            );
+            Navigator.of(context).pop();
+          }
+          break;
+        case PurchaseOutcome.cancelled:
+          break;
+        case PurchaseOutcome.pending:
+          // L'utilisateur a peut-être été débité : on relit le statut au cas où
+          // il serait déjà passé, et on explique la suite.
+          unawaited(context.read<SubscriptionProvider>().onPurchaseCompleted());
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(AppLocalizations.of(context).welcomePremium),
-              backgroundColor: Colors.green,
+              content: Text(AppLocalizations.of(context).purchasePending),
+              duration: const Duration(seconds: 8),
             ),
           );
-          Navigator.of(context).pop();
-        }
+          break;
+        case PurchaseOutcome.failed:
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(AppLocalizations.of(context).purchaseFailed),
+              backgroundColor: AppColors.error,
+            ),
+          );
+          break;
       }
     } catch (e) {
+      debugPrint('Erreur achat: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erreur: $e'),
-            backgroundColor: Colors.red,
+            content: Text(AppLocalizations.of(context).purchaseFailed),
+            backgroundColor: AppColors.error,
           ),
         );
       }
@@ -370,7 +394,11 @@ class _UpgradePageState extends State<UpgradePage> {
                 else if (_error != null) ...[
                   // Fallback: offerings failed to load (sandbox/TF hiccup).
                   // Show static plans so reviewers/users always see pricing.
-                  _buildStaticFallbackPlans(isDark, onSurface),
+                  // Sur Android, jamais de prix/devise en dur : un prix en euros
+                  // affiché à un utilisateur d'une autre devise viole la
+                  // Subscriptions policy de Google Play.
+                  if (Platform.isIOS)
+                    _buildStaticFallbackPlans(isDark, onSurface),
                   const SizedBox(height: 10),
                   Center(
                     child: Text(
@@ -381,6 +409,21 @@ class _UpgradePageState extends State<UpgradePage> {
                       ),
                     ),
                   ),
+                  if (!Platform.isIOS) ...[
+                    const SizedBox(height: 10),
+                    Center(
+                      child: TextButton(
+                        onPressed: () {
+                          setState(() {
+                            _error = null;
+                            _loading = true;
+                          });
+                          _loadOfferings();
+                        },
+                        child: Text(l.retry),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 10),
                   _buildSubscriptionTermsBlock(onSurface),
                 ] else ...[
@@ -598,7 +641,7 @@ class _UpgradePageState extends State<UpgradePage> {
                         const SizedBox(width: 8),
                         Flexible(
                           child: Text(
-                            FeatureFlags.title(feature),
+                            FeatureFlags.title(feature, l),
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
@@ -613,7 +656,7 @@ class _UpgradePageState extends State<UpgradePage> {
                   SizedBox(
                     width: 68,
                     child: Text(
-                      FeatureFlags.freeDescription(feature),
+                      FeatureFlags.freeDescription(feature, l),
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 10.5,
@@ -626,7 +669,7 @@ class _UpgradePageState extends State<UpgradePage> {
                   SizedBox(
                     width: 88,
                     child: Text(
-                      FeatureFlags.premiumDescription(feature),
+                      FeatureFlags.premiumDescription(feature, l),
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         fontSize: 10.5,
@@ -708,14 +751,17 @@ class _UpgradePageState extends State<UpgradePage> {
     final annual = offering?.annual;
     final monthly = offering?.monthly;
 
-    // Calcul du prix mensuel équivalent pour l'annuel
+    // Calcul du prix mensuel équivalent pour l'annuel, formaté dans la
+    // vraie devise du produit (jamais de symbole ni de séparateur en dur).
     String? annualMonthlyPrice;
     String? savingsPercent;
     if (annual != null && monthly != null) {
       final monthlyAmount = monthly.storeProduct.price;
       final annualMonthly = annual.storeProduct.price / 12;
-      annualMonthlyPrice =
-          '${annualMonthly.toStringAsFixed(2).replaceAll('.', ',')} ${annual.storeProduct.currencyCode == 'EUR' ? '€' : annual.storeProduct.currencyCode}';
+      annualMonthlyPrice = _formatCurrency(
+        annualMonthly,
+        annual.storeProduct.currencyCode,
+      );
       final savings =
           ((1 - annualMonthly / monthlyAmount) * 100).round();
       if (savings > 0) savingsPercent = l.savingsPercent(savings);
@@ -792,6 +838,19 @@ class _UpgradePageState extends State<UpgradePage> {
     );
   }
 
+  /// Formate un montant dans la devise réelle du produit, avec la langue de
+  /// l'app (même rendu partout : cartes de plan et mentions légales).
+  String _formatCurrency(double amount, String currencyCode) {
+    try {
+      return NumberFormat.simpleCurrency(
+        locale: Localizations.localeOf(context).toString(),
+        name: currencyCode,
+      ).format(amount);
+    } catch (_) {
+      return '${amount.toStringAsFixed(2)} $currencyCode';
+    }
+  }
+
   /// Nom du store affiché dans les mentions légales d'abonnement : ne
   /// doit JAMAIS être en dur sur "App Store", sinon l'app expose une
   /// mention iOS aux utilisateurs Android (violation Google Play
@@ -811,12 +870,10 @@ class _UpgradePageState extends State<UpgradePage> {
     final store = _storeName;
     final lang = Localizations.localeOf(context).languageCode;
 
-    String formatMonthlyEquivalent(double amount, String currencyCode) {
-      try {
-        return NumberFormat.simpleCurrency(name: currencyCode).format(amount);
-      } catch (_) {
-        return '${amount.toStringAsFixed(2)} $currencyCode';
-      }
+    // Android : jamais de prix en dur (devise inconnue) — sans offre
+    // chargée, on n'affiche pas de montant.
+    if (!Platform.isIOS && (_annualSelected ? annual : monthly) == null) {
+      return '';
     }
 
     if (_annualSelected) {
@@ -829,7 +886,7 @@ class _UpgradePageState extends State<UpgradePage> {
         annualPrice = annual.storeProduct.priceString;
         final m = annual.storeProduct.price / 12;
         monthlyEquivalent =
-            formatMonthlyEquivalent(m, annual.storeProduct.currencyCode);
+            _formatCurrency(m, annual.storeProduct.currencyCode);
       }
       switch (lang) {
         case 'en':

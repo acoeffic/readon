@@ -576,12 +576,14 @@ serve(async (req) => {
 
     const context = await buildUserContext(supabase, user.id);
 
-    const { data: history } = await supabase
+    // Les 20 DERNIERS messages (ordre décroissant + limit), remis en ordre chronologique.
+    const { data: historyDesc } = await supabase
       .from("ai_messages")
       .select("role, content")
       .eq("conversation_id", convId)
-      .order("created_at", { ascending: true })
+      .order("created_at", { ascending: false })
       .limit(20);
+    const history = historyDesc ? [...historyDesc].reverse() : historyDesc;
 
     const messages = [
       { role: "system", content: SYSTEM_PROMPT },

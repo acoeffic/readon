@@ -1,6 +1,8 @@
 // lib/services/notion_service.dart
 
+import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -16,6 +18,19 @@ class NotionService {
 
   static const _keyConnected = 'notion_connected';
   static const _keyWorkspaceName = 'notion_workspace_name';
+  static const _keyOAuthState = 'notion_oauth_state';
+
+  /// `state` OAuth en attente (anti-CSRF) : sans lui, n'importe quel lien
+  /// `lexday://notion/callback?code=…` pourrait lier le compte de l'utilisateur
+  /// au workspace Notion d'un tiers.
+  String? _pendingState;
+
+  static String _randomState() {
+    final rnd = Random.secure();
+    return List.generate(16, (_) => rnd.nextInt(256))
+        .map((b) => b.toRadixString(16).padLeft(2, '0'))
+        .join();
+  }
 
   /// Callback invoked when the OAuth deep link is received.
   void Function(String code)? onOAuthCallback;
@@ -57,10 +72,17 @@ class NotionService {
 
   String getOAuthUrl() {
     final clientId = Env.notionClientId;
+    final state = _randomState();
+    _pendingState = state;
+    // Persisté aussi : l'app peut être tuée pendant l'autorisation dans le navigateur.
+    unawaited(SharedPreferences.getInstance()
+        .then((prefs) => prefs.setString(_keyOAuthState, state))
+        .catchError((_) => false));
     return 'https://api.notion.com/v1/oauth/authorize'
         '?client_id=$clientId'
         '&response_type=code'
         '&owner=user'
+        '&state=$state'
         '&redirect_uri=${Uri.encodeComponent(_notionRedirectUri)}';
   }
 
@@ -116,12 +138,31 @@ class NotionService {
 
   // ── Deep link handler ────────────────────────────────────
 
-  void handleDeepLink(Uri uri) {
+  Future<void> handleDeepLink(Uri uri) async {
     if (uri.scheme == 'lexday' && uri.host == 'notion' && uri.path.startsWith('/callback')) {
       final code = uri.queryParameters['code'];
-      if (code != null && onOAuthCallback != null) {
-        onOAuthCallback!(code);
+      if (code == null || onOAuthCallback == null) return;
+
+      // Vérifie le `state` renvoyé par Notion (via notion-oauth-redirect).
+      final received = uri.queryParameters['state'];
+      var expected = _pendingState;
+      if (expected == null) {
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          expected = prefs.getString(_keyOAuthState);
+        } catch (_) {}
       }
+      if (expected == null || received == null || received != expected) {
+        debugPrint('NotionService: callback OAuth ignoré (state invalide)');
+        return;
+      }
+      _pendingState = null;
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove(_keyOAuthState);
+      } catch (_) {}
+
+      onOAuthCallback?.call(code);
     }
   }
 

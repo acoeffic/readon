@@ -146,6 +146,8 @@ serve(async (req) => {
 
         if (profileError) {
           console.error("Update profile error:", profileError);
+          // 500 => RevenueCat rejoue l'événement (les écritures sont idempotentes).
+          return jsonResponse({ error: profileError.message }, 500);
         }
 
         console.log(
@@ -179,15 +181,21 @@ serve(async (req) => {
           })
           .eq("user_id", userId);
 
-        if (subError) console.error("Expiration sub error:", subError);
+        if (subError) {
+          console.error("Expiration sub error:", subError);
+          return jsonResponse({ error: subError.message }, 500);
+        }
 
         const { error: profileError } = await supabase
           .from("profiles")
           .update({ is_premium: false })
           .eq("id", userId);
 
-        if (profileError)
+        if (profileError) {
           console.error("Expiration profile error:", profileError);
+          // Sans retry, is_premium resterait à true indéfiniment.
+          return jsonResponse({ error: profileError.message }, 500);
+        }
 
         console.log(`[EXPIRATION] ${userId}: premium revoked`);
         break;

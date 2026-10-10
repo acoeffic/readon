@@ -13,6 +13,7 @@ import 'challenge_service.dart';
 import 'last_page_cache.dart';
 import 'live_activity_service.dart';
 import 'ocr_service.dart';
+import '../utils/jwt_retry.dart';
 import 'offline_session_queue.dart';
 import 'session_pause_service.dart';
 
@@ -179,12 +180,12 @@ class ReadingSessionService {
       // session avec une erreur.
       final Map<String, dynamic> response;
       try {
-        response = await _supabase
+        response = await withJwtRetry(() => _supabase
             .from('reading_sessions')
             .insert(insertData)
             .select()
             .single()
-            .timeout(_kSessionWriteTimeout);
+            .timeout(_kSessionWriteTimeout));
       } catch (e) {
         if (_isNetworkError(e)) {
           debugPrint('startSession: réseau indisponible, bascule offline ($e)');
@@ -459,14 +460,14 @@ class ReadingSessionService {
       // `adjustedEnd` (les pauses viennent d'être finalisées via clearAll).
       final Map<String, dynamic>? response;
       try {
-        response = await _supabase
+        response = await withJwtRetry(() => _supabase
             .from('reading_sessions')
             .update(updateData)
             .eq('id', effectiveSessionId)
             .eq('user_id', _supabase.auth.currentUser!.id)
             .select()
             .maybeSingle()
-            .timeout(_kSessionWriteTimeout);
+            .timeout(_kSessionWriteTimeout));
       } catch (e) {
         if (_isNetworkError(e) && activeSession != null) {
           debugPrint('endSession: réseau indisponible, bascule offline ($e)');
@@ -881,16 +882,30 @@ class ReadingSessionService {
 
       // 2) Fermeture immédiate : transition end_time NULL → NOT NULL, qui
       // déclenche le trigger feed (dédup par session_id côté SQL).
-      final response = await _supabase
-          .from('reading_sessions')
-          .update({
-            'end_page': endPage,
-            'end_time': effectiveEnd.toUtc().toIso8601String(),
-          })
-          .eq('id', sessionId)
-          .eq('user_id', userId)
-          .select()
-          .single();
+      final Map<String, dynamic> response;
+      try {
+        response = await _supabase
+            .from('reading_sessions')
+            .update({
+              'end_page': endPage,
+              'end_time': effectiveEnd.toUtc().toIso8601String(),
+            })
+            .eq('id', sessionId)
+            .eq('user_id', userId)
+            .select()
+            .single();
+      } catch (e) {
+        // Évite une session fantôme ouverte (bannière "en cours" permanente
+        // et démarrage bloqué) si la fermeture échoue.
+        try {
+          await _supabase
+              .from('reading_sessions')
+              .delete()
+              .eq('id', sessionId)
+              .eq('user_id', userId);
+        } catch (_) {}
+        rethrow;
+      }
 
       final session = ReadingSession.fromJson(response);
 
@@ -1051,23 +1066,22 @@ class ReadingSessionService {
         properties: {'session_id': sessionId},
       ));
 
-      // Nettoie l'état de pause et ferme la Live Activity avant suppression DB.
-      await SessionPauseService().clearAll();
-      await _liveActivity.end(sessionId: sessionId);
-
       // Session démarrée hors ligne : elle n'existe que dans la file locale
       // (un DELETE Supabase sur un id `offline_…` échouerait de toute façon,
       // la colonne est un uuid).
       if (sessionId.startsWith('offline_')) {
         await _offlineQueue.removeOfflineStartSession(sessionId);
-        _notifyActiveSessionsChanged();
-        return;
+      } else {
+        await _supabase
+            .from('reading_sessions')
+            .delete()
+            .eq('id', sessionId);
       }
 
-      await _supabase
-          .from('reading_sessions')
-          .delete()
-          .eq('id', sessionId);
+      // Nettoyage de l'état local seulement une fois la suppression réussie :
+      // en cas d'échec, la session reste active et cohérente (pause, Live Activity).
+      await SessionPauseService().clearAll();
+      await _liveActivity.end(sessionId: sessionId);
 
       _notifyActiveSessionsChanged();
     } catch (e) {

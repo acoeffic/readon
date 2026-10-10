@@ -422,7 +422,9 @@ class _CachedBookCoverState extends State<CachedBookCover> {
     );
 
     // Cache the result so other instances of the same book skip the chain.
-    CachedBookCover._resolvedCache[cacheKey] = validated;
+    if (validated.isNotEmpty) {
+      CachedBookCover._resolvedCache[cacheKey] = validated;
+    }
     return validated;
   }
 
@@ -503,7 +505,8 @@ class _CachedBookCoverState extends State<CachedBookCover> {
       _gbHeadCache[url] = true;
       return true;
     } catch (_) {
-      _gbHeadCache[url] = false;
+      // Erreur réseau/timeout : ne PAS mémoriser comme « fausse couverture »,
+      // sinon le placeholder reste jusqu'au redémarrage de l'app.
       return false;
     }
   }
@@ -570,7 +573,7 @@ class _CachedBookCoverState extends State<CachedBookCover> {
       _olHeadCache[url] = true;
       return true;
     } catch (_) {
-      _olHeadCache[url] = false;
+      // Idem : un échec réseau n'est pas un verdict sur la couverture.
       return false;
     }
   }

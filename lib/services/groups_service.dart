@@ -113,9 +113,15 @@ class GroupsService {
       userRole = memberResponse?['role'] as String?;
     }
 
-    final memberCount = response['group_members'] != null
-        ? (response['group_members'] as List).length
-        : 0;
+    // PostgREST renvoie group_members(count) sous la forme [{"count": N}].
+    final membersRaw = response['group_members'];
+    int memberCount = 0;
+    if (membersRaw is List && membersRaw.isNotEmpty) {
+      final first = membersRaw.first;
+      memberCount = (first is Map && first['count'] is num)
+          ? (first['count'] as num).toInt()
+          : membersRaw.length;
+    }
 
     // Check if user has a pending join request (only if not a member)
     bool hasPendingRequest = false;

@@ -231,11 +231,11 @@ class ChallengeService {
         case 'read_book':
           final targetBookId = challenge['target_book_id'];
           if (targetBookId != null && targetBookId.toString() == bookId) {
-            // Mark as completed when reading this specific book
+            final newProgress = currentProgress + pagesRead;
             await updateProgress(
               challengeId: challengeId,
-              progress: currentProgress + pagesRead,
-              completed: true,
+              progress: newProgress,
+              completed: newProgress >= targetValue,
             );
           }
           break;
