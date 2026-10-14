@@ -217,6 +217,18 @@ class SubscriptionService {
     }
   }
 
+  /// `check_premium_status` exige un utilisateur authentifié : en mode invité
+  /// (ou avant restauration de session) l'appel partait quand même et finissait
+  /// en 401 (28 par jour en prod, fix 14/10/2026). Sans session, on répond
+  /// directement « gratuit » sans toucher au réseau.
+  Future<Map<String, dynamic>> _checkPremiumStatusRpc() async {
+    if (_supabase.auth.currentUser == null) {
+      return const {'is_premium': false, 'status': 'free'};
+    }
+    final result = await _supabase.rpc('check_premium_status');
+    return Map<String, dynamic>.from(result as Map);
+  }
+
   /// Vérifier le statut premium (RC SDK source de vérité, fallback Supabase)
   Future<bool> isPremium() async {
     if (isDevPremium) return true;
@@ -229,7 +241,7 @@ class SubscriptionService {
       // non rattaché à l'app_user_id en mode Observer). On consulte le cache
       // serveur avant de conclure « gratuit ».
       try {
-        final result = await _supabase.rpc('check_premium_status');
+        final result = await _checkPremiumStatusRpc();
         return result['is_premium'] as bool? ?? false;
       } catch (_) {
         return false;
@@ -238,7 +250,7 @@ class SubscriptionService {
       debugPrint('Erreur isPremium RC, fallback Supabase: $e');
       // Fallback Supabase
       try {
-        final result = await _supabase.rpc('check_premium_status');
+        final result = await _checkPremiumStatusRpc();
         return result['is_premium'] as bool? ?? false;
       } catch (e2) {
         debugPrint('Erreur fallback Supabase: $e2');
@@ -346,7 +358,7 @@ class SubscriptionService {
       debugPrint('Erreur getSubscriptionStatus: $e');
       // Fallback Supabase
       try {
-        final result = await _supabase.rpc('check_premium_status');
+        final result = await _checkPremiumStatusRpc();
         return SubscriptionStatus(
           isPremium: result['is_premium'] as bool? ?? false,
           status: result['status'] as String? ?? 'free',

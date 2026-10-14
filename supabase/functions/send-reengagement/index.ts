@@ -23,6 +23,27 @@
 // token, sinon e-mail (Resend) pour ceux qui ont ajouté un livre — l'e-mail
 // est confirmé à 100 % et c'est le seul canal qui reste.
 
+// 29/09/2026 — piste "livre terminé" (win-back lecteur, push uniquement).
+// Audit rétention : 8 des 28 lecteurs disparus avaient fini leur dernier livre
+// et n'en ont pas commencé d'autre. Un lecteur dont le dernier livre est
+// terminé, sans aucun livre en cours, reçoit UN seul push contextuel, 2 à 10
+// jours après sa dernière session : il nomme le livre terminé et propose le
+// prochain de sa liste « à lire » (sinon invite à en ajouter un). Ensuite
+// silence définitif tant qu'il ne relit pas (reengagement_last_bucket = 14
+// clôt aussi les paliers 3/7/14 génériques ; il se réarme dès qu'il relit).
+// Volontairement sans e-mail : cette piste ne parle qu'aux détenteurs d'un token.
+//
+// 14/10/2026 — BUG : `reading_sessions.book_id` est un `text` SANS clé
+// étrangère vers `books` ; l'embed `books(title)` renvoyait donc un 400
+// (PGRST200) pour CHAQUE utilisateur, que supabase-js rendait en
+// `{ data: null, error }` — et `data: null` était lu comme « jamais lu ».
+// Conséquence depuis le 29/09 : 100 % des utilisateurs traités en piste
+// « activation » (lecteurs actifs recevant « tu n'as pas encore lancé de
+// session » puis « on arrête de te relancer »), et les pistes win-back /
+// « livre terminé » jamais exécutées (sent: 0, finishedNudges: 0 chaque
+// jour). Désormais : plus d'embed, titre résolu à part, et une erreur de
+// requête fait SAUTER l'utilisateur au lieu de le classer non-activé.
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -63,6 +84,14 @@ const ACTIVATION_BUCKETS = [1, 3, 7]
 const ACTIVATION_MAX_DAYS = 14
 // Espacement minimum entre deux messages de la séquence d'activation.
 const ACTIVATION_MIN_GAP_DAYS = 2
+// Piste "livre terminé" : fenêtre (jours depuis la dernière session) où le
+// push unique peut partir. Avant 2 j on laisse souffler ; après 10 j un
+// « bravo » tardif sonne faux.
+const FINISHED_MIN_DAYS = 2
+const FINISHED_MAX_DAYS = 10
+// Valeur posée dans reengagement_last_bucket après le push : ≥ au plus grand
+// palier win-back (14), donc les paliers 3/7/14 ne repartent pas.
+const FINISHED_CLOSED_BUCKET = 14
 // Expéditeur des e-mails de relance (même domaine que les autres e-mails).
 const EMAIL_FROM = 'LexDay <hello@lexday.fr>'
 const READ_LINK = 'https://www.lexday.fr/redirect?to=read'
@@ -457,6 +486,101 @@ function buildActivationMessage(
   }
 }
 
+/** Tronque un titre pour qu'il tienne dans une notification. */
+function clip(title: string, max = 38): string {
+  const t = title.trim()
+  return t.length > max ? `${t.slice(0, max - 1).trimEnd()}…` : t
+}
+
+/**
+ * Message "livre terminé" : nomme le livre fini, propose le suivant de la
+ * liste « à lire » quand il y en a un. Jamais de flow, jamais de culpabilité.
+ */
+function buildFinishedBookMessage(
+  finishedTitle: string,
+  nextTitle: string | null,
+): { title: string, body: string } {
+  if (nextTitle) {
+    return {
+      title: `📖 Après « ${clip(finishedTitle)} », on enchaîne ?`,
+      body: `« ${clip(nextTitle)} » t'attend dans ta liste. Cinq minutes ce soir suffisent pour t'y mettre.`,
+    }
+  }
+  return {
+    title: `🎉 Bravo pour « ${clip(finishedTitle)} » !`,
+    body: 'Quel sera le prochain ? Ajoute-le et on chronomètre la suite.',
+  }
+}
+
+// deno-lint-ignore no-explicit-any
+type SupabaseClient = any
+
+const NOT_HIDDEN = 'is_hidden.is.null,is_hidden.eq.false'
+
+/**
+ * État "entre deux livres" : le livre de la dernière session est terminé ET
+ * aucun autre livre n'est en cours. Renvoie le titre du livre suivant de la
+ * liste « à lire » (le plus récemment ajouté = intention la plus fraîche), ou
+ * null si la liste est vide. `undefined` = pas dans cet état → pas de push.
+ */
+async function getBetweenBooksState(
+  supabase: SupabaseClient,
+  userId: string,
+  lastBookId: string | number | null,
+): Promise<{ nextTitle: string | null } | undefined> {
+  if (lastBookId === null || lastBookId === undefined) return undefined
+
+  const { data: lastUb } = await supabase
+    .from('user_books')
+    .select('status')
+    .eq('user_id', userId)
+    .eq('book_id', lastBookId)
+    .maybeSingle()
+  if (lastUb?.status !== 'finished') return undefined
+
+  const { count: readingCount } = await supabase
+    .from('user_books')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .eq('status', 'reading')
+    .or(NOT_HIDDEN)
+  if ((readingCount ?? 0) > 0) return undefined
+
+  const { data: next } = await supabase
+    .from('user_books')
+    .select('books(title)')
+    .eq('user_id', userId)
+    .eq('status', 'to_read')
+    .or(NOT_HIDDEN)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  const nextTitle = (next?.books as { title?: string } | null)?.title?.trim() || null
+  return { nextTitle }
+}
+
+/**
+ * Titre d'un livre par id, sans embed (pas de FK reading_sessions → books).
+ * Null si l'id est absent, non numérique ou introuvable.
+ */
+async function fetchBookTitle(
+  supabase: SupabaseClient,
+  bookId: string | number | null | undefined,
+): Promise<string | null> {
+  if (bookId === null || bookId === undefined) return null
+  if (!/^\d+$/.test(String(bookId))) return null
+  const { data, error } = await supabase
+    .from('books')
+    .select('title')
+    .eq('id', Number(bookId))
+    .maybeSingle()
+  if (error) {
+    console.error(`⚠️ Titre livre ${bookId} introuvable:`, error)
+    return null
+  }
+  return (data?.title as string | undefined)?.trim() || null
+}
+
 interface Profile {
   id: string
   display_name: string
@@ -527,6 +651,7 @@ serve(async (req) => {
     let sent = 0
     let activated = 0
     let activatedByEmail = 0
+    let finishedNudges = 0
     let reset = 0
     let skipped = 0
     let cleaned = 0
@@ -534,14 +659,18 @@ serve(async (req) => {
     for (const user of dueUsers) {
       try {
         // Dernière activité = dernière session de lecture terminée.
-        const { data: lastSession } = await supabase
+        // Pas d'embed `books(...)` ici : pas de FK (cf. en-tête 14/10).
+        const { data: lastSession, error: lastSessionError } = await supabase
           .from('reading_sessions')
-          .select('end_time, books(title)')
+          .select('end_time, book_id')
           .eq('user_id', user.id)
           .not('end_time', 'is', null)
           .order('end_time', { ascending: false })
           .limit(1)
           .maybeSingle()
+        // Une requête en erreur n'est PAS « jamais lu » : on saute, on ne
+        // classe pas l'utilisateur en non-activé.
+        if (lastSessionError) throw lastSessionError
 
         const offset = tzOffsetMinutes(user.timezone)
 
@@ -644,8 +773,50 @@ serve(async (req) => {
 
         const daysInactive = daysBetween(todayKey, lastKey)
 
+        // Un message a-t-il déjà été envoyé APRÈS sa dernière session ? Si oui,
+        // il n'est pas « redevenu actif » : ne pas réarmer (sinon le push
+        // « livre terminé » repartirait à un second passage du cron).
+        const messagedSinceLastSession = !!user.reengagement_last_sent_at &&
+          new Date(user.reengagement_last_sent_at).getTime() >=
+            new Date(lastSession.end_time).getTime()
+
+        // ── Piste "livre terminé" : un seul push, 2 à 10 j après la dernière
+        // session, si le dernier livre est fini et qu'aucun autre n'est en cours.
+        // bucket === 0 = aucune relance encore envoyée depuis qu'il a arrêté.
+        if (
+          daysInactive >= FINISHED_MIN_DAYS && daysInactive <= FINISHED_MAX_DAYS &&
+          user.reengagement_last_bucket === 0 && !messagedSinceLastSession
+        ) {
+          const state = await getBetweenBooksState(supabase, user.id, lastSession.book_id)
+          const finishedTitle = state ? await fetchBookTitle(supabase, lastSession.book_id) : null
+          if (state && finishedTitle) {
+            const { title, body } = buildFinishedBookMessage(finishedTitle, state.nextTitle)
+            if (!accessToken) accessToken = await getAccessToken()
+            const result = await sendFCMNotification(accessToken, user.fcm_token, title, body, {
+              type: 'book_finished_next',
+              user_id: user.id,
+              bucket: String(FINISHED_CLOSED_BUCKET),
+            })
+            if (result.unregistered) {
+              await supabase.from('profiles').update({ fcm_token: null }).eq('id', user.id)
+              cleaned++
+              continue
+            }
+            await supabase
+              .from('profiles')
+              .update({
+                reengagement_last_bucket: FINISHED_CLOSED_BUCKET,
+                reengagement_last_sent_at: new Date().toISOString(),
+              })
+              .eq('id', user.id)
+            finishedNudges++
+            console.log(`✅ Livre terminé (J+${daysInactive}) → ${user.display_name} (fini: ${finishedTitle}, suivant: ${state.nextTitle ?? '—'})`)
+            continue
+          }
+        }
+
         // Redevenu actif (< plus petit palier) → on réarme le compteur.
-        if (daysInactive < BUCKETS[0]) {
+        if (daysInactive < BUCKETS[0] && !messagedSinceLastSession) {
           if (user.reengagement_last_bucket !== 0) {
             await supabase
               .from('profiles')
@@ -683,8 +854,7 @@ serve(async (req) => {
         ])
         const lostStreak = streakEndingAt(validDays, lastKey)
 
-        const bookTitle =
-          (lastSession.books && (lastSession.books as { title?: string }).title) || null
+        const bookTitle = await fetchBookTitle(supabase, lastSession.book_id)
 
         const { title, body } = buildMessage(target, lostStreak, bookTitle)
 
@@ -715,7 +885,7 @@ serve(async (req) => {
       }
     }
 
-    const result = { success: true, due: dueUsers.length, sent, activated, activatedByEmail, reset, skipped, cleaned }
+    const result = { success: true, due: dueUsers.length, sent, activated, activatedByEmail, finishedNudges, reset, skipped, cleaned }
     console.log('📊 Re-engagement:', result)
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

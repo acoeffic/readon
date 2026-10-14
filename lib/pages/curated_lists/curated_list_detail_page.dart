@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../l10n/app_localizations.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../models/curated_list.dart';
@@ -9,6 +10,7 @@ import '../bookstores/nearby_bookstores_page.dart';
 import '../../models/user_custom_list.dart';
 import '../../services/books_service.dart';
 import '../../services/user_custom_lists_service.dart';
+import '../../widgets/require_account_sheet.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/cached_book_cover.dart';
 import 'create_custom_list_dialog.dart';
@@ -612,6 +614,13 @@ class _CuratedListDetailPageState extends State<CuratedListDetailPage> {
   }
 
   void _showAddToListSheet(CuratedBookEntry entry, GoogleBook googleBook) async {
+    // Listes curatées visibles en mode invité : sans compte, l'ajout à une
+    // liste finissait en RPC 401 (insert_book_if_not_exists) et en erreur
+    // muette. Mur de création de compte à la place (fix 14/10/2026).
+    if (Supabase.instance.client.auth.currentUser == null) {
+      await showRequireAccountSheet(context, source: 'curated_list_add');
+      return;
+    }
     // Trouver ou créer le livre dans la base sans l'ajouter à la bibliothèque
     try {
       final book = await _booksService.findOrCreateBook(googleBook);

@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../services/books_service.dart';
 import '../../services/google_books_service.dart';
 import '../../services/user_custom_lists_service.dart';
+import '../../widgets/require_account_sheet.dart';
 import '../../widgets/constrained_content.dart';
 import '../../widgets/google_book_preview_sheet.dart';
 import '../../widgets/google_book_result_card.dart';
@@ -100,6 +102,12 @@ class _AuthorBooksPageState extends State<AuthorBooksPage> {
   }
 
   Future<void> _addToList(GoogleBook googleBook) async {
+    // Page atteignable en mode invité depuis la recherche « Livres » : la
+    // fiche y est gated, pas la page auteur — l'ajout partait en RPC 401.
+    if (Supabase.instance.client.auth.currentUser == null) {
+      await showRequireAccountSheet(context, source: 'author_books_add');
+      return;
+    }
     if (widget.listId == null) return _addToLibrary(googleBook);
     if (_addedGoogleIds.contains(googleBook.id)) return;
 

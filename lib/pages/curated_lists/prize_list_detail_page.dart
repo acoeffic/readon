@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../l10n/app_localizations.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../models/prize_list.dart';
@@ -6,6 +7,7 @@ import '../../services/prize_list_service.dart';
 import '../../services/google_books_service.dart';
 import '../../services/books_service.dart';
 import '../../services/user_custom_lists_service.dart';
+import '../../widgets/require_account_sheet.dart';
 import '../../models/user_custom_list.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/cached_book_cover.dart';
@@ -294,6 +296,11 @@ class _PrizeListDetailPageState extends State<PrizeListDetailPage> {
   }
 
   void _showAddToListSheet(PrizeListBook book) async {
+    // Même garde que les listes curatées : page publique, action gated.
+    if (Supabase.instance.client.auth.currentUser == null) {
+      await showRequireAccountSheet(context, source: 'prize_list_add');
+      return;
+    }
     try {
       // Build a GoogleBook from the prize book data to use findOrCreateBook
       final googleBook = GoogleBook(
