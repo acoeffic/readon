@@ -9,6 +9,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/book.dart';
 import '../models/book_suggestion.dart';
+import 'google_books_service.dart';
 
 class RecoEventsService {
   RecoEventsService._();
@@ -91,6 +92,58 @@ class RecoEventsService {
       await _upsert([_row(userId, event, suggestion, rank)]);
     } catch (e) {
       debugPrint('RecoEventsService.track($event): $e');
+    }
+  }
+
+  /// Vrai si [g] correspond bien au livre cité "[title]" de [author] :
+  /// titre contenu (dans un sens ou l'autre) ou ≥ 60 % de mots en commun,
+  /// ET nom de famille de l'auteur retrouvé quand Google Books en donne un.
+  /// Sert à détecter les titres inventés par le modèle dans le chat.
+  static bool matchesPick(GoogleBook g, String title, String author) {
+    final gt = normalize(g.title);
+    final at = normalize(title);
+    if (gt.isEmpty || at.isEmpty) return false;
+    var titleOk = gt.contains(at) || at.contains(gt);
+    if (!titleOk) {
+      final aTokens = at.split(' ').where((t) => t.length > 2).toList();
+      if (aTokens.isEmpty) return false;
+      final gTokens = gt.split(' ').toSet();
+      final common = aTokens.where(gTokens.contains).length;
+      titleOk = common / aTokens.length >= 0.6;
+    }
+    if (!titleOk) return false;
+    final gAuthors = normalize(g.authorsString);
+    final parts = normalize(author).split(' ');
+    final surname = parts.isEmpty ? '' : parts.last;
+    if (gAuthors.isEmpty || surname.length < 3) return true;
+    return gAuthors.contains(surname);
+  }
+
+  /// Événement hors carrousel (ex. livre cité dans le chat Muse, source 'chat').
+  static Future<void> trackRaw(
+    String event,
+    String source, {
+    required String title,
+    String? author,
+  }) async {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) return;
+    try {
+      final key = 't:${normalize(title)}|${normalize(author)}';
+      String clip(String? v, int max) =>
+          v == null ? '' : (v.length > max ? v.substring(0, max) : v);
+      await _upsert([
+        {
+          'user_id': userId,
+          'event': event,
+          'source': source,
+          'book_key': key.length > 200 ? key.substring(0, 200) : key,
+          'title': clip(title, 300),
+          'author': clip(author, 300),
+        }
+      ]);
+    } catch (e) {
+      debugPrint('RecoEventsService.trackRaw($event): $e');
     }
   }
 

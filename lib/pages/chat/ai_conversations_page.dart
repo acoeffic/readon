@@ -8,6 +8,7 @@ import '../../models/feature_flags.dart';
 import '../../services/chat_service.dart';
 import '../../providers/subscription_provider.dart';
 import 'ai_chat_page.dart';
+import '../friends/search_users_page.dart';
 import '../../widgets/constrained_content.dart';
 
 class AiConversationsPage extends StatefulWidget {
@@ -80,15 +81,23 @@ class _AiConversationsPageState extends State<AiConversationsPage> {
   /// conversation (plein écran, sans FAB ni barre d'onglets) avec le
   /// clavier ouvert, plutôt que de taper dans l'onglet.
   void _openComposerAsPage() {
-    final l = AppLocalizations.of(context);
     final draft = _composerController.text.trim();
     _composerController.clear();
-    final prefix = _searchMode ? l.museSearchPrefix('') : '';
+    if (_searchMode) {
+      // « Chercher un livre » : vraie recherche Google Books (fiche + ajout),
+      // sans passer par le LLM ni consommer un message gratuit.
+      Navigator.of(context)
+          .push(MaterialPageRoute(
+            builder: (_) => SearchUsersPage(initialBookQuery: draft),
+          ))
+          .then((_) => _loadConversations());
+      return;
+    }
     Navigator.of(context)
         .push(MaterialPageRoute(
           builder: (_) => AiChatPage(
             autofocus: true,
-            initialDraft: draft.isNotEmpty ? draft : prefix,
+            initialDraft: draft.isNotEmpty ? draft : null,
           ),
         ))
         .then((_) => _loadConversations());

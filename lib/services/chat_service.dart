@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/ai_conversation.dart';
@@ -92,6 +93,7 @@ class ChatService {
           'conversation_id': conversationId,
           'message': message,
           'is_new_conversation': isNew,
+          'locale': ui.PlatformDispatcher.instance.locale.languageCode,
         },
       );
 

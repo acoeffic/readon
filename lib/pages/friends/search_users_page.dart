@@ -28,7 +28,12 @@ import '../../widgets/constrained_content.dart';
 import '../../services/referral_service.dart';
 
 class SearchUsersPage extends StatefulWidget {
-  const SearchUsersPage({super.key});
+  const SearchUsersPage({super.key, this.initialBookQuery});
+
+  /// Si non null, ouvre directement l'onglet Livres (et lance la recherche
+  /// si la requête fait au moins 3 caractères). Utilisé par le mode
+  /// « Chercher un livre » de Muse.
+  final String? initialBookQuery;
 
   @override
   State<SearchUsersPage> createState() => _SearchUsersPageState();
@@ -64,6 +69,16 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
   @override
   void initState() {
     super.initState();
+    final initialQuery = widget.initialBookQuery?.trim();
+    if (initialQuery != null) {
+      _selectedTab = 2;
+      _controller.text = initialQuery;
+      if (initialQuery.length >= 3) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _runBookSearch(initialQuery);
+        });
+      }
+    }
     _loadCurrentBook();
     _loadSuggestions();
     _loadLibraryGoogleIds();
@@ -581,6 +596,7 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
               TextField(
                 textCapitalization: TextCapitalization.sentences,
                 controller: _controller,
+                autofocus: widget.initialBookQuery != null,
                 decoration: InputDecoration(
                   hintText: switch (_selectedTab) {
                     0 => l.searchByName,

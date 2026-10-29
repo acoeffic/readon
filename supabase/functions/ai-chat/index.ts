@@ -24,12 +24,12 @@ const MAX_FREE_MONTHLY_MESSAGES = 3;
 const MAX_FREE_MONTHLY_GIFT_SUGGESTIONS = 2;
 
 const SYSTEM_PROMPT = `Tu es Muse, conseillère littéraire passionnée et bienveillante pour l'application ReadOn.
-Tu réponds toujours en français. Sois concise mais chaleureuse (3-4 paragraphes maximum).
+Tu réponds toujours en {{LANG}}. Sois concise mais chaleureuse (3-4 paragraphes maximum).
 
 RÈGLES IMPORTANTES :
 - Tu ne recommandes QUE des livres dont tu es absolument certaine qu'ils existent réellement (titre exact, auteur exact, date de publication connue).
 - N'invente JAMAIS de titre, d'auteur ou de livre. Si tu n'es pas sûre qu'un livre existe, ne le mentionne pas.
-- FORMATAGE OBLIGATOIRE : quand tu mentionnes un livre, utilise TOUJOURS le format "Titre exact" de Auteur exact (avec les guillemets droits autour du titre). Exemples : "L'Étranger" de Albert Camus, "1984" de George Orwell.
+- FORMATAGE OBLIGATOIRE : quand tu mentionnes un livre, utilise TOUJOURS le format "Titre exact" de Auteur exact (avec les guillemets droits autour du titre). Exemples : "L'Étranger" de Albert Camus, "1984" de George Orwell. Si tu réponds en anglais, écris "Titre exact" by Auteur exact (le mot "by" remplace "de"), par exemple "1984" by George Orwell.
 - Ne recommande pas de livres que l'utilisateur a déjà lus, est en train de lire, ou a dans sa liste "à lire".
 
 PERSONNALISATION :
@@ -151,34 +151,68 @@ async function buildUserContext(
   supabase: ReturnType<typeof createClient>,
   userId: string
 ): Promise<string> {
-  const { data: finished } = await supabase
-    .from("user_books")
-    .select("books(title, author, genre)")
-    .eq("user_id", userId)
-    .eq("status", "finished")
-    .order("created_at", { ascending: false })
-    .limit(30);
+  // Même richesse de contexte que ai-suggest-books : notes, annotations,
+  // descriptions, abandons et bibliothèque complète (pour ne rien re-proposer).
+  const [
+    { data: finished },
+    { data: reading },
+    { data: toRead },
+    { data: abandonedBooks },
+    { data: ratings },
+    { data: annotationRows },
+    { data: goals },
+    { data: ownedRows },
+  ] = await Promise.all([
+    supabase
+      .from("user_books")
+      .select("book_id, books(title, author, genre, description, page_count)")
+      .eq("user_id", userId)
+      .eq("status", "finished")
+      .order("updated_at", { ascending: false })
+      .limit(30),
+    supabase
+      .from("user_books")
+      .select("book_id, books(title, author, genre)")
+      .eq("user_id", userId)
+      .eq("status", "reading"),
+    supabase
+      .from("user_books")
+      .select("books(title, author, genre)")
+      .eq("user_id", userId)
+      .eq("status", "to_read")
+      .order("created_at", { ascending: false })
+      .limit(20),
+    supabase
+      .from("user_books")
+      .select("book_id, books(title, author, genre)")
+      .eq("user_id", userId)
+      .eq("status", "abandoned")
+      .limit(20),
+    supabase
+      .from("book_ratings")
+      .select("book_id, rating, emotion_tags, would_recommend, review_text, abandoned")
+      .eq("user_id", userId),
+    supabase.from("annotations").select("book_id").eq("user_id", userId),
+    supabase
+      .from("reading_goals")
+      .select("goal_type, target_value")
+      .eq("user_id", userId)
+      .eq("is_active", true)
+      .eq("year", new Date().getFullYear()),
+    supabase.from("user_books").select("books(title)").eq("user_id", userId).limit(400),
+  ]);
 
-  const { data: reading } = await supabase
-    .from("user_books")
-    .select("books(title, author, genre)")
-    .eq("user_id", userId)
-    .eq("status", "reading");
+  const ratingMap: Record<string, any> = {};
+  for (const r of ratings ?? []) ratingMap[r.book_id] = r;
+  const annotationMap: Record<string, number> = {};
+  for (const a of annotationRows ?? []) {
+    annotationMap[a.book_id] = (annotationMap[a.book_id] || 0) + 1;
+  }
 
-  const { data: toRead } = await supabase
-    .from("user_books")
-    .select("books(title, author, genre)")
-    .eq("user_id", userId)
-    .eq("status", "to_read")
-    .order("created_at", { ascending: false })
-    .limit(20);
-
-  const { data: goals } = await supabase
-    .from("reading_goals")
-    .select("goal_type, target_value")
-    .eq("user_id", userId)
-    .eq("is_active", true)
-    .eq("year", new Date().getFullYear());
+  const truncate = (text: string | null, maxLen: number): string => {
+    if (!text) return "";
+    return text.length > maxLen ? text.substring(0, maxLen) + "…" : text;
+  };
 
   const formatBooks = (books: any[]) =>
     (books ?? [])
@@ -186,6 +220,32 @@ async function buildUserContext(
         const book = b.books;
         if (!book) return null;
         return `- ${book.title}${book.author ? ` de ${book.author}` : ""}${book.genre ? ` (${book.genre})` : ""}`;
+      })
+      .filter(Boolean)
+      .join("\n");
+
+  const formatFinished = (books: any[]) =>
+    (books ?? [])
+      .map((b: any) => {
+        const book = b.books;
+        if (!book) return null;
+        let line = `- ${book.title}${book.author ? ` de ${book.author}` : ""}${book.genre ? ` (${book.genre})` : ""}`;
+        if (book.page_count) line += ` [${book.page_count}p]`;
+        const r = ratingMap[b.book_id];
+        const signals: string[] = [];
+        if (r?.rating != null) {
+          signals.push(`noté ${r.rating}★${r.would_recommend ? ", recommandé" : ""}`);
+          if (Array.isArray(r.emotion_tags) && r.emotion_tags.length) {
+            signals.push(`ressenti: ${r.emotion_tags.join("/")}`);
+          }
+        }
+        const notes = annotationMap[b.book_id] || 0;
+        if (notes > 0) signals.push(`${notes} annotations`);
+        if (signals.length) line += ` → ${signals.join(", ")}`;
+        const parts = [line];
+        if (r?.review_text) parts.push(`  Avis du lecteur : "${truncate(r.review_text, 100)}"`);
+        if (book.description) parts.push(`  ${truncate(book.description, 120)}`);
+        return parts.join("\n");
       })
       .filter(Boolean)
       .join("\n");
@@ -211,17 +271,42 @@ async function buildUserContext(
     .filter(([_, count]) => count >= 2)
     .map(([author, count]) => `${author} (${count} livres)`);
 
+  // Livres qui ont déplu (≤ 2★ ou lecture abandonnée notée)
+  const disliked = (finished ?? []).filter((b: any) => {
+    const r = ratingMap[b.book_id];
+    return r && (r.rating <= 2 || r.abandoned === true);
+  });
+
   let ctx = "";
   if (topGenres.length) ctx += `Genres préférés: ${topGenres.join(", ")}\n\n`;
   if (topAuthors.length) ctx += `Auteurs favoris (plusieurs livres lus): ${topAuthors.join(", ")}\n\n`;
-  if (finished?.length) ctx += `Livres terminés récemment (${finished.length}):\n${formatBooks(finished)}\n\n`;
+  if (finished?.length) {
+    ctx += `Livres terminés récemment (${finished.length}) — les notes ★ et ressentis sont le signal n°1 des goûts:\n${formatFinished(finished)}\n\n`;
+  }
+  if (disliked.length) {
+    ctx += `Livres qui ont DÉPLU (à éviter comme style):\n${formatBooks(disliked)}\n\n`;
+  }
   if (reading?.length) ctx += `En cours de lecture:\n${formatBooks(reading)}\n\n`;
+  if (abandonedBooks?.length) {
+    ctx += `Livres abandonnés (signal négatif, ne pas recommander):\n${formatBooks(abandonedBooks)}\n\n`;
+  }
   if (toRead?.length) ctx += `Liste à lire (ne pas recommander ceux-ci):\n${formatBooks(toRead)}\n\n`;
   if (goals?.length) {
-    ctx += `Objectifs de lecture:\n${goals.map((g: any) => `- ${g.goal_type}: ${g.target_value}`).join("\n")}\n`;
+    ctx += `Objectifs de lecture:\n${goals.map((g: any) => `- ${g.goal_type}: ${g.target_value}`).join("\n")}\n\n`;
   }
 
-  return ctx || "Aucune donnée de lecture disponible. Propose des classiques reconnus et demande les préférences du lecteur.";
+  // Bibliothèque complète (titres seuls) : couvre ce que les sections ci-dessus
+  // tronquent (30 terminés, 20 à lire) + les livres cachés.
+  const ownedTitles = [...new Set(
+    (ownedRows ?? [])
+      .map((r: any) => r.books?.title)
+      .filter((t: unknown): t is string => typeof t === "string" && t.length > 0),
+  )].slice(0, 300);
+  if (ownedTitles.length) {
+    ctx += `BIBLIOTHÈQUE COMPLÈTE (ne JAMAIS recommander ces titres):\n${ownedTitles.map((t) => `- ${t}`).join("\n")}\n`;
+  }
+
+  return ctx.trim() || "Aucune donnée de lecture disponible. Propose des classiques reconnus et demande les préférences du lecteur.";
 }
 
 // ============================================================================
@@ -496,6 +581,10 @@ serve(async (req) => {
   try {
     const body = await req.json();
     const { conversation_id, message, is_new_conversation } = body;
+    const localeRaw = String(body.locale ?? "fr").toLowerCase().slice(0, 2);
+    const locale = ["fr", "en", "es"].includes(localeRaw) ? localeRaw : "fr";
+    const langName = ({ fr: "français", en: "anglais", es: "espagnol" } as Record<string, string>)[locale];
+    const systemPrompt = SYSTEM_PROMPT.replace("{{LANG}}", langName);
 
     if (!message || typeof message !== "string" || message.trim().length === 0) {
       return jsonResponse({ error: "Message requis" }, 400);
@@ -586,7 +675,7 @@ serve(async (req) => {
     const history = historyDesc ? [...historyDesc].reverse() : historyDesc;
 
     const messages = [
-      { role: "system", content: SYSTEM_PROMPT },
+      { role: "system", content: systemPrompt },
       {
         role: "system",
         content: `Contexte du lecteur:\n${context}`,

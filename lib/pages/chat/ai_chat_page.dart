@@ -12,6 +12,7 @@ import '../../models/feature_flags.dart';
 import '../../services/books_service.dart';
 import '../../services/chat_service.dart' show ChatService, ChatLimitReachedException;
 import '../../services/google_books_service.dart';
+import '../../services/reco_events_service.dart';
 import '../../services/user_custom_lists_service.dart';
 import '../../models/user_custom_list.dart';
 import '../../services/native_paywall_service.dart';
@@ -56,8 +57,13 @@ class _AiChatPageState extends State<AiChatPage> {
 
   /// Regex pour détecter les mentions de livres : "Titre" de Auteur
   static final RegExp _bookMentionRegex = RegExp(
-    r""""([^"]+)"\s+d[e']\s*([^.,;!?\n(]+)""",
+    r""""([^"]+)"\s+(?:de|d'|by)\s*([^.,;!?\n(]+)""",
   );
+
+  /// Vérification des livres cités : clé titre|auteur normalisée →
+  /// GoogleBook trouvé, ou null si introuvable (titre probablement inventé).
+  final Map<String, GoogleBook?> _verified = {};
+  final Set<String> _verifying = {};
 
   List<AiMessage> _messages = [];
   int? _conversationId;
@@ -108,6 +114,47 @@ class _AiChatPageState extends State<AiChatPage> {
         _loadingHistory = false;
       });
       _scrollToBottom();
+      final assistant = messages.where((m) => m.role == 'assistant').toList();
+      for (final m in assistant.reversed.take(2)) {
+        _verifyMentions(m.content);
+      }
+    }
+  }
+
+  static String _mentionKey(String title, String author) =>
+      't:${RecoEventsService.normalize(title)}|${RecoEventsService.normalize(author)}';
+
+  /// Vérifie sur Google Books que les livres cités existent. Les mentions
+  /// introuvables sont ensuite affichées en texte simple (non cliquables).
+  Future<void> _verifyMentions(String content) async {
+    final todo = <(String, String)>[];
+    for (final m in _bookMentionRegex.allMatches(content)) {
+      final t = m.group(1)!.trim();
+      final a = m.group(2)!.trim();
+      final k = _mentionKey(t, a);
+      if (_verified.containsKey(k) || _verifying.contains(k)) continue;
+      _verifying.add(k);
+      todo.add((t, a));
+    }
+    for (var i = 0; i < todo.length; i += 2) {
+      final batch = todo.skip(i).take(2);
+      await Future.wait(batch.map((e) async {
+        final (t, a) = e;
+        final k = _mentionKey(t, a);
+        GoogleBook? found;
+        try {
+          var res = await _googleBooksService.searchByTitleAuthor(t, a);
+          found = res.where((g) => RecoEventsService.matchesPick(g, t, a)).firstOrNull;
+          if (found == null) {
+            res = await _googleBooksService.searchBooks('$t $a');
+            found = res.where((g) => RecoEventsService.matchesPick(g, t, a)).firstOrNull;
+          }
+        } catch (_) {}
+        _verifying.remove(k);
+        _verified[k] = found;
+        RecoEventsService.trackRaw(found != null ? 'shown' : 'unverified', 'chat', title: t, author: a);
+      }));
+      if (mounted) setState(() {});
     }
   }
 
@@ -163,6 +210,7 @@ class _AiChatPageState extends State<AiChatPage> {
         });
         _scrollToBottom();
         _loadMessageQuota();
+        _verifyMentions(aiResponse);
       }
     } on ChatLimitReachedException {
       if (mounted) {
@@ -510,6 +558,14 @@ class _AiChatPageState extends State<AiChatPage> {
       final author = match.group(2)!.trim();
       final fullMatch = match.group(0)!;
 
+      // Livre vérifié introuvable : probablement inventé → texte simple.
+      final key = _mentionKey(title, author);
+      if (_verified.containsKey(key) && _verified[key] == null) {
+        spans.add(TextSpan(text: fullMatch));
+        lastEnd = match.end;
+        continue;
+      }
+
       spans.add(TextSpan(
         text: fullMatch,
         style: TextStyle(
@@ -540,6 +596,7 @@ class _AiChatPageState extends State<AiChatPage> {
 
   /// Recherche un livre sur Google Books et affiche le bottom sheet
   void _onBookMentionTap(String title, String author) async {
+    RecoEventsService.trackRaw('opened', 'chat', title: title, author: author);
     // Afficher un loading
     showDialog(
       context: context,
@@ -548,25 +605,28 @@ class _AiChatPageState extends State<AiChatPage> {
     );
 
     try {
-      GoogleBook? googleBook;
+      GoogleBook? googleBook = _verified[_mentionKey(title, author)];
 
       // 1) Recherche par titre + auteur
-      final results = await _googleBooksService.searchByTitleAuthor(title, author);
-      if (results.isNotEmpty) googleBook = results.first;
+      if (googleBook == null) {
+        final results = await _googleBooksService.searchByTitleAuthor(title, author);
+        googleBook = results.where((g) => RecoEventsService.matchesPick(g, title, author)).firstOrNull;
+      }
 
       // 2) Fallback : recherche libre
       if (googleBook == null) {
         final freeResults = await _googleBooksService.searchBooks('$title $author');
-        if (freeResults.isNotEmpty) googleBook = freeResults.first;
+        googleBook = freeResults.where((g) => RecoEventsService.matchesPick(g, title, author)).firstOrNull;
       }
 
-      // 3) Objet minimal si rien trouvé
-      googleBook ??= GoogleBook(
-        id: 'chat-${title.hashCode}',
-        title: title,
-        authors: [author],
-        isbns: [],
-      );
+      if (googleBook == null) {
+        if (!mounted) return;
+        Navigator.pop(context); // Fermer le loading
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context).noBookFound)),
+        );
+        return;
+      }
 
       if (!mounted) return;
       Navigator.pop(context); // Fermer le loading
