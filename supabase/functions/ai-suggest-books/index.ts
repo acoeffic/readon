@@ -16,10 +16,14 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-// Chaque appel déclenche une requête gpt-4o (coûteuse). On plafonne les
+// Chaque GÉNÉRATION déclenche une requête gpt-4o (coûteuse). On plafonne les
 // utilisateurs gratuits comme pour ai-chat / summarize-passage. Premium =
 // illimité. Suivi via la table `ai_usage` (feature = "suggest_books").
+// Depuis le 28/10/2026 : seules les générations réelles comptent. Le feed
+// appelle cette fonction à chaque chargement ; les réponses servies depuis le
+// cache (ai_reco_cache, 24 h) ne consomment ni quota ni appel OpenAI.
 const MAX_FREE_MONTHLY_SUGGESTIONS = 5;
+const CACHE_TTL_MS = 24 * 3600 * 1000;
 
 function jsonResponse(body: Record<string, unknown>, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -27,6 +31,12 @@ function jsonResponse(body: Record<string, unknown>, status = 200) {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 }
+
+const LANG_NAMES: Record<string, string> = {
+  fr: "français",
+  en: "anglais",
+  es: "espagnol",
+};
 
 const SYSTEM_PROMPT = `Tu es un moteur de recommandation de livres ultra-pertinent. On te donne le profil de lecture complet d'un utilisateur avec des signaux d'engagement.
 
@@ -38,12 +48,13 @@ STRATÉGIE :
 5. Utilise les SIGNAUX D'ENGAGEMENT : livres annotés ou lus rapidement = forte appréciation → recommande dans la même veine. Livres abandonnés = signal négatif → évite ce style.
 6. Adapte la longueur : respecte la longueur moyenne des livres lus par l'utilisateur.
 7. Analyse les DESCRIPTIONS des livres lus pour comprendre les thèmes précis, pas juste le genre.
+8. Si le profil est encore PEU RENSEIGNÉ (peu de livres terminés), appuie-toi sur la liste « à lire » et les lectures en cours pour deviner les goûts, et privilégie des livres très appréciés et accessibles dans ces genres plutôt que des choix pointus.
 
 RÈGLES :
 - Recommande exactement le nombre de livres demandé.
-- Ne recommande JAMAIS un livre déjà dans l'historique de l'utilisateur (lu, en cours, abandonné, ou à lire).
-- Ne recommande QUE des livres qui existent réellement. N'invente rien.
-- Varie les auteurs dans tes suggestions.
+- Ne recommande JAMAIS un livre présent dans la bibliothèque de l'utilisateur (lu, en cours, abandonné, à lire, ou dans la liste « BIBLIOTHÈQUE COMPLÈTE »).
+- Ne recommande QUE des livres qui existent réellement. N'invente rien. Si tu hésites sur l'existence d'un livre, choisis-en un autre.
+- Varie les auteurs dans tes suggestions (un seul livre par auteur).
 - Réponds UNIQUEMENT avec un JSON valide, sans texte autour.
 
 FORMAT DE RÉPONSE (JSON uniquement) :
@@ -51,9 +62,67 @@ FORMAT DE RÉPONSE (JSON uniquement) :
   {
     "title": "Titre exact du livre",
     "author": "Auteur exact",
-    "reason": "Courte explication en français (1 phrase) du lien PRÉCIS avec les lectures récentes de l'utilisateur"
+    "reason": "Courte explication (1 phrase) du lien PRÉCIS avec les lectures de l'utilisateur"
   }
 ]`;
+
+// Normalisation insensible à la casse, aux accents et à la ponctuation.
+const norm = (s: unknown): string =>
+  String(s ?? "")
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+
+type Suggestion = { title: string; author: string; reason: string };
+
+// Retire les suggestions déjà dans la bibliothèque (tous statuts, cachés inclus).
+function filterOwned(
+  suggestions: Suggestion[],
+  ownedTitles: Set<string>,
+): Suggestion[] {
+  return suggestions.filter((s) => !ownedTitles.has(norm(s.title)));
+}
+
+// Un seul livre par auteur, ordre conservé.
+function onePerAuthor(suggestions: Suggestion[]): Suggestion[] {
+  const seen = new Set<string>();
+  return suggestions.filter((s) => {
+    const a = norm(s.author);
+    if (!a) return true;
+    if (seen.has(a)) return false;
+    seen.add(a);
+    return true;
+  });
+}
+
+async function callOpenAI(payload: unknown): Promise<Response> {
+  let last: Response | null = null;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30000);
+    try {
+      const res = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${OPENAI_API_KEY}`,
+        },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+      if (res.ok || (res.status !== 429 && res.status < 500)) return res;
+      last = res;
+    } catch (e) {
+      clearTimeout(timeout);
+      console.error("OpenAI fetch threw:", String(e));
+    }
+    await new Promise((r) => setTimeout(r, 700));
+  }
+  return last ?? new Response("OpenAI request failed", { status: 502 });
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -91,9 +160,12 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const limit = Math.min(body.limit ?? 5, 10);
+    const limit = Math.min(Math.max(Number(body.limit) || 5, 1), 10);
+    const localeRaw = String(body.locale ?? "fr").toLowerCase().slice(0, 2);
+    const locale = LANG_NAMES[localeRaw] ? localeRaw : "fr";
+    const forceRefresh = body.refresh === true;
 
-    // --- Premium check & monthly quota (avant tout appel OpenAI) ---
+    // --- Premium check ---
     const { data: profile } = await supabase
       .from("profiles")
       .select("is_premium")
@@ -102,6 +174,57 @@ serve(async (req) => {
 
     const isPremium = profile?.is_premium === true;
 
+    // --- Bibliothèque complète (exclusion) : tous statuts, cachés inclus ---
+    const { data: ownedRows } = await supabase
+      .from("user_books")
+      .select("books(title)")
+      .eq("user_id", user.id)
+      .limit(500);
+    const ownedTitles = new Set<string>(
+      (ownedRows ?? [])
+        .map((r: any) => norm(r.books?.title))
+        .filter((t: string) => t.length > 0),
+    );
+
+    // --- Cache 24 h : pas d'appel OpenAI, pas de quota consommé ---
+    const { data: cache } = await supabase
+      .from("ai_reco_cache")
+      .select("suggestions, locale, limit_count, generated_at")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    const cachedList: Suggestion[] = Array.isArray(cache?.suggestions)
+      ? (cache!.suggestions as Suggestion[])
+      : [];
+    const cachedFiltered = filterOwned(cachedList, ownedTitles).slice(0, limit);
+
+    if (cache && !forceRefresh) {
+      const age = Date.now() - new Date(cache.generated_at).getTime();
+      let fresh = age < CACHE_TTL_MS && cache.locale === locale;
+
+      // Un livre terminé depuis la génération change le profil → on régénère.
+      if (fresh) {
+        const { data: lastFinished } = await supabase
+          .from("user_books")
+          .select("updated_at")
+          .eq("user_id", user.id)
+          .eq("status", "finished")
+          .order("updated_at", { ascending: false })
+          .limit(1);
+        const lf = lastFinished?.[0]?.updated_at;
+        if (lf && new Date(lf).getTime() > new Date(cache.generated_at).getTime()) {
+          fresh = false;
+        }
+      }
+      // Cache épuisé par les ajouts de l'utilisateur (≥ moitié filtrée) → régénère.
+      if (fresh && cachedFiltered.length < Math.min(limit, 3)) fresh = false;
+
+      if (fresh) {
+        return jsonResponse({ suggestions: cachedFiltered, cached: true });
+      }
+    }
+
+    // --- Quota mensuel (uniquement pour une vraie génération) ---
     if (!isPremium) {
       const startOfMonth = new Date();
       startOfMonth.setDate(1);
@@ -115,6 +238,15 @@ serve(async (req) => {
         .gte("used_at", startOfMonth.toISOString());
 
       if ((usageCount ?? 0) >= MAX_FREE_MONTHLY_SUGGESTIONS) {
+        // Quota atteint : on sert les dernières recos connues (filtrées) plutôt
+        // que rien, et on signale `limited` pour que l'app propose le premium.
+        if (cachedFiltered.length > 0) {
+          return jsonResponse({
+            suggestions: cachedFiltered,
+            cached: true,
+            limited: true,
+          });
+        }
         return jsonResponse(
           {
             error: "limit_reached",
@@ -153,6 +285,7 @@ serve(async (req) => {
         .select("books(title, author, genre)")
         .eq("user_id", user.id)
         .eq("status", "to_read")
+        .order("created_at", { ascending: false })
         .limit(20),
       supabase
         .from("reading_sessions")
@@ -284,7 +417,12 @@ serve(async (req) => {
     const genreCounts: Record<string, number> = {};
     const fictionGenres = new Set(["fiction", "roman", "fantasy", "science-fiction", "sf", "thriller", "policier", "romance", "horreur", "aventure", "literary fiction", "mystery", "comics", "manga", "bd", "poésie", "jeunesse", "young adult"]);
     let fictionCount = 0, nonFictionCount = 0;
-    for (const b of allBooks) {
+    // Démarrage à froid : 60 % des utilisateurs de la fonction n'ont aucun livre
+    // terminé. On compte alors aussi la liste « à lire » pour deviner les genres.
+    const profileBooks = (finished?.length ?? 0) >= 3
+      ? allBooks
+      : [...allBooks, ...(toRead ?? [])];
+    for (const b of profileBooks) {
       const book = b.books;
       if (book?.genre) {
         genreCounts[book.genre] = (genreCounts[book.genre] || 0) + 1;
@@ -325,6 +463,11 @@ serve(async (req) => {
       else if (fictionPct < 30) profileParts.push("Profil : lecteur majoritairement NON-FICTION");
       else profileParts.push(`Profil : lecteur mixte (${fictionPct}% fiction, ${100 - fictionPct}% non-fiction)`);
     }
+    if ((finished?.length ?? 0) < 3) {
+      profileParts.push(
+        `Profil encore peu renseigné (${finished?.length ?? 0} livre(s) terminé(s)) : déduis les goûts de la liste « à lire » et des lectures en cours.`,
+      );
+    }
     if (avgPages) profileParts.push(`Longueur moyenne : ${avgPages} pages`);
     if (profileParts.length) userContext += profileParts.join("\n") + "\n\n";
 
@@ -344,47 +487,54 @@ serve(async (req) => {
     const abandonedHeuristic = formatSimpleBooks(abandoned);
     const abandonedAll = [abandonedExplicit, abandonedHeuristic].filter((s) => s).join("\n");
     if (abandonedAll) userContext += `Livres abandonnés (signal négatif, NE PAS recommander) :\n${abandonedAll}\n\n`;
-    if (toRead?.length) userContext += `Liste à lire (NE PAS recommander) :\n${formatSimpleBooks(toRead)}\n`;
+    if (toRead?.length) userContext += `Liste à lire (NE PAS recommander) :\n${formatSimpleBooks(toRead)}\n\n`;
 
     if (!userContext.trim()) {
+      // Bibliothèque vide : rien à personnaliser, on n'appelle pas gpt-4o.
       return jsonResponse({ suggestions: [] });
     }
 
-    const openaiResponse = await fetch(
-      "https://api.openai.com/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${OPENAI_API_KEY}`,
+    // Bibliothèque complète (titres seuls) : couvre ce que les sections
+    // ci-dessus tronquent (30 terminés, 20 à lire/abandonnés) + les livres cachés.
+    const ownedList = [...(ownedRows ?? [])]
+      .map((r: any) => r.books?.title)
+      .filter((t: unknown): t is string => typeof t === "string" && t.length > 0)
+      .slice(0, 300);
+    if (ownedList.length) {
+      userContext += `BIBLIOTHÈQUE COMPLÈTE (NE JAMAIS recommander ces titres) :\n${ownedList.map((t) => `- ${t}`).join("\n")}\n`;
+    }
+
+    // On demande 2 livres de plus que nécessaire : certains seront retirés
+    // par le filtre « déjà dans la bibliothèque » ou « un auteur à la fois ».
+    const requested = Math.min(limit + 2, 12);
+    const langName = LANG_NAMES[locale];
+    const localeRule =
+      locale === "fr"
+        ? `Rédige le champ "reason" en français. Pour un lecteur francophone, donne le titre français officiel si le livre a été traduit.`
+        : `Rédige le champ "reason" en ${langName}. Donne le titre dans la langue de l'utilisateur s'il existe une édition officielle, sinon le titre original.`;
+
+    const openaiResponse = await callOpenAI({
+      model: "gpt-4o",
+      messages: [
+        { role: "system", content: `${SYSTEM_PROMPT}\n\n${localeRule}` },
+        {
+          role: "user",
+          content: `Recommande ${requested} livres pour cet utilisateur.\n\n${userContext}`,
         },
-        body: JSON.stringify({
-          model: "gpt-4o",
-          messages: [
-            { role: "system", content: SYSTEM_PROMPT },
-            {
-              role: "user",
-              content: `Recommande ${limit} livres pour cet utilisateur.\n\n${userContext}`,
-            },
-          ],
-          max_tokens: 800,
-          temperature: 0.5,
-        }),
-      }
-    );
+      ],
+      max_tokens: 1000,
+      temperature: 0.5,
+    });
 
     if (!openaiResponse.ok) {
       const error = await openaiResponse.text();
-      console.error("OpenAI error:", error);
+      console.error("OpenAI error:", openaiResponse.status, error);
+      // Panne OpenAI : on retombe sur le cache plutôt que de ne rien afficher.
+      if (cachedFiltered.length > 0) {
+        return jsonResponse({ suggestions: cachedFiltered, cached: true });
+      }
       return jsonResponse({ error: "Erreur du service IA" }, 502);
     }
-
-    // Requête gpt-4o consommée : on enregistre l'usage (compté pour le
-    // plafond gratuit, ignoré pour les premium mais tracé quand même).
-    await supabase.from("ai_usage").insert({
-      user_id: user.id,
-      feature: "suggest_books",
-    });
 
     const openaiData = await openaiResponse.json();
     const content = openaiData.choices?.[0]?.message?.content ?? "[]";
@@ -400,22 +550,41 @@ serve(async (req) => {
       suggestions = [];
     }
 
-    // Valider la structure
-    const validated = suggestions
-      .filter(
-        (s: any) =>
-          typeof s.title === "string" &&
-          typeof s.author === "string" &&
-          s.title.length > 0
-      )
-      .slice(0, limit)
-      .map((s: any) => ({
-        title: s.title,
-        author: s.author,
-        reason: s.reason ?? "",
-      }));
+    // Valider la structure, retirer ce que l'utilisateur possède déjà, un auteur à la fois
+    const validated: Suggestion[] = onePerAuthor(
+      filterOwned(
+        suggestions
+          .filter(
+            (s: any) =>
+              typeof s.title === "string" &&
+              typeof s.author === "string" &&
+              s.title.length > 0,
+          )
+          .map((s: any) => ({
+            title: s.title,
+            author: s.author,
+            reason: typeof s.reason === "string" ? s.reason : "",
+          })),
+        ownedTitles,
+      ),
+    ).slice(0, limit);
 
-    return jsonResponse({ suggestions: validated });
+    // Quota et cache : uniquement si la génération a produit quelque chose.
+    if (validated.length > 0) {
+      await supabase.from("ai_usage").insert({
+        user_id: user.id,
+        feature: "suggest_books",
+      });
+      await supabase.from("ai_reco_cache").upsert({
+        user_id: user.id,
+        suggestions: validated,
+        locale,
+        limit_count: limit,
+        generated_at: new Date().toISOString(),
+      });
+    }
+
+    return jsonResponse({ suggestions: validated, cached: false });
   } catch (error) {
     console.error("ai-suggest-books error:", error);
     return jsonResponse({ error: "Erreur interne" }, 500);

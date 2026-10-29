@@ -3,6 +3,8 @@
 import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 import '../models/book_suggestion.dart';
+import '../services/reco_events_service.dart';
+import '../services/suggestions_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/amazon_affiliate.dart';
 import 'cached_book_cover.dart';
@@ -10,10 +12,14 @@ import 'cached_book_cover.dart';
 class SuggestionCard extends StatelessWidget {
   final BookSuggestion suggestion;
   final VoidCallback? onTap;
+
+  /// Position dans le carrousel (mesure du funnel des suggestions).
+  final int? rank;
   const SuggestionCard({
     super.key,
     required this.suggestion,
     this.onTap,
+    this.rank,
   });
 
   @override
@@ -163,6 +169,7 @@ class SuggestionCard extends StatelessWidget {
   void _showBookSummarySheet(BuildContext context) {
     final book = suggestion.book;
     final l10n = AppLocalizations.of(context);
+    RecoEventsService.track('opened', suggestion, rank: rank);
 
     showModalBottomSheet(
       context: context,
@@ -231,18 +238,43 @@ class SuggestionCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: AppSpace.l),
-              // Bouton Amazon
+              // Ajout direct à la bibliothèque (avant : la fiche ne proposait
+              // que l'achat Amazon, le « + » de la carte n'ajoutait rien).
               FilledButton.icon(
-                onPressed: () => AmazonAffiliate.openForBook(
-                  isbn: book.isbn,
-                  title: book.title,
-                  author: book.author,
-                  source: AmazonClickSource.suggestionCard,
-                ),
-                icon: const Icon(Icons.shopping_cart_outlined),
-                label: Text(l10n.buyOnAmazon),
+                onPressed: () async {
+                  final nav = Navigator.of(context);
+                  final messenger = ScaffoldMessenger.of(context);
+                  final ok = await SuggestionsService()
+                      .addSuggestedBookToLibrary(suggestion);
+                  if (!ok) return;
+                  RecoEventsService.track('added', suggestion, rank: rank);
+                  nav.pop();
+                  messenger.showSnackBar(
+                    SnackBar(content: Text(l10n.bookAddedShort(book.title))),
+                  );
+                },
+                icon: const Icon(Icons.library_add_outlined),
+                label: Text(l10n.addToMyLibrary),
                 style: FilledButton.styleFrom(
                   backgroundColor: AppColors.primary,
+                  minimumSize: const Size(double.infinity, 48),
+                ),
+              ),
+              const SizedBox(height: AppSpace.s),
+              // Bouton Amazon
+              OutlinedButton.icon(
+                onPressed: () {
+                  RecoEventsService.track('amazon', suggestion, rank: rank);
+                  AmazonAffiliate.openForBook(
+                    isbn: book.isbn,
+                    title: book.title,
+                    author: book.author,
+                    source: AmazonClickSource.suggestionCard,
+                  );
+                },
+                icon: const Icon(Icons.shopping_cart_outlined),
+                label: Text(l10n.buyOnAmazon),
+                style: OutlinedButton.styleFrom(
                   minimumSize: const Size(double.infinity, 48),
                 ),
               ),
@@ -303,6 +335,7 @@ class SuggestionsCarousel extends StatelessWidget {
               width: 300,
               child: SuggestionCard(
                 suggestion: suggestion,
+                rank: index,
                 onTap: onSuggestionTap != null
                     ? () => onSuggestionTap!(suggestion)
                     : null,

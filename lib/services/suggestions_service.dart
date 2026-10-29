@@ -1,12 +1,15 @@
 // lib/services/suggestions_service.dart
 
+import 'dart:async';
 import 'dart:convert';
+import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/book.dart';
 import '../models/book_suggestion.dart';
 import 'google_books_service.dart';
 import 'books_service.dart';
+import 'reco_events_service.dart';
 
 class SuggestionsService {
   final SupabaseClient _supabase = Supabase.instance.client;
@@ -70,36 +73,86 @@ class SuggestionsService {
       final results = await Future.wait(futures);
       List<BookSuggestion> suggestions = results.expand((s) => s).toList();
 
-      // Dédupliquer par book ID
-      final seen = <int>{};
+      // Dédupliquer. Attention : tous les livres issus de Google Books (dont
+      // les recos IA) ont id == 0 ; une clé basée sur l'id seul écrasait donc
+      // toutes les suggestions sauf la première. On compare sur plusieurs clés
+      // (id, google_id, titre+auteur, titre).
+      final seen = <String>{};
       suggestions = suggestions.where((s) {
-        if (seen.contains(s.book.id)) return false;
-        seen.add(s.book.id);
+        final keys = RecoEventsService.matchKeys(s.book);
+        if (keys.any(seen.contains)) return false;
+        seen.addAll(keys);
         return true;
       }).toList();
 
-      // Exclure les livres déjà dans la bibliothèque (déjà chargés en parallèle)
+      // Exclure les livres déjà dans la bibliothèque (mêmes clés)
       try {
         final userBooks = await userBooksFuture;
-        final userBookIds = userBooks.map((b) => b.id).toSet();
-        suggestions = suggestions.where((s) => !userBookIds.contains(s.book.id)).toList();
+        final owned = <String>{};
+        for (final b in userBooks) {
+          owned.addAll(RecoEventsService.matchKeys(b));
+        }
+        suggestions = suggestions
+            .where((s) =>
+                !RecoEventsService.matchKeys(s.book).any(owned.contains))
+            .toList();
       } catch (e) {
         debugPrint('Erreur filtrage user books: $e');
       }
 
-      // Limiter au nombre demandé
-      if (suggestions.length > limit) {
-        suggestions = suggestions.take(limit).toList();
-      }
+      // Limiter au nombre demandé en réservant des places aux recos IA
+      suggestions = _mergeWithAiSlots(suggestions, limit);
 
       // Enrichir les couvertures manquantes via Google Books
       suggestions = await _enrichMissingCovers(suggestions);
+
+      // Mesure du funnel (affichée → ouverte → ajoutée), best-effort.
+      unawaited(RecoEventsService.trackShown(suggestions));
 
       return suggestions;
     } catch (e) {
       debugPrint('Erreur getPersonalizedSuggestions: $e');
       return [];
     }
+  }
+
+  /// Compose la liste finale : les recos IA (payantes, gpt-4o) occupent les
+  /// positions 2 et 4 pour ne jamais être coupées par la limite.
+  static List<BookSuggestion> _mergeWithAiSlots(
+    List<BookSuggestion> all,
+    int limit,
+  ) {
+    final ai = all.where((s) => s.type == SuggestionType.aiRecommended).toList();
+    final others =
+        all.where((s) => s.type != SuggestionType.aiRecommended).toList();
+    final merged = <BookSuggestion>[];
+    var o = 0;
+    var a = 0;
+    while (merged.length < limit && (o < others.length || a < ai.length)) {
+      final wantAi = (merged.length == 1 || merged.length == 3) && a < ai.length;
+      if (wantAi) {
+        merged.add(ai[a++]);
+      } else if (o < others.length) {
+        merged.add(others[o++]);
+      } else {
+        merged.add(ai[a++]);
+      }
+    }
+    return merged;
+  }
+
+  /// Le résultat Google Books correspond-il à ce que l'IA a proposé ?
+  /// (titre équivalent, ou à défaut même nom de famille d'auteur)
+  static bool _looksLikeAiPick(GoogleBook g, String aiTitle, String aiAuthor) {
+    final gt = RecoEventsService.normalize(g.title);
+    final at = RecoEventsService.normalize(aiTitle);
+    if (gt.isNotEmpty && at.isNotEmpty && (gt.contains(at) || at.contains(gt))) {
+      return true;
+    }
+    final tokens = RecoEventsService.normalize(aiAuthor).split(' ');
+    final surname = tokens.isEmpty ? '' : tokens.last;
+    if (surname.length < 3) return false;
+    return RecoEventsService.normalize(g.authorsString).contains(surname);
   }
 
   /// Enrichit les suggestions dont le livre n'a pas de coverUrl
@@ -441,7 +494,10 @@ class SuggestionsService {
     try {
       final response = await _supabase.functions.invoke(
         'ai-suggest-books',
-        body: {'limit': limit},
+        body: {
+          'limit': limit,
+          'locale': ui.PlatformDispatcher.instance.locale.languageCode,
+        },
       );
 
       final data = response.data;
@@ -480,22 +536,12 @@ class SuggestionsService {
         final reason = item['reason'] as String? ?? '';
         final googleBooks = googleResults[i];
 
-        if (googleBooks.isNotEmpty) {
+        // Pas de correspondance Google Books → livre probablement inventé par
+        // le modèle : on ne l'affiche pas (avant : carte sans couverture).
+        final match = googleBooks.where((g) => _looksLikeAiPick(g, title, author));
+        if (match.isNotEmpty) {
           results.add(BookSuggestion(
-            book: Book.fromGoogleBook(googleBooks.first),
-            type: SuggestionType.aiRecommended,
-            reason: reason.isNotEmpty ? reason : 'Recommandé par l\'IA',
-            score: 0.85,
-            metadata: {'source': 'ai', 'ai_title': title, 'ai_author': author},
-          ));
-        } else {
-          results.add(BookSuggestion(
-            book: Book(
-              id: 0,
-              title: title,
-              author: author,
-              source: 'manual',
-            ),
+            book: Book.fromGoogleBook(match.first),
             type: SuggestionType.aiRecommended,
             reason: reason.isNotEmpty ? reason : 'Recommandé par l\'IA',
             score: 0.85,
@@ -581,7 +627,17 @@ class SuggestionsService {
         );
 
         await _booksService.addBookFromGoogleBooks(googleBook);
-      } else if (book.id > 0) {
+      } else if (book.id == 0) {
+        // Pas de google_id (saisie IA sans correspondance) → chemin manuel
+        await _booksService.addBookManually(
+          title: book.title,
+          author: book.author ?? '',
+          isbn: book.isbn,
+          coverUrl: book.coverUrl,
+          pageCount: book.pageCount,
+          description: book.description,
+        );
+      } else {
         // Le livre existe déjà dans la DB, juste l'ajouter à user_books
         await _supabase.from('user_books').insert({
           'user_id': _supabase.auth.currentUser!.id,
