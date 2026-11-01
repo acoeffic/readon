@@ -13,6 +13,7 @@ import '../../services/books_service.dart';
 import '../../services/chat_service.dart' show ChatService, ChatLimitReachedException;
 import '../../services/google_books_service.dart';
 import '../../services/reco_events_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../services/user_custom_lists_service.dart';
 import '../../models/user_custom_list.dart';
 import '../../services/native_paywall_service.dart';
@@ -65,6 +66,10 @@ class _AiChatPageState extends State<AiChatPage> {
   final Map<String, GoogleBook?> _verified = {};
   final Set<String> _verifying = {};
 
+  /// Livre en cours / dernier livre terminé : sert aux amorces de l'accueil.
+  String? _readingTitle;
+  String? _finishedTitle;
+
   List<AiMessage> _messages = [];
   int? _conversationId;
   bool _loadingHistory = true;
@@ -77,6 +82,7 @@ class _AiChatPageState extends State<AiChatPage> {
   @override
   void initState() {
     super.initState();
+    _loadStarters();
     _conversationId = widget.conversationId;
     _loadMessageQuota();
     if (_conversationId != null) {
@@ -101,6 +107,39 @@ class _AiChatPageState extends State<AiChatPage> {
           });
         }
       }
+    }
+  }
+
+  /// Charge le livre en cours et le dernier livre terminé pour personnaliser
+  /// les amorces de l'accueil. Best-effort : en cas d'erreur, amorces génériques.
+  Future<void> _loadStarters() async {
+    try {
+      final uid = Supabase.instance.client.auth.currentUser?.id;
+      if (uid == null) return;
+      final rows = await Supabase.instance.client
+          .from('user_books')
+          .select('status, books(title)')
+          .eq('user_id', uid)
+          .inFilter('status', ['reading', 'finished'])
+          .or('is_hidden.is.null,is_hidden.eq.false')
+          .order('updated_at', ascending: false)
+          .limit(10);
+      String? reading;
+      String? finished;
+      for (final r in rows as List) {
+        final title = (r['books'] as Map?)?['title'] as String?;
+        if (title == null || title.trim().isEmpty) continue;
+        if (r['status'] == 'reading') reading ??= title.trim();
+        if (r['status'] == 'finished') finished ??= title.trim();
+      }
+      if (mounted) {
+        setState(() {
+          _readingTitle = reading;
+          _finishedTitle = finished;
+        });
+      }
+    } catch (e) {
+      debugPrint('Muse starters: $e');
     }
   }
 
@@ -274,14 +313,26 @@ class _AiChatPageState extends State<AiChatPage> {
                                 if (index == _messages.length) {
                                   return _buildTypingIndicator(isDark);
                                 }
-                                return _buildMessageBubble(
-                                    _messages[index], isDark);
+                                final msg = _messages[index];
+                                final bubble = _buildMessageBubble(msg, isDark);
+                                if (index == _messages.length - 1 &&
+                                    _showFollowUps(msg)) {
+                                  return Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [bubble, _buildFollowUps()],
+                                  );
+                                }
+                                return bubble;
                               },
                             ),
             ),
             if (!_isPremium && !_limitReached) _buildMessageCounter(),
             if (_error != null) _buildErrorBanner(),
-            if (!_limitReached) _buildInputBar(isDark),
+            if (!_limitReached)
+              _buildInputBar(isDark)
+            else if (_messages.isNotEmpty)
+              _buildLimitBanner(context, isDark),
           ],
         ),
         ),
@@ -365,9 +416,16 @@ class _AiChatPageState extends State<AiChatPage> {
               runSpacing: AppSpace.s,
               alignment: WrapAlignment.center,
               children: [
-                _buildSuggestionChip(l.museRecommendNovel),
-                _buildSuggestionChip(l.museSimilarBook),
-                _buildSuggestionChip(l.museClassic),
+                for (final starter in <(String, String?)>[
+                  if (_readingTitle != null)
+                    (l.museStarterAfterReading(_readingTitle!), 'chat_starter'),
+                  if (_finishedTitle != null)
+                    (l.museStarterLikeFinished(_finishedTitle!), 'chat_starter'),
+                  (l.museRecommendNovel, null),
+                  (l.museSimilarBook, null),
+                  (l.museClassic, null),
+                ].take(3))
+                  _buildSuggestionChip(starter.$1, source: starter.$2),
                 _buildGiftChip(l),
               ],
             ),
@@ -461,6 +519,86 @@ class _AiChatPageState extends State<AiChatPage> {
     );
   }
 
+  /// Les relances ne s'affichent que sous une réponse qui cite des livres
+  /// (pas sous une question de précision ou une réponse de cadeau sans livre).
+  bool _showFollowUps(AiMessage m) =>
+      m.role == 'assistant' &&
+      !_isSending &&
+      !_limitReached &&
+      _bookMentionRegex.hasMatch(m.content);
+
+  Widget _buildFollowUps() {
+    final l = AppLocalizations.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpace.s),
+      child: Wrap(
+        spacing: AppSpace.s,
+        runSpacing: AppSpace.xs,
+        children: [
+          _buildSuggestionChip(l.museFollowLessKnown, source: 'chat_followup'),
+          _buildSuggestionChip(l.museFollowShorter, source: 'chat_followup'),
+          _buildSuggestionChip(l.museFollowSameAuthor, source: 'chat_followup'),
+        ],
+      ),
+    );
+  }
+
+  /// Quota atteint en cours de conversation : le champ de saisie disparaît,
+  /// on propose l'abonnement à la place.
+  Widget _buildLimitBanner(BuildContext context, bool isDark) {
+    final l = AppLocalizations.of(context);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSpace.m),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.surfaceDark : Colors.white,
+        border: Border(
+          top: BorderSide(
+            color: isDark ? AppColors.borderDark : AppColors.border,
+          ),
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            l.freeMessagesUsed(FeatureFlags.maxFreeAiMessages),
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: AppSpace.xs),
+          Text(
+            l.subscribeForUnlimited,
+            style: const TextStyle(fontSize: 13),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: AppSpace.s),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () => NativePaywallService.present(
+                context,
+                highlightedFeature: Feature.aiChat,
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppRadius.pill),
+                ),
+              ),
+              child: Text(
+                l.discoverSubscription,
+                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   /// Chip « 🎁 Un livre à offrir » : pré-remplit le champ de saisie (il reste
   /// le prénom de l'ami à taper) au lieu d'envoyer directement.
   Widget _buildGiftChip(AppLocalizations l) {
@@ -476,11 +614,18 @@ class _AiChatPageState extends State<AiChatPage> {
     );
   }
 
-  Widget _buildSuggestionChip(String text) {
+  /// [source] : suivi du funnel dans ai_reco_events (ex. 'chat_followup',
+  /// 'chat_starter') ; le texte de la puce sert de clé.
+  Widget _buildSuggestionChip(String text, {String? source}) {
     return ActionChip(
       label: Text(text, style: const TextStyle(fontSize: 13)),
       backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-      onPressed: () => _sendMessage(text),
+      onPressed: () {
+        if (source != null) {
+          RecoEventsService.trackRaw('opened', source, title: text);
+        }
+        _sendMessage(text);
+      },
     );
   }
 

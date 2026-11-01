@@ -3,6 +3,8 @@
 import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 import '../models/book_suggestion.dart';
+import '../models/feature_flags.dart';
+import '../services/native_paywall_service.dart';
 import '../services/reco_events_service.dart';
 import '../services/suggestions_service.dart';
 import '../theme/app_theme.dart';
@@ -319,7 +321,7 @@ class SuggestionsCarousel extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
-    return SizedBox(
+    final list = SizedBox(
       height: 200,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
@@ -344,6 +346,50 @@ class SuggestionsCarousel extends StatelessWidget {
           );
         },
       ),
+    );
+
+    return ValueListenableBuilder<bool>(
+      valueListenable: SuggestionsService.aiLimited,
+      builder: (context, limited, _) {
+        if (!limited) return list;
+        final l = AppLocalizations.of(context);
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            list,
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpace.m,
+                vertical: AppSpace.xs,
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      l.recoLimitedHint,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(context)
+                            .textTheme
+                            .bodySmall
+                            ?.color
+                            ?.withValues(alpha: 0.8),
+                      ),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () => NativePaywallService.present(
+                      context,
+                      highlightedFeature: Feature.aiChat,
+                    ),
+                    child: Text(l.discoverSubscription),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

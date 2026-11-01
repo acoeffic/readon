@@ -12,6 +12,10 @@ import 'books_service.dart';
 import 'reco_events_service.dart';
 
 class SuggestionsService {
+  /// Vrai quand le quota gratuit de recos IA est atteint et que le serveur
+  /// renvoie les dernières recos en cache (champ `limited`).
+  static final ValueNotifier<bool> aiLimited = ValueNotifier<bool>(false);
+
   final SupabaseClient _supabase = Supabase.instance.client;
   final GoogleBooksService _googleBooksService = GoogleBooksService();
   final BooksService _booksService = BooksService();
@@ -511,6 +515,7 @@ class SuggestionsService {
       }
 
       if (parsed.containsKey('error')) return [];
+      aiLimited.value = parsed['limited'] == true;
 
       final aiSuggestions = parsed['suggestions'] as List<dynamic>? ?? [];
 

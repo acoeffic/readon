@@ -1215,6 +1215,26 @@
   "museSimilarBook": "Un livre similaire à mon dernier",
   "museClassic": "Un classique à découvrir",
   "museGiftChip": "🎁 Un livre à offrir",
+  "museFollowLessKnown": "Des pistes moins connues",
+  "museFollowShorter": "Plus court, moins de 250 pages",
+  "museFollowSameAuthor": "Un autre livre du même auteur",
+  "museStarterAfterReading": "Je lis « {title} », que lire ensuite ?",
+  "@museStarterAfterReading": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "museStarterLikeFinished": "Quelque chose dans l'esprit de « {title} »",
+  "@museStarterLikeFinished": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "recoLimitedHint": "Tes recommandations IA gratuites du mois sont épuisées : voici les dernières générées.",
   "museGiftPrefill": "Quel livre pourrais-je offrir à ",
   "museAssistantLabel": "Assistant littéraire",
   "museHeroSubtitle": "Un livre, une question, une envie…",
@@ -2556,6 +2576,14 @@
   "onboardingReminderYes": "Oui, rappelle-moi",
   "onboardingReminderNo": "Non merci",
   "@onboardingReminderBody": {"placeholders": {"title": {"type": "String"}}},
+  "onboardingReminderPick": "Ou choisis quand tu lis :",
+  "onboardingReminderTonight": "Ce soir · 21h",
+  "onboardingReminderTomorrowMorning": "Demain matin · 8h",
+  "onboardingReminderTomorrowEvening": "Demain soir · 21h",
+  "onboardingReminderNone": "Sans rappel",
+  "onboardingReminderNotifTitle": "C’est l’heure de lire 📖",
+  "onboardingReminderNotifBody": "5 minutes avec « {title} » ? Ton livre t’attend.",
+  "@onboardingReminderNotifBody": {"placeholders": {"title": {"type": "String"}}},
   "firstSessionGoalTitle": "Fixe-toi un petit objectif",
   "firstSessionGoalBody": "Choisis-en un pour garder le rythme. Tu pourras le changer quand tu veux.",
   "firstSessionGoalPresetMinutes": "10 min par jour",
