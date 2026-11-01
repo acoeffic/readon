@@ -885,6 +885,55 @@ class _AiChatPageState extends State<AiChatPage> {
                         ],
                         const SizedBox(height: 12),
                         GestureDetector(
+                          onTap: () async {
+                            final nav = Navigator.of(ctx);
+                            final messenger = ScaffoldMessenger.of(context);
+                            try {
+                              await _booksService.addBookFromGoogleBooks(googleBook);
+                            } catch (e) {
+                              messenger.showSnackBar(
+                                SnackBar(content: Text(l.cannotLoadBook(e.toString()))),
+                              );
+                              return;
+                            }
+                            RecoEventsService.trackRaw(
+                              'added',
+                              'chat',
+                              title: googleBook.title,
+                              author: googleBook.authorsString,
+                            );
+                            nav.pop();
+                            messenger.showSnackBar(
+                              SnackBar(content: Text(l.bookAddedShort(googleBook.title))),
+                            );
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary,
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.library_add_outlined,
+                                    size: 14, color: Colors.white),
+                                const SizedBox(width: 4),
+                                Text(
+                                  l.addToMyLibrary,
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        GestureDetector(
                           onTap: () {
                             Navigator.pop(ctx);
                             _showAddToListSheet(googleBook);
