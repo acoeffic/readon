@@ -5,6 +5,9 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+// Optionnel : clé Google Books (quota plus large). Sans clé, on tente quand même
+// et on retombe sur Open Library ; en cas d'indisponibilité, on ne bloque rien.
+const GOOGLE_BOOKS_API_KEY = Deno.env.get("GOOGLE_BOOKS_API_KEY");
 
 if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY || !SUPABASE_ANON_KEY) {
   throw new Error("Missing SUPABASE_URL, SUPABASE_ANON_KEY or SUPABASE_SERVICE_ROLE_KEY");
@@ -95,6 +98,99 @@ function onePerAuthor(suggestions: Suggestion[]): Suggestion[] {
     seen.add(a);
     return true;
   });
+}
+
+// ============================================================================
+// Garde-fou anti-hallucination : chaque suggestion est vérifiée sur Google Books
+// puis Open Library. « Fail-open » : si les deux services sont injoignables, la
+// suggestion est conservée (on ne bloque jamais les recos à cause d'un tiers).
+// ============================================================================
+
+type BookCheck = "valid" | "invalid" | "unknown";
+
+const normTitle = (s: string) =>
+  norm(s).replace(/^(le|la|les|l|un|une|the|a|an|el|los|las) /, "");
+
+function titlesMatch(claimed: string, candidate: string): boolean {
+  const a = normTitle(claimed);
+  const b = normTitle(candidate);
+  if (!a || !b) return false;
+  if (a === b) return true;
+  const [short, long] = a.length <= b.length ? [a, b] : [b, a];
+  return short.length >= 8 && long.includes(short);
+}
+
+function authorTokens(author: string): string[] {
+  return String(author ?? "")
+    .split(/\s+/)
+    .map(norm)
+    .filter((t) => t.length > 2);
+}
+
+function authorMatches(claimedAuthor: string, candidateAuthors: string[]): boolean {
+  const tokens = authorTokens(claimedAuthor);
+  if (!tokens.length) return true; // rien d'exploitable → on ne tranche pas sur l'auteur
+  const hay = norm((candidateAuthors ?? []).join(" "));
+  return tokens.some((t) => hay.includes(t));
+}
+
+async function fetchJson(url: string, timeoutMs = 4000): Promise<any | null> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { signal: controller.signal });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (_) {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function checkGoogleBooks(s: Suggestion): Promise<BookCheck> {
+  const lastName = authorTokens(s.author).pop() ?? s.author;
+  const q = `intitle:"${s.title}" inauthor:"${lastName}"`;
+  let url =
+    `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}` +
+    `&maxResults=10&printType=books`;
+  if (GOOGLE_BOOKS_API_KEY) url += `&key=${GOOGLE_BOOKS_API_KEY}`;
+  const data = await fetchJson(url);
+  if (!data) return "unknown";
+  for (const it of data.items ?? []) {
+    const v = it.volumeInfo;
+    if (v && titlesMatch(s.title, v.title ?? "") && authorMatches(s.author, v.authors ?? [])) {
+      return "valid";
+    }
+  }
+  return "invalid";
+}
+
+async function checkOpenLibrary(s: Suggestion): Promise<BookCheck> {
+  const url =
+    `https://openlibrary.org/search.json?title=${encodeURIComponent(s.title)}` +
+    `&limit=15&fields=title,author_name`;
+  const data = await fetchJson(url, 5000);
+  if (!data) return "unknown";
+  for (const d of data.docs ?? []) {
+    if (titlesMatch(s.title, d.title ?? "") && authorMatches(s.author, d.author_name ?? [])) {
+      return "valid";
+    }
+  }
+  return "invalid";
+}
+
+async function verifySuggestion(s: Suggestion): Promise<BookCheck> {
+  try {
+    const g = await checkGoogleBooks(s);
+    if (g === "valid") return "valid";
+    const o = await checkOpenLibrary(s);
+    if (o === "valid") return "valid";
+    if (g === "invalid" && o === "invalid") return "invalid";
+    return "unknown"; // au moins une source injoignable → on ne sanctionne pas
+  } catch (_) {
+    return "unknown";
+  }
 }
 
 async function callOpenAI(payload: unknown): Promise<Response> {
@@ -551,7 +647,7 @@ serve(async (req) => {
     }
 
     // Valider la structure, retirer ce que l'utilisateur possède déjà, un auteur à la fois
-    const validated: Suggestion[] = onePerAuthor(
+    const candidates: Suggestion[] = onePerAuthor(
       filterOwned(
         suggestions
           .filter(
@@ -567,7 +663,20 @@ serve(async (req) => {
           })),
         ownedTitles,
       ),
-    ).slice(0, limit);
+    );
+
+    // Garde-fou anti-hallucination : on retire les livres introuvables dans
+    // Google Books / Open Library (les « unknown » sont conservés).
+    const checks = await Promise.all(candidates.map(verifySuggestion));
+    const rejected = candidates.filter((_, i) => checks[i] === "invalid");
+    if (rejected.length) {
+      console.warn(
+        `ai-suggest-books: livres non vérifiés retirés → ${rejected.map((s) => `"${s.title}" / ${s.author}`).join(" | ")}`,
+      );
+    }
+    const validated: Suggestion[] = candidates
+      .filter((_, i) => checks[i] !== "invalid")
+      .slice(0, limit);
 
     // Quota et cache : uniquement si la génération a produit quelque chose.
     if (validated.length > 0) {
