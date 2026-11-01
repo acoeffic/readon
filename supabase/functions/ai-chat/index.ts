@@ -5,6 +5,9 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+// Optionnel : clé Google Books (quota plus large). Sans clé, on tente quand même
+// et on retombe sur Open Library ; en cas d'indisponibilité, on ne bloque rien.
+const GOOGLE_BOOKS_API_KEY = Deno.env.get("GOOGLE_BOOKS_API_KEY");
 
 if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY || !SUPABASE_ANON_KEY) {
   throw new Error("Missing SUPABASE_URL, SUPABASE_ANON_KEY or SUPABASE_SERVICE_ROLE_KEY");
@@ -145,6 +148,200 @@ async function callOpenAIWithRetry(
   return new Response(lastBody || "OpenAI request failed", {
     status: lastStatus > 0 ? lastStatus : 502,
   });
+}
+
+// ============================================================================
+// Garde-fou anti-hallucination : chaque livre cité ("Titre" de Auteur) est
+// vérifié sur Google Books puis Open Library avant d'être affiché.
+// Principe « fail-open » : si les deux services sont injoignables, on laisse
+// passer (on ne bloque jamais Muse à cause d'une panne tierce).
+// ============================================================================
+
+type BookMention = { title: string; author: string };
+type BookCheck = "valid" | "invalid" | "unknown";
+
+const fold = (s: string) =>
+  s
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+// Titre normalisé sans article initial ("L'Appel…" ≈ "Appel…").
+const normTitle = (s: string) =>
+  fold(s).replace(/^(le|la|les|l|un|une|the|a|an|el|los|las) /, "");
+
+function extractBookMentions(text: string): BookMention[] {
+  const re =
+    /["«“]\s*([^"»”\n]{2,120}?)\s*["»”]\s+(?:de|d'|d’|by|par|of)\s+([A-ZÀ-ÝÉ][^\n.,;:()"«»“”!?]{1,60})/g;
+  const seen = new Set<string>();
+  const out: BookMention[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text)) !== null) {
+    const title = m[1].trim();
+    const author = m[2].trim();
+    const key = normTitle(title) + "|" + fold(author);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({ title, author });
+  }
+  return out;
+}
+
+function titlesMatch(claimed: string, candidate: string): boolean {
+  const a = normTitle(claimed);
+  const b = normTitle(candidate);
+  if (!a || !b) return false;
+  if (a === b) return true;
+  const [short, long] = a.length <= b.length ? [a, b] : [b, a];
+  return short.length >= 8 && long.includes(short);
+}
+
+function authorTokens(author: string): string[] {
+  return author
+    .split(/\s+/)
+    .filter((t) => /^[A-ZÀ-ÝÉ]/.test(t))
+    .map(fold)
+    .filter((t) => t.length > 2);
+}
+
+function authorMatches(claimedAuthor: string, candidateAuthors: string[]): boolean {
+  const tokens = authorTokens(claimedAuthor);
+  if (!tokens.length) return true; // rien d'exploitable → on ne tranche pas sur l'auteur
+  const hay = fold((candidateAuthors ?? []).join(" "));
+  return tokens.some((t) => hay.includes(t));
+}
+
+async function fetchJson(url: string, timeoutMs = 4000): Promise<any | null> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { signal: controller.signal });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (_) {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function checkGoogleBooks(m: BookMention): Promise<BookCheck> {
+  const lastName = authorTokens(m.author).pop() ?? m.author;
+  const q = `intitle:"${m.title}" inauthor:"${lastName}"`;
+  let url =
+    `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}` +
+    `&maxResults=10&printType=books`;
+  if (GOOGLE_BOOKS_API_KEY) url += `&key=${GOOGLE_BOOKS_API_KEY}`;
+  const data = await fetchJson(url);
+  if (!data) return "unknown";
+  for (const it of data.items ?? []) {
+    const v = it.volumeInfo;
+    if (v && titlesMatch(m.title, v.title ?? "") && authorMatches(m.author, v.authors ?? [])) {
+      return "valid";
+    }
+  }
+  return "invalid";
+}
+
+async function checkOpenLibrary(m: BookMention): Promise<BookCheck> {
+  const url =
+    `https://openlibrary.org/search.json?title=${encodeURIComponent(m.title)}` +
+    `&limit=15&fields=title,author_name`;
+  const data = await fetchJson(url, 5000);
+  if (!data) return "unknown";
+  for (const d of data.docs ?? []) {
+    if (titlesMatch(m.title, d.title ?? "") && authorMatches(m.author, d.author_name ?? [])) {
+      return "valid";
+    }
+  }
+  return "invalid";
+}
+
+async function verifyMention(m: BookMention): Promise<BookCheck> {
+  const g = await checkGoogleBooks(m);
+  if (g === "valid") return "valid";
+  const o = await checkOpenLibrary(m);
+  if (o === "valid") return "valid";
+  if (g === "invalid" && o === "invalid") return "invalid";
+  return "unknown"; // au moins une source injoignable → on ne sanctionne pas
+}
+
+async function findInvalidMentions(text: string): Promise<BookMention[]> {
+  const mentions = extractBookMentions(text).slice(0, 6);
+  if (!mentions.length) return [];
+  const results = await Promise.all(mentions.map(verifyMention));
+  return mentions.filter((_, i) => results[i] === "invalid");
+}
+
+function stripInvalidMentions(text: string, invalid: BookMention[], locale: string): string {
+  const titles = invalid.map((m) => m.title.toLowerCase());
+  const kept = text
+    .split(/\n{2,}/)
+    .filter((p) => !titles.some((t) => p.toLowerCase().includes(t)));
+  const cleaned = kept.join("\n\n").trim();
+  if (cleaned) return cleaned;
+  const fallback: Record<string, string> = {
+    fr: "Je ne suis pas certaine de trouver un titre fiable à te proposer pour l'instant. Dis-m'en un peu plus sur ce que tu aimes (genre, ambiance, dernier coup de cœur) et je te ferai des suggestions plus précises.",
+    en: "I can't find a title I'm confident about right now. Tell me a bit more about what you like (genre, mood, a recent favourite) and I'll suggest something more precise.",
+    es: "Ahora mismo no encuentro un título del que esté segura. Cuéntame un poco más sobre lo que te gusta (género, ambiente, un último favorito) y te haré sugerencias más precisas.",
+  };
+  return fallback[locale] ?? fallback.fr;
+}
+
+// Vérifie les livres cités ; si certains sont introuvables, redemande UNE fois
+// une réponse sans eux, puis re-vérifie ; en dernier recours, retire les passages.
+async function enforceRealBooks(
+  text: string,
+  baseMessages: unknown[],
+  locale: string
+): Promise<string> {
+  try {
+    const invalid = await findInvalidMentions(text);
+    if (!invalid.length) return text;
+
+    console.warn(
+      `Muse: livres non vérifiés → ${invalid.map((m) => `"${m.title}" / ${m.author}`).join(" | ")}`
+    );
+
+    const list = invalid.map((m) => `"${m.title}" de ${m.author}`).join(" ; ");
+    const retry = await callOpenAIWithRetry(
+      {
+        model: "gpt-4o-mini",
+        messages: [
+          ...baseMessages,
+          { role: "assistant", content: text },
+          {
+            role: "system",
+            content:
+              `ATTENTION : ces livres sont introuvables dans les bases bibliographiques (titre inventé ou mal attribué) : ${list}. ` +
+              "Réécris ta réponse complète en les retirant. Ne propose que des livres dont tu es certaine (titre ET auteur exacts, œuvres réellement publiées). " +
+              "Si tu ne trouves pas d'autre titre sûr, dis-le simplement et demande plus de précisions au lecteur. Même format et même langue qu'avant.",
+          },
+        ],
+        max_tokens: 1000,
+        temperature: 0.2,
+      },
+      OPENAI_API_KEY!,
+      1
+    );
+
+    if (retry.ok) {
+      const data = await retry.json();
+      const newText: string = data.choices?.[0]?.message?.content ?? "";
+      if (newText) {
+        const stillInvalid = await findInvalidMentions(newText);
+        if (!stillInvalid.length) return newText;
+        return stripInvalidMentions(newText, stillInvalid, locale);
+      }
+    }
+    return stripInvalidMentions(text, invalid, locale);
+  } catch (e) {
+    console.error("enforceRealBooks failed (fail-open):", e);
+    return text;
+  }
 }
 
 async function buildUserContext(
@@ -307,6 +504,55 @@ async function buildUserContext(
   }
 
   return ctx.trim() || "Aucune donnée de lecture disponible. Propose des classiques reconnus et demande les préférences du lecteur.";
+}
+
+// Livres déjà recommandés par Muse dans les conversations précédentes de
+// l'utilisateur (extraits du format imposé "Titre" de Auteur), pour ne pas les
+// reproposer d'une conversation à l'autre.
+async function buildPastRecommendations(
+  supabase: ReturnType<typeof createClient>,
+  userId: string
+): Promise<string> {
+  try {
+    const { data: convs } = await supabase
+      .from("ai_conversations")
+      .select("id")
+      .eq("user_id", userId)
+      .order("updated_at", { ascending: false })
+      .limit(20);
+    const ids = (convs ?? []).map((c: any) => c.id);
+    if (!ids.length) return "";
+
+    const { data: msgs } = await supabase
+      .from("ai_messages")
+      .select("content")
+      .in("conversation_id", ids)
+      .eq("role", "assistant")
+      .order("created_at", { ascending: false })
+      .limit(30);
+
+    const re = /"([^"]+)"\s+(?:de|d'|by)\s*([^.,;!?\n(]+)/g;
+    const seen = new Set<string>();
+    const lines: string[] = [];
+    for (const m of msgs ?? []) {
+      const content = String((m as any).content ?? "");
+      for (const match of content.matchAll(re)) {
+        const title = match[1].trim();
+        const author = match[2].trim();
+        const key = `${title.toLowerCase()}|${author.toLowerCase()}`;
+        if (!title || seen.has(key)) continue;
+        seen.add(key);
+        lines.push(`- ${title} de ${author}`);
+        if (lines.length >= 40) break;
+      }
+      if (lines.length >= 40) break;
+    }
+    if (!lines.length) return "";
+    return `DÉJÀ RECOMMANDÉS PAR TOI dans des conversations précédentes (ne les repropose pas, sauf si l'utilisateur te le demande explicitement) :\n${lines.join("\n")}\n`;
+  } catch (e) {
+    console.error("buildPastRecommendations:", e);
+    return "";
+  }
 }
 
 // ============================================================================
@@ -663,7 +909,11 @@ serve(async (req) => {
       content: message.trim(),
     });
 
-    const context = await buildUserContext(supabase, user.id);
+    const [baseContext, pastRecs] = await Promise.all([
+      buildUserContext(supabase, user.id),
+      buildPastRecommendations(supabase, user.id),
+    ]);
+    const context = pastRecs ? `${baseContext}\n\n${pastRecs}` : baseContext;
 
     // Les 20 DERNIERS messages (ordre décroissant + limit), remis en ordre chronologique.
     const { data: historyDesc } = await supabase
@@ -856,6 +1106,12 @@ serve(async (req) => {
           });
         }
       }
+    }
+
+    // Garde-fou anti-hallucination : on vérifie que chaque livre cité existe
+    // vraiment (Google Books / Open Library) avant de l'enregistrer et de l'afficher.
+    if (assistantMessage) {
+      assistantMessage = await enforceRealBooks(assistantMessage, messages, locale);
     }
 
     await supabase.from("ai_messages").insert({
