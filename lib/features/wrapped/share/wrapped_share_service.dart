@@ -42,7 +42,7 @@ class WrappedShareService {
     required int year,
     Rect? sharePositionOrigin,
   }) async {
-    final text = 'Mon annee de lecture $year \uD83D\uDCDA\u2728 #LexDayWrapped\n$ReferralService.shareUrl';
+    final text = 'Mon annee de lecture $year \uD83D\uDCDA\u2728 #LexDayWrapped\n${ReferralService.shareUrl}';
 
     // Instagram : vrai partage Story (image pr\u00E9charg\u00E9e en fond). Si l'app
     // n'est pas install\u00E9e / non support\u00E9e, on retombe sur la feuille native.

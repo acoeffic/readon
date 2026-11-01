@@ -1314,6 +1314,18 @@ class _FeedPageState extends State<FeedPage> {
     final isBookFinished =
         type == 'book_finished' || payload?['book_finished'] == true;
     if (isBookFinished) return BookFinishedCard(activity: activity);
+    // Fix 2026-09-26 : un déblocage de badge par un ami créait une activité
+    // côté serveur (trigger log_badge_awarded sur user_badges) mais rien
+    // côté client ne savait la distinguer — elle retombait sur le rendu
+    // générique FriendActivityCard. On réutilise la carte badge existante
+    // (jusqu'ici réservée aux inconnus de get_feed_bundle.badge_unlocks).
+    if (type == 'badge_unlocked') {
+      return CommunityBadgeUnlockCard.fromActivity(
+        activity: activity,
+        onTap: () => _openReaderProfile(
+            {'user_id': activity['author_id'] as String?}),
+      );
+    }
     return FriendActivityCard(activity: activity);
   }
 

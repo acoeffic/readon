@@ -8,6 +8,7 @@ import 'package:timezone/data/latest_all.dart' as tzdata;
 import 'package:flutter_timezone/flutter_timezone.dart';
 
 import '../features/wrapped/monthly/monthly_wrapped_screen.dart';
+import 'first_session_reminder_service.dart';
 import 'notification_permission.dart';
 import 'wrapped_banner_service.dart';
 
@@ -473,6 +474,12 @@ class MonthlyNotificationService {
     // Stale session tap: simply bring the app to foreground — the recovery
     // modal will show automatically when MainNavigation resumes.
     if (payload == _staleSessionPayload) return;
+
+    // Rappel de fin d'onboarding : ouvre le démarrage de session (route `read`).
+    if (payload == FirstSessionReminderService.payload) {
+      FirstSessionReminderService.handleTap();
+      return;
+    }
 
     if (!payload.contains(':')) return;
 

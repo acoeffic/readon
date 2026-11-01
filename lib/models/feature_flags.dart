@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../l10n/app_localizations.dart';
 import '../providers/subscription_provider.dart';
 
 enum Feature {
@@ -59,57 +60,57 @@ class FeatureFlags {
     return isAvailable(feature, isPremium: isPremium);
   }
 
-  static String title(Feature feature) {
+  static String title(Feature feature, AppLocalizations l) {
     switch (feature) {
       case Feature.advancedReactions:
-        return 'Réactions avancées';
+        return l.ffTitleAdvancedReactions;
       case Feature.flowManualFreeze:
-        return 'Freeze manuel';
+        return l.ffTitleFlowManualFreeze;
       case Feature.advancedStats:
-        return 'Statistiques avancées';
+        return l.ffTitleAdvancedStats;
       case Feature.customThemes:
-        return 'Thèmes personnalisés';
+        return l.ffTitleCustomThemes;
       case Feature.premiumBadges:
-        return 'Badges Premium';
+        return l.ffTitlePremiumBadges;
       case Feature.flowHistory:
-        return 'Historique du flow';
+        return l.ffTitleFlowHistory;
       case Feature.kindleAutoSync:
-        return 'Sync Kindle automatique';
+        return l.ffTitleKindleAutoSync;
       case Feature.customLists:
-        return 'Listes de lecture';
+        return l.ffTitleCustomLists;
       case Feature.aiChat:
-        return 'Muse - Conseillère lecture';
+        return l.ffTitleAiChat;
       case Feature.aiSummary:
-        return 'Résumés IA';
+        return l.ffTitleAiSummary;
       case Feature.readingSheet:
-        return 'Fiche de lecture IA';
+        return l.ffTitleReadingSheet;
     }
   }
 
-  static String description(Feature feature) {
+  static String description(Feature feature, AppLocalizations l) {
     switch (feature) {
       case Feature.advancedReactions:
-        return 'Réagis aux activités de tes amis avec des emojis uniques';
+        return l.ffDescAdvancedReactions;
       case Feature.flowManualFreeze:
-        return 'Protège manuellement ton flow quand tu ne peux pas lire';
+        return l.ffDescFlowManualFreeze;
       case Feature.advancedStats:
-        return 'Accède à des statistiques détaillées sur ta lecture';
+        return l.ffDescAdvancedStats;
       case Feature.customThemes:
-        return 'Personnalise l\'apparence de ton application';
+        return l.ffDescCustomThemes;
       case Feature.premiumBadges:
-        return 'Débloquez 65+ badges exclusifs, animés et secrets';
+        return l.ffDescPremiumBadges;
       case Feature.flowHistory:
-        return 'Navigue dans tout ton historique de lecture mois par mois';
+        return l.ffDescFlowHistory;
       case Feature.kindleAutoSync:
-        return 'Synchronise automatiquement ta bibliothèque Kindle à chaque ouverture';
+        return l.ffDescKindleAutoSync;
       case Feature.customLists:
-        return 'Crée tes propres listes de lecture personnalisées';
+        return l.ffDescCustomLists;
       case Feature.aiChat:
-        return 'Discute avec Muse pour obtenir des recommandations de livres personnalisées';
+        return l.ffDescAiChat;
       case Feature.aiSummary:
-        return 'Résume tes passages annotés en un tap grâce à l\'IA';
+        return l.ffDescAiSummary;
       case Feature.readingSheet:
-        return 'Génère une fiche de lecture structurée à partir de toutes tes annotations';
+        return l.ffDescReadingSheet;
     }
   }
 
@@ -140,57 +141,57 @@ class FeatureFlags {
     }
   }
 
-  static String freeDescription(Feature feature) {
+  static String freeDescription(Feature feature, AppLocalizations l) {
     switch (feature) {
       case Feature.advancedStats:
-        return 'Basiques';
+        return l.ffFreeBasic;
       case Feature.premiumBadges:
-        return 'Verrouillés';
+        return l.ffFreeLocked;
       case Feature.aiChat:
-        return '3 msg/mois';
+        return l.ffFreeAiChat;
       case Feature.aiSummary:
-        return '3/mois';
+        return l.ffFreeAiSummary;
       case Feature.customLists:
-        return '5 max';
+        return l.ffFreeCustomLists;
       case Feature.customThemes:
-        return 'Clair / Sombre';
+        return l.ffFreeCustomThemes;
       case Feature.kindleAutoSync:
-        return 'Manuel';
+        return l.ffFreeManual;
       case Feature.flowManualFreeze:
-        return 'Compteur simple';
+        return l.ffFreeSimpleCounter;
       case Feature.flowHistory:
-        return 'Compteur simple';
+        return l.ffFreeSimpleCounter;
       case Feature.advancedReactions:
-        return 'Likes';
+        return l.ffFreeLikes;
       case Feature.readingSheet:
-        return 'Non disponible';
+        return l.ffFreeUnavailable;
     }
   }
 
-  static String premiumDescription(Feature feature) {
+  static String premiumDescription(Feature feature, AppLocalizations l) {
     switch (feature) {
       case Feature.advancedStats:
-        return 'Anneaux, heatmap, graphiques';
+        return l.ffPremAdvancedStats;
       case Feature.premiumBadges:
-        return 'Animés, secrets, genres';
+        return l.ffPremPremiumBadges;
       case Feature.aiChat:
-        return 'Illimité';
+        return l.ffPremUnlimited;
       case Feature.aiSummary:
-        return 'Illimité';
+        return l.ffPremUnlimited;
       case Feature.customLists:
-        return 'Illimitées';
+        return l.ffPremUnlimitedPlural;
       case Feature.customThemes:
-        return 'Thèmes supplémentaires';
+        return l.ffPremCustomThemes;
       case Feature.kindleAutoSync:
-        return 'Automatique';
+        return l.ffPremAutomatic;
       case Feature.flowManualFreeze:
-        return 'Freeze + historique';
+        return l.ffPremFreezeHistory;
       case Feature.flowHistory:
-        return 'Freeze + historique';
+        return l.ffPremFreezeHistory;
       case Feature.advancedReactions:
-        return 'Emojis personnalisés';
+        return l.ffPremAdvancedReactions;
       case Feature.readingSheet:
-        return 'Illimitée';
+        return l.ffPremReadingSheet;
     }
   }
 }

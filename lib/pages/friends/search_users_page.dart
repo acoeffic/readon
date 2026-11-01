@@ -155,7 +155,7 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
     final text = bookTitle != null
         ? '\u{1F4D6} Je suis en train de lire $bookTitle\n\n'
             'Tu lis quoi en ce moment ? \u{1F440}\n'
-            '$ReferralService.shareUrl'
+            '${ReferralService.shareUrl}'
         : l.shareInviteText;
     final box = context.findRenderObject() as RenderBox?;
     final origin = box != null ? box.localToGlobal(Offset.zero) & box.size : null;

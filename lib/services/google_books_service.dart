@@ -115,7 +115,9 @@ class GoogleBooksService {
   /// Execute a GET request with retry + exponential backoff on 5xx errors.
   static Future<http.Response> _executeWithRetry(Uri uri, {Map<String, String>? headers}) async {
     for (int attempt = 0; attempt <= _maxRetries; attempt++) {
-      final response = await http.get(uri, headers: headers);
+      final response = await http
+          .get(uri, headers: headers)
+          .timeout(const Duration(seconds: 12));
       if (response.statusCode < 500) {
         // Success — reset circuit breaker counter
         _consecutive5xxCount = 0;
@@ -219,42 +221,94 @@ class GoogleBooksService {
   /// Rechercher par ISBN (1 appel, pas de restriction de langue).
   /// Les résultats sont cachés en mémoire et la coverUrl est persistée sur disque.
   Future<GoogleBook?> searchByISBN(String isbn) async {
+    final clean = isbn.replaceAll(RegExp(r'[\s-]'), '');
     // Vérifier le cache mémoire d'abord
-    if (_isbnCache.containsKey(isbn)) {
-      return _isbnCache[isbn];
-    }
+    if (_isbnCache.containsKey(clean)) return _isbnCache[clean];
+    if (_isbnCache.containsKey(isbn)) return _isbnCache[isbn];
 
-    try {
-      // Fetch up to 5 results — Google Books' `isbn:` operator is full-text,
-      // not an exact lookup, so the first hit can be an unrelated book that
-      // happens to mention the ISBN. We pick the first hit whose own ISBN
-      // list actually contains the queried ISBN.
-      final uri = Uri.parse('$_baseUrl?q=isbn:${Uri.encodeComponent(isbn)}&maxResults=5&key=$_apiKey');
-      final response = await throttledGet(uri);
+    final normIsbn = _normalizeIsbn(clean);
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final items = data['items'] as List<dynamic>?;
-        if (items == null || items.isEmpty) return null;
-
-        final normIsbn = _normalizeIsbn(isbn);
-        for (final item in items) {
-          final book = GoogleBook.fromJson(item as Map<String, dynamic>);
-          final matches =
-              book.isbns.any((b) => _normalizeIsbn(b) == normIsbn);
-          if (matches) {
-            _isbnCache[isbn] = book;
-            _persistCoverUrl(isbn, book.coverUrl);
-            return book;
-          }
-        }
-        // No result actually carries this ISBN — likely Google Books mismatch.
-        debugPrint('searchByISBN: aucun résultat ne contient l\'ISBN $isbn');
-        return null;
+    // Google Books `isbn:` est une recherche plein texte (pas un lookup
+    // exact) : on prend le premier résultat dont la liste d'ISBN contient
+    // vraiment celui demandé. Voie rapide (hors file d'arrière-plan, qui
+    // pouvait être bloquée par le circuit breaker des couvertures).
+    GoogleBook? pick(List<dynamic>? items) {
+      if (items == null) return null;
+      for (final item in items) {
+        final book = GoogleBook.fromJson(item as Map<String, dynamic>);
+        if (book.isbns.any((b) => _normalizeIsbn(b) == normIsbn)) return book;
       }
       return null;
+    }
+
+    Future<GoogleBook?> query(String q) async {
+      try {
+        final uri = Uri.parse(
+            '$_baseUrl?q=${Uri.encodeQueryComponent(q)}&maxResults=10&key=$_apiKey');
+        final response = await _fastGet(uri);
+        if (response.statusCode != 200) return null;
+        final data = jsonDecode(response.body);
+        return pick(data['items'] as List<dynamic>?);
+      } catch (e) {
+        debugPrint('searchByISBN query "$q" error: $e');
+        return null;
+      }
+    }
+
+    GoogleBook? found = await query('isbn:$clean');
+    // Repli 1 : requête brute sur l'ISBN (index texte différent)
+    found ??= await query(clean);
+    // Repli 2 : Open Library → titre/auteur → Google Books (re-vérifié par ISBN)
+    found ??= await _searchByIsbnViaOpenLibrary(clean, normIsbn, pick);
+
+    if (found != null) {
+      _isbnCache[clean] = found;
+      _persistCoverUrl(clean, found.coverUrl);
+    } else {
+      debugPrint('searchByISBN: introuvable pour $clean');
+    }
+    return found;
+  }
+
+  Future<GoogleBook?> _searchByIsbnViaOpenLibrary(
+    String isbn,
+    String normIsbn,
+    GoogleBook? Function(List<dynamic>?) pick,
+  ) async {
+    try {
+      final r = await http
+          .get(Uri.parse(
+              'https://openlibrary.org/api/books?bibkeys=ISBN:$isbn&format=json&jscmd=data'))
+          .timeout(const Duration(seconds: 10));
+      if (r.statusCode != 200) return null;
+      final json = jsonDecode(r.body) as Map<String, dynamic>;
+      final entry = json['ISBN:$isbn'] as Map<String, dynamic>?;
+      if (entry == null) return null;
+      final title = (entry['title'] as String?)?.trim();
+      if (title == null || title.isEmpty) return null;
+      final authors = (entry['authors'] as List<dynamic>?)
+              ?.map((a) => (a as Map)['name'] as String?)
+              .whereType<String>()
+              .toList() ??
+          const <String>[];
+
+      // Même édition si possible, sinon le meilleur candidat titre+auteur.
+      final q = authors.isEmpty
+          ? 'intitle:"$title"'
+          : 'intitle:"$title" inauthor:"${authors.first}"';
+      final uri = Uri.parse(
+          '$_baseUrl?q=${Uri.encodeQueryComponent(q)}&maxResults=10&key=$_apiKey');
+      final resp = await _fastGet(uri);
+      if (resp.statusCode != 200) return null;
+      final items = jsonDecode(resp.body)['items'] as List<dynamic>?;
+      final exact = pick(items);
+      if (exact != null) return exact;
+      if (items == null || items.isEmpty) return null;
+      // Pas la même édition : on renvoie quand même le livre (titre+auteur
+      // concordants), l'utilisateur confirme sur la fiche.
+      return GoogleBook.fromJson(items.first as Map<String, dynamic>);
     } catch (e) {
-      debugPrint('Erreur searchByISBN: $e');
+      debugPrint('searchByISBN OpenLibrary error: $e');
       return null;
     }
   }

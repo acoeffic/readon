@@ -3,18 +3,34 @@ import '../../../theme/app_theme.dart';
 import '../../../models/book.dart';
 import '../../../widgets/cached_book_cover.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../services/first_session_reminder_service.dart';
 
 class StepFirstSession extends StatelessWidget {
   final Book? selectedBook;
   final VoidCallback onStartSession;
+  /// « Sans rappel » : on quitte l'onboarding sans rien programmer.
   final VoidCallback onSkip;
+
+  /// Un créneau a été choisi à la place de lire maintenant : l'appelant
+  /// programme le rappel (et demande la permission notifications).
+  final ValueChanged<FirstSessionReminderSlot> onRemind;
 
   const StepFirstSession({
     super.key,
     required this.selectedBook,
     required this.onStartSession,
     required this.onSkip,
+    required this.onRemind,
   });
+
+  String _slotLabel(AppLocalizations l10n, FirstSessionReminderSlot slot) =>
+      switch (slot) {
+        FirstSessionReminderSlot.tonight => l10n.onboardingReminderTonight,
+        FirstSessionReminderSlot.tomorrowMorning =>
+          l10n.onboardingReminderTomorrowMorning,
+        FirstSessionReminderSlot.tomorrowEvening =>
+          l10n.onboardingReminderTomorrowEvening,
+      };
 
   @override
   Widget build(BuildContext context) {
@@ -108,11 +124,36 @@ class StepFirstSession extends StatelessWidget {
               ),
             ),
           ),
+          const SizedBox(height: AppSpace.m),
+          // Plutôt qu'un « Pas maintenant » sec : un horaire précis à choisir.
+          // Le rappel tient la promesse que l'utilisateur vient de se faire.
+          Text(
+            l10n.onboardingReminderPick,
+            style: const TextStyle(
+              fontSize: 13,
+              color: AppColors.textSecondary,
+            ),
+          ),
           const SizedBox(height: AppSpace.s),
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: AppSpace.s,
+            runSpacing: AppSpace.xs,
+            children: [
+              for (final slot
+                  in FirstSessionReminderSlot.availableAt(DateTime.now()))
+                ActionChip(
+                  avatar: const Icon(Icons.notifications_none_rounded,
+                      size: 18, color: AppColors.primary),
+                  label: Text(_slotLabel(l10n, slot)),
+                  onPressed: () => onRemind(slot),
+                ),
+            ],
+          ),
           TextButton(
             onPressed: onSkip,
             child: Text(
-              l10n.onboardingFirstSessionLater,
+              l10n.onboardingReminderNone,
               style: const TextStyle(
                   color: AppColors.textSecondary, fontSize: 13),
             ),

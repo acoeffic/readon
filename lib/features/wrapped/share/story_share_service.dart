@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/services.dart';
 import '../../../utils/app_constants.dart';
@@ -73,7 +74,9 @@ class StoryShareService {
     Map<String, dynamic> args,
   ) async {
     try {
-      final res = await _channel.invokeMethod<String>(method, args);
+      final res = await _channel
+          .invokeMethod<String>(method, args)
+          .timeout(const Duration(seconds: 12));
       switch (res) {
         case 'shared':
           return StoryShareResult.shared;
@@ -85,6 +88,10 @@ class StoryShareService {
     } on MissingPluginException {
       return StoryShareResult.unsupported;
     } on PlatformException {
+      return StoryShareResult.error;
+    } on TimeoutException {
+      // Le côté natif n'a jamais répondu : on retombe sur la feuille de
+      // partage native plutôt que de laisser le spinner tourner à l'infini.
       return StoryShareResult.error;
     }
   }

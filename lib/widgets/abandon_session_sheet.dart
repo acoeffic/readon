@@ -40,13 +40,19 @@ Future<Duration> effectiveSessionDuration(ReadingSession session) async {
   return elapsed.isNegative ? Duration.zero : elapsed;
 }
 
+/// [elapsed] : durée déjà affichée par le chrono de la page. Quand elle est
+/// fournie, elle fait foi : la feuille montre exactement ce que voit
+/// l'utilisateur, même si l'état de pause persisté est absent ou périmé.
 Future<AbandonSessionChoice?> showAbandonSessionSheet(
   BuildContext context, {
   required ReadingSession session,
+  Duration? elapsed,
 }) async {
   // Calculé avant l'ouverture : la feuille ne doit pas afficher un état de
   // chargement là où l'utilisateur attend une décision immédiate.
-  final duration = await effectiveSessionDuration(session);
+  final duration = elapsed != null
+      ? (elapsed.isNegative ? Duration.zero : elapsed)
+      : await effectiveSessionDuration(session);
   if (!context.mounted) return null;
 
   return showModalBottomSheet<AbandonSessionChoice>(

@@ -10,6 +10,7 @@ import '../widgets/cached_book_cover.dart';
 import 'analytics_service.dart';
 import 'books_service.dart';
 import 'challenge_service.dart';
+import 'first_session_reminder_service.dart';
 import 'last_page_cache.dart';
 import 'live_activity_service.dart';
 import 'ocr_service.dart';
@@ -117,6 +118,8 @@ class ReadingSessionService {
     String? readingFor,
     String? pageSource,
   }) async {
+    // Il lit : le rappel « reprends ton livre » de l'onboarding n'a plus lieu d'être.
+    unawaited(FirstSessionReminderService.cancel());
     try {
       int? pageNumber = manualPageNumber;
 
@@ -395,18 +398,20 @@ class ReadingSessionService {
         final pauseService = SessionPauseService();
         final totalPause = await pauseService.getTotalPauseDuration();
         final adjustedEnd = DateTime.now().subtract(totalPause);
-        await pauseService.clearAll();
-        try {
-          await _liveActivity.end(sessionId: active.id);
-        } catch (e) {
-          debugPrint('Live Activity end offline (non bloquant): $e');
-        }
         final result = await _offlineQueue.queueEndSession(
           activeSession: active,
           endPage: endPageNumber,
           endImagePath: imagePath,
           endTime: adjustedEnd,
         );
+        // Nettoyage APRÈS la mise en file : si elle échoue, la session reste
+        // active et son état de pause (source de vérité de la durée) est intact.
+        await pauseService.clearAll();
+        try {
+          await _liveActivity.end(sessionId: active.id);
+        } catch (e) {
+          debugPrint('Live Activity end offline (non bloquant): $e');
+        }
         _notifyActiveSessionsChanged();
         return result;
       }
@@ -440,10 +445,11 @@ class ReadingSessionService {
       final pauseService = SessionPauseService();
       final totalPause = await pauseService.getTotalPauseDuration();
       final adjustedEnd = DateTime.now().subtract(totalPause);
-      await pauseService.clearAll();
 
-      // Termine la Live Activity (no-op si pas iOS ou pas démarrée).
-      await _liveActivity.end(sessionId: sessionId);
+      // L'état de pause et la Live Activity ne sont nettoyés qu'APRÈS
+      // l'écriture serveur (ou la mise en file offline) : si l'UPDATE échoue
+      // et que la session reste ouverte, la pause enregistrée doit survivre,
+      // sinon la durée affichée inclut tout le temps passé en pause.
 
       // Mettre à jour la session
       final updateData = <String, dynamic>{
@@ -479,6 +485,8 @@ class ReadingSessionService {
             endImagePath: imagePath,
             endTime: adjustedEnd,
           );
+          await pauseService.clearAll();
+          await _liveActivity.end(sessionId: sessionId);
           _notifyActiveSessionsChanged();
           return result;
         }
@@ -488,6 +496,10 @@ class ReadingSessionService {
       if (response == null) {
         throw Exception('Session introuvable ou déjà terminée.');
       }
+
+      // Fin enregistrée : on peut effacer la pause et terminer la Live Activity.
+      await pauseService.clearAll();
+      await _liveActivity.end(sessionId: sessionId);
 
       final session = ReadingSession.fromJson(response);
 

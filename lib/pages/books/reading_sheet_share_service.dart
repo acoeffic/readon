@@ -48,7 +48,7 @@ class ReadingSheetShareService {
     return '\u{1F4D6} Ma fiche de lecture de $titlePart\n'
         '${readingSheet.annotationCount} annotations analysées par l\'IA\n'
         '${themeNames.isNotEmpty ? 'Thèmes : $themeNames\n' : ''}'
-        '\n$ReferralService.shareUrl';
+        '\n${ReferralService.shareUrl}';
   }
 
   /// Build the full reading sheet as plain text for clipboard copy.
@@ -89,7 +89,7 @@ class ReadingSheetShareService {
       buffer.writeln();
     }
 
-    buffer.writeln('Généré par LexDay — $ReferralService.shareUrl');
+    buffer.writeln('Généré par LexDay — ${ReferralService.shareUrl}');
     return buffer.toString();
   }
 

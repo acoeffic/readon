@@ -1,5 +1,6 @@
 // navigation/main_navigation.dart
 
+import '../utils/jwt_retry.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -46,6 +47,8 @@ import '../widgets/kindle_connect_sheet.dart';
 import '../widgets/kindle_auto_sync_widget.dart';
 import '../services/kindle_background_sync.dart';
 import '../widgets/offline_banner.dart';
+import '../widgets/update_available_banner.dart';
+import '../services/app_update_service.dart';
 import '../utils/responsive.dart';
 import '../l10n/app_localizations.dart';
 import '../providers/connectivity_provider.dart';
@@ -63,6 +66,7 @@ class _MainNavigationState extends State<MainNavigation>
     with WidgetsBindingObserver {
   int _selectedIndex = 0;
   bool _showKindleAutoSync = false;
+  AppUpdateInfo? _updateInfo;
   KindleSyncMode _kindleSyncMode = KindleSyncMode.full;
   DateTime? _lastKindleSyncAttempt;
   static const _kindleSyncCooldown = Duration(minutes: 5);
@@ -124,6 +128,7 @@ class _MainNavigationState extends State<MainNavigation>
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       _checkAnniversary();
       _checkKindleAutoSync();
+      _checkAppUpdate();
       _checkActiveSession();
       _setupSyncListener();
       _enrichMissingCovers();
@@ -377,6 +382,9 @@ class _MainNavigationState extends State<MainNavigation>
   }
 
   Future<void> _onAppResumed() async {
+    // Le timer d'auto-refresh du JWT est suspendu en arrière-plan : on
+    // rafraîchit au retour au premier plan pour éviter « JWT expired ».
+    await ensureFreshSession();
     // Cancel the stale-session notification — user is back in the app.
     await MonthlyNotificationService().cancelStaleSessionNotification();
 
@@ -689,6 +697,15 @@ class _MainNavigationState extends State<MainNavigation>
     _checkKindleAutoSync();
   }
 
+  /// Rappel doux de mise à jour (bannière dismissible) — voir
+  /// AppUpdateService pour la logique de comparaison de version et de
+  /// mémorisation du dismiss.
+  Future<void> _checkAppUpdate() async {
+    final info = await AppUpdateService.checkForUpdate();
+    if (!mounted || info == null) return;
+    setState(() => _updateInfo = info);
+  }
+
   Future<void> _checkKindleAutoSync() async {
     if (!mounted || _showKindleAutoSync) return;
 
@@ -871,7 +888,9 @@ class _MainNavigationState extends State<MainNavigation>
     final isOffline = !Provider.of<ConnectivityProvider>(context).isOnline;
     final l10n = AppLocalizations.of(context);
 
-    final topPadding = (hasActiveBanner ? 44.0 : 0.0) + (isOffline ? 36.0 : 0.0);
+    final topPadding = (hasActiveBanner ? 44.0 : 0.0) +
+        (isOffline ? 36.0 : 0.0) +
+        (_updateInfo != null ? 36.0 : 0.0);
 
     final body = Stack(
       children: [
@@ -885,6 +904,13 @@ class _MainNavigationState extends State<MainNavigation>
         Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            if (_updateInfo != null)
+              UpdateAvailableBanner(
+                updateInfo: _updateInfo!,
+                onDismissed: () {
+                  if (mounted) setState(() => _updateInfo = null);
+                },
+              ),
             if (isOffline) const OfflineBanner(),
             if (hasActiveBanner)
               ActiveSessionBanner(

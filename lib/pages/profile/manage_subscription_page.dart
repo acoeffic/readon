@@ -5,6 +5,7 @@
 import 'dart:io' show Platform;
 
 import 'package:flutter/material.dart';
+import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:provider/provider.dart';
 
 import '../../l10n/app_localizations.dart';
@@ -24,6 +25,7 @@ class ManageSubscriptionPage extends StatefulWidget {
 class _ManageSubscriptionPageState extends State<ManageSubscriptionPage> {
   final SubscriptionService _service = SubscriptionService();
   SubscriptionDetails? _details;
+  Offerings? _offerings;
   bool _loading = true;
   bool _restoring = false;
 
@@ -41,9 +43,11 @@ class _ManageSubscriptionPageState extends State<ManageSubscriptionPage> {
   Future<void> _load() async {
     setState(() => _loading = true);
     final details = await _service.getSubscriptionDetails();
+    final offerings = await _service.getOfferings();
     if (!mounted) return;
     setState(() {
       _details = details;
+      _offerings = offerings;
       _loading = false;
     });
   }
@@ -76,21 +80,32 @@ class _ManageSubscriptionPageState extends State<ManageSubscriptionPage> {
         '${date.year}';
   }
 
-  String _planLabel(String? productId) {
+  bool _isAnnual(String productId) =>
+      productId.contains('yearly') || productId.contains('annual');
+
+  String _planLabel(AppLocalizations l, String? productId) {
     if (productId == null) return '—';
-    if (productId.contains('yearly') || productId.contains('annual')) {
-      return 'Annuel';
-    }
-    if (productId.contains('monthly')) return 'Mensuel';
+    if (_isAnnual(productId)) return l.annual;
+    if (productId.contains('monthly')) return l.monthly;
     return productId;
   }
 
-  String _priceLabel(String? productId) {
+  /// Prix réel du store (priceString localisé) du produit souscrit ;
+  /// chaîne vide plutôt qu'un prix/devise en dur si introuvable.
+  String _priceLabel(AppLocalizations l, String? productId) {
     if (productId == null) return '';
-    if (productId.contains('yearly') || productId.contains('annual')) {
-      return '39,99 €/an';
+    final packages = _offerings?.current?.availablePackages ?? const [];
+    for (final p in packages) {
+      final id = p.storeProduct.identifier;
+      if (id == productId ||
+          productId.startsWith(id) ||
+          id.startsWith(productId)) {
+        final price = p.storeProduct.priceString;
+        return _isAnnual(productId)
+            ? l.priceSlashYear(price)
+            : l.priceSlashMonth(price);
+      }
     }
-    if (productId.contains('monthly')) return '3,99 €/mois';
     return '';
   }
 
@@ -158,8 +173,8 @@ class _ManageSubscriptionPageState extends State<ManageSubscriptionPage> {
     AppThemeColors colors,
     SubscriptionDetails details,
   ) {
-    final plan = _planLabel(details.productId);
-    final price = _priceLabel(details.productId);
+    final plan = _planLabel(l, details.productId);
+    final price = _priceLabel(l, details.productId);
     return [
       Container(
         padding: const EdgeInsets.all(AppSpace.l),

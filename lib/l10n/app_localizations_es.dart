@@ -2130,7 +2130,8 @@ class AppLocalizationsEs extends AppLocalizations {
   String get feedFindFriendsTitle => '¡Lee con tus amigos!';
 
   @override
-  String get feedFindFriendsSubtitle => 'Añade amigos para descubrir sus lecturas\ny compartir tus sesiones con ellos';
+  String get feedFindFriendsSubtitle =>
+      'Añade amigos para descubrir sus lecturas\ny compartir tus sesiones con ellos';
 
   @override
   String get feedEmptyTitle => 'Tu feed está vacío';
@@ -2175,13 +2176,19 @@ class AppLocalizationsEs extends AppLocalizations {
   String get feedLiveBadge => 'EN DIRECTO';
 
   @override
-  String feedSinceMinutes(int minutes) => 'Desde hace ${minutes} min';
+  String feedSinceMinutes(int minutes) {
+    return 'Desde hace $minutes min';
+  }
 
   @override
-  String feedSinceHours(int hours) => 'Desde hace ${hours} h';
+  String feedSinceHours(int hours) {
+    return 'Desde hace $hours h';
+  }
 
   @override
-  String feedPageOfTotal(int current, int total) => 'Página ${current} / ${total}';
+  String feedPageOfTotal(int current, int total) {
+    return 'Página $current / $total';
+  }
 
   @override
   String get feedBookFinishedShout => 'LIBRO TERMINADO';
@@ -2217,13 +2224,17 @@ class AppLocalizationsEs extends AppLocalizations {
   String get statsHeadlineDefault => 'Tus lecturas, mes a mes';
 
   @override
-  String statsHeadlinePeakMonth(String month) => '${month} sigue siendo tu mes más intenso';
+  String statsHeadlinePeakMonth(String month) {
+    return '$month sigue siendo tu mes más intenso';
+  }
 
   @override
   String get statsHeadlineLibrary => 'Lo que compone tu biblioteca';
 
   @override
-  String statsHeadlineTopGenre(String genre) => '${genre} sigue siendo tu brújula';
+  String statsHeadlineTopGenre(String genre) {
+    return '$genre sigue siendo tu brújula';
+  }
 
   @override
   String get statsNoDataYet => 'Aún no hay datos';
@@ -2262,7 +2273,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get statsRecordReadingHours => 'Horas de lectura';
 
   @override
-  String statsDaysShort(int days) => '${days} d';
+  String statsDaysShort(int days) {
+    return '$days d';
+  }
 
   @override
   String get statsSlotMorning => 'Mañana';
@@ -4876,6 +4889,29 @@ class AppLocalizationsEs extends AppLocalizations {
   String get onboardingReminderNo => 'No, gracias';
 
   @override
+  String get onboardingReminderPick => 'O elige cuándo leer:';
+
+  @override
+  String get onboardingReminderTonight => 'Esta noche · 21 h';
+
+  @override
+  String get onboardingReminderTomorrowMorning => 'Mañana por la mañana · 8 h';
+
+  @override
+  String get onboardingReminderTomorrowEvening => 'Mañana por la noche · 21 h';
+
+  @override
+  String get onboardingReminderNone => 'Sin recordatorio';
+
+  @override
+  String get onboardingReminderNotifTitle => 'Es hora de leer 📖';
+
+  @override
+  String onboardingReminderNotifBody(String title) {
+    return '¿5 minutos con «$title»? Tu libro te espera.';
+  }
+
+  @override
   String get firstSessionGoalTitle => 'Fíjate un pequeño objetivo';
 
   @override
@@ -4918,5 +4954,148 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String friendChallengeShareText(String link) {
     return '📚 Reto: ¿leemos 10 minutos al día durante 7 días?\n\nUso LexDay para seguir mis lecturas, únete y nos motivamos juntos.\n$link';
+  }
+
+  @override
+  String get ffTitleAdvancedReactions => 'Reacciones avanzadas';
+
+  @override
+  String get ffTitleFlowManualFreeze => 'Freeze manual';
+
+  @override
+  String get ffTitleAdvancedStats => 'Estadísticas avanzadas';
+
+  @override
+  String get ffTitleCustomThemes => 'Temas personalizados';
+
+  @override
+  String get ffTitlePremiumBadges => 'Insignias Premium';
+
+  @override
+  String get ffTitleFlowHistory => 'Historial de racha';
+
+  @override
+  String get ffTitleKindleAutoSync => 'Sincronización automática de Kindle';
+
+  @override
+  String get ffTitleCustomLists => 'Listas de lectura';
+
+  @override
+  String get ffTitleAiChat => 'Muse - Asesora de lectura';
+
+  @override
+  String get ffTitleAiSummary => 'Resúmenes con IA';
+
+  @override
+  String get ffTitleReadingSheet => 'Ficha de lectura con IA';
+
+  @override
+  String get ffDescAdvancedReactions =>
+      'Reacciona a la actividad de tus amigos con emojis únicos';
+
+  @override
+  String get ffDescFlowManualFreeze =>
+      'Protege manualmente tu racha cuando no puedas leer';
+
+  @override
+  String get ffDescAdvancedStats =>
+      'Accede a estadísticas detalladas sobre tu lectura';
+
+  @override
+  String get ffDescCustomThemes => 'Personaliza la apariencia de tu aplicación';
+
+  @override
+  String get ffDescPremiumBadges =>
+      'Desbloquea más de 65 insignias exclusivas, animadas y secretas';
+
+  @override
+  String get ffDescFlowHistory =>
+      'Explora todo tu historial de lectura mes a mes';
+
+  @override
+  String get ffDescKindleAutoSync =>
+      'Sincroniza automáticamente tu biblioteca de Kindle cada vez que abres la app';
+
+  @override
+  String get ffDescCustomLists =>
+      'Crea tus propias listas de lectura personalizadas';
+
+  @override
+  String get ffDescAiChat =>
+      'Chatea con Muse para obtener recomendaciones de libros personalizadas';
+
+  @override
+  String get ffDescAiSummary =>
+      'Resume tus pasajes anotados con un toque gracias a la IA';
+
+  @override
+  String get ffDescReadingSheet =>
+      'Genera una ficha de lectura estructurada a partir de todas tus anotaciones';
+
+  @override
+  String get ffFreeBasic => 'Básicas';
+
+  @override
+  String get ffFreeLocked => 'Bloqueadas';
+
+  @override
+  String get ffFreeAiChat => '3 msj/mes';
+
+  @override
+  String get ffFreeAiSummary => '3/mes';
+
+  @override
+  String get ffFreeCustomLists => '5 máx.';
+
+  @override
+  String get ffFreeCustomThemes => 'Claro / Oscuro';
+
+  @override
+  String get ffFreeManual => 'Manual';
+
+  @override
+  String get ffFreeSimpleCounter => 'Contador simple';
+
+  @override
+  String get ffFreeLikes => 'Me gusta';
+
+  @override
+  String get ffFreeUnavailable => 'No disponible';
+
+  @override
+  String get ffPremAdvancedStats => 'Anillos, mapa de calor, gráficos';
+
+  @override
+  String get ffPremPremiumBadges => 'Animadas, secretas, géneros';
+
+  @override
+  String get ffPremUnlimited => 'Ilimitado';
+
+  @override
+  String get ffPremUnlimitedPlural => 'Ilimitadas';
+
+  @override
+  String get ffPremCustomThemes => 'Temas adicionales';
+
+  @override
+  String get ffPremAutomatic => 'Automática';
+
+  @override
+  String get ffPremFreezeHistory => 'Freeze + historial';
+
+  @override
+  String get ffPremAdvancedReactions => 'Emojis personalizados';
+
+  @override
+  String get ffPremReadingSheet => 'Ilimitada';
+
+  @override
+  String priceSlashYear(String price) {
+    return '$price/año';
+  }
+
+  @override
+  String priceSlashMonth(String price) {
+    return '$price/mes';
   }
 }

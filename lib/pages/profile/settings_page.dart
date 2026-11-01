@@ -512,7 +512,7 @@ if (!allowedExtensions.contains(fileExtension)) {
           .from('profiles')
           .update({'avatar_url': avatarUrl})
           .eq('id', supabase.auth.currentUser!.id)
-          .select()
+          .select('avatar_url')
           .single();
 
       debugPrint('Avatar URL saved: ${updateResult['avatar_url']}');

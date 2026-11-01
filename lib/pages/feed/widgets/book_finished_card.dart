@@ -397,7 +397,7 @@ class _BookFinishedCardState extends State<BookFinishedCard>
     final title = _bookTitle ?? 'un livre';
     final author = _bookAuthor != null ? ' de $_bookAuthor' : '';
     final shareText =
-        "Je viens de terminer \"$title\"$author ! 📚✨\n\n#Lecture #LexDay\n$ReferralService.shareUrl";
+        "Je viens de terminer \"$title\"$author ! 📚✨\n\n#Lecture #LexDay\n${ReferralService.shareUrl}";
     if (!mounted) return;
     final box = context.findRenderObject() as RenderBox?;
     final origin =

@@ -46,7 +46,9 @@ class _ShareSlideState extends State<ShareSlide> {
       if (!mounted) return;
 
       if (assets.hasVideo) {
-        final videoResponse = await http.get(Uri.parse(assets.videoUrl!));
+        final videoResponse = await http
+            .get(Uri.parse(assets.videoUrl!))
+            .timeout(const Duration(seconds: 30));
         if (videoResponse.statusCode == 200 && mounted) {
           final dir = await getTemporaryDirectory();
           final file = File(
@@ -85,7 +87,8 @@ class _ShareSlideState extends State<ShareSlide> {
       final bytes = await _service.captureCard(
         data: data,
         format: ShareFormat.story,
-      );
+      )
+          .timeout(const Duration(seconds: 20));
       if (!mounted || bytes == null || bytes.isEmpty) {
         _reset();
         _showSnackBar("Impossible de generer l'image");
@@ -115,7 +118,8 @@ class _ShareSlideState extends State<ShareSlide> {
       final bytes = await _service.captureCard(
         data: data,
         format: ShareFormat.story,
-      );
+      )
+          .timeout(const Duration(seconds: 20));
       if (!mounted || bytes == null || bytes.isEmpty) {
         _reset();
         _showSnackBar("Impossible de generer l'image");
@@ -165,7 +169,8 @@ class _ShareSlideState extends State<ShareSlide> {
       final bytes = await _service.captureCard(
         data: data,
         format: format,
-      );
+      )
+          .timeout(const Duration(seconds: 20));
       if (!mounted || bytes == null || bytes.isEmpty) {
         _reset();
         _showSnackBar("Impossible de generer l'image");
@@ -194,7 +199,8 @@ class _ShareSlideState extends State<ShareSlide> {
       final bytes = await _service.captureCard(
         data: data,
         format: ShareFormat.story,
-      );
+      )
+          .timeout(const Duration(seconds: 20));
       if (!mounted || bytes == null || bytes.isEmpty) {
         _reset();
         _showSnackBar("Impossible de generer l'image");

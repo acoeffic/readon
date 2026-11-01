@@ -90,6 +90,43 @@ class UserBadge {
     }
     return '$progress / $requirement $progressUnit';
   }
+
+  /// Unités dont la forme plurielle ne se forme pas en retirant un simple
+  /// "s" final (donc laissées invariantes au singulier).
+  static const _invariantProgressUnits = {'mois', 'avis'};
+
+  /// Rend explicite la distance au prochain palier ("plus que 2 jours",
+  /// "à 3 livres du badge suivant") — item #2 du plan dopamine : le
+  /// "presque" doit être visible, pas seulement calculé côté serveur.
+  /// Vide si débloqué, sans exigence numérique (`requirement == 0`), ou
+  /// sans unité (badges purement booléens, `progress_unit` vide).
+  String get nearMissText {
+    if (isUnlocked || requirement <= 0) return '';
+    final remaining = requirement - progress;
+    if (remaining <= 0) return '';
+
+    if (progressUnit == 'minutes') {
+      final hours = remaining ~/ 60;
+      final minutes = remaining % 60;
+      if (hours > 0 && minutes > 0) {
+        return 'Encore ${hours}h${minutes.toString().padLeft(2, '0')}';
+      }
+      if (hours > 0) return 'Encore ${hours}h';
+      return 'Encore $minutes min';
+    }
+
+    if (progressUnit.isEmpty) return '';
+
+    if (remaining == 1) {
+      final unit = _invariantProgressUnits.contains(progressUnit)
+          ? progressUnit
+          : (progressUnit.endsWith('s')
+              ? progressUnit.substring(0, progressUnit.length - 1)
+              : progressUnit);
+      return 'Plus qu\'1 $unit';
+    }
+    return 'Plus que $remaining $progressUnit';
+  }
 }
 
 class BadgesService {

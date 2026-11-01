@@ -85,7 +85,7 @@ class BadgeShareService {
     Rect? sharePositionOrigin,
   }) async {
     final text =
-        'Je viens de débloquer le badge "${badge.name}" \uD83C\uDFC6 #LexDay\n$ReferralService.shareUrl';
+        'Je viens de débloquer le badge "${badge.name}" \uD83C\uDFC6 #LexDay\n${ReferralService.shareUrl}';
 
     // Instagram : vrai partage Story (image préchargée en fond). Fallback
     // feuille native si l'app n'est pas installée / non supportée.

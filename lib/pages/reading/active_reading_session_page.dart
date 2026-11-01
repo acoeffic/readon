@@ -230,6 +230,7 @@ class _ActiveReadingSessionPageState extends State<ActiveReadingSessionPage>
     final choice = await showAbandonSessionSheet(
       context,
       session: widget.activeSession,
+      elapsed: _elapsed,
     );
 
     if (!mounted) return;

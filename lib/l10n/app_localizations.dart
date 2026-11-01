@@ -4153,13 +4153,13 @@ abstract class AppLocalizations {
   /// No description provided for @purchasePending.
   ///
   /// In fr, this message translates to:
-  /// **'Achat en attente de confirmation'**
+  /// **'Achat annulé ou non confirmé pour l\'instant. Si tu as été débité, ton accès Premium s\'activera dès la confirmation du store — tu peux aussi toucher « Restaurer mes achats ».'**
   String get purchasePending;
 
   /// No description provided for @purchaseFailed.
   ///
   /// In fr, this message translates to:
-  /// **'L\'achat n\'a pas pu aboutir'**
+  /// **'L\'achat n\'a pas pu aboutir. Vérifie ta connexion et ton moyen de paiement, puis réessaie.'**
   String get purchaseFailed;
 
   /// No description provided for @errorOccurred.
@@ -8674,6 +8674,48 @@ abstract class AppLocalizations {
   /// **'Non merci'**
   String get onboardingReminderNo;
 
+  /// No description provided for @onboardingReminderPick.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ou choisis quand tu lis :'**
+  String get onboardingReminderPick;
+
+  /// No description provided for @onboardingReminderTonight.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce soir · 21h'**
+  String get onboardingReminderTonight;
+
+  /// No description provided for @onboardingReminderTomorrowMorning.
+  ///
+  /// In fr, this message translates to:
+  /// **'Demain matin · 8h'**
+  String get onboardingReminderTomorrowMorning;
+
+  /// No description provided for @onboardingReminderTomorrowEvening.
+  ///
+  /// In fr, this message translates to:
+  /// **'Demain soir · 21h'**
+  String get onboardingReminderTomorrowEvening;
+
+  /// No description provided for @onboardingReminderNone.
+  ///
+  /// In fr, this message translates to:
+  /// **'Sans rappel'**
+  String get onboardingReminderNone;
+
+  /// No description provided for @onboardingReminderNotifTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'C’est l’heure de lire 📖'**
+  String get onboardingReminderNotifTitle;
+
+  /// No description provided for @onboardingReminderNotifBody.
+  ///
+  /// In fr, this message translates to:
+  /// **'5 minutes avec « {title} » ? Ton livre t’attend.'**
+  String onboardingReminderNotifBody(String title);
+
   /// No description provided for @firstSessionGoalTitle.
   ///
   /// In fr, this message translates to:
@@ -8751,6 +8793,264 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'📚 Défi : on lit 10 minutes par jour pendant 7 jours ?\n\nJe suis sur LexDay pour suivre ma lecture, rejoins-moi et on se motive !\n{link}'**
   String friendChallengeShareText(String link);
+
+  /// No description provided for @ffTitleAdvancedReactions.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réactions avancées'**
+  String get ffTitleAdvancedReactions;
+
+  /// No description provided for @ffTitleFlowManualFreeze.
+  ///
+  /// In fr, this message translates to:
+  /// **'Freeze manuel'**
+  String get ffTitleFlowManualFreeze;
+
+  /// No description provided for @ffTitleAdvancedStats.
+  ///
+  /// In fr, this message translates to:
+  /// **'Statistiques avancées'**
+  String get ffTitleAdvancedStats;
+
+  /// No description provided for @ffTitleCustomThemes.
+  ///
+  /// In fr, this message translates to:
+  /// **'Thèmes personnalisés'**
+  String get ffTitleCustomThemes;
+
+  /// No description provided for @ffTitlePremiumBadges.
+  ///
+  /// In fr, this message translates to:
+  /// **'Badges Premium'**
+  String get ffTitlePremiumBadges;
+
+  /// No description provided for @ffTitleFlowHistory.
+  ///
+  /// In fr, this message translates to:
+  /// **'Historique du flow'**
+  String get ffTitleFlowHistory;
+
+  /// No description provided for @ffTitleKindleAutoSync.
+  ///
+  /// In fr, this message translates to:
+  /// **'Sync Kindle automatique'**
+  String get ffTitleKindleAutoSync;
+
+  /// No description provided for @ffTitleCustomLists.
+  ///
+  /// In fr, this message translates to:
+  /// **'Listes de lecture'**
+  String get ffTitleCustomLists;
+
+  /// No description provided for @ffTitleAiChat.
+  ///
+  /// In fr, this message translates to:
+  /// **'Muse - Conseillère lecture'**
+  String get ffTitleAiChat;
+
+  /// No description provided for @ffTitleAiSummary.
+  ///
+  /// In fr, this message translates to:
+  /// **'Résumés IA'**
+  String get ffTitleAiSummary;
+
+  /// No description provided for @ffTitleReadingSheet.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fiche de lecture IA'**
+  String get ffTitleReadingSheet;
+
+  /// No description provided for @ffDescAdvancedReactions.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réagis aux activités de tes amis avec des emojis uniques'**
+  String get ffDescAdvancedReactions;
+
+  /// No description provided for @ffDescFlowManualFreeze.
+  ///
+  /// In fr, this message translates to:
+  /// **'Protège manuellement ton flow quand tu ne peux pas lire'**
+  String get ffDescFlowManualFreeze;
+
+  /// No description provided for @ffDescAdvancedStats.
+  ///
+  /// In fr, this message translates to:
+  /// **'Accède à des statistiques détaillées sur ta lecture'**
+  String get ffDescAdvancedStats;
+
+  /// No description provided for @ffDescCustomThemes.
+  ///
+  /// In fr, this message translates to:
+  /// **'Personnalise l\'apparence de ton application'**
+  String get ffDescCustomThemes;
+
+  /// No description provided for @ffDescPremiumBadges.
+  ///
+  /// In fr, this message translates to:
+  /// **'Débloque 65+ badges exclusifs, animés et secrets'**
+  String get ffDescPremiumBadges;
+
+  /// No description provided for @ffDescFlowHistory.
+  ///
+  /// In fr, this message translates to:
+  /// **'Navigue dans tout ton historique de lecture mois par mois'**
+  String get ffDescFlowHistory;
+
+  /// No description provided for @ffDescKindleAutoSync.
+  ///
+  /// In fr, this message translates to:
+  /// **'Synchronise automatiquement ta bibliothèque Kindle à chaque ouverture'**
+  String get ffDescKindleAutoSync;
+
+  /// No description provided for @ffDescCustomLists.
+  ///
+  /// In fr, this message translates to:
+  /// **'Crée tes propres listes de lecture personnalisées'**
+  String get ffDescCustomLists;
+
+  /// No description provided for @ffDescAiChat.
+  ///
+  /// In fr, this message translates to:
+  /// **'Discute avec Muse pour obtenir des recommandations de livres personnalisées'**
+  String get ffDescAiChat;
+
+  /// No description provided for @ffDescAiSummary.
+  ///
+  /// In fr, this message translates to:
+  /// **'Résume tes passages annotés en un tap grâce à l\'IA'**
+  String get ffDescAiSummary;
+
+  /// No description provided for @ffDescReadingSheet.
+  ///
+  /// In fr, this message translates to:
+  /// **'Génère une fiche de lecture structurée à partir de toutes tes annotations'**
+  String get ffDescReadingSheet;
+
+  /// No description provided for @ffFreeBasic.
+  ///
+  /// In fr, this message translates to:
+  /// **'Basiques'**
+  String get ffFreeBasic;
+
+  /// No description provided for @ffFreeLocked.
+  ///
+  /// In fr, this message translates to:
+  /// **'Verrouillés'**
+  String get ffFreeLocked;
+
+  /// No description provided for @ffFreeAiChat.
+  ///
+  /// In fr, this message translates to:
+  /// **'3 msg/mois'**
+  String get ffFreeAiChat;
+
+  /// No description provided for @ffFreeAiSummary.
+  ///
+  /// In fr, this message translates to:
+  /// **'3/mois'**
+  String get ffFreeAiSummary;
+
+  /// No description provided for @ffFreeCustomLists.
+  ///
+  /// In fr, this message translates to:
+  /// **'5 max'**
+  String get ffFreeCustomLists;
+
+  /// No description provided for @ffFreeCustomThemes.
+  ///
+  /// In fr, this message translates to:
+  /// **'Clair / Sombre'**
+  String get ffFreeCustomThemes;
+
+  /// No description provided for @ffFreeManual.
+  ///
+  /// In fr, this message translates to:
+  /// **'Manuel'**
+  String get ffFreeManual;
+
+  /// No description provided for @ffFreeSimpleCounter.
+  ///
+  /// In fr, this message translates to:
+  /// **'Compteur simple'**
+  String get ffFreeSimpleCounter;
+
+  /// No description provided for @ffFreeLikes.
+  ///
+  /// In fr, this message translates to:
+  /// **'Likes'**
+  String get ffFreeLikes;
+
+  /// No description provided for @ffFreeUnavailable.
+  ///
+  /// In fr, this message translates to:
+  /// **'Non disponible'**
+  String get ffFreeUnavailable;
+
+  /// No description provided for @ffPremAdvancedStats.
+  ///
+  /// In fr, this message translates to:
+  /// **'Anneaux, heatmap, graphiques'**
+  String get ffPremAdvancedStats;
+
+  /// No description provided for @ffPremPremiumBadges.
+  ///
+  /// In fr, this message translates to:
+  /// **'Animés, secrets, genres'**
+  String get ffPremPremiumBadges;
+
+  /// No description provided for @ffPremUnlimited.
+  ///
+  /// In fr, this message translates to:
+  /// **'Illimité'**
+  String get ffPremUnlimited;
+
+  /// No description provided for @ffPremUnlimitedPlural.
+  ///
+  /// In fr, this message translates to:
+  /// **'Illimitées'**
+  String get ffPremUnlimitedPlural;
+
+  /// No description provided for @ffPremCustomThemes.
+  ///
+  /// In fr, this message translates to:
+  /// **'Thèmes supplémentaires'**
+  String get ffPremCustomThemes;
+
+  /// No description provided for @ffPremAutomatic.
+  ///
+  /// In fr, this message translates to:
+  /// **'Automatique'**
+  String get ffPremAutomatic;
+
+  /// No description provided for @ffPremFreezeHistory.
+  ///
+  /// In fr, this message translates to:
+  /// **'Freeze + historique'**
+  String get ffPremFreezeHistory;
+
+  /// No description provided for @ffPremAdvancedReactions.
+  ///
+  /// In fr, this message translates to:
+  /// **'Emojis personnalisés'**
+  String get ffPremAdvancedReactions;
+
+  /// No description provided for @ffPremReadingSheet.
+  ///
+  /// In fr, this message translates to:
+  /// **'Illimitée'**
+  String get ffPremReadingSheet;
+
+  /// No description provided for @priceSlashYear.
+  ///
+  /// In fr, this message translates to:
+  /// **'{price}/an'**
+  String priceSlashYear(String price);
+
+  /// No description provided for @priceSlashMonth.
+  ///
+  /// In fr, this message translates to:
+  /// **'{price}/mois'**
+  String priceSlashMonth(String price);
 }
 
 class _AppLocalizationsDelegate

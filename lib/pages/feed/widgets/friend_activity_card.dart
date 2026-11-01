@@ -301,12 +301,12 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
     final title = bookTitle ?? 'un livre';
     final author = bookAuthor != null ? ' de $bookAuthor' : '';
     if (_isBookFinished()) {
-      return "Je viens de terminer \"$title\"$author ! 📚✨\n\n#Lecture #LexDay\n$ReferralService.shareUrl";
+      return "Je viens de terminer \"$title\"$author ! 📚✨\n\n#Lecture #LexDay\n${ReferralService.shareUrl}";
     }
     final payload = widget.activity['payload'] as Map<String, dynamic>?;
     final pagesRead = payload?['pages_read'] as int?;
     final pages = pagesRead != null ? '$pagesRead pages de ' : '';
-    return "Je viens de lire $pages\"$title\"$author 📖\n\n#Lecture #LexDay\n$ReferralService.shareUrl";
+    return "Je viens de lire $pages\"$title\"$author 📖\n\n#Lecture #LexDay\n${ReferralService.shareUrl}";
   }
 
   Future<void> _showShareSheet(String? bookTitle, String? bookAuthor) async {
@@ -1304,7 +1304,7 @@ class _ShareBottomSheet extends StatelessWidget {
 
   Future<void> _shareToLinkedIn(BuildContext context) async {
     final text = Uri.encodeComponent(shareText);
-    final url = Uri.parse('https://www.linkedin.com/sharing/share-offsite/?url=$ReferralService.shareUrl&summary=$text');
+    final url = Uri.parse('https://www.linkedin.com/sharing/share-offsite/?url=${ReferralService.shareUrl}&summary=$text');
     if (await canLaunchUrl(url)) {
       await launchUrl(url, mode: LaunchMode.externalApplication);
     }
@@ -1322,7 +1322,7 @@ class _ShareBottomSheet extends StatelessWidget {
 
   Future<void> _shareToMessenger(BuildContext context) async {
     final text = Uri.encodeComponent(shareText);
-    final url = Uri.parse('fb-messenger://share?link=$ReferralService.shareUrl&quote=$text');
+    final url = Uri.parse('fb-messenger://share?link=${ReferralService.shareUrl}&quote=$text');
     if (await canLaunchUrl(url)) {
       await launchUrl(url, mode: LaunchMode.externalApplication);
     }

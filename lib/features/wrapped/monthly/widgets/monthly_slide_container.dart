@@ -61,11 +61,15 @@ class MonthlySlideContainer extends StatelessWidget {
               const Spacer(),
               if (onClose != null)
                 GestureDetector(
+                  behavior: HitTestBehavior.opaque,
                   onTap: onClose,
-                  child: Icon(
-                    Icons.close,
-                    color: Colors.white.withValues(alpha: 0.3),
-                    size: 20,
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Icon(
+                      Icons.close,
+                      color: Colors.white.withValues(alpha: 0.6),
+                      size: 22,
+                    ),
                   ),
                 )
               else

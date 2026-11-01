@@ -203,15 +203,27 @@ class _SplashScreenState extends State<SplashScreen>
     if (!mounted) return;
 
     // Navigate with fade transition
-    Navigator.of(context).pushReplacement(
-      PageRouteBuilder(
-        pageBuilder: (_, __, ___) => const AuthGate(),
-        transitionsBuilder: (_, animation, __, child) {
-          return FadeTransition(opacity: animation, child: child);
-        },
-        transitionDuration: const Duration(milliseconds: 500),
-      ),
+    final authGateRoute = PageRouteBuilder<void>(
+      pageBuilder: (_, __, ___) => const AuthGate(),
+      transitionsBuilder: (_, animation, __, child) {
+        return FadeTransition(opacity: animation, child: child);
+      },
+      transitionDuration: const Duration(milliseconds: 500),
     );
+    final navigator = Navigator.of(context);
+    final splashRoute = ModalRoute.of(context);
+    // Fix 2026-10-11 : `pushReplacement` remplace la route AU SOMMET de la
+    // pile, pas forcément le splash. Si quelque chose a été poussé pendant
+    // les ~2,5 s du splash (lien profond, notif, reprise de session…), le
+    // splash restait en route racine : les `pushAndRemoveUntil(route.isFirst)`
+    // de fin de session le gardaient comme base, et « retour » depuis le
+    // récapitulatif retombait sur un splash figé. On remplace donc
+    // explicitement la route du splash, où qu'elle soit dans la pile.
+    if (splashRoute != null && !splashRoute.isCurrent) {
+      navigator.replace(oldRoute: splashRoute, newRoute: authGateRoute);
+    } else {
+      navigator.pushReplacement(authGateRoute);
+    }
   }
 
 

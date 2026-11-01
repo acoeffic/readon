@@ -1083,6 +1083,20 @@ class _BadgeCard extends StatelessWidget {
                   minHeight: 6,
                 ),
               ),
+              if (badge.nearMissText.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text(
+                  badge.nearMissText,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: color,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
             ] else ...[
               // Secret hidden - show "Progress" text
               Row(
@@ -1375,6 +1389,17 @@ class _BadgeCard extends StatelessWidget {
                         color: color,
                       ),
                     ),
+                    if (badge.nearMissText.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        badge.nearMissText,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: color.withValues(alpha: 0.85),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),

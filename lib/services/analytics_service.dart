@@ -117,6 +117,21 @@ abstract final class AnalyticsEvent {
   static const pushPermissionRequested = 'push_permission_requested';
   static const pushPermissionGranted = 'push_permission_granted';
   static const pushPermissionDenied = 'push_permission_denied';
+
+  // ── Objectif de fin de première session ──
+  //
+  // Entonnoir : offer_shown → goal_set (property `preset`) ou offer_dismissed ;
+  // puis goal_reminder_prompt (property `answer` : yes / no). Compare le taux
+  // d'objectifs créés dans les 24 h suivant la 1re session avant/après ce
+  // changement, et la part de push_permission_granted côté acceptants.
+  static const firstSessionGoalOfferShown = 'first_session_goal_offer_shown';
+  static const firstSessionGoalSet = 'first_session_goal_set';
+  static const firstSessionGoalOfferDismissed =
+      'first_session_goal_offer_dismissed';
+  static const goalReminderPrompt = 'goal_reminder_prompt';
+  static const friendChallengeOfferShown = 'friend_challenge_offer_shown';
+  static const friendChallengeShared = 'friend_challenge_shared';
+  static const friendChallengeDismissed = 'friend_challenge_dismissed';
   static const pushOpened = 'push_opened';
 
   // ── Monétisation ──

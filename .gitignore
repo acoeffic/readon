@@ -53,3 +53,5 @@ remotion/public/rushes/*.mp4
 
 # Rendus vidéo publicitaires (livrables marketing, pas du code)
 Claude outputs/
+appstore_screenshots_*/
+.wrapped_stage.tgz

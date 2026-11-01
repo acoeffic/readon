@@ -64,7 +64,7 @@ class BookFinishedShareService {
         '\u2014 ${stats.totalPagesRead} pages en '
         '${stats.sessionsCount} sessions de lecture !\n\n'
         'Tu lis quoi en ce moment ? \u{1F440}\n'
-        '$ReferralService.shareUrl';
+        '${ReferralService.shareUrl}';
   }
 
   /// Execute the share action for a specific [destination].

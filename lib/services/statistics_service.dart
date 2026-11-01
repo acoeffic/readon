@@ -511,7 +511,8 @@ class StatisticsService {
             .from('user_books')
             .select('book_id')
             .eq('user_id', userId)
-            .eq('status', 'finished'),
+            .eq('status', 'finished')
+            .eq('is_hidden', false),
       ]);
 
       final allSessions = results[0] as List;
@@ -519,9 +520,6 @@ class StatisticsService {
 
       int totalMinutes = 0;
       int totalPages = 0;
-
-      // Count sessions per book to filter finished books with < 3 sessions
-      final sessionCountPerBook = <String, int>{};
 
       int longestSessionMin = 0;
       DateTime? longestSessionDate;
@@ -544,24 +542,13 @@ class StatisticsService {
         final startPage = (s['start_page'] as num?)?.toInt() ?? 0;
         final endPage = (s['end_page'] as num?)?.toInt() ?? 0;
         if (endPage > startPage) totalPages += endPage - startPage;
-
-        final bookId = s['book_id']?.toString() ?? '';
-        if (bookId.isNotEmpty) {
-          sessionCountPerBook[bookId] = (sessionCountPerBook[bookId] ?? 0) + 1;
-        }
       }
-
-      // Only count finished books with at least 3 completed sessions
-      final validFinishedBooks = finishedBooks.where((b) {
-        final bookId = b['book_id']?.toString() ?? '';
-        return (sessionCountPerBook[bookId] ?? 0) >= 3;
-      }).toList();
 
       return {
         'minutes': totalMinutes,
         'pages': totalPages,
         'sessions': allSessions.length,
-        'books': validFinishedBooks.length,
+        'books': finishedBooks.length,
         'longestSessionMin': longestSessionMin,
       };
     } catch (e) {

@@ -1,15 +1,22 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../models/book.dart';
+import '../../models/reading_session.dart';
+import '../../providers/connectivity_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../navigation/main_navigation.dart';
 import '../../services/analytics_service.dart';
 import '../../services/books_service.dart';
+import '../../services/first_session_reminder_service.dart';
+import '../../services/last_page_cache.dart';
+import '../../services/reading_session_service.dart';
 import '../../services/push_notification_service.dart';
 import '../../l10n/app_localizations.dart';
+import '../reading/active_reading_session_page.dart';
 import '../reading/start_reading_session_page_unified.dart';
 
 import 'widgets/onboarding_dots.dart';
@@ -17,7 +24,6 @@ import 'widgets/step_welcome.dart';
 import 'widgets/step_reading_habit.dart';
 import 'widgets/step_manual_add.dart';
 import 'widgets/step_first_session.dart';
-import 'widgets/step_suggested_readers.dart';
 import '../../widgets/constrained_content.dart';
 
 class OnboardingPage extends StatefulWidget {
@@ -46,7 +52,6 @@ class _OnboardingPageState extends State<OnboardingPage> {
         'welcome',
         'reading_habit',
         'manual_add',
-        'suggested_readers',
         'first_session',
       ];
 
@@ -129,17 +134,12 @@ class _OnboardingPageState extends State<OnboardingPage> {
       ),
     ];
 
-    // Suggested readers step
-    steps.add(
-      StepSuggestedReaders(
-        readingHabit: _readingHabit,
-        onNext: _goToNext,
-        onSkip: () {
-          _trackStepSkipped();
-          _goToNext();
-        },
-      ),
-    );
+    // 11/10/2026 : l'étape « lecteurs suggérés » (entre l'ajout du livre et le
+    // CTA de première session) est retirée. Elle n'a aucune valeur avant la
+    // première lecture et ajoutait un écran juste avant le moment décisif.
+    // Les suggestions restent disponibles après coup : fil d'actualité,
+    // « Découvrir des lecteurs » (onglet Amis) et invite contacts en fin de
+    // première session.
 
     // Final step
     steps.add(
@@ -150,6 +150,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
           _trackStepSkipped();
           _skipFirstSession();
         },
+        onRemind: _scheduleReminder,
       ),
     );
 
@@ -203,102 +204,64 @@ class _OnboardingPageState extends State<OnboardingPage> {
     ));
   }
 
-  /// Sortie « Pas maintenant » de l'écran final, avec un livre choisi.
+  /// Sortie « je lirai plus tard » de l'écran final : l'utilisateur choisit un
+  /// MOMENT (« Ce soir 21h », « Demain matin »…) et on programme un rappel.
   ///
   /// Diagnostic du 02/09 : les inscrits qui ne lisent pas dans cette première
-  /// ouverture ne reviennent jamais — et comme la popup notifications n'est
-  /// demandée qu'après la première session, on n'avait aucun canal pour les
-  /// rappeler. On dépense donc ici la cartouche notifications, précédée d'un
-  /// pré-prompt honnête (un seul rappel, pour CE livre). Ceux qui refusent
-  /// le pré-prompt gardent la popup système intacte pour plus tard.
-  Future<void> _skipFirstSession() async {
+  /// ouverture ne reviennent jamais, et la popup notifications n'était
+  /// demandée qu'après la première session — aucun canal pour les rappeler.
+  /// Choisir une heure est un geste explicite : la popup système suit
+  /// naturellement (plus de pré-prompt oui/non). Refus de la popup ou de la
+  /// planification : on termine l'onboarding sans rappel, sans bloquer.
+  Future<void> _scheduleReminder(FirstSessionReminderSlot slot) async {
     final book = _selectedBook;
+    // Anti double-tap : la popup système ne doit pas être déclenchée deux fois.
+    // (Distinct de `_finishing`, que `_completeOnboarding` teste lui-même.)
+    if (_finishing || _reminderInFlight) return;
+    _reminderInFlight = true;
+    var scheduled = false;
     if (book != null) {
       try {
         final push = PushNotificationService();
-        if (await push.canStillAskPermission() && mounted) {
-          final wantsReminder = await _askReminderPrePrompt(book);
-          unawaited(AnalyticsService().track(
-            AnalyticsEvent.onboardingReminderPrompt,
-            properties: {'answer': wantsReminder ? 'yes' : 'no'},
-          ));
-          if (wantsReminder) {
-            await push.promptPermissionAndRegister();
-          }
+        if (await push.canStillAskPermission()) {
+          await push.promptPermissionAndRegister();
+        }
+        if (mounted) {
+          final l10n = AppLocalizations.of(context);
+          scheduled = await FirstSessionReminderService.schedule(
+            slot: slot,
+            title: l10n.onboardingReminderNotifTitle,
+            body: l10n.onboardingReminderNotifBody(book.title),
+          );
         }
       } catch (e) {
-        debugPrint('Onboarding reminder pre-prompt error: $e');
+        debugPrint('Onboarding reminder error: $e');
       }
     }
+    unawaited(AnalyticsService().track(
+      AnalyticsEvent.onboardingReminderPrompt,
+      properties: {
+        'answer': slot.analyticsValue,
+        'scheduled': scheduled,
+      },
+    ));
+    await _completeOnboarding();
+    // Si la fin d'onboarding a échoué (réseau), l'utilisateur doit pouvoir
+    // réessayer.
+    _reminderInFlight = false;
+  }
+
+  /// « Sans rappel » : on quitte sans rien programmer et sans dépenser la
+  /// popup système, qui reste disponible pour après la première session.
+  Future<void> _skipFirstSession() async {
+    unawaited(AnalyticsService().track(
+      AnalyticsEvent.onboardingReminderPrompt,
+      properties: {'answer': 'none', 'scheduled': false},
+    ));
     await _completeOnboarding();
   }
 
-  Future<bool> _askReminderPrePrompt(Book book) async {
-    final l10n = AppLocalizations.of(context);
-    final answer = await showModalBottomSheet<bool>(
-      context: context,
-      isDismissible: false,
-      enableDrag: false,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.l)),
-      ),
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(
-              AppSpace.l, AppSpace.l, AppSpace.l, AppSpace.m),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Icon(Icons.notifications_active_rounded,
-                  size: 40, color: AppColors.primary),
-              const SizedBox(height: AppSpace.m),
-              Text(
-                l10n.onboardingReminderTitle,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                    fontSize: 20, fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: AppSpace.s),
-              Text(
-                l10n.onboardingReminderBody(book.title),
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                    fontSize: 15, color: Colors.black54, height: 1.4),
-              ),
-              const SizedBox(height: AppSpace.l),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: AppColors.white,
-                  padding:
-                      const EdgeInsets.symmetric(vertical: AppSpace.m),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppRadius.pill),
-                  ),
-                ),
-                onPressed: () => Navigator.of(ctx).pop(true),
-                child: Text(
-                  l10n.onboardingReminderYes,
-                  style: const TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.w600),
-                ),
-              ),
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(false),
-                child: Text(
-                  l10n.onboardingReminderNo,
-                  style: const TextStyle(
-                      color: AppColors.textSecondary, fontSize: 14),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-    return answer == true;
-  }
+  bool _reminderInFlight = false;
 
   /// Garde anti double-tap sur les handlers de fin d'onboarding.
   bool _finishing = false;
@@ -384,16 +347,84 @@ class _OnboardingPageState extends State<OnboardingPage> {
 
     if (!mounted) return;
 
-    // Go to main nav then push reading session
-    Navigator.of(context).pushAndRemoveUntil(
+    // 11/10/2026 : « Lire 5 minutes maintenant » lance RÉELLEMENT la lecture.
+    // Avant, ce bouton ouvrait l'écran de démarrage (un écran de plus avant le
+    // moment décisif) et IGNORAIT la session qu'il renvoyait : l'utilisateur
+    // atterrissait sur le fil avec un chrono qui tournait sans qu'il le voie.
+    // On démarre donc la session ici — même chemin que l'écran de démarrage
+    // sans saisie (page présumée, `page_source = inferred`) — puis on ouvre
+    // directement le chrono.
+    final navigator = Navigator.of(context);
+    final isOnline =
+        Provider.of<ConnectivityProvider>(context, listen: false).isOnline;
+    final session = await _startSessionDirectly(book, offline: !isOnline);
+
+    // Go to main nav (pour que « retour » depuis le chrono tombe sur le fil),
+    // puis la session. Navigator capturé avant l'await : l'écran
+    // d'onboarding est démonté par le pushAndRemoveUntil.
+    navigator.pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const MainNavigation()),
       (route) => false,
     );
-    Navigator.of(context).push(
+
+    if (session != null) {
+      navigator.push(
+        MaterialPageRoute(
+          builder: (_) =>
+              ActiveReadingSessionPage(activeSession: session, book: book),
+        ),
+      );
+      return;
+    }
+
+    // Démarrage direct impossible (réseau, serveur…) : on retombe sur
+    // l'écran de démarrage classique — et, cette fois, on suit la session
+    // qu'il renvoie.
+    final fallback = await navigator.push<ReadingSession>(
       MaterialPageRoute(
         builder: (_) => StartReadingSessionPageUnified(book: book),
       ),
     );
+    if (fallback != null) {
+      navigator.push(
+        MaterialPageRoute(
+          builder: (_) =>
+              ActiveReadingSessionPage(activeSession: fallback, book: book),
+        ),
+      );
+    }
+  }
+
+  /// Démarre la session sans passer par l'écran de démarrage. Page de départ :
+  /// dernière page connue (serveur, sinon cache local), sinon 1 — exactement
+  /// ce que fait l'écran de démarrage quand on appuie sur « Lancer » sans
+  /// rien saisir. Retourne `null` en cas d'échec (l'appelant bascule alors
+  /// sur l'écran de démarrage).
+  Future<ReadingSession?> _startSessionDirectly(
+    Book book, {
+    required bool offline,
+  }) async {
+    final service = ReadingSessionService();
+    try {
+      final bookId = book.id.toString();
+      int? knownPage;
+      try {
+        knownPage = (await service.getBookStats(bookId)).currentPage;
+      } catch (_) {}
+      knownPage ??= await LastPageCache.get(bookId);
+
+      return await service.startSession(
+        bookId: bookId,
+        manualPageNumber: knownPage ?? 1,
+        pageSource: 'inferred',
+        offlineMode: offline,
+      );
+    } catch (e) {
+      debugPrint('Onboarding: démarrage direct de la session échoué: $e');
+      return null;
+    } finally {
+      service.dispose();
+    }
   }
 
   @override

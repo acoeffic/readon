@@ -31,6 +31,20 @@ class ReadingSession {
   static const String sourceKindle = 'kindle';
   bool get isFromKindle => source == sourceKindle;
 
+  /// Flags posés côté serveur (trigger `flag_too_long_session` + RPC de
+  /// détection de vitesse, migrations 20260514 / 20260216) : la session est
+  /// exclue des stats de badges/flow, silencieusement jusqu'ici. `isTooLong`
+  /// force aussi `isTooFast=true` côté serveur (même filtre SQL réutilisé
+  /// partout) — on garde donc `isTooLong` prioritaire pour choisir le bon
+  /// message côté UI plutôt que de toujours afficher « rythme trop rapide ».
+  final bool isTooLong;
+  final bool isTooFast;
+
+  /// Vrai si la session est exclue des stats de badges/flow pour une raison
+  /// quelconque — à utiliser côté UI pour savoir s'il faut prévenir
+  /// l'utilisateur.
+  bool get isExcludedFromStats => isTooLong || isTooFast;
+
   // Computed fields
   int get pagesRead => endPage != null ? endPage! - startPage : 0;
 
@@ -71,6 +85,8 @@ class ReadingSession {
     this.readingFor,
     this.isManual = false,
     this.source,
+    this.isTooLong = false,
+    this.isTooFast = false,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -92,6 +108,8 @@ class ReadingSession {
       readingFor: json['reading_for'] as String?,
       isManual: json['is_manual'] as bool? ?? false,
       source: json['source'] as String?,
+      isTooLong: json['is_too_long'] as bool? ?? false,
+      isTooFast: json['is_too_fast'] as bool? ?? false,
       createdAt: DateTime.parse(json['created_at'] as String).toLocal(),
       updatedAt: DateTime.parse(json['updated_at'] as String).toLocal(),
     );
@@ -131,6 +149,8 @@ class ReadingSession {
     String? readingFor,
     bool? isManual,
     String? source,
+    bool? isTooLong,
+    bool? isTooFast,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -148,6 +168,8 @@ class ReadingSession {
       readingFor: readingFor ?? this.readingFor,
       isManual: isManual ?? this.isManual,
       source: source ?? this.source,
+      isTooLong: isTooLong ?? this.isTooLong,
+      isTooFast: isTooFast ?? this.isTooFast,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

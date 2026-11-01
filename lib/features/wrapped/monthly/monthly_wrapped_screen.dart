@@ -144,7 +144,9 @@ class _MonthlyWrappedScreenState extends State<MonthlyWrappedScreen> {
   Future<void> _loadData() async {
     try {
       final service = MonthlyWrappedService();
-      final data = await service.getMonthlyData(widget.month, widget.year);
+      final data = await service
+          .getMonthlyData(widget.month, widget.year)
+          .timeout(const Duration(seconds: 20));
       if (mounted) setState(() { _data = data; _isLoading = false; });
 
       // Fire-and-forget: trigger server-side video pre-render
@@ -169,9 +171,10 @@ class _MonthlyWrappedScreenState extends State<MonthlyWrappedScreen> {
   }
 
   void _close() {
-    _fadeOut().then((_) {
-      if (mounted) Navigator.of(context).pop();
-    });
+    // Fermeture immédiate : le fondu audio se fait déjà dans dispose().
+    // Avant, le pop attendait _fadeOut() ; si l'audio était bloqué (réseau
+    // lent, session audio), l'écran ne se fermait jamais.
+    if (mounted) Navigator.of(context).pop();
   }
 
   @override
@@ -189,8 +192,20 @@ class _MonthlyWrappedScreenState extends State<MonthlyWrappedScreen> {
   }
 
   Widget _buildLoading() {
-    return const Center(
-      child: CircularProgressIndicator(color: Colors.white24),
+    return Stack(
+      children: [
+        const Center(
+          child: CircularProgressIndicator(color: Colors.white24),
+        ),
+        Positioned(
+          top: 4,
+          right: 4,
+          child: IconButton(
+            icon: const Icon(Icons.close, color: Colors.white54),
+            onPressed: _close,
+          ),
+        ),
+      ],
     );
   }
 
@@ -228,6 +243,10 @@ class _MonthlyWrappedScreenState extends State<MonthlyWrappedScreen> {
                 _loadData();
               },
               child: const Text('Reessayer'),
+            ),
+            TextButton(
+              onPressed: _close,
+              child: const Text('Fermer'),
             ),
           ],
         ),

@@ -166,7 +166,7 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
     final duration = _formatDuration(widget.session.durationMinutes);
 
     final text =
-        "Je viens de lire $pages pages de \"$bookTitle\"${author.isNotEmpty ? ' de $author' : ''} en $duration ! \u{1F4DA}\n\n#LexDay #Lecture\n$ReferralService.shareUrl";
+        "Je viens de lire $pages pages de \"$bookTitle\"${author.isNotEmpty ? ' de $author' : ''} en $duration ! \u{1F4DA}\n\n#LexDay #Lecture\n${ReferralService.shareUrl}";
     final box = context.findRenderObject() as RenderBox?;
     final origin = box != null
         ? box.localToGlobal(Offset.zero) & box.size

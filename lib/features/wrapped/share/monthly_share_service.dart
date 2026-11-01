@@ -43,7 +43,7 @@ class MonthlyShareService {
     if (videoFile != null) {
       await Share.shareXFiles(
         [XFile(videoFile.path)],
-        text: 'Mon wrapped lecture #LexDay\n$ReferralService.shareUrl',
+        text: 'Mon wrapped lecture #LexDay\n${ReferralService.shareUrl}',
         sharePositionOrigin: sharePositionOrigin,
       );
       return;
@@ -51,7 +51,7 @@ class MonthlyShareService {
     final file = await _saveTempFile(imageBytes, year, month);
     await Share.shareXFiles(
       [XFile(file.path)],
-      text: 'Mon wrapped lecture #LexDay\n$ReferralService.shareUrl',
+      text: 'Mon wrapped lecture #LexDay\n${ReferralService.shareUrl}',
       sharePositionOrigin: sharePositionOrigin,
     );
   }
@@ -88,14 +88,14 @@ class MonthlyShareService {
     if (videoFile != null) {
       await Share.shareXFiles(
         [XFile(videoFile.path)],
-        text: 'Mon wrapped lecture #LexDay\n$ReferralService.shareUrl',
+        text: 'Mon wrapped lecture #LexDay\n${ReferralService.shareUrl}',
         sharePositionOrigin: sharePositionOrigin,
       );
     } else {
       final file = await _saveTempFile(imageBytes, year, month);
       await Share.shareXFiles(
         [XFile(file.path)],
-        text: 'Mon wrapped lecture #LexDay\n$ReferralService.shareUrl',
+        text: 'Mon wrapped lecture #LexDay\n${ReferralService.shareUrl}',
         sharePositionOrigin: sharePositionOrigin,
       );
     }

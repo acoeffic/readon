@@ -30,6 +30,7 @@ import '../chat/ai_chat_page.dart';
 import '../../services/widget_service.dart';
 import '../../widgets/constrained_content.dart';
 import '../../services/push_notification_service.dart';
+import '../../services/first_session_goal_offer.dart';
 import '../../widgets/rate_book_sheet.dart';
 
 /// Timeout des appels réseau post-session (badges, contacts…) : sans ça, une
@@ -133,6 +134,21 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
       await push.promptPermissionAndRegister();
     } catch (e) {
       debugPrint('Erreur _maybeAskPushPermissionAfterFirstSession: $e');
+    }
+  }
+
+  /// Première session terminée (fin de session « normale » — pas le cas d'un
+  /// livre terminé) : plutôt que de tirer tout de suite la popup système de
+  /// notifications, on la confie à l'écran de résumé, où la carte « Fixe-toi
+  /// un petit objectif » lui donne un motif (« On te rappelle pour ton
+  /// objectif ? »). ReadingSessionSummaryPage consomme le drapeau et, si
+  /// l'offre n'a pas lieu, rend la popup à son ancien comportement.
+  /// Si le drapeau ne peut pas être posé, on garde l'ancien comportement
+  /// immédiat : ne jamais perdre l'occasion de demander la permission.
+  Future<void> _deferPushPermissionToGoalOffer() async {
+    final deferred = await FirstSessionGoalOffer.markPending();
+    if (!deferred) {
+      await _maybeAskPushPermissionAfterFirstSession();
     }
   }
 
@@ -401,7 +417,7 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
 
         if (!hasCompleted && !hasSeen) {
           await contactsService.markFirstSessionCompleted().timeout(_kPostSessionTimeout).catchError((_) {});
-          await _maybeAskPushPermissionAfterFirstSession();
+          await _deferPushPermissionToGoalOffer();
           if (!mounted) return;
           Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(
@@ -415,7 +431,7 @@ class _EndReadingSessionPageState extends State<EndReadingSessionPage> {
         } else {
           if (!hasCompleted) {
             await contactsService.markFirstSessionCompleted().timeout(_kPostSessionTimeout).catchError((_) {});
-            await _maybeAskPushPermissionAfterFirstSession();
+            await _deferPushPermissionToGoalOffer();
           }
           if (!mounted) return;
           Navigator.of(context).pushAndRemoveUntil(

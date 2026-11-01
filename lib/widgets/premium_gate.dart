@@ -110,7 +110,7 @@ void showPremiumUpsellSheet(
 
             // Feature title
             Text(
-              FeatureFlags.title(feature),
+              FeatureFlags.title(feature, l),
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w700,
@@ -122,7 +122,7 @@ void showPremiumUpsellSheet(
 
             // Description or custom message
             Text(
-              customMessage ?? FeatureFlags.description(feature),
+              customMessage ?? FeatureFlags.description(feature, l),
               style: TextStyle(
                 fontSize: 14,
                 color: onSurface.withValues(alpha: 0.6),
@@ -158,7 +158,7 @@ void showPremiumUpsellSheet(
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          FeatureFlags.freeDescription(feature),
+                          FeatureFlags.freeDescription(feature, l),
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
@@ -188,7 +188,7 @@ void showPremiumUpsellSheet(
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          FeatureFlags.premiumDescription(feature),
+                          FeatureFlags.premiumDescription(feature, l),
                           style: const TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
@@ -312,7 +312,7 @@ class _DefaultLockedWidget extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        FeatureFlags.title(feature),
+                        FeatureFlags.title(feature, l),
                         style: TextStyle(
                           fontWeight: FontWeight.w700,
                           fontSize: 14,
@@ -321,7 +321,7 @@ class _DefaultLockedWidget extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        FeatureFlags.description(feature),
+                        FeatureFlags.description(feature, l),
                         style: TextStyle(
                           fontSize: 12,
                           color: onSurface.withValues(alpha: 0.5),

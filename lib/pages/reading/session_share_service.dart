@@ -70,7 +70,7 @@ class SessionShareService {
     Rect? sharePositionOrigin,
   }) async {
     final text =
-        'Je viens de lire ${session.pagesRead} pages \uD83D\uDCDA #LexDay\n$ReferralService.shareUrl';
+        'Je viens de lire ${session.pagesRead} pages \uD83D\uDCDA #LexDay\n${ReferralService.shareUrl}';
 
     // Instagram : vrai partage Story (image préchargée en fond). Fallback
     // feuille native si l'app n'est pas installée / non supportée.

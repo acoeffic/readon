@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/ai_conversation.dart';
 import '../models/ai_message.dart';
 import '../models/feature_flags.dart';
+import '../utils/jwt_retry.dart';
 import 'subscription_service.dart';
 
 /// Exception levée quand l'utilisateur gratuit a atteint sa limite mensuelle.
@@ -42,11 +43,11 @@ class ChatService {
       final userId = _supabase.auth.currentUser?.id;
       if (userId == null) throw Exception('Non connecté');
 
-      final response = await _supabase
+      final response = await withJwtRetry(() => _supabase
           .from('ai_conversations')
           .select()
           .eq('user_id', userId)
-          .order('updated_at', ascending: false);
+          .order('updated_at', ascending: false));
 
       return (response as List)
           .map((json) => AiConversation.fromJson(json))
@@ -60,11 +61,11 @@ class ChatService {
   /// Récupérer les messages d'une conversation
   Future<List<AiMessage>> getMessages(int conversationId) async {
     try {
-      final response = await _supabase
+      final response = await withJwtRetry(() => _supabase
           .from('ai_messages')
           .select()
           .eq('conversation_id', conversationId)
-          .order('created_at', ascending: true);
+          .order('created_at', ascending: true));
 
       return (response as List)
           .map((json) => AiMessage.fromJson(json))
