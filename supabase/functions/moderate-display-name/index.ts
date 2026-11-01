@@ -44,11 +44,40 @@ const REJECT_CATEGORIES = new Set<string>([
   "violence/graphic",
 ]);
 
+// Prénoms courants que omni-moderation classe à tort en `sexual/minors`
+// (ex. « Lolita » / « Lola » → faux positif du 07/10/2026). Correspondance
+// EXACTE sur le pseudo entier, et seulement si OpenAI n'a flagué que des
+// catégories sexuelles : « Lolita sexy » ou « loli » restent rejetés, et un
+// prénom flagué `hate`/`harassment` aussi. À compléter au fil des faux positifs.
+const ALLOWED_FIRST_NAMES = new Set<string>(["lola", "lolita", "lolie"]);
+
+function normalizeName(value: string): string {
+  return value.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase().trim();
+}
+
+function isAllowlistedFirstName(value: string, categories: string[]): boolean {
+  return categories.every((c) => c === "sexual" || c === "sexual/minors") &&
+    ALLOWED_FIRST_NAMES.has(normalizeName(value));
+}
+
 function jsonResponse(body: Record<string, unknown>, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
+}
+
+// Traduit les catégories OpenAI en `reason` valide pour content_reports
+// (contrainte content_reports_reason_check). Le plus grave l'emporte.
+function reportReason(categories: string[]): string {
+  const has = (prefix: string) =>
+    categories.some((c) => c === prefix || c.startsWith(prefix + "/"));
+  if (has("sexual")) return "sexual_content";
+  if (has("hate")) return "hate_speech";
+  if (has("harassment")) return "harassment";
+  if (has("self-harm")) return "self_harm";
+  if (has("violence")) return "violence";
+  return "other";
 }
 
 async function approveDisplayName(
@@ -85,15 +114,16 @@ async function rejectDisplayName(
 
   // Trace dans content_reports (audit admin)
   try {
-    await supabase.from("content_reports").insert({
+    const { error } = await supabase.from("content_reports").insert({
       reporter_id: userId,
       target_type: "user",
       target_id: userId,
       target_user_id: userId,
-      reason: "hate_speech",
+      reason: reportReason(reasonCategories),
       details: `auto-moderation rejected display_name (${reason})`,
       status: "actioned",
     });
+    if (error) console.warn("content_reports insert failed:", error);
   } catch (e) {
     console.warn("content_reports insert failed:", e);
   }
@@ -209,6 +239,12 @@ serve(async (req) => {
     if (rejected.length === 0) {
       await approveDisplayName(supabase, user_id);
       return jsonResponse({ status: "approved" });
+    }
+
+    if (isAllowlistedFirstName(new_value, rejected)) {
+      console.warn("display_name allowlisted first name:", new_value, rejected);
+      await approveDisplayName(supabase, user_id);
+      return jsonResponse({ status: "approved", reason: "allowlisted-first-name" });
     }
 
     await rejectDisplayName(

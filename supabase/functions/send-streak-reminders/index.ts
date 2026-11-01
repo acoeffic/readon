@@ -193,6 +193,44 @@ interface Profile {
   timezone: string | null
 }
 
+// ── État "entre deux livres" ──
+// 29/09/2026 — le dernier livre lu est terminé et aucun autre n'est en cours.
+// Pour ce lecteur, « Reprends ton flow aujourd'hui ! » chaque soir est du
+// bruit : c'est send-reengagement (piste "livre terminé") qui lui parle, une
+// seule fois, en nommant le livre. Audit : 398 des 495 rappels de 30 jours
+// visaient un flow déjà à 0, dont 284 des lecteurs inactifs depuis 14 j+.
+async function isBetweenBooks(
+  // deno-lint-ignore no-explicit-any
+  supabase: any,
+  userId: string,
+): Promise<boolean> {
+  const { data: last } = await supabase
+    .from('reading_sessions')
+    .select('book_id')
+    .eq('user_id', userId)
+    .not('end_time', 'is', null)
+    .order('end_time', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (last?.book_id === null || last?.book_id === undefined) return false
+
+  const { data: lastUb } = await supabase
+    .from('user_books')
+    .select('status')
+    .eq('user_id', userId)
+    .eq('book_id', last.book_id)
+    .maybeSingle()
+  if (lastUb?.status !== 'finished') return false
+
+  const { count: readingCount } = await supabase
+    .from('user_books')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .eq('status', 'reading')
+    .or('is_hidden.is.null,is_hidden.eq.false')
+  return (readingCount ?? 0) === 0
+}
+
 // Heure locale de la notification "dernière chance" (streak > 0 et pas encore lu).
 // Indépendante de l'heure de rappel choisie par l'utilisateur.
 const LAST_CHANCE_TIME = '21:30'
@@ -440,6 +478,7 @@ serve(async (req) => {
     let errorCount = 0
     let cleanedTokens = 0
     let lastChanceSkipped = 0
+    let betweenBooksSkipped = 0
 
     const queue: Array<{ user: Profile, isLastChance: boolean }> = [
       ...usersToNotify.map((user) => ({ user, isLastChance: false })),
@@ -481,6 +520,13 @@ serve(async (req) => {
           continue
         }
 
+        // Flow déjà perdu + livre terminé + rien en cours : pas de rappel
+        // quotidien générique (voir isBetweenBooks). Un flow > 0 reste rappelé.
+        if (!isLastChance && currentFlow === 0 && await isBetweenBooks(supabase, user.id)) {
+          betweenBooksSkipped++
+          continue
+        }
+
         const { title, body } = isLastChance
           ? getLastChanceMessage(currentFlow)
           : getNotificationMessage(currentFlow, user.display_name)
@@ -519,6 +565,7 @@ serve(async (req) => {
       skipped_never_read: skippedNeverRead,
       notifications_sent: successCount,
       last_chance_skipped: lastChanceSkipped,
+      between_books_skipped: betweenBooksSkipped,
       cleaned_tokens: cleanedTokens,
       errors: errorCount,
     }

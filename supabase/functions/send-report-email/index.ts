@@ -98,8 +98,13 @@ serve(async (req) => {
     const reasonLabel = REASON_LABELS[payload.reason] ?? payload.reason;
     const targetLabel = TARGET_LABELS[payload.target_type] ??
       payload.target_type;
-    const reporter = escapeHtml(payload.reporter_name ?? "Inconnu");
-    const targetUser = escapeHtml(payload.target_user_name ?? "Inconnu");
+    const reporter = isAuto
+      ? "Auto-modération"
+      : escapeHtml(payload.reporter_name ?? "Inconnu");
+    const targetUser = escapeHtml(
+      payload.target_user_name ??
+        (isAuto ? "Sans pseudo (rejeté, voir ID cible)" : "Inconnu"),
+    );
     const details = payload.details
       ? escapeHtml(payload.details.slice(0, 800))
       : null;
