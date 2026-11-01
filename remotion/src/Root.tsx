@@ -13,6 +13,11 @@ import { AdRentree, AD_RENTREE_DURATION } from './compositions/ad-rentree/AdRent
 import { AdPacteS1, AD_PACTE_S1_DURATION } from './compositions/ad-pacte-s1/AdPacteS1';
 import { AdMuse, AD_MUSE_DURATION } from './compositions/ad-muse/AdMuse';
 import { AdPacteS2, AD_PACTE_S2_DURATION } from './compositions/ad-pacte-s2/AdPacteS2';
+import { AdPacteS3, AD_PACTE_S3_DURATION } from './compositions/ad-pacte-s3/AdPacteS3';
+import { AdPacteS4, AD_PACTE_S4_DURATION } from './compositions/ad-pacte-s4/AdPacteS4';
+import { AdPacteS5, AD_PACTE_S5_DURATION } from './compositions/ad-pacte-s5/AdPacteS5';
+import { AdHalloween, AD_HALLOWEEN_DURATION } from './compositions/ad-halloween/AdHalloween';
+import { AdMuseGift, AD_MUSE_GIFT_DURATION } from './compositions/ad-muse-gift/AdMuseGift';
 import {
   ReadingSessionInput,
   BookFinishedInput,
@@ -133,30 +138,30 @@ const adStreak30Defaults: AdStreak30Input = {
   trimSweep: 0,
 };
 
-// ─── Ad Wrapped août 2026 — vraies stats d'Adrien (màj mensuelle) ──
+// ─── Ad Wrapped septembre 2026 — vraies stats d'Adrien (màj mensuelle) ──
 const adWrappedDefaults: AdWrappedInput = {
-  hookLine1: "Mon app m'a sorti mon bilan d'août…",
-  hookLine2: "c'est gênant 📉",
+  hookLine1: 'Mon bilan de septembre : 143 minutes…',
+  hookLine2: "c'est mieux qu'août 📈",
   wrapped: {
     format: 'story',
-    month: 8,
+    month: 9,
     year: 2026,
-    totalMinutes: 65,
-    sessions: 6,
-    avgSessionMinutes: 11,
-    booksFinished: 1,
+    totalMinutes: 143,
+    sessions: 11,
+    avgSessionMinutes: 13,
+    booksFinished: 2,
     booksInProgress: 3,
-    longestSessionMinutes: 14,
-    bestDayWeekday: 3,
+    longestSessionMinutes: 25,
+    bestDayWeekday: 7,
     longestFlow: 2,
     currentFlow: 2,
     topBook: {
-      title: "L'étrange défaite",
-      author: 'Marc Bloch',
-      totalMinutes: 31,
+      title: 'Pourquoi lire les classiques',
+      author: 'Italo Calvino',
+      totalMinutes: 52,
     },
-    vsLastMonthPercent: -76,
-    dailyMinutes: [0,9,0,11,14,0,0,0,13,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,12,7,0],
+    vsLastMonthPercent: 119,
+    dailyMinutes: [0,0,0,0,0,0,0,0,0,0,0,0,44,26,0,0,0,0,0,0,0,0,0,17,0,29,9,0,14,4],
     badges: [],
   },
 };
@@ -252,11 +257,66 @@ export const RemotionRoot: React.FC = () => {
         defaultProps={{}}
       />
 
+      {/* Pub TikTok — « Je laisse une IA choisir le livre cadeau de ma mère » (9:16, 17 s) */}
+      <Composition
+        id="AdMuseGift"
+        component={AdMuseGift}
+        durationInFrames={AD_MUSE_GIFT_DURATION}
+        fps={FPS}
+        width={1080}
+        height={1920}
+        defaultProps={{}}
+      />
+
       {/* Pub TikTok — « Pacte : la rédemption » (9:16, 15 s) */}
       <Composition
         id="AdPacteS2"
         component={AdPacteS2}
         durationInFrames={AD_PACTE_S2_DURATION}
+        fps={FPS}
+        width={1080}
+        height={1920}
+        defaultProps={{}}
+      />
+
+      {/* Pub TikTok — « Pacte : 7 soirs d'affilée, jour 3 » (9:16, 15 s) */}
+      <Composition
+        id="AdPacteS3"
+        component={AdPacteS3}
+        durationInFrames={AD_PACTE_S3_DURATION}
+        fps={FPS}
+        width={1080}
+        height={1920}
+        defaultProps={{}}
+      />
+
+      {/* Pub TikTok — « Pacte : verdict 7 sur 7 » (9:16, 15 s) */}
+      <Composition
+        id="AdPacteS4"
+        component={AdPacteS4}
+        durationInFrames={AD_PACTE_S4_DURATION}
+        fps={FPS}
+        width={1080}
+        height={1920}
+        defaultProps={{}}
+      />
+
+      {/* Pub TikTok — « Pacte : 14 jours » (9:16, 15 s) */}
+      <Composition
+        id="AdPacteS5"
+        component={AdPacteS5}
+        durationInFrames={AD_PACTE_S5_DURATION}
+        fps={FPS}
+        width={1080}
+        height={1920}
+        defaultProps={{}}
+      />
+
+      {/* Pub TikTok — « Halloween : Il était deux fois » (9:16, 15 s) */}
+      <Composition
+        id="AdHalloween"
+        component={AdHalloween}
+        durationInFrames={AD_HALLOWEEN_DURATION}
         fps={FPS}
         width={1080}
         height={1920}
