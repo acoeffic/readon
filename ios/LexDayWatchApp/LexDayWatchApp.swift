@@ -13,11 +13,16 @@ struct LexDayWatchApp: App {
     // Le manager WCSession doit vivre aussi longtemps que l'app : on le garde
     // en @StateObject pour qu'il survive aux re-render de la vue racine.
     @StateObject private var session = WatchSessionManager.shared
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .environmentObject(session)
+        }
+        // Retour au premier plan : on redemande l'état à l'iPhone.
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { session.requestSync() }
         }
     }
 }

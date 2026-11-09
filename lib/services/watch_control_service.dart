@@ -36,6 +36,15 @@ class WatchControlService {
   bool _handling = false;
   bool _started = false;
 
+  /// Dernière session active connue (alimentée par chaque lecture réseau).
+  /// Permet à pause / reprise / arrêt et au push d'état de répondre sans
+  /// attendre Supabase. `_activeKnown` distingue « aucune session » de
+  /// « pas encore lu ».
+  ReadingSession? _cachedActive;
+  bool _activeKnown = false;
+  bool _pushing = false;
+  bool _pushDirty = false;
+
   bool get _isIOS => defaultTargetPlatform == TargetPlatform.iOS;
 
   /// Indique si une Apple Watch appairée est disponible.
@@ -64,12 +73,20 @@ class WatchControlService {
     // Reflète sur la Watch les changements de session initiés depuis l'iPhone
     // (démarrage / fin / annulation / pause / reprise) sans polling lourd.
     ReadingSessionService.activeSessionsVersion.addListener(_onSessionsChanged);
-    ReadingSessionService.pauseStateVersion.addListener(_onSessionsChanged);
+    ReadingSessionService.pauseStateVersion.addListener(_onPauseChanged);
     // Pousse l'état initial pour que la Watch ne reste pas vide au démarrage.
     await pushState();
   }
 
-  void _onSessionsChanged() => pushState();
+  // Session créée / terminée / annulée : on relit l'état réel.
+  void _onSessionsChanged() {
+    _activeKnown = false;
+    pushState();
+  }
+
+  // Pause / reprise : seule la pause change, le cache de session suffit
+  // (pas d'aller-retour réseau).
+  void _onPauseChanged() => pushState();
 
   Future<dynamic> _onNativeCall(MethodCall call) async {
     if (call.method == 'commandReceived') {
@@ -80,7 +97,12 @@ class WatchControlService {
 
   /// Consomme immédiatement une éventuelle commande Watch en attente.
   /// Utile au retour au premier plan, avant d'inspecter l'état des sessions.
-  Future<void> pollNow() => _pollOnce();
+  /// Repousse aussi l'état à la Watch (stats du jour, session) : au retour au
+  /// premier plan, la Watch a pu rater un push pendant que l'app était suspendue.
+  Future<void> pollNow() async {
+    await _pollOnce();
+    await pushState();
+  }
 
   void stop() {
     _channel.setMethodCallHandler(null);
@@ -89,49 +111,114 @@ class WatchControlService {
     _started = false;
     ReadingSessionService.activeSessionsVersion
         .removeListener(_onSessionsChanged);
-    ReadingSessionService.pauseStateVersion.removeListener(_onSessionsChanged);
+    ReadingSessionService.pauseStateVersion.removeListener(_onPauseChanged);
   }
 
   // MARK: - iPhone → Watch
 
   /// Calcule l'état de session courant et le pousse vers la Watch.
   /// Le livre et les stats du jour sont lus côté natif dans l'App Group
-  /// (déjà alimenté par [WidgetService]).
+  /// (déjà alimenté par [WidgetService]). Les appels rapprochés sont
+  /// coalescés : un seul push en vol, rejoué une fois si besoin.
   Future<void> pushState() async {
     if (!_isIOS) return;
+    if (_pushing) {
+      _pushDirty = true;
+      return;
+    }
+    _pushing = true;
     try {
-      final active = await _sessions.getAllActiveSessions();
-      bool isReading = active.isNotEmpty;
-      bool isPaused = false;
-      String sessionId = '';
-
-      if (isReading) {
-        sessionId = active.first.id;
-        isPaused = (await SessionPauseService().getPausedAt()) != null;
-      }
-
-      await _channel.invokeMethod('pushState', {
-        'isReading': isReading,
-        'isPaused': isPaused,
-        'sessionId': sessionId,
-      });
+      do {
+        _pushDirty = false;
+        final session = await _activeSession();
+        final isReading = session != null;
+        final isPaused =
+            isReading && (await SessionPauseService().getPausedAt()) != null;
+        await _sendState(
+          isReading: isReading,
+          isPaused: isPaused,
+          sessionId: session?.id ?? '',
+        );
+      } while (_pushDirty);
     } catch (e) {
       debugPrint('WatchControl.pushState error: $e');
+    } finally {
+      _pushing = false;
     }
+  }
+
+  Future<void> _sendState({
+    required bool isReading,
+    required bool isPaused,
+    required String sessionId,
+  }) {
+    return _channel.invokeMethod('pushState', {
+      'isReading': isReading,
+      'isPaused': isPaused,
+      'sessionId': sessionId,
+    });
+  }
+
+  /// Session active : cache si connu, sinon lecture réseau (qui remplit le cache).
+  Future<ReadingSession?> _activeSession() async {
+    if (_activeKnown) return _cachedActive;
+    final active = await _sessions.getAllActiveSessions();
+    _cachedActive = active.isEmpty ? null : active.first;
+    _activeKnown = true;
+    return _cachedActive;
+  }
+
+  /// Réponse immédiate à la Watch AVANT tout travail réseau : on pousse l'état
+  /// attendu après la commande (la Watch l'a déjà en optimiste ; ça évite
+  /// qu'un push périmé la fasse revenir en arrière). L'état réel suit.
+  Future<void> _pushOptimistic(String command) async {
+    try {
+      final session = _activeKnown ? _cachedActive : null;
+      switch (command) {
+        case 'start':
+          await _sendState(
+              isReading: true, isPaused: false, sessionId: session?.id ?? '');
+          break;
+        case 'pause':
+          await _sendState(
+              isReading: true, isPaused: true, sessionId: session?.id ?? '');
+          break;
+        case 'resume':
+          await _sendState(
+              isReading: true, isPaused: false, sessionId: session?.id ?? '');
+          break;
+        case 'stop':
+          await _sendState(isReading: false, isPaused: false, sessionId: '');
+          break;
+      }
+    } catch (_) {}
   }
 
   // MARK: - Watch → iPhone (polling des commandes)
 
+  bool _repoll = false;
+
+  /// Dépile toutes les commandes en attente (la file native peut en contenir
+  /// plusieurs). Si un appel arrive pendant un traitement, on re-vide ensuite
+  /// au lieu de l'ignorer.
   Future<void> _pollOnce() async {
-    if (_handling) return;
+    if (_handling) {
+      _repoll = true;
+      return;
+    }
+    _handling = true;
     try {
-      final res =
-          await _channel.invokeMapMethod<String, dynamic>('pollCommand');
-      if (res == null) return;
-      final command = res['command'] as String?;
-      if (command == null) return;
-      _handling = true;
-      await _dispatch(command);
+      do {
+        _repoll = false;
+        while (true) {
+          final res =
+              await _channel.invokeMapMethod<String, dynamic>('pollCommand');
+          if (res == null) break;
+          final command = res['command'] as String?;
+          if (command == null) break;
+          await _dispatch(command);
+        }
+      } while (_repoll);
     } catch (e) {
       debugPrint('WatchControl.poll error: $e');
     } finally {
@@ -140,6 +227,7 @@ class WatchControlService {
   }
 
   Future<void> _dispatch(String command) async {
+    unawaited(_pushOptimistic(command));
     switch (command) {
       case 'start':
         await _handleStart();
@@ -156,14 +244,14 @@ class WatchControlService {
       default:
         debugPrint('WatchControl: commande inconnue "$command"');
     }
-    // Reflète le nouvel état sur la Watch après chaque action.
+    // Reflète l'état réel sur la Watch une fois l'action terminée.
     await pushState();
   }
 
   /// Lance une session pour le livre en cours, à sa dernière page connue.
   Future<void> _handleStart() async {
-    final active = await _sessions.getAllActiveSessions();
-    if (active.isNotEmpty) return; // déjà une session en cours
+    final existing = await _activeSession();
+    if (existing != null) return; // déjà une session en cours
 
     final data = await _books.getCurrentReadingBook();
     if (data == null) return; // aucun livre en cours
@@ -177,6 +265,7 @@ class WatchControlService {
         bookId: book.id.toString(),
         manualPageNumber: startPage,
       );
+      _activeKnown = false; // relu au prochain push
     } catch (e) {
       debugPrint('WatchControl.start error: $e');
     }
@@ -221,6 +310,8 @@ class WatchControlService {
         sessionId: session.id,
         manualPageNumber: endPage,
       );
+      _cachedActive = null;
+      _activeKnown = true;
       await WatchSessionDraftService().save(WatchSessionDraft(
         sessionId: ended.id,
         startPage: ended.startPage,
@@ -233,8 +324,5 @@ class WatchControlService {
     }
   }
 
-  Future<ReadingSession?> _firstActiveSession() async {
-    final active = await _sessions.getAllActiveSessions();
-    return active.isEmpty ? null : active.first;
-  }
+  Future<ReadingSession?> _firstActiveSession() => _activeSession();
 }
