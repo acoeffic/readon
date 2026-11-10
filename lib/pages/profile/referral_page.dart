@@ -1,18 +1,21 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../l10n/app_localizations.dart';
+import '../../services/analytics_service.dart';
 import '../../services/referral_service.dart';
 import '../../widgets/constrained_content.dart';
 
 /// Écran de parrainage : l'utilisateur voit son code, le partage, suit ses
 /// filleuls, et peut saisir un code s'il a été invité.
-///
-/// NOTE i18n : les chaînes sont ici en dur pour rester compilable sans
-/// régénérer gen-l10n. À déplacer vers AppLocalizations (app_fr/en/es.arb)
-/// puis `flutter gen-l10n`.
 class ReferralPage extends StatefulWidget {
-  const ReferralPage({super.key});
+  /// D'où l'écran est ouvert (analytics) : settings | profile_header | …
+  final String source;
+
+  const ReferralPage({super.key, this.source = 'settings'});
 
   @override
   State<ReferralPage> createState() => _ReferralPageState();
@@ -32,6 +35,10 @@ class _ReferralPageState extends State<ReferralPage> {
   @override
   void initState() {
     super.initState();
+    unawaited(AnalyticsService().track(
+      AnalyticsEvent.referralPageOpened,
+      properties: {'source': widget.source},
+    ));
     _load();
   }
 
@@ -62,26 +69,31 @@ class _ReferralPageState extends State<ReferralPage> {
 
   Future<void> _share() async {
     if (_shareLink == null) return;
+    final l = AppLocalizations.of(context);
+    unawaited(AnalyticsService().track(
+      AnalyticsEvent.referralShareTapped,
+      properties: {'source': 'referral_page'},
+    ));
     await Share.share(
-      'Rejoins-moi sur LexDay 📚 On gagne tous les deux 14 jours de premium '
-      'quand tu commences à lire !\n$_shareLink',
-      subject: 'Rejoins-moi sur LexDay',
+      l.referralPromptShareText(_shareLink!),
+      subject: l.referralPageShareSubject,
     );
   }
 
   void _copyCode() {
     if (_myCode == null) return;
     Clipboard.setData(ClipboardData(text: _myCode!));
-    _snack('Code copié !');
+    _snack(AppLocalizations.of(context).referralPageCopied);
   }
 
   /// Colle le contenu du presse-papier dans le champ, s'il ressemble à un
   /// code de parrainage. Déclenché uniquement par un tap de l'utilisateur.
   Future<void> _pasteCode() async {
     final data = await Clipboard.getData(Clipboard.kTextPlain);
+    if (!mounted) return;
     final text = (data?.text ?? '').trim().toUpperCase();
     if (!RegExp(r'^[A-Z0-9]{4,16}$').hasMatch(text)) {
-      _snack('Aucun code valide dans le presse-papier');
+      _snack(AppLocalizations.of(context).referralPageNoClipboardCode);
       return;
     }
     setState(() => _codeController.text = text);
@@ -94,6 +106,10 @@ class _ReferralPageState extends State<ReferralPage> {
     final result = await _service.applyCode(code);
     if (!mounted) return;
     setState(() => _applying = false);
+    unawaited(AnalyticsService().track(
+      AnalyticsEvent.referralCodeApplied,
+      properties: {'result': result.name, 'source': 'referral_page'},
+    ));
     _snack(_messageFor(result));
     if (result == ApplyReferralResult.success) {
       _codeController.clear();
@@ -101,19 +117,20 @@ class _ReferralPageState extends State<ReferralPage> {
   }
 
   String _messageFor(ApplyReferralResult r) {
+    final l = AppLocalizations.of(context);
     switch (r) {
       case ApplyReferralResult.success:
-        return 'Code appliqué ! Commence à lire pour débloquer vos 14 jours de premium.';
+        return l.referralPageApplied;
       case ApplyReferralResult.invalidCode:
-        return 'Ce code n\'existe pas.';
+        return l.referralPageInvalidCode;
       case ApplyReferralResult.selfReferral:
-        return 'Tu ne peux pas utiliser ton propre code.';
+        return l.referralPageSelfReferral;
       case ApplyReferralResult.alreadyReferred:
-        return 'Tu as déjà utilisé un code de parrainage.';
+        return l.referralPageAlreadyReferred;
       case ApplyReferralResult.notEligible:
-        return 'Le parrainage est réservé aux nouveaux comptes.';
+        return l.referralPageNotEligible;
       case ApplyReferralResult.error:
-        return 'Une erreur est survenue. Réessaie.';
+        return l.referralPageError;
     }
   }
 
@@ -127,8 +144,9 @@ class _ReferralPageState extends State<ReferralPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Parrainage')),
+      appBar: AppBar(title: Text(l.referralSection)),
       body: ConstrainedContent(
         child: _loading
             ? const Center(child: CircularProgressIndicator())
@@ -138,14 +156,13 @@ class _ReferralPageState extends State<ReferralPage> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Text(
-                      'Invite un ami, gagnez tous les deux 14 jours de premium',
+                      l.referralPageHeadline,
                       style: theme.textTheme.titleLarge
                           ?.copyWith(fontWeight: FontWeight.w700),
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Partage ton code. Dès que ton ami commence à lire, '
-                      'vous recevez chacun 14 jours de premium.',
+                      l.referralPageSubtitle,
                       style: theme.textTheme.bodyMedium
                           ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                     ),
@@ -162,7 +179,7 @@ class _ReferralPageState extends State<ReferralPage> {
                       child: Column(
                         children: [
                           Text(
-                            'Ton code',
+                            l.referralPageYourCode,
                             style: theme.textTheme.labelMedium?.copyWith(
                               color: theme.colorScheme.onPrimaryContainer
                                   .withValues(alpha: 0.7),
@@ -184,7 +201,7 @@ class _ReferralPageState extends State<ReferralPage> {
                           TextButton.icon(
                             onPressed: _copyCode,
                             icon: const Icon(Icons.copy, size: 16),
-                            label: const Text('Copier'),
+                            label: Text(l.referralPageCopy),
                           ),
                         ],
                       ),
@@ -194,9 +211,9 @@ class _ReferralPageState extends State<ReferralPage> {
                     FilledButton.icon(
                       onPressed: _shareLink == null ? null : _share,
                       icon: const Icon(Icons.share),
-                      label: const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 6),
-                        child: Text('Partager mon lien'),
+                      label: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 6),
+                        child: Text(l.referralPageShareButton),
                       ),
                     ),
                     const SizedBox(height: 24),
@@ -207,23 +224,25 @@ class _ReferralPageState extends State<ReferralPage> {
                         Expanded(
                           child: _StatCard(
                             value: '$_total',
-                            label: 'Amis invités',
+                            label: l.referralPageInvited,
                           ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: _StatCard(
                             value: '$_rewarded',
-                            label: 'Récompenses',
+                            label: l.referralPageRewards,
                           ),
                         ),
                       ],
                     ),
+                    const SizedBox(height: 16),
+                    _MilestoneProgress(rewarded: _rewarded),
                     const SizedBox(height: 32),
 
                     // Saisie d'un code reçu
                     Text(
-                      'Tu as un code ?',
+                      l.referralPageHaveCode,
                       style: theme.textTheme.titleMedium
                           ?.copyWith(fontWeight: FontWeight.w600),
                     ),
@@ -248,7 +267,7 @@ class _ReferralPageState extends State<ReferralPage> {
                         // sur action explicite — un accès silencieux
                         // déclencherait l'alerte système « a collé depuis ».
                         IconButton(
-                          tooltip: 'Coller le code',
+                          tooltip: l.referralPagePasteTooltip,
                           icon: const Icon(Icons.content_paste_rounded),
                           onPressed: _applying ? null : _pasteCode,
                         ),
@@ -262,7 +281,7 @@ class _ReferralPageState extends State<ReferralPage> {
                                   child: CircularProgressIndicator(
                                       strokeWidth: 2),
                                 )
-                              : const Text('Valider'),
+                              : Text(l.referralPageValidate),
                         ),
                       ],
                     ),
@@ -297,6 +316,96 @@ class _StatCard extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(label, style: theme.textTheme.bodySmall),
+        ],
+      ),
+    );
+  }
+}
+
+/// Paliers de récompense du parrain. Doivent rester alignés sur l'Edge
+/// Function `grant-referral-reward` (3e filleul récompensé : +30 j, 5e : +90 j).
+const List<int> kReferralMilestones = [3, 5];
+
+/// Barre de progression vers le prochain palier. Un filleul n'est compté
+/// qu'une fois « récompensé », c'est-à-dire après sa première session de
+/// lecture terminée : on le dit, pour que personne ne croie à un bug.
+class _MilestoneProgress extends StatelessWidget {
+  final int rewarded;
+  const _MilestoneProgress({required this.rewarded});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l = AppLocalizations.of(context);
+
+    int? target;
+    for (final m in kReferralMilestones) {
+      if (rewarded < m) {
+        target = m;
+        break;
+      }
+    }
+
+    final decoration = BoxDecoration(
+      color: theme.colorScheme.surfaceContainerHighest,
+      borderRadius: BorderRadius.circular(14),
+    );
+
+    if (target == null) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: decoration,
+        child: Text(l.referralProgressDone, style: theme.textTheme.bodyMedium),
+      );
+    }
+
+    final reward = target == 3 ? l.referralReward3 : l.referralReward5;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: decoration,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  l.referralProgressTitle(target),
+                  style: theme.textTheme.titleSmall
+                      ?.copyWith(fontWeight: FontWeight.w700),
+                ),
+              ),
+              Text(
+                '$rewarded/$target',
+                style: theme.textTheme.titleSmall
+                    ?.copyWith(fontWeight: FontWeight.w800),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: LinearProgressIndicator(
+              value: (rewarded / target).clamp(0.0, 1.0),
+              minHeight: 10,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            reward,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+              color: theme.colorScheme.primary,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            l.referralProgressHint,
+            style: theme.textTheme.bodySmall
+                ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+          ),
         ],
       ),
     );

@@ -43,6 +43,7 @@
     text-decoration: none;
   }
   img.logo { width: 48px; height: 48px; border-radius: 10px; }
+  img.avatar { display: none; width: 64px; height: 64px; border-radius: 50%; object-fit: cover; }
   #ref { display: none; margin-top: 24px; }
   #ref .code {
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -72,9 +73,10 @@
 </head>
 <body>
 <div class="card">
-  <img class="logo" src="https://nzbhmshkcwudzydeahrq.supabase.co/storage/v1/object/public/asset/email/logo.png" alt="LexDay">
-  <h1>Ouverture de LexDay…</h1>
-  <p>Si l'application ne s'ouvre pas automatiquement, appuie sur le bouton ci-dessous.</p>
+  <img class="logo" id="logo" src="https://nzbhmshkcwudzydeahrq.supabase.co/storage/v1/object/public/asset/email/logo.png" alt="LexDay">
+  <img class="avatar" id="avatar" alt="" referrerpolicy="no-referrer">
+  <h1 id="title">Ouverture de LexDay…</h1>
+  <p id="subtitle">Si l'application ne s'ouvre pas automatiquement, appuie sur le bouton ci-dessous.</p>
   <a id="open" class="btn" href="#">Ouvrir LexDay</a>
   <a id="store" class="store" href="#" hidden>Télécharger l'application</a>
 
@@ -179,6 +181,47 @@
         document.body.removeChild(t);
       }
     });
+  }
+
+  // Personnalisation : « Adrien t'invite sur LexDay ». Prénom + avatar viennent
+  // de la RPC publique get_referrer_preview (limitée au prénom et à l'avatar
+  // modérés, null pour un profil privé). Best-effort : en cas d'échec ou de
+  // délai, la page garde son texte générique. Tout passe par textContent / un
+  // src https : jamais d'innerHTML avec une valeur distante.
+  if (query) {
+    var SB = 'https://nzbhmshkcwudzydeahrq.supabase.co';
+    var ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im56Ymhtc2hrY3d1ZHp5ZGVhaHJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE1NTk0NDksImV4cCI6MjA3NzEzNTQ0OX0.oE5vXlZjT89q13wpj1y_B_OwZ_rQd2VNKC0OgEuRGwM';
+    var ctrl = window.AbortController ? new AbortController() : null;
+    var timer = ctrl ? setTimeout(function () { ctrl.abort(); }, 3000) : null;
+    fetch(SB + '/rest/v1/rpc/get_referrer_preview', {
+      method: 'POST',
+      headers: { 'apikey': ANON, 'Authorization': 'Bearer ' + ANON, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ p_code: code }),
+      signal: ctrl ? ctrl.signal : undefined
+    })
+      .then(function (res) { return res.ok ? res.json() : []; })
+      .then(function (rows) {
+        var row = rows && rows[0];
+        if (!row) return;
+        // Un prénom, pas un pseudo : lettres uniquement (« abdoulbah0010 t'invite »
+        // ferait louche). Sinon on reste sur le texte générique.
+        var name = row.first_name || '';
+        if (/^[A-Za-zÀ-ÖØ-öø-ÿ'’-]{2,20}$/.test(name)) {
+          document.getElementById('title').textContent = name + " t'invite sur LexDay";
+          document.getElementById('subtitle').textContent =
+            'Dès que tu commences à lire, vous gagnez chacun 14 jours de premium.';
+        }
+        if (row.avatar_url && /^https:\/\//.test(row.avatar_url)) {
+          var av = document.getElementById('avatar');
+          av.onload = function () {
+            av.style.display = 'inline-block';
+            document.getElementById('logo').style.display = 'none';
+          };
+          av.src = row.avatar_url;
+        }
+      })
+      .catch(function () {})
+      .then(function () { if (timer) clearTimeout(timer); });
   }
 
   // Tentative automatique. Sur iOS/desktop un échec est silencieux (le

@@ -161,6 +161,10 @@ class DeepLinkService {
     }
   }
 
+  /// Point d'entrée statique pour les appelants hors scheme (ex. tap sur une
+  /// notification locale) : même mécanique que les liens profonds.
+  static void openRoute(String route) => DeepLinkService()._routeTo(route);
+
   /// Navigue vers une route interne si MainNavigation est monté, sinon la
   /// met en attente pour qu'il la consomme après son montage (cold start).
   void _routeTo(String route) {
