@@ -88,6 +88,30 @@ abstract final class AnalyticsEvent {
   /// le ratio dit si le lecteur surligne encore ou si on re-crawle du stock.
   static const kindleHighlightsSynced = 'kindle_highlights_synced';
 
+  /// Bilan de la tâche Kindle d'arrière-plan depuis la dernière ouverture de
+  /// l'app (l'isolate headless ne peut pas appeler PostHog : il journalise en
+  /// SharedPreferences, et le premier plan envoie ce bilan). Une propriété par
+  /// statut (ok, session_expired, layout_suspect, error, skipped_session,
+  /// skipped_no_cookies) = nombre d'exécutions ; `runs`, `last_status`,
+  /// `window_hours`. `skipped_session` élevé = JWT Supabase expiré en fond.
+  static const kindleBackgroundSync = 'kindle_background_sync';
+
+  // ── Connexion Kindle (entonnoir) ──
+  //
+  // La connexion se fait dans une WebView Amazon : formulaire, parfois
+  // vérification (code, captcha). Chaque event porte `source` (settings,
+  // onboarding, post_session_sheet, expired_banner) et `elapsed_s`.
+  // started → step(signin_shown → authenticated → library_extracted →
+  // [review_shown] → importing) → succeeded. Un `step` challenge_* signale une
+  // page de vérification Amazon traversée ; `failed` porte `reason` ;
+  // `abandoned` (page fermée sans issue) porte `last_step` : c'est là que se
+  // lit l'endroit où les gens partent.
+  static const kindleConnectStarted = 'kindle_connect_started';
+  static const kindleConnectStep = 'kindle_connect_step';
+  static const kindleConnectSucceeded = 'kindle_connect_succeeded';
+  static const kindleConnectFailed = 'kindle_connect_failed';
+  static const kindleConnectAbandoned = 'kindle_connect_abandoned';
+
   // ── Social ──
   static const friendRequestSent = 'friend_request_sent';
   static const friendRequestAccepted = 'friend_request_accepted';
@@ -132,6 +156,22 @@ abstract final class AnalyticsEvent {
   static const friendChallengeOfferShown = 'friend_challenge_offer_shown';
   static const friendChallengeShared = 'friend_challenge_shared';
   static const friendChallengeDismissed = 'friend_challenge_dismissed';
+
+  // ── Parrainage ──
+  //
+  // Entonnoir : prompt_shown (property `source` : book_finished | streak_7 |
+  // streak_14 | streak_30) → share_tapped (`source` : le même, ou
+  // referral_page) → code_applied (`result` : success | invalid_code | …).
+  // page_opened porte `source` (profile_header | settings | prompt). Permet de
+  // lire quel déclencheur amène réellement des invitations.
+  static const referralPromptShown = 'referral_prompt_shown';
+  static const referralPromptDismissed = 'referral_prompt_dismissed';
+  static const referralShareTapped = 'referral_share_tapped';
+  // Bandeau « Commence ta première session » du feed (inscrits sans session).
+  static const firstSessionBannerShown = 'first_session_banner_shown';
+  static const firstSessionBannerTapped = 'first_session_banner_tapped';
+  static const referralPageOpened = 'referral_page_opened';
+  static const referralCodeApplied = 'referral_code_applied';
   static const pushOpened = 'push_opened';
 
   // ── Monétisation ──

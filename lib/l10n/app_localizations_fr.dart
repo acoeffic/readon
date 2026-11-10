@@ -2345,6 +2345,29 @@ class AppLocalizationsFr extends AppLocalizations {
   String get museGiftChip => '🎁 Un livre à offrir';
 
   @override
+  String get museFollowLessKnown => 'Des pistes moins connues';
+
+  @override
+  String get museFollowShorter => 'Plus court, moins de 250 pages';
+
+  @override
+  String get museFollowSameAuthor => 'Un autre livre du même auteur';
+
+  @override
+  String museStarterAfterReading(String title) {
+    return 'Je lis « $title », que lire ensuite ?';
+  }
+
+  @override
+  String museStarterLikeFinished(String title) {
+    return 'Quelque chose dans l\'esprit de « $title »';
+  }
+
+  @override
+  String get recoLimitedHint =>
+      'Tes recommandations IA gratuites du mois sont épuisées : voici les dernières générées.';
+
+  @override
   String get museGiftPrefill => 'Quel livre pourrais-je offrir à ';
 
   @override
@@ -4968,6 +4991,119 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String referralSmsText(String link) {
+    return 'Rejoins-moi sur LexDay pour suivre nos lectures ensemble ! On gagne tous les deux 14 jours de premium : $link';
+  }
+
+  @override
+  String referralProgressTitle(int target) {
+    return 'Prochain palier : $target amis';
+  }
+
+  @override
+  String get referralReward3 => '+1 mois de premium offert';
+
+  @override
+  String get referralReward5 => '+3 mois de premium offerts';
+
+  @override
+  String get referralProgressHint => 'Un ami compte dès qu\'il a terminé sa première session de lecture.';
+
+  @override
+  String get referralProgressDone => 'Tous les paliers sont atteints. Merci de faire grandir LexDay 🎉';
+
+  @override
+  String get referralPageHeadline =>
+      'Invite un ami, gagnez tous les deux 14 jours de premium';
+
+  @override
+  String get referralPageSubtitle =>
+      'Partage ton code. Dès que ton ami commence à lire, vous recevez chacun 14 jours de premium.';
+
+  @override
+  String get referralPageYourCode => 'Ton code';
+
+  @override
+  String get referralPageCopy => 'Copier';
+
+  @override
+  String get referralPageCopied => 'Code copié !';
+
+  @override
+  String get referralPageShareButton => 'Partager mon lien';
+
+  @override
+  String get referralPageShareSubject => 'Rejoins-moi sur LexDay';
+
+  @override
+  String get referralPageInvited => 'Amis invités';
+
+  @override
+  String get referralPageRewards => 'Récompenses';
+
+  @override
+  String get referralPageHaveCode => 'Tu as un code ?';
+
+  @override
+  String get referralPagePasteTooltip => 'Coller le code';
+
+  @override
+  String get referralPageValidate => 'Valider';
+
+  @override
+  String get referralPageNoClipboardCode =>
+      'Aucun code valide dans le presse-papier';
+
+  @override
+  String get referralPageApplied =>
+      'Code appliqué ! Commence à lire pour débloquer vos 14 jours de premium.';
+
+  @override
+  String get referralPageInvalidCode => 'Ce code n\'existe pas.';
+
+  @override
+  String get referralPageSelfReferral =>
+      'Tu ne peux pas utiliser ton propre code.';
+
+  @override
+  String get referralPageAlreadyReferred =>
+      'Tu as déjà utilisé un code de parrainage.';
+
+  @override
+  String get referralPageNotEligible =>
+      'Le parrainage est réservé aux nouveaux comptes.';
+
+  @override
+  String get referralPageError => 'Une erreur est survenue. Réessaie.';
+
+  @override
+  String get referralPromptBookTitle => 'Un bon livre se partage';
+
+  @override
+  String get referralPromptBookBody =>
+      'Invite un ami à lire avec toi : vous gagnez chacun 14 jours de premium dès qu\'il commence à lire.';
+
+  @override
+  String referralPromptStreakTitle(int days) {
+    return '$days jours de lecture d\'affilée 🔥';
+  }
+
+  @override
+  String get referralPromptStreakBody =>
+      'C\'est plus facile de tenir à deux. Invite un ami : vous gagnez chacun 14 jours de premium dès qu\'il commence à lire.';
+
+  @override
+  String get referralPromptCta => 'Inviter un ami';
+
+  @override
+  String referralPromptShareText(String link) {
+    return '📚 Je suis mes lectures avec LexDay. Rejoins-moi : on gagne tous les deux 14 jours de premium quand tu commences à lire !\n$link';
+  }
+
+  @override
+  String get referralInviteTooltip => 'Inviter un ami';
+
+  @override
   String get ffTitleAdvancedReactions => 'Réactions avancées';
 
   @override
@@ -5109,5 +5245,28 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String priceSlashMonth(String price) {
     return '$price/mois';
+  }
+
+  @override
+  String get listSuggestionSummer => 'À lire cet été';
+
+  @override
+  String get listSuggestionFavorites => 'Coups de cœur';
+
+  @override
+  String get listSuggestionClassics => 'Mes classiques';
+
+  @override
+  String get listSuggestionGifts => 'Idées cadeaux';
+
+  @override
+  String get customizeList => 'Personnaliser';
+
+  @override
+  String get createListAddBooks => 'Créer et ajouter des livres';
+
+  @override
+  String addSelectionCount(int count) {
+    return 'Ajouter ($count)';
   }
 }

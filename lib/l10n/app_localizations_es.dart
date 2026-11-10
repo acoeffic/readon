@@ -2339,6 +2339,29 @@ class AppLocalizationsEs extends AppLocalizations {
   String get museGiftChip => '🎁 Un libro para regalar';
 
   @override
+  String get museFollowLessKnown => 'Opciones menos conocidas';
+
+  @override
+  String get museFollowShorter => 'Más corto, menos de 250 páginas';
+
+  @override
+  String get museFollowSameAuthor => 'Otro libro del mismo autor';
+
+  @override
+  String museStarterAfterReading(String title) {
+    return 'Estoy leyendo «$title», ¿qué leo después?';
+  }
+
+  @override
+  String museStarterLikeFinished(String title) {
+    return 'Algo en el espíritu de «$title»';
+  }
+
+  @override
+  String get recoLimitedHint =>
+      'Tus recomendaciones de IA gratuitas de este mes se han agotado: estas son las últimas.';
+
+  @override
   String get museGiftPrefill => '¿Qué libro podría regalarle a ';
 
   @override
@@ -4957,6 +4980,118 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
+  String referralSmsText(String link) {
+    return '¡Únete a mí en LexDay para seguir nuestras lecturas juntos! Ambos ganamos 14 días de premium: $link';
+  }
+
+  @override
+  String referralProgressTitle(int target) {
+    return 'Próximo hito: $target amigos';
+  }
+
+  @override
+  String get referralReward3 => '+1 mes de premium gratis';
+
+  @override
+  String get referralReward5 => '+3 meses de premium gratis';
+
+  @override
+  String get referralProgressHint => 'Un amigo cuenta en cuanto termina su primera sesión de lectura.';
+
+  @override
+  String get referralProgressDone => 'Has alcanzado todos los hitos. ¡Gracias por ayudar a crecer a LexDay! 🎉';
+
+  @override
+  String get referralPageHeadline =>
+      'Invita a un amigo, ambos ganáis 14 días de premium';
+
+  @override
+  String get referralPageSubtitle =>
+      'Comparte tu código. En cuanto tu amigo empiece a leer, ambos recibís 14 días de premium.';
+
+  @override
+  String get referralPageYourCode => 'Tu código';
+
+  @override
+  String get referralPageCopy => 'Copiar';
+
+  @override
+  String get referralPageCopied => '¡Código copiado!';
+
+  @override
+  String get referralPageShareButton => 'Compartir mi enlace';
+
+  @override
+  String get referralPageShareSubject => 'Únete a mí en LexDay';
+
+  @override
+  String get referralPageInvited => 'Amigos invitados';
+
+  @override
+  String get referralPageRewards => 'Recompensas';
+
+  @override
+  String get referralPageHaveCode => '¿Tienes un código?';
+
+  @override
+  String get referralPagePasteTooltip => 'Pegar código';
+
+  @override
+  String get referralPageValidate => 'Aplicar';
+
+  @override
+  String get referralPageNoClipboardCode =>
+      'No hay ningún código válido en el portapapeles';
+
+  @override
+  String get referralPageApplied =>
+      '¡Código aplicado! Empieza a leer para desbloquear vuestros 14 días de premium.';
+
+  @override
+  String get referralPageInvalidCode => 'Este código no existe.';
+
+  @override
+  String get referralPageSelfReferral => 'No puedes usar tu propio código.';
+
+  @override
+  String get referralPageAlreadyReferred =>
+      'Ya has usado un código de invitación.';
+
+  @override
+  String get referralPageNotEligible =>
+      'Las invitaciones son solo para cuentas nuevas.';
+
+  @override
+  String get referralPageError => 'Ha ocurrido un error. Inténtalo de nuevo.';
+
+  @override
+  String get referralPromptBookTitle => 'Un buen libro se comparte';
+
+  @override
+  String get referralPromptBookBody =>
+      'Invita a un amigo a leer contigo: ambos ganáis 14 días de premium en cuanto empiece a leer.';
+
+  @override
+  String referralPromptStreakTitle(int days) {
+    return '$days días seguidos leyendo 🔥';
+  }
+
+  @override
+  String get referralPromptStreakBody =>
+      'Es más fácil seguir juntos. Invita a un amigo: ambos ganáis 14 días de premium en cuanto empiece a leer.';
+
+  @override
+  String get referralPromptCta => 'Invitar a un amigo';
+
+  @override
+  String referralPromptShareText(String link) {
+    return '📚 Sigo mis lecturas con LexDay. Únete: ¡ambos ganamos 14 días de premium cuando empieces a leer!\n$link';
+  }
+
+  @override
+  String get referralInviteTooltip => 'Invitar a un amigo';
+
+  @override
   String get ffTitleAdvancedReactions => 'Reacciones avanzadas';
 
   @override
@@ -5097,5 +5232,28 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String priceSlashMonth(String price) {
     return '$price/mes';
+  }
+
+  @override
+  String get listSuggestionSummer => 'Para leer este verano';
+
+  @override
+  String get listSuggestionFavorites => 'Favoritos';
+
+  @override
+  String get listSuggestionClassics => 'Mis clásicos';
+
+  @override
+  String get listSuggestionGifts => 'Ideas de regalo';
+
+  @override
+  String get customizeList => 'Personalizar';
+
+  @override
+  String get createListAddBooks => 'Crear y añadir libros';
+
+  @override
+  String addSelectionCount(int count) {
+    return 'Añadir ($count)';
   }
 }

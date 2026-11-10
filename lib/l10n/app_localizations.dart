@@ -4240,6 +4240,42 @@ abstract class AppLocalizations {
   /// **'🎁 Un livre à offrir'**
   String get museGiftChip;
 
+  /// No description provided for @museFollowLessKnown.
+  ///
+  /// In fr, this message translates to:
+  /// **'Des pistes moins connues'**
+  String get museFollowLessKnown;
+
+  /// No description provided for @museFollowShorter.
+  ///
+  /// In fr, this message translates to:
+  /// **'Plus court, moins de 250 pages'**
+  String get museFollowShorter;
+
+  /// No description provided for @museFollowSameAuthor.
+  ///
+  /// In fr, this message translates to:
+  /// **'Un autre livre du même auteur'**
+  String get museFollowSameAuthor;
+
+  /// No description provided for @museStarterAfterReading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Je lis « {title} », que lire ensuite ?'**
+  String museStarterAfterReading(String title);
+
+  /// No description provided for @museStarterLikeFinished.
+  ///
+  /// In fr, this message translates to:
+  /// **'Quelque chose dans l\'esprit de « {title} »'**
+  String museStarterLikeFinished(String title);
+
+  /// No description provided for @recoLimitedHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tes recommandations IA gratuites du mois sont épuisées : voici les dernières générées.'**
+  String get recoLimitedHint;
+
   /// No description provided for @museGiftPrefill.
   ///
   /// In fr, this message translates to:
@@ -8794,6 +8830,198 @@ abstract class AppLocalizations {
   /// **'📚 Défi : on lit 10 minutes par jour pendant 7 jours ?\n\nJe suis sur LexDay pour suivre ma lecture, rejoins-moi et on se motive !\n{link}'**
   String friendChallengeShareText(String link);
 
+  /// No description provided for @referralSmsText.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rejoins-moi sur LexDay pour suivre nos lectures ensemble ! On gagne tous les deux 14 jours de premium : {link}'**
+  String referralSmsText(String link);
+
+  /// No description provided for @referralProgressTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Prochain palier : {target} amis'**
+  String referralProgressTitle(int target);
+
+  /// No description provided for @referralReward3.
+  ///
+  /// In fr, this message translates to:
+  /// **'+1 mois de premium offert'**
+  String get referralReward3;
+
+  /// No description provided for @referralReward5.
+  ///
+  /// In fr, this message translates to:
+  /// **'+3 mois de premium offerts'**
+  String get referralReward5;
+
+  /// No description provided for @referralProgressHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Un ami compte dès qu'il a terminé sa première session de lecture.'**
+  String get referralProgressHint;
+
+  /// No description provided for @referralProgressDone.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tous les paliers sont atteints. Merci de faire grandir LexDay 🎉'**
+  String get referralProgressDone;
+
+  /// No description provided for @referralPageHeadline.
+  ///
+  /// In fr, this message translates to:
+  /// **'Invite un ami, gagnez tous les deux 14 jours de premium'**
+  String get referralPageHeadline;
+
+  /// No description provided for @referralPageSubtitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Partage ton code. Dès que ton ami commence à lire, vous recevez chacun 14 jours de premium.'**
+  String get referralPageSubtitle;
+
+  /// No description provided for @referralPageYourCode.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ton code'**
+  String get referralPageYourCode;
+
+  /// No description provided for @referralPageCopy.
+  ///
+  /// In fr, this message translates to:
+  /// **'Copier'**
+  String get referralPageCopy;
+
+  /// No description provided for @referralPageCopied.
+  ///
+  /// In fr, this message translates to:
+  /// **'Code copié !'**
+  String get referralPageCopied;
+
+  /// No description provided for @referralPageShareButton.
+  ///
+  /// In fr, this message translates to:
+  /// **'Partager mon lien'**
+  String get referralPageShareButton;
+
+  /// No description provided for @referralPageShareSubject.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rejoins-moi sur LexDay'**
+  String get referralPageShareSubject;
+
+  /// No description provided for @referralPageInvited.
+  ///
+  /// In fr, this message translates to:
+  /// **'Amis invités'**
+  String get referralPageInvited;
+
+  /// No description provided for @referralPageRewards.
+  ///
+  /// In fr, this message translates to:
+  /// **'Récompenses'**
+  String get referralPageRewards;
+
+  /// No description provided for @referralPageHaveCode.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tu as un code ?'**
+  String get referralPageHaveCode;
+
+  /// No description provided for @referralPagePasteTooltip.
+  ///
+  /// In fr, this message translates to:
+  /// **'Coller le code'**
+  String get referralPagePasteTooltip;
+
+  /// No description provided for @referralPageValidate.
+  ///
+  /// In fr, this message translates to:
+  /// **'Valider'**
+  String get referralPageValidate;
+
+  /// No description provided for @referralPageNoClipboardCode.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun code valide dans le presse-papier'**
+  String get referralPageNoClipboardCode;
+
+  /// No description provided for @referralPageApplied.
+  ///
+  /// In fr, this message translates to:
+  /// **'Code appliqué ! Commence à lire pour débloquer vos 14 jours de premium.'**
+  String get referralPageApplied;
+
+  /// No description provided for @referralPageInvalidCode.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce code n\'existe pas.'**
+  String get referralPageInvalidCode;
+
+  /// No description provided for @referralPageSelfReferral.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tu ne peux pas utiliser ton propre code.'**
+  String get referralPageSelfReferral;
+
+  /// No description provided for @referralPageAlreadyReferred.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tu as déjà utilisé un code de parrainage.'**
+  String get referralPageAlreadyReferred;
+
+  /// No description provided for @referralPageNotEligible.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le parrainage est réservé aux nouveaux comptes.'**
+  String get referralPageNotEligible;
+
+  /// No description provided for @referralPageError.
+  ///
+  /// In fr, this message translates to:
+  /// **'Une erreur est survenue. Réessaie.'**
+  String get referralPageError;
+
+  /// No description provided for @referralPromptBookTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Un bon livre se partage'**
+  String get referralPromptBookTitle;
+
+  /// No description provided for @referralPromptBookBody.
+  ///
+  /// In fr, this message translates to:
+  /// **'Invite un ami à lire avec toi : vous gagnez chacun 14 jours de premium dès qu\'il commence à lire.'**
+  String get referralPromptBookBody;
+
+  /// No description provided for @referralPromptStreakTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'{days} jours de lecture d\'affilée 🔥'**
+  String referralPromptStreakTitle(int days);
+
+  /// No description provided for @referralPromptStreakBody.
+  ///
+  /// In fr, this message translates to:
+  /// **'C\'est plus facile de tenir à deux. Invite un ami : vous gagnez chacun 14 jours de premium dès qu\'il commence à lire.'**
+  String get referralPromptStreakBody;
+
+  /// No description provided for @referralPromptCta.
+  ///
+  /// In fr, this message translates to:
+  /// **'Inviter un ami'**
+  String get referralPromptCta;
+
+  /// No description provided for @referralPromptShareText.
+  ///
+  /// In fr, this message translates to:
+  /// **'📚 Je suis mes lectures avec LexDay. Rejoins-moi : on gagne tous les deux 14 jours de premium quand tu commences à lire !\n{link}'**
+  String referralPromptShareText(String link);
+
+  /// No description provided for @referralInviteTooltip.
+  ///
+  /// In fr, this message translates to:
+  /// **'Inviter un ami'**
+  String get referralInviteTooltip;
+
   /// No description provided for @ffTitleAdvancedReactions.
   ///
   /// In fr, this message translates to:
@@ -9051,6 +9279,48 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'{price}/mois'**
   String priceSlashMonth(String price);
+
+  /// No description provided for @listSuggestionSummer.
+  ///
+  /// In fr, this message translates to:
+  /// **'À lire cet été'**
+  String get listSuggestionSummer;
+
+  /// No description provided for @listSuggestionFavorites.
+  ///
+  /// In fr, this message translates to:
+  /// **'Coups de cœur'**
+  String get listSuggestionFavorites;
+
+  /// No description provided for @listSuggestionClassics.
+  ///
+  /// In fr, this message translates to:
+  /// **'Mes classiques'**
+  String get listSuggestionClassics;
+
+  /// No description provided for @listSuggestionGifts.
+  ///
+  /// In fr, this message translates to:
+  /// **'Idées cadeaux'**
+  String get listSuggestionGifts;
+
+  /// No description provided for @customizeList.
+  ///
+  /// In fr, this message translates to:
+  /// **'Personnaliser'**
+  String get customizeList;
+
+  /// No description provided for @createListAddBooks.
+  ///
+  /// In fr, this message translates to:
+  /// **'Créer et ajouter des livres'**
+  String get createListAddBooks;
+
+  /// No description provided for @addSelectionCount.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajouter ({count})'**
+  String addSelectionCount(int count);
 }
 
 class _AppLocalizationsDelegate

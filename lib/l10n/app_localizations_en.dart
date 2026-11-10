@@ -2311,6 +2311,29 @@ class AppLocalizationsEn extends AppLocalizations {
   String get museGiftChip => '🎁 A book to gift';
 
   @override
+  String get museFollowLessKnown => 'Less well-known picks';
+
+  @override
+  String get museFollowShorter => 'Shorter, under 250 pages';
+
+  @override
+  String get museFollowSameAuthor => 'Another book by the same author';
+
+  @override
+  String museStarterAfterReading(String title) {
+    return 'I\'m reading “$title”, what should I read next?';
+  }
+
+  @override
+  String museStarterLikeFinished(String title) {
+    return 'Something in the spirit of “$title”';
+  }
+
+  @override
+  String get recoLimitedHint =>
+      'Your free AI recommendations for this month are used up: here are the latest ones.';
+
+  @override
   String get museGiftPrefill => 'Which book could I gift to ';
 
   @override
@@ -4917,6 +4940,116 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String referralSmsText(String link) {
+    return 'Join me on LexDay to track our reading together! We both get 14 days of premium: $link';
+  }
+
+  @override
+  String referralProgressTitle(int target) {
+    return 'Next milestone: $target friends';
+  }
+
+  @override
+  String get referralReward3 => '+1 month of premium on us';
+
+  @override
+  String get referralReward5 => '+3 months of premium on us';
+
+  @override
+  String get referralProgressHint => 'A friend counts once they\'ve finished their first reading session.';
+
+  @override
+  String get referralProgressDone => 'All milestones reached. Thanks for helping LexDay grow 🎉';
+
+  @override
+  String get referralPageHeadline =>
+      'Invite a friend, you both get 14 days of premium';
+
+  @override
+  String get referralPageSubtitle =>
+      'Share your code. As soon as your friend starts reading, you each get 14 days of premium.';
+
+  @override
+  String get referralPageYourCode => 'Your code';
+
+  @override
+  String get referralPageCopy => 'Copy';
+
+  @override
+  String get referralPageCopied => 'Code copied!';
+
+  @override
+  String get referralPageShareButton => 'Share my link';
+
+  @override
+  String get referralPageShareSubject => 'Join me on LexDay';
+
+  @override
+  String get referralPageInvited => 'Friends invited';
+
+  @override
+  String get referralPageRewards => 'Rewards';
+
+  @override
+  String get referralPageHaveCode => 'Got a code?';
+
+  @override
+  String get referralPagePasteTooltip => 'Paste code';
+
+  @override
+  String get referralPageValidate => 'Apply';
+
+  @override
+  String get referralPageNoClipboardCode => 'No valid code in the clipboard';
+
+  @override
+  String get referralPageApplied =>
+      'Code applied! Start reading to unlock your 14 days of premium.';
+
+  @override
+  String get referralPageInvalidCode => 'This code doesn\'t exist.';
+
+  @override
+  String get referralPageSelfReferral => 'You can\'t use your own code.';
+
+  @override
+  String get referralPageAlreadyReferred =>
+      'You\'ve already used a referral code.';
+
+  @override
+  String get referralPageNotEligible => 'Referrals are only for new accounts.';
+
+  @override
+  String get referralPageError => 'Something went wrong. Please try again.';
+
+  @override
+  String get referralPromptBookTitle => 'A good book is better shared';
+
+  @override
+  String get referralPromptBookBody =>
+      'Invite a friend to read with you: you each get 14 days of premium as soon as they start reading.';
+
+  @override
+  String referralPromptStreakTitle(int days) {
+    return '$days days of reading in a row 🔥';
+  }
+
+  @override
+  String get referralPromptStreakBody =>
+      'It\'s easier to keep going together. Invite a friend: you each get 14 days of premium as soon as they start reading.';
+
+  @override
+  String get referralPromptCta => 'Invite a friend';
+
+  @override
+  String referralPromptShareText(String link) {
+    return '📚 I track my reading with LexDay. Join me: we both get 14 days of premium when you start reading!\n$link';
+  }
+
+  @override
+  String get referralInviteTooltip => 'Invite a friend';
+
+  @override
   String get ffTitleAdvancedReactions => 'Advanced reactions';
 
   @override
@@ -5056,5 +5189,28 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String priceSlashMonth(String price) {
     return '$price/month';
+  }
+
+  @override
+  String get listSuggestionSummer => 'To read this summer';
+
+  @override
+  String get listSuggestionFavorites => 'Favorites';
+
+  @override
+  String get listSuggestionClassics => 'My classics';
+
+  @override
+  String get listSuggestionGifts => 'Gift ideas';
+
+  @override
+  String get customizeList => 'Customize';
+
+  @override
+  String get createListAddBooks => 'Create and add books';
+
+  @override
+  String addSelectionCount(int count) {
+    return 'Add ($count)';
   }
 }

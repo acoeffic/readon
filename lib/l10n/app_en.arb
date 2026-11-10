@@ -2587,6 +2587,42 @@
   "@friendChallengeShareText": {
     "placeholders": { "link": { "type": "String" } }
   },
+  "referralSmsText": "Join me on LexDay to track our reading together! We both get 14 days of premium: {link}",
+  "@referralSmsText": {"placeholders": {"link": {"type": "String"}}},
+  "referralProgressTitle": "Next milestone: {target} friends",
+  "@referralProgressTitle": {"placeholders": {"target": {"type": "int"}}},
+  "referralReward3": "+1 month of premium on us",
+  "referralReward5": "+3 months of premium on us",
+  "referralProgressHint": "A friend counts once they've finished their first reading session.",
+  "referralProgressDone": "All milestones reached. Thanks for helping LexDay grow 🎉",
+  "referralPageHeadline": "Invite a friend, you both get 14 days of premium",
+  "referralPageSubtitle": "Share your code. As soon as your friend starts reading, you each get 14 days of premium.",
+  "referralPageYourCode": "Your code",
+  "referralPageCopy": "Copy",
+  "referralPageCopied": "Code copied!",
+  "referralPageShareButton": "Share my link",
+  "referralPageShareSubject": "Join me on LexDay",
+  "referralPageInvited": "Friends invited",
+  "referralPageRewards": "Rewards",
+  "referralPageHaveCode": "Got a code?",
+  "referralPagePasteTooltip": "Paste code",
+  "referralPageValidate": "Apply",
+  "referralPageNoClipboardCode": "No valid code in the clipboard",
+  "referralPageApplied": "Code applied! Start reading to unlock your 14 days of premium.",
+  "referralPageInvalidCode": "This code doesn't exist.",
+  "referralPageSelfReferral": "You can't use your own code.",
+  "referralPageAlreadyReferred": "You've already used a referral code.",
+  "referralPageNotEligible": "Referrals are only for new accounts.",
+  "referralPageError": "Something went wrong. Please try again.",
+  "referralPromptBookTitle": "A good book is better shared",
+  "referralPromptBookBody": "Invite a friend to read with you: you each get 14 days of premium as soon as they start reading.",
+  "referralPromptStreakTitle": "{days} days of reading in a row 🔥",
+  "@referralPromptStreakTitle": {"placeholders": {"days": {"type": "int"}}},
+  "referralPromptStreakBody": "It's easier to keep going together. Invite a friend: you each get 14 days of premium as soon as they start reading.",
+  "referralPromptCta": "Invite a friend",
+  "referralPromptShareText": "📚 I track my reading with LexDay. Join me: we both get 14 days of premium when you start reading!\n{link}",
+  "@referralPromptShareText": {"placeholders": {"link": {"type": "String"}}},
+  "referralInviteTooltip": "Invite a friend",
   "ffTitleAdvancedReactions": "Advanced reactions",
   "ffTitleFlowManualFreeze": "Manual freeze",
   "ffTitleAdvancedStats": "Advanced stats",
@@ -2635,5 +2671,27 @@
   "priceSlashMonth": "{price}/month",
   "@priceSlashMonth": {
     "placeholders": { "price": { "type": "String" } }
-  }
+  },
+  "listSuggestionSummer": "To read this summer",
+  "listSuggestionFavorites": "Favorites",
+  "listSuggestionClassics": "My classics",
+  "listSuggestionGifts": "Gift ideas",
+  "customizeList": "Customize",
+  "createListAddBooks": "Create and add books",
+  "addSelectionCount": "Add ({count})",
+  "@addSelectionCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "firstSessionBannerTitle": "Start your first session",
+  "firstSessionBannerSubtitle": "Open “{title}”: 5 minutes is enough, stop whenever you like.",
+  "@firstSessionBannerSubtitle": {
+    "placeholders": {
+      "title": {"type": "String"}
+    }
+  },
+  "firstSessionBannerCta": "Read now"
 }
