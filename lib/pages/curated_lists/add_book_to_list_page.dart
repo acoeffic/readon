@@ -13,7 +13,6 @@ import '../../widgets/constrained_content.dart';
 import '../../widgets/google_book_preview_sheet.dart';
 import '../../widgets/google_book_result_card.dart';
 import '../books/author_books_page.dart';
-import '../books/user_books_page.dart';
 
 class AddBookToListPage extends StatefulWidget {
   final int listId;
@@ -39,7 +38,11 @@ class _AddBookToListPageState extends State<AddBookToListPage>
   // Library tab
   List<Map<String, dynamic>> _libraryBooks = [];
   bool _isLoadingLibrary = true;
+  // Sélection courante (livres de la liste une fois validée)
   final Set<int> _addedBookIds = {};
+  // Livres déjà présents dans la liste côté serveur
+  final Set<int> _initialBookIds = {};
+  bool _isCommitting = false;
 
   // Search tab
   final _searchController = TextEditingController();
@@ -58,6 +61,7 @@ class _AddBookToListPageState extends State<AddBookToListPage>
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _addedBookIds.addAll(widget.existingBookIds);
+    _initialBookIds.addAll(widget.existingBookIds);
     _loadLibrary();
   }
 
@@ -87,38 +91,51 @@ class _AddBookToListPageState extends State<AddBookToListPage>
     }
   }
 
-  Future<void> _toggleLibraryBook(Book book) async {
-    final isAdded = _addedBookIds.contains(book.id);
+  Set<int> get _pendingAdds => _addedBookIds.difference(_initialBookIds);
+  Set<int> get _pendingRemoves => _initialBookIds.difference(_addedBookIds);
+  bool get _hasPending => _pendingAdds.isNotEmpty || _pendingRemoves.isNotEmpty;
 
+  /// Sélection locale : rien n'est envoyé au serveur avant « Ajouter ».
+  void _toggleLibraryBook(Book book) {
     setState(() {
-      if (isAdded) {
+      if (!_addedBookIds.add(book.id)) {
         _addedBookIds.remove(book.id);
-      } else {
-        _addedBookIds.add(book.id);
       }
     });
+  }
 
+  /// Envoie la sélection en lot (1 insertion + 1 suppression au plus).
+  /// Retourne false en cas d'erreur (la sélection est conservée).
+  Future<bool> _commitSelection() async {
+    if (!_hasPending) return true;
+    final adds = _pendingAdds.toList();
+    final removes = _pendingRemoves.toList();
+    setState(() => _isCommitting = true);
     try {
-      if (isAdded) {
-        await _customListsService.removeBookFromList(widget.listId, book.id);
-      } else {
-        await _customListsService.addBookToList(widget.listId, book.id);
-      }
+      await _customListsService.addBooksToList(widget.listId, adds);
+      await _customListsService.removeBooksFromList(widget.listId, removes);
+      _initialBookIds
+        ..addAll(adds)
+        ..removeAll(removes);
+      if (mounted) setState(() => _isCommitting = false);
+      return true;
     } catch (e) {
-      // Rollback
       if (mounted) {
-        setState(() {
-          if (isAdded) {
-            _addedBookIds.add(book.id);
-          } else {
-            _addedBookIds.remove(book.id);
-          }
-        });
+        setState(() => _isCommitting = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context).errorGeneric(e.toString())), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text(AppLocalizations.of(context).errorGeneric(e.toString())),
+            backgroundColor: Colors.red,
+          ),
         );
       }
+      return false;
     }
+  }
+
+  Future<void> _confirmSelection() async {
+    final ok = await _commitSelection();
+    if (ok && mounted) Navigator.of(context).pop(true);
   }
 
   void _onSearchChanged(String value) {
@@ -178,6 +195,9 @@ class _AddBookToListPageState extends State<AddBookToListPage>
       // Puis l'ajouter à la liste
       await _customListsService.addBookToList(widget.listId, book.id);
       _addedBookIds.add(book.id);
+      _initialBookIds.add(book.id);
+      // Valide aussi la sélection en attente dans « Ma bibliothèque »
+      await _commitSelection();
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -215,13 +235,60 @@ class _AddBookToListPageState extends State<AddBookToListPage>
       ),
     );
     if (added == true && mounted) {
-      Navigator.of(context).pop(true);
+      await _commitSelection();
+      if (mounted) Navigator.of(context).pop(true);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    final l10n = AppLocalizations.of(context);
+    final addCount = _pendingAdds.length;
+    return PopScope(
+      // Retour avec une sélection en attente : on la valide plutôt que de la perdre
+      canPop: !_hasPending || _isCommitting,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        await _confirmSelection();
+      },
+      child: Scaffold(
+      bottomNavigationBar: _hasPending
+          ? SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(
+                    AppSpace.m, AppSpace.s, AppSpace.m, AppSpace.s),
+                child: FilledButton(
+                  onPressed: _isCommitting ? null : _confirmSelection,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFFFF6B35),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.m),
+                    ),
+                  ),
+                  child: _isCommitting
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : Text(
+                          addCount > 0
+                              ? l10n.addSelectionCount(addCount)
+                              : l10n.validate,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                ),
+              ),
+            )
+          : null,
       appBar: AppBar(
         title: Text(AppLocalizations.of(context).addBooksTitle),
         bottom: TabBar(
@@ -243,6 +310,7 @@ class _AddBookToListPageState extends State<AddBookToListPage>
           _buildLibraryTab(),
           _buildSearchTab(),
         ],
+      ),
       ),
       ),
     );
@@ -355,21 +423,11 @@ class _AddBookToListPageState extends State<AddBookToListPage>
                         ),
                       )
                     : null,
-                trailing: IconButton(
-                  icon: Icon(
-                    isAdded ? Icons.check_circle : Icons.add_circle_outline,
-                    color: isAdded ? const Color(0xFFFF6B35) : null,
-                  ),
-                  onPressed: () => _toggleLibraryBook(book),
+                trailing: Icon(
+                  isAdded ? Icons.check_circle : Icons.add_circle_outline,
+                  color: isAdded ? const Color(0xFFFF6B35) : null,
                 ),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => BookDetailPage(book: book),
-                    ),
-                  );
-                },
+                onTap: () => _toggleLibraryBook(book),
               );
             },
           ),

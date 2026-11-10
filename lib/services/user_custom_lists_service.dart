@@ -265,6 +265,76 @@ class UserCustomListsService {
     }
   }
 
+  /// Ajoute plusieurs livres d'un coup (positions consécutives, 1 seule
+  /// requête de lecture + 1 seule insertion). Ignore ceux déjà présents.
+  Future<void> addBooksToList(int listId, List<int> bookIds) async {
+    if (bookIds.isEmpty) return;
+    try {
+      final existing = await _supabase
+          .from('user_custom_list_books')
+          .select('book_id, position')
+          .eq('list_id', listId);
+
+      final present = <int>{};
+      var nextPosition = 0;
+      for (final row in existing as List) {
+        present.add(row['book_id'] as int);
+        final pos = (row['position'] as int?) ?? 0;
+        if (pos >= nextPosition) nextPosition = pos + 1;
+      }
+
+      final rows = <Map<String, dynamic>>[];
+      for (final id in bookIds) {
+        if (present.contains(id)) continue;
+        present.add(id);
+        rows.add({
+          'list_id': listId,
+          'book_id': id,
+          'position': nextPosition++,
+        });
+      }
+      if (rows.isEmpty) return;
+
+      await _supabase.from('user_custom_list_books').insert(rows);
+    } catch (e) {
+      debugPrint('Erreur addBooksToList: $e');
+      rethrow;
+    }
+  }
+
+  /// Enregistre un nouvel ordre : [orderedBookIds] est l'ordre voulu (index = position).
+  /// Un seul upsert (list_id, book_id) qui ne touche que la colonne position.
+  Future<void> reorderBooks(int listId, List<int> orderedBookIds) async {
+    if (orderedBookIds.isEmpty) return;
+    try {
+      final rows = <Map<String, dynamic>>[
+        for (var i = 0; i < orderedBookIds.length; i++)
+          {'list_id': listId, 'book_id': orderedBookIds[i], 'position': i},
+      ];
+      await _supabase
+          .from('user_custom_list_books')
+          .upsert(rows, onConflict: 'list_id,book_id');
+    } catch (e) {
+      debugPrint('Erreur reorderBooks: $e');
+      rethrow;
+    }
+  }
+
+  /// Retire plusieurs livres d'une liste en une seule requête.
+  Future<void> removeBooksFromList(int listId, List<int> bookIds) async {
+    if (bookIds.isEmpty) return;
+    try {
+      await _supabase
+          .from('user_custom_list_books')
+          .delete()
+          .eq('list_id', listId)
+          .inFilter('book_id', bookIds);
+    } catch (e) {
+      debugPrint('Erreur removeBooksFromList: $e');
+      rethrow;
+    }
+  }
+
   Future<void> removeBookFromList(int listId, int bookId) async {
     try {
       await _supabase

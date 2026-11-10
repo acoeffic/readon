@@ -101,7 +101,7 @@ class SavedListsTabState extends State<SavedListsTab> {
       _showListLimitDialog();
       return;
     }
-    final result = await showCreateCustomListSheet(context);
+    final result = await showCreateListThenAddBooks(context);
     if (result != null) {
       _loadData();
     }

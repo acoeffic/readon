@@ -174,6 +174,32 @@ class _CustomListDetailPageState extends State<CustomListDetailPage> {
     _loadData();
   }
 
+  /// Glisser-déposer : mise à jour optimiste puis enregistrement des positions.
+  Future<void> _onReorder(int oldIndex, int newIndex) async {
+    if (newIndex > oldIndex) newIndex -= 1;
+    if (oldIndex == newIndex) return;
+
+    final previous = List<Book>.from(_list.books);
+    final books = List<Book>.from(_list.books);
+    final moved = books.removeAt(oldIndex);
+    books.insert(newIndex, moved);
+    setState(() => _list = _list.copyWith(books: books));
+
+    try {
+      await _service.reorderBooks(_list.id, books.map((b) => b.id).toList());
+    } catch (e) {
+      debugPrint('Erreur _onReorder: $e');
+      if (!mounted) return;
+      setState(() => _list = _list.copyWith(books: previous));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.errorGeneric(e.toString())),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   Future<void> _removeBook(Book book) async {
     final books = List<Book>.from(_list.books);
     books.removeWhere((b) => b.id == book.id);
@@ -334,19 +360,29 @@ class _CustomListDetailPageState extends State<CustomListDetailPage> {
           else if (_list.books.isEmpty)
             SliverToBoxAdapter(child: _buildEmptyState())
           else
-            SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  final book = _list.books[index];
-                  return _CustomBookListItem(
+            SliverReorderableList(
+              itemCount: _list.books.length,
+              // Poignée explicite (pas de drag sur toute la ligne : il
+              // entrerait en conflit avec le swipe-pour-retirer).
+              proxyDecorator: (child, index, animation) => Material(
+                elevation: 6,
+                color: Theme.of(context).colorScheme.surface,
+                child: child,
+              ),
+              onReorder: _onReorder,
+              itemBuilder: (context, index) {
+                final book = _list.books[index];
+                return KeyedSubtree(
+                  key: ValueKey('custom_list_book_${book.id}'),
+                  child: _CustomBookListItem(
                     book: book,
                     gradientColor: gradientColors.last,
                     onRemove: _isOwner ? () => _removeBook(book) : null,
                     onTap: () => _openBookDetail(book),
-                  );
-                },
-                childCount: _list.books.length,
-              ),
+                    dragIndex: _isOwner && _list.books.length > 1 ? index : null,
+                  ),
+                );
+              },
             ),
 
           const SliverToBoxAdapter(child: SizedBox(height: 80)),
@@ -425,11 +461,15 @@ class _CustomBookListItem extends StatelessWidget {
   final VoidCallback? onRemove;
   final VoidCallback? onTap;
 
+  /// Index dans la liste si le réordonnancement est actif (propriétaire).
+  final int? dragIndex;
+
   const _CustomBookListItem({
     required this.book,
     required this.gradientColor,
     required this.onRemove,
     this.onTap,
+    this.dragIndex,
   });
 
   @override
@@ -527,14 +567,30 @@ class _CustomBookListItem extends StatelessWidget {
               ),
             ),
 
-            Icon(
-              Icons.chevron_right,
-              size: 20,
-              color: Theme.of(context)
-                  .colorScheme
-                  .onSurface
-                  .withValues(alpha: 0.3),
-            ),
+            if (dragIndex != null)
+              ReorderableDragStartListener(
+                index: dragIndex!,
+                child: Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: Icon(
+                    LucideIcons.gripVertical,
+                    size: 20,
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.4),
+                  ),
+                ),
+              )
+            else
+              Icon(
+                Icons.chevron_right,
+                size: 20,
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withValues(alpha: 0.3),
+              ),
           ],
         ),
       ),

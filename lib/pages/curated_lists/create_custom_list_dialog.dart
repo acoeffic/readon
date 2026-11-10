@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import 'package:lucide_icons/lucide_icons.dart';
@@ -5,12 +6,17 @@ import '../../data/icon_options.dart';
 import '../../models/user_custom_list.dart';
 import '../../services/user_custom_lists_service.dart';
 import '../../theme/app_theme.dart';
+import 'add_book_to_list_page.dart';
 
 /// Affiche un bottom sheet pour créer ou modifier une liste personnalisée.
 /// Retourne la [UserCustomList] créée/modifiée, ou null si annulé.
+///
+/// Avec [nextStepAddBooks], le bouton devient « Créer et ajouter des livres »
+/// (voir [showCreateListThenAddBooks] qui enchaîne sur la sélection).
 Future<UserCustomList?> showCreateCustomListSheet(
   BuildContext context, {
   UserCustomList? existingList,
+  bool nextStepAddBooks = false,
 }) {
   return showModalBottomSheet<UserCustomList>(
     context: context,
@@ -18,14 +24,36 @@ Future<UserCustomList?> showCreateCustomListSheet(
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
     ),
-    builder: (context) => _CreateCustomListSheet(existingList: existingList),
+    builder: (context) => _CreateCustomListSheet(
+      existingList: existingList,
+      nextStepAddBooks: nextStepAddBooks,
+    ),
   );
+}
+
+/// Création en 2 étapes : 1) le nom, 2) le choix des livres.
+/// Retourne la liste créée (ou null si annulé).
+Future<UserCustomList?> showCreateListThenAddBooks(BuildContext context) async {
+  final list = await showCreateCustomListSheet(
+    context,
+    nextStepAddBooks: true,
+  );
+  if (list == null || !context.mounted) return list;
+  await Navigator.push(
+    context,
+    MaterialPageRoute(builder: (_) => AddBookToListPage(listId: list.id)),
+  );
+  return list;
 }
 
 class _CreateCustomListSheet extends StatefulWidget {
   final UserCustomList? existingList;
+  final bool nextStepAddBooks;
 
-  const _CreateCustomListSheet({this.existingList});
+  const _CreateCustomListSheet({
+    this.existingList,
+    this.nextStepAddBooks = false,
+  });
 
   @override
   State<_CreateCustomListSheet> createState() => _CreateCustomListSheetState();
@@ -38,6 +66,8 @@ class _CreateCustomListSheetState extends State<_CreateCustomListSheet> {
   String _selectedColor = kListColorOptions.first;
   bool _isPublic = false;
   bool _isSaving = false;
+  // En création, icône / couleur / visibilité sont repliées (valeurs par défaut)
+  bool _showCustomize = false;
 
   bool get _isEditing => widget.existingList != null;
 
@@ -49,6 +79,16 @@ class _CreateCustomListSheetState extends State<_CreateCustomListSheet> {
       _selectedIcon = widget.existingList!.iconName;
       _selectedColor = widget.existingList!.gradientColor;
       _isPublic = widget.existingList!.isPublic;
+      _showCustomize = true;
+    } else {
+      // Valeurs par défaut variées pour que les listes se distinguent
+      final rnd = Random();
+      _selectedColor =
+          kListColorOptions[rnd.nextInt(kListColorOptions.length)];
+      final icons = kIconOptions.keys.toList();
+      if (icons.isNotEmpty) {
+        _selectedIcon = icons[rnd.nextInt(icons.length)];
+      }
     }
   }
 
@@ -95,7 +135,7 @@ class _CreateCustomListSheetState extends State<_CreateCustomListSheet> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erreur : $e'),
+            content: Text(AppLocalizations.of(context).errorGeneric(e.toString())),
             backgroundColor: Colors.red,
           ),
         );
@@ -106,6 +146,7 @@ class _CreateCustomListSheetState extends State<_CreateCustomListSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     final gradientColors = generateGradientFromHex(_selectedColor);
 
@@ -137,7 +178,7 @@ class _CreateCustomListSheetState extends State<_CreateCustomListSheet> {
 
                 // Titre du dialog
                 Text(
-                  _isEditing ? 'Modifier la liste' : 'Nouvelle liste',
+                  _isEditing ? l10n.editList : l10n.newList,
                   style: Theme.of(context)
                       .textTheme
                       .titleLarge
@@ -155,8 +196,8 @@ class _CreateCustomListSheetState extends State<_CreateCustomListSheet> {
                   autofocus: !_isEditing,
                   textCapitalization: TextCapitalization.sentences,
                   decoration: InputDecoration(
-                    labelText: 'Nom de la liste',
-                    hintText: 'Ex : Livres à lire cet été',
+                    labelText: l10n.listName,
+                    hintText: l10n.listNameHint,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(AppRadius.m),
                     ),
@@ -167,34 +208,54 @@ class _CreateCustomListSheetState extends State<_CreateCustomListSheet> {
                   ),
                   onChanged: (_) => setState(() {}),
                 ),
-                const SizedBox(height: AppSpace.l),
+                // Suggestions de noms (création, titre vide)
+                if (!_isEditing && _titleController.text.trim().isEmpty) ...[
+                  const SizedBox(height: AppSpace.s),
+                  _buildSuggestions(l10n),
+                ],
+                const SizedBox(height: AppSpace.m),
 
-                // Sélection icône
-                Text(
-                  'Icône',
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleSmall
-                      ?.copyWith(fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: AppSpace.s),
-                _buildIconPicker(),
-                const SizedBox(height: AppSpace.l),
-
-                // Sélection couleur
-                Text(
-                  'Couleur',
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleSmall
-                      ?.copyWith(fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: AppSpace.s),
-                _buildColorPicker(),
-                const SizedBox(height: AppSpace.l),
-
-                // Visibilité publique / privée
-                _buildVisibilityToggle(),
+                // Personnalisation repliée en création
+                if (!_isEditing)
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      onPressed: () =>
+                          setState(() => _showCustomize = !_showCustomize),
+                      icon: Icon(
+                        _showCustomize
+                            ? LucideIcons.chevronUp
+                            : LucideIcons.palette,
+                        size: 16,
+                      ),
+                      label: Text(l10n.customizeList),
+                    ),
+                  ),
+                if (_showCustomize) ...[
+                  const SizedBox(height: AppSpace.s),
+                  Text(
+                    l10n.iconLabel,
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleSmall
+                        ?.copyWith(fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: AppSpace.s),
+                  _buildIconPicker(),
+                  const SizedBox(height: AppSpace.l),
+                  Text(
+                    l10n.colorLabel,
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleSmall
+                        ?.copyWith(fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: AppSpace.s),
+                  _buildColorPicker(),
+                  const SizedBox(height: AppSpace.l),
+                  // Visibilité publique / privée
+                  _buildVisibilityToggle(),
+                ],
                 const SizedBox(height: AppSpace.xl),
 
                 // Bouton créer/modifier
@@ -220,7 +281,11 @@ class _CreateCustomListSheetState extends State<_CreateCustomListSheet> {
                           ),
                         )
                       : Text(
-                          _isEditing ? 'Enregistrer' : 'Créer la liste',
+                          _isEditing
+                              ? l10n.save
+                              : (widget.nextStepAddBooks
+                                  ? l10n.createListAddBooks
+                                  : l10n.createListBtn),
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
@@ -232,6 +297,32 @@ class _CreateCustomListSheetState extends State<_CreateCustomListSheet> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildSuggestions(AppLocalizations l10n) {
+    final suggestions = [
+      l10n.listSuggestionSummer,
+      l10n.listSuggestionFavorites,
+      l10n.listSuggestionClassics,
+      l10n.listSuggestionGifts,
+    ];
+    return Wrap(
+      spacing: 8,
+      runSpacing: 4,
+      children: suggestions
+          .map(
+            (name) => ActionChip(
+              label: Text(name, style: const TextStyle(fontSize: 12)),
+              visualDensity: VisualDensity.compact,
+              onPressed: () => setState(() {
+                _titleController.text = name;
+                _titleController.selection =
+                    TextSelection.collapsed(offset: name.length);
+              }),
+            ),
+          )
+          .toList(),
     );
   }
 
@@ -258,7 +349,7 @@ class _CreateCustomListSheetState extends State<_CreateCustomListSheet> {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              title.isEmpty ? 'Ma liste' : title,
+              title.isEmpty ? AppLocalizations.of(context).newList : title,
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 18,
@@ -363,13 +454,15 @@ class _CreateCustomListSheetState extends State<_CreateCustomListSheet> {
           color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
         ),
         title: Text(
-          _isPublic ? 'Liste publique' : 'Liste privée',
+          _isPublic
+              ? AppLocalizations.of(context).publicList
+              : AppLocalizations.of(context).privateList,
           style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
         ),
         subtitle: Text(
           _isPublic
-              ? 'Visible par tes amis sur ton profil'
-              : 'Visible uniquement par toi',
+              ? AppLocalizations.of(context).publicListDescription
+              : AppLocalizations.of(context).privateListDescription,
           style: TextStyle(
             fontSize: 12,
             color: Theme.of(context)
