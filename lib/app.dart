@@ -11,6 +11,7 @@ import 'providers/guest_mode_provider.dart';
 import 'providers/connectivity_provider.dart';
 import 'services/monthly_notification_service.dart';
 import 'utils/responsive.dart';
+import 'utils/tap_haptics.dart';
 
 class LexDayApp extends StatelessWidget {
   const LexDayApp({super.key});
@@ -53,7 +54,8 @@ class LexDayApp extends StatelessWidget {
                 data: mq.copyWith(textScaler: scaler),
                 child: GestureDetector(
                   onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
-                  child: child,
+                  // Micro-vibration au tap sur tout élément tappable.
+                  child: TapHaptics(child: child ?? const SizedBox.shrink()),
                 ),
               );
             },

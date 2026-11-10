@@ -59,3 +59,8 @@
   4. Générer le WebP : `cwebp -q 85 -resize 384 384 <id>.png -o assets/badges/<id>.webp`
 - **Supprimer un badge** = mêmes endroits dans l'ordre inverse : supprimer le WebP (`--delete-orphans` après suppression de la ligne md), supprimer la ligne dans `badges.md`, supprimer l'entrée Supabase, supprimer le PNG dans le bucket.
 - Le dossier `assets/badges/` est déjà déclaré dans `pubspec.yaml` (`assets:` section) avec un `/` final : tous les WebP ajoutés sont embarqués automatiquement, pas besoin de les lister un par un.
+
+## Retour haptique
+
+- Une micro-vibration (`HapticFeedback.selectionClick`) est émise **globalement** au tap sur tout élément tappable, via `TapHaptics` (`lib/utils/tap_haptics.dart`), branché une fois dans `MaterialApp.builder` (`lib/app.dart`).
+- **Ne pas** ajouter de `HapticFeedback` à la main sur un simple tap (double vibration). Les appels explicites sont réservés aux moments forts (`mediumImpact` : badge débloqué, fin de session, partage…).
