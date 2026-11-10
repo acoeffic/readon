@@ -281,10 +281,56 @@ class KindleAutoSyncService {
     await prefs.remove(_legacyExpiredNotifiedKey);
   }
 
+  // Notification locale d'expiration envoyée par la TÂCHE DE FOND. Throttle
+  // séparé de celui du SnackBar : qu'une notif ait été envoyée ne doit pas
+  // empêcher le bandeau « Reconnecter » quand l'utilisateur ouvre l'app.
+  static const String _bgExpiredNotifiedAtKey = 'kindle_bg_expired_notified_at';
+
+  Future<bool> hasBgNotifiedExpired() async {
+    final prefs = await SharedPreferences.getInstance();
+    final at = DateTime.tryParse(prefs.getString(_bgExpiredNotifiedAtKey) ?? '');
+    if (at == null) return false;
+    return DateTime.now().difference(at) < _expiredRenotifyInterval;
+  }
+
+  Future<void> markBgExpiredNotified() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      _bgExpiredNotifiedAtKey,
+      DateTime.now().toIso8601String(),
+    );
+  }
+
+  // État persistant « la session Amazon est expirée », lu par l'écran des
+  // réglages. Distinct des flags de notification ci-dessus : ceux-ci sont des
+  // throttles et retombent au bout de 7 jours, alors que l'état vrai reste
+  // jusqu'à un sync réussi ou une reconnexion. Posé par le premier plan
+  // (WebView) comme par l'arrière-plan (HTTP).
+  static const String _sessionExpiredKey = 'kindle_session_expired';
+
+  Future<void> setSessionExpired(bool expired) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (expired) {
+      await prefs.setBool(_sessionExpiredKey, true);
+    } else {
+      await prefs.remove(_sessionExpiredKey);
+    }
+  }
+
+  Future<bool> isSessionExpired() async {
+    final prefs = await SharedPreferences.getInstance();
+    // La tâche d'arrière-plan écrit depuis un autre isolate : sans reload, le
+    // cache du premier plan ne verrait pas son écriture.
+    await prefs.reload();
+    return prefs.getBool(_sessionExpiredKey) ?? false;
+  }
+
   /// Réinitialise le flag (après un sync réussi ou une reconnexion).
   Future<void> clearExpiredNotified() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_expiredNotifiedAtKey);
+    await prefs.remove(_bgExpiredNotifiedAtKey);
+    await prefs.remove(_sessionExpiredKey);
     await prefs.remove(_legacyExpiredNotifiedKey);
   }
 
@@ -330,5 +376,7 @@ class KindleAutoSyncService {
     await prefs.remove(_lastAttemptKey);
     await prefs.remove(_failedAttemptsKey);
     await prefs.remove(_highlightsPendingKey);
+    await prefs.remove(_sessionExpiredKey);
+    await prefs.remove(_bgExpiredNotifiedAtKey);
   }
 }

@@ -54,6 +54,15 @@ class KindleCookieStore {
     return (h == null || h.isEmpty) ? null : h;
   }
 
+  /// Remplace l'en-tête en cache (cookies tournés par Amazon pendant un sync
+  /// d'arrière-plan, cf. `KindleHttpSync.refreshedCookieHeader`).
+  static Future<void> saveHeader(String header) async {
+    if (header.isEmpty) return;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_prefsKey, header);
+    await prefs.setString(_prefsAtKey, DateTime.now().toIso8601String());
+  }
+
   static Future<void> clear() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_prefsKey);

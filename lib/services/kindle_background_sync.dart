@@ -38,6 +38,7 @@ import 'package:workmanager/workmanager.dart';
 
 import '../config/env.dart';
 import '../l10n/app_localizations.dart';
+import 'analytics_service.dart';
 import 'kindle_auto_sync_service.dart';
 import 'kindle_cookie_store.dart';
 import 'kindle_http_sync.dart';
@@ -187,6 +188,7 @@ class KindleBackgroundSync {
     final sessionJson = await _readValidSessionJson();
     if (sessionJson == null) {
       debugPrint('KindleBackgroundSync: pas de session valide, skip');
+      await _recordDiag('skipped_session');
       return;
     }
 
@@ -239,25 +241,160 @@ class KindleBackgroundSync {
     final cookies = await KindleCookieStore.cachedHeader();
     if (cookies == null) {
       debugPrint('KindleBackgroundSync: pas de cookies en cache, skip');
+      await _recordDiag('skipped_no_cookies');
       return;
     }
 
     await gate.recordProgressAttempt();
-    final result = await KindleHttpSync(cookieHeader: cookies).run();
+    final sync = KindleHttpSync(cookieHeader: cookies);
+    final result = await sync.run().whenComplete(sync.close);
     debugPrint(
       'KindleBackgroundSync: ${result.booksFetched} livres, '
       '${result.withProgress} avec progression, '
-      '${result.sessionsCreated} session(s)'
+      '${result.sessionsCreated} session(s), '
+      '${result.highlightsImported}/${result.highlightsExtracted} surlignage(s) '
+      '(${result.highlightBooks} livre(s))'
       '${result.sessionExpired ? ', session Amazon expirée' : ''}'
-      '${result.error != null ? ', erreur: ${result.error}' : ''}',
+      '${result.error != null ? ', erreur: ${result.error}' : ''}'
+      '${result.layoutSuspect ? ', STRUCTURE AMAZON SUSPECTE' : ''}',
     );
+
+    // Cookies tournés par Amazon pendant ce sync : on prolonge la copie en
+    // cache (seulement si la session était saine).
+    if (result.ok) {
+      final rotated = sync.refreshedCookieHeader;
+      if (rotated != null) {
+        await KindleCookieStore.saveHeader(rotated);
+        debugPrint('KindleBackgroundSync: cookies tournés, cache mis à jour');
+      }
+    }
+
+    await _recordDiag(_statusOf(result), result: result);
+
+    if (result.sessionExpired) {
+      await gate.setSessionExpired(true);
+      await _notifyExpiredOnce(gate);
+    } else if (result.ok) {
+      // Session valide : on ré-arme les deux throttles d'expiration.
+      await gate.clearExpiredNotified();
+    }
 
     if (result.sessionsCreated > 0) {
       await _notify(result.sessionsCreated);
     }
+    // Nouveaux surlignages : le mur « Mes passages » les affichera à la
+    // prochaine ouverture ; pas de notification dédiée (trop bavard).
   }
 
-  static Future<void> _notify(int count) async {
+  static String _statusOf(KindleHttpSyncResult r) {
+    if (r.sessionExpired) return 'session_expired';
+    if (r.error != null) return 'error';
+    if (r.layoutSuspect) return 'layout_suspect';
+    return 'ok';
+  }
+
+  /// Session Amazon expirée : une notification locale (au plus une par semaine)
+  /// plutôt qu'un échec muet. Le bandeau « Reconnecter » du premier plan reste
+  /// indépendant (throttle propre).
+  static Future<void> _notifyExpiredOnce(KindleAutoSyncService gate) async {
+    if (await gate.hasBgNotifiedExpired()) return;
+    await gate.markBgExpiredNotified();
+    await _show(
+      id: 90211,
+      payload: 'kindle_reconnect',
+      body: (l) => l.kindleSessionExpired,
+    );
+  }
+
+  // ─── Journal de diagnostic ───
+  //
+  // L'isolate headless n'initialise pas PostHog : il journalise chaque
+  // exécution en SharedPreferences, et le premier plan envoie le bilan
+  // (`reportPendingDiagnostics`). Seuls les cas « qui disent quelque chose »
+  // sont journalisés (pas le simple espacement d'1 h).
+  static const String _diagKey = 'kindle_bg_diag';
+  static const int _diagMax = 40;
+
+  static Future<void> _recordDiag(
+    String status, {
+    KindleHttpSyncResult? result,
+  }) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final list = List<String>.of(prefs.getStringList(_diagKey) ?? const []);
+      list.add(jsonEncode({
+        'at': DateTime.now().toIso8601String(),
+        'status': status,
+        if (result != null) 'queried': result.booksQueried,
+        if (result != null) 'progress': result.withProgress,
+        if (result != null) 'sessions': result.sessionsCreated,
+        if (result != null) 'hl_books': result.highlightBooks,
+        if (result != null) 'hl_imported': result.highlightsImported,
+      }));
+      if (list.length > _diagMax) list.removeRange(0, list.length - _diagMax);
+      await prefs.setStringList(_diagKey, list);
+    } catch (e) {
+      debugPrint('KindleBackgroundSync: journal KO: $e');
+    }
+  }
+
+  /// À appeler au premier plan : envoie à PostHog le bilan des exécutions
+  /// d'arrière-plan depuis la dernière ouverture, puis vide le journal.
+  static Future<void> reportPendingDiagnostics() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      // L'isolate de fond a écrit sur disque : relire, sinon le cache du
+      // premier plan ne voit rien.
+      await prefs.reload();
+      final raw = prefs.getStringList(_diagKey);
+      if (raw == null || raw.isEmpty) return;
+
+      final counts = <String, int>{};
+      var hlBooks = 0;
+      var hlImported = 0;
+      String? last;
+      String? firstAt;
+      for (final s in raw) {
+        final m = jsonDecode(s) as Map<String, dynamic>;
+        final st = (m['status'] as String?) ?? 'unknown';
+        counts[st] = (counts[st] ?? 0) + 1;
+        hlBooks += (m['hl_books'] as int?) ?? 0;
+        hlImported += (m['hl_imported'] as int?) ?? 0;
+        last = st;
+        firstAt ??= m['at'] as String?;
+      }
+      await prefs.remove(_diagKey);
+
+      final first = firstAt == null ? null : DateTime.tryParse(firstAt);
+      final props = <String, Object>{
+        ...counts,
+        'runs': raw.length,
+        'highlight_books': hlBooks,
+        'highlights_imported': hlImported,
+        'last_status': last ?? 'unknown',
+        if (first != null)
+          'window_hours': DateTime.now().difference(first).inHours,
+      };
+      await AnalyticsService().track(
+        AnalyticsEvent.kindleBackgroundSync,
+        properties: props,
+      );
+    } catch (e) {
+      debugPrint('KindleBackgroundSync: bilan KO: $e');
+    }
+  }
+
+  static Future<void> _notify(int count) => _show(
+        id: 90210,
+        payload: 'kindle_sessions',
+        body: (l) => l.kindleSessionsAdded(count),
+      );
+
+  static Future<void> _show({
+    required int id,
+    required String payload,
+    required String Function(AppLocalizations l10n) body,
+  }) async {
     try {
       final plugin = FlutterLocalNotificationsPlugin();
       await plugin.initialize(
@@ -273,9 +410,9 @@ class KindleBackgroundSync {
       final locale = _localeFromPlatform();
       final l10n = lookupAppLocalizations(locale);
       await plugin.show(
-        90210,
+        id,
         'LexDay',
-        l10n.kindleSessionsAdded(count),
+        body(l10n),
         const NotificationDetails(
           android: AndroidNotificationDetails(
             'kindle_sync',
@@ -291,7 +428,7 @@ class KindleBackgroundSync {
             presentSound: false,
           ),
         ),
-        payload: 'kindle_sessions',
+        payload: payload,
       );
     } catch (e) {
       debugPrint('KindleBackgroundSync: notification KO: $e');

@@ -4,6 +4,7 @@ import 'package:webview_flutter/webview_flutter.dart';
 import '../../l10n/app_localizations.dart';
 import '../../services/kindle_auto_sync_service.dart';
 import '../../services/kindle_webview_service.dart';
+import '../../services/analytics_service.dart';
 import '../../services/books_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/constrained_content.dart';
@@ -20,7 +21,11 @@ enum _SyncPhase {
 }
 
 class KindleLoginPage extends StatefulWidget {
-  const KindleLoginPage({super.key});
+  const KindleLoginPage({super.key, this.source = 'unknown'});
+
+  /// D'où l'utilisateur arrive (settings, onboarding, post_session_sheet,
+  /// expired_banner) — propriété des events PostHog de l'entonnoir.
+  final String source;
 
   @override
   State<KindleLoginPage> createState() => _KindleLoginPageState();
@@ -43,6 +48,13 @@ class _KindleLoginPageState extends State<KindleLoginPage>
   bool _parallelStarted = false;
   bool _finalized = false;
   Timer? _timeoutTimer;
+
+  // Entonnoir PostHog (cf. AnalyticsEvent.kindleConnect*)
+  final Stopwatch _clock = Stopwatch()..start();
+  final Set<String> _steps = {};
+  final Set<String> _failedReasons = {};
+  String _lastStep = 'opened';
+  bool _outcomeTracked = false;
 
   // Timeout global : 60s après le début de l'extraction
   static const Duration _extractionTimeout = Duration(seconds: 60);
@@ -70,6 +82,11 @@ class _KindleLoginPageState extends State<KindleLoginPage>
   void initState() {
     super.initState();
 
+    unawaited(AnalyticsService().track(
+      AnalyticsEvent.kindleConnectStarted,
+      properties: {'source': widget.source},
+    ));
+
     _pulseController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1500),
@@ -86,6 +103,11 @@ class _KindleLoginPageState extends State<KindleLoginPage>
           },
           onPageFinished: (url) => _onLibraryPageFinished(url),
           onWebResourceError: (error) {
+            // Sous-ressources (pub bloquée…) et navigations remplacées
+            // (-999, iOS) ne sont pas des échecs de connexion.
+            if (error.isForMainFrame != false && error.errorCode != -999) {
+              _trackFailed('webview_error', detail: 'code_${error.errorCode}');
+            }
             if (mounted) {
               setState(() {
                 _isLoading = false;
@@ -115,7 +137,79 @@ class _KindleLoginPageState extends State<KindleLoginPage>
   void dispose() {
     _timeoutTimer?.cancel();
     _pulseController.dispose();
+    // Page fermée sans issue (ni succès ni import partiel) : `last_step` dit
+    // où l'utilisateur est parti.
+    if (!_outcomeTracked) {
+      unawaited(AnalyticsService().track(
+        AnalyticsEvent.kindleConnectAbandoned,
+        properties: {..._baseProps(), 'last_step': _lastStep},
+      ));
+    }
     super.dispose();
+  }
+
+  // ─── Entonnoir de connexion (PostHog) ────────────────────────────────
+
+  Map<String, Object> _baseProps() => {
+        'source': widget.source,
+        'elapsed_s': _clock.elapsed.inSeconds,
+      };
+
+  /// Une étape n'est comptabilisée qu'une fois par tentative.
+  void _trackStep(String step, {Map<String, Object>? extra}) {
+    if (!_steps.add(step)) return;
+    _lastStep = step;
+    unawaited(AnalyticsService().track(
+      AnalyticsEvent.kindleConnectStep,
+      properties: {..._baseProps(), 'step': step, ...?extra},
+    ));
+  }
+
+  /// `detail` : jamais de message d'erreur brut (peut contenir des données
+  /// utilisateur) — un code ou un type d'exception seulement.
+  void _trackFailed(String reason, {String? detail}) {
+    if (!_failedReasons.add(reason)) return;
+    final lastStep = _lastStep;
+    _lastStep = 'error';
+    unawaited(AnalyticsService().track(
+      AnalyticsEvent.kindleConnectFailed,
+      properties: {
+        ..._baseProps(),
+        'reason': reason,
+        'last_step': lastStep,
+        if (detail != null) 'detail': detail,
+      },
+    ));
+  }
+
+  void _trackSucceeded({
+    required int books,
+    required bool isFirstSync,
+    bool partial = false,
+  }) {
+    if (_outcomeTracked) return;
+    _outcomeTracked = true;
+    unawaited(AnalyticsService().track(
+      AnalyticsEvent.kindleConnectSucceeded,
+      properties: {
+        ..._baseProps(),
+        'books': books,
+        'first_sync': isFirstSync,
+        'partial': partial,
+      },
+    ));
+  }
+
+  /// Pages de vérification Amazon (code, captcha…), nommées d'après le chemin
+  /// de l'URL — pas d'après ce qu'elles affichent. `null` : page ordinaire.
+  static String? _challengeKind(String url) {
+    final u = url.toLowerCase();
+    if (u.contains('/ap/mfa')) return 'mfa';
+    if (u.contains('/ap/cvf')) return 'cvf';
+    if (u.contains('/ap/challenge')) return 'challenge';
+    if (u.contains('captcha')) return 'captcha';
+    if (u.contains('/ap/forgotpassword')) return 'forgot_password';
+    return null;
   }
 
   // ─── Navigation handlers ──────────────────────────────────────────
@@ -123,8 +217,14 @@ class _KindleLoginPageState extends State<KindleLoginPage>
   Future<void> _onLibraryPageFinished(String url) async {
     if (mounted) setState(() => _isLoading = false);
 
+    // Mesure seulement : une page de vérification Amazon est notée, le
+    // traitement ci-dessous reste inchangé.
+    final challenge = _challengeKind(url);
+    if (challenge != null) _trackStep('challenge_$challenge');
+
     // Cas 1 : page de login Amazon
     if (url.contains('/ap/signin') || url.contains('/ap/register')) {
+      _trackStep('signin_shown');
       if (mounted) setState(() => _phase = _SyncPhase.login);
       return;
     }
@@ -147,6 +247,7 @@ class _KindleLoginPageState extends State<KindleLoginPage>
     // redirige les non-auth vers /landing, jamais /kindle-library).
     if (url.contains('read.amazon.com')) {
       if (_phase == _SyncPhase.login || _phase == _SyncPhase.connecting) {
+        _trackStep('authenticated');
         if (mounted) setState(() => _phase = _SyncPhase.syncing);
         _startParallelExtraction();
       }
@@ -207,6 +308,7 @@ class _KindleLoginPageState extends State<KindleLoginPage>
       _insightsData ??= KindleReadingData();
       _tryFinalize();
     } else {
+      _trackFailed('timeout_no_books');
       setState(() {
         _phase = _SyncPhase.error;
         _errorMessage = null; // Le message d'erreur est géré par _getPhaseTitle
@@ -216,6 +318,10 @@ class _KindleLoginPageState extends State<KindleLoginPage>
 
   /// Réinitialiser et relancer l'extraction
   void _retry() {
+    // Nouvelle tentative : les étapes et les raisons d'échec se recomptent.
+    _steps.clear();
+    _failedReasons.clear();
+    _trackStep('retry');
     setState(() {
       _phase = _SyncPhase.login;
       _parallelStarted = false;
@@ -307,6 +413,7 @@ class _KindleLoginPageState extends State<KindleLoginPage>
         books = _service.parseKindleLibraryResult(result.toString());
       }
       debugPrint('Kindle Library: ${books.length} livres extraits');
+      _trackStep('library_extracted', extra: {'books': books.length});
 
       _libraryBooks = books;
 
@@ -376,6 +483,7 @@ class _KindleLoginPageState extends State<KindleLoginPage>
             .toList();
 
         if (newBooks.isNotEmpty && mounted) {
+          _trackStep('review_shown', extra: {'new_books': newBooks.length});
           final accepted = await Navigator.push<Set<String>>(
             context,
             MaterialPageRoute(
@@ -401,6 +509,7 @@ class _KindleLoginPageState extends State<KindleLoginPage>
       }
 
       if (mounted) setState(() => _phase = _SyncPhase.importing);
+      _trackStep('importing');
 
       // Import des livres dans Supabase
       if (books.isNotEmpty) {
@@ -444,6 +553,7 @@ class _KindleLoginPageState extends State<KindleLoginPage>
       // Une reconnexion volontaire vaut consentement : si l'utilisateur avait
       // coupé la synchro depuis le bandeau « session expirée », on la ré-arme.
       await KindleAutoSyncService().setAutoSyncEnabled(true);
+      await KindleAutoSyncService().clearExpiredNotified();
       await KindleAutoSyncService().markHighlightsPending();
       KindleAutoSyncService.notifyConnected();
       try {
@@ -452,6 +562,7 @@ class _KindleLoginPageState extends State<KindleLoginPage>
         debugPrint('Kindle: Supabase save failed (non-critical): $e');
       }
 
+      _trackSucceeded(books: books.length, isFirstSync: isFirstSync);
       if (mounted) {
         setState(() {
           _booksFound = books.length;
@@ -480,10 +591,16 @@ class _KindleLoginPageState extends State<KindleLoginPage>
         } catch (e) {
           debugPrint('Kindle: saveLocally partiel échoué: $e');
         }
+        _trackSucceeded(
+          books: books.length,
+          isFirstSync: isFirstSync,
+          partial: true,
+        );
         setState(() => _phase = _SyncPhase.done);
         await Future.delayed(const Duration(milliseconds: 500));
         if (mounted) Navigator.pop(context, partialData);
       } else if (mounted) {
+        _trackFailed('finalize_error', detail: e.runtimeType.toString());
         setState(() {
           _phase = _SyncPhase.error;
           _errorMessage = e.toString();

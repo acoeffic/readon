@@ -76,7 +76,9 @@ Future<bool> maybeShowKindleConnectSheet(BuildContext context) async {
 
   if (connect == true && context.mounted) {
     await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const KindleLoginPage()),
+      MaterialPageRoute(
+        builder: (_) => const KindleLoginPage(source: 'post_session_sheet'),
+      ),
     );
   }
 

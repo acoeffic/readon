@@ -97,7 +97,9 @@ class StepKindleConnect extends StatelessWidget {
   Future<void> _openKindleLogin(BuildContext context) async {
     final result = await Navigator.push<KindleReadingData>(
       context,
-      MaterialPageRoute(builder: (_) => const KindleLoginPage()),
+      MaterialPageRoute(
+        builder: (_) => const KindleLoginPage(source: 'onboarding'),
+      ),
     );
     onKindleResult(result);
   }
