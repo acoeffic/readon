@@ -555,6 +555,13 @@ class _MainNavigationState extends State<MainNavigation>
         );
       case 'read':
         _openStartSessionOnCurrentBook();
+      case 'kindle_reconnect':
+        // Tap sur la notification « session Amazon expirée » (tâche de fond).
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => const KindleLoginPage(source: 'notification'),
+          ),
+        );
     }
   }
 
@@ -726,6 +733,9 @@ class _MainNavigationState extends State<MainNavigation>
       if (subscriptionProvider.isPremium &&
           await autoSyncService.isBackgroundSyncEligible()) {
         unawaited(KindleBackgroundSync.ensureScheduled());
+        // Bilan des exécutions d'arrière-plan depuis la dernière ouverture
+        // (l'isolate headless ne peut pas appeler PostHog).
+        unawaited(KindleBackgroundSync.reportPendingDiagnostics());
       }
 
       final shouldSync = await autoSyncService.shouldAutoSync(
@@ -793,6 +803,10 @@ class _MainNavigationState extends State<MainNavigation>
   Future<void> _onKindleCookiesExpired() async {
     if (!mounted) return;
     final service = KindleAutoSyncService();
+    // État persistant pour l'écran des réglages — posé avant le throttle du
+    // bandeau : l'écran doit refléter l'expiration même si le bandeau a déjà
+    // été montré cette semaine.
+    await service.setSessionExpired(true);
     // Une seule notification par expiration : pas de spam à chaque ouverture.
     if (await service.hasNotifiedExpired()) return;
     await service.markExpiredNotified();
@@ -840,7 +854,9 @@ class _MainNavigationState extends State<MainNavigation>
           onPressed: () {
             if (!mounted) return;
             Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const KindleLoginPage()),
+              MaterialPageRoute(
+                builder: (_) => const KindleLoginPage(source: 'expired_banner'),
+              ),
             );
           },
         ),

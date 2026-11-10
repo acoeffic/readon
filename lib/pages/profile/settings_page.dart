@@ -57,6 +57,7 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _isUploading = false;
   bool _isDeleting = false;
   String? _kindleLastSync;
+  bool _kindleSessionExpired = false;
   bool _kindleAutoSyncEnabled = true;
   bool _loadingAutoSync = true;
   bool _isProfilePrivate = false;
@@ -78,7 +79,13 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Future<void> _loadKindleSyncStatus() async {
     final lastSync = await KindleWebViewService().getLastSyncDate();
-    if (mounted) setState(() => _kindleLastSync = lastSync);
+    final expired = await KindleAutoSyncService().isSessionExpired();
+    if (mounted) {
+      setState(() {
+        _kindleLastSync = lastSync;
+        _kindleSessionExpired = expired;
+      });
+    }
   }
 
   Future<void> _loadKindleAutoSyncStatus() async {
@@ -212,7 +219,8 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Future<void> _openKindleLogin() async {
     final result = await Navigator.of(context).push<KindleReadingData>(
-      MaterialPageRoute(builder: (context) => const KindleLoginPage()),
+      MaterialPageRoute(
+          builder: (context) => const KindleLoginPage(source: 'settings')),
     );
 
     if (result != null && mounted) {
@@ -256,6 +264,7 @@ class _SettingsPageState extends State<SettingsPage> {
     if (!mounted) return;
     setState(() {
       _kindleLastSync = null;
+      _kindleSessionExpired = false;
       _kindleAutoSyncEnabled = true;
     });
     ScaffoldMessenger.of(context).showSnackBar(
@@ -1230,6 +1239,37 @@ if (!allowedExtensions.contains(fileExtension)) {
                               label: l10n.lastSync(_formatSyncDate(_kindleLastSync!)),
                             ),
                           ),
+                          // Session Amazon expirée : visible en permanence
+                          // ici, contrairement au bandeau de 8 s ou à la
+                          // notification. Le bouton relance la connexion.
+                          if (_kindleSessionExpired)
+                            Padding(
+                              padding:
+                                  const EdgeInsets.only(bottom: AppSpace.s),
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.warning_amber_rounded,
+                                    size: 18,
+                                    color: Colors.orange,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      l10n.kindleSessionExpired,
+                                      style: const TextStyle(
+                                        fontSize: 13,
+                                        color: Colors.orange,
+                                      ),
+                                    ),
+                                  ),
+                                  TextButton(
+                                    onPressed: _openKindleLogin,
+                                    child: Text(l10n.kindleReconnect),
+                                  ),
+                                ],
+                              ),
+                            ),
                           const Divider(height: 1),
                           const SizedBox(height: AppSpace.m),
                           Builder(builder: (context) {

@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../l10n/app_localizations.dart';
+import '../../services/analytics_service.dart';
 import '../../services/contacts_service.dart';
 import '../../services/mutual_friends_service.dart';
+import '../../services/referral_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/constrained_content.dart';
 import '../../widgets/mutual_friends_badge.dart';
@@ -93,7 +95,12 @@ class _FindContactsFriendsPageState extends State<FindContactsFriendsPage> {
 
   Future<void> _sendSmsInvite(UnmatchedContact contact) async {
     final l = AppLocalizations.of(context);
-    final message = Uri.encodeComponent(l.shareInviteToLexDay);
+    AnalyticsService().track(
+      AnalyticsEvent.referralShareTapped,
+      properties: {'source': 'contacts_sms'},
+    );
+    final message =
+        Uri.encodeComponent(l.referralSmsText(ReferralService.shareUrl));
     final uri = Uri.parse('sms:${contact.phone}?body=$message');
 
     try {

@@ -8,6 +8,7 @@ import 'package:timezone/data/latest_all.dart' as tzdata;
 import 'package:flutter_timezone/flutter_timezone.dart';
 
 import '../features/wrapped/monthly/monthly_wrapped_screen.dart';
+import 'deep_link_service.dart';
 import 'first_session_reminder_service.dart';
 import 'notification_permission.dart';
 import 'wrapped_banner_service.dart';
@@ -478,6 +479,13 @@ class MonthlyNotificationService {
     // Rappel de fin d'onboarding : ouvre le démarrage de session (route `read`).
     if (payload == FirstSessionReminderService.payload) {
       FirstSessionReminderService.handleTap();
+      return;
+    }
+
+    // Session Kindle expirée (notification posée par la tâche de fond) :
+    // ouvre l'écran de reconnexion.
+    if (payload == 'kindle_reconnect') {
+      DeepLinkService.openRoute('kindle_reconnect');
       return;
     }
 

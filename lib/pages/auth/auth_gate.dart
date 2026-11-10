@@ -171,6 +171,11 @@
         final result = await service.applyPendingCode();
         if (result != null) {
           debugPrint('Parrainage appliqué: $result');
+          // Entonnoir parrainage : un code arrivé par lien / install referrer.
+          AnalyticsService().track(
+            AnalyticsEvent.referralCodeApplied,
+            properties: {'result': result.name, 'source': 'link'},
+          );
         }
       } catch (e) {
         debugPrint('Parrainage (non bloquant): $e');

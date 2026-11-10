@@ -7,6 +7,7 @@ import '../../widgets/cached_profile_avatar.dart';
 import '../../widgets/feedback_sheet.dart';
 import '../../services/avatar_cache_service.dart';
 import 'settings_page.dart';
+import 'referral_page.dart';
 import 'profile_detail_page.dart';
 import '../sessions/sessions_tab.dart';
 import '../stats/stats_tab.dart';
@@ -206,6 +207,16 @@ class _ProfilePageState extends State<ProfilePage>
 
                   const Spacer(),
 
+                  IconButton(
+                    icon: const Icon(Icons.card_giftcard_outlined),
+                    tooltip: l10n.referralInviteTooltip,
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            const ReferralPage(source: 'profile_header'),
+                      ),
+                    ),
+                  ),
                   IconButton(
                     icon: const Icon(Icons.feedback_outlined),
                     tooltip: l10n.feedbackTooltip,

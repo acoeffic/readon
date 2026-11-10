@@ -13,6 +13,7 @@ import '../../models/book.dart';
 import '../../models/user_custom_list.dart';
 import '../../services/reading_session_service.dart';
 import '../../services/user_custom_lists_service.dart';
+import '../curated_lists/add_to_list_sheet.dart';
 import '../../models/reading_session.dart';
 import '../reading/start_reading_session_page_unified.dart';
 import '../reading/active_reading_session_page.dart';
@@ -20,7 +21,6 @@ import '../reading/add_past_session_page.dart';
 import '../reading/end_reading_session_page.dart';
 import '../reading/book_finished_share_service.dart';
 import '../reading/book_completed_summary_page.dart';
-import '../curated_lists/create_custom_list_dialog.dart';
 import '../curated_lists/custom_list_detail_page.dart';
 import '../curated_lists/add_book_to_list_page.dart';
 import '../../widgets/cached_book_cover.dart';
@@ -53,11 +53,13 @@ class _UserBooksPageState extends State<UserBooksPage> {
   final BooksService _booksService = BooksService();
   final ReadingSessionService _sessionService = ReadingSessionService();
   final UserCustomListsService _listsService = UserCustomListsService();
+  final BookRatingsService _ratingsService = BookRatingsService();
   final TextEditingController _searchController = TextEditingController();
 
   List<Map<String, dynamic>> _booksWithStatus = [];
   List<UserCustomList> _userLists = [];
   Map<String, double> _readingProgress = {};
+  Map<int, double> _myRatings = {};
   bool _isLoading = true;
   String _activeFilter = 'all';
   bool _isGridView = true;
@@ -136,12 +138,18 @@ class _UserBooksPageState extends State<UserBooksPage> {
         setState(() => _booksWithStatus = booksWithStatus);
       }
 
+      _loadMyRatings();
       _loadReadingProgress();
       // Enrichment is handled once per day by main_navigation.dart
       // to avoid burning the Google Books API quota.
     } catch (e) {
       debugPrint('Erreur _loadBooks: $e');
     }
+  }
+
+  Future<void> _loadMyRatings() async {
+    final ratings = await _ratingsService.getMyRatingsByBookId();
+    if (mounted) setState(() => _myRatings = ratings);
   }
 
   Future<void> _loadLists() async {
@@ -796,7 +804,7 @@ class _UserBooksPageState extends State<UserBooksPage> {
             final book = books[i]['book'] as Book;
             return GestureDetector(
               onTap: () => _navigateToBook(book),
-              child: _buildBookCover(book, double.infinity, double.infinity),
+              child: _buildCoverWithRating(book),
             );
           },
           childCount: books.length,
@@ -820,7 +828,7 @@ class _UserBooksPageState extends State<UserBooksPage> {
             final book = books[i]['book'] as Book;
             return GestureDetector(
               onTap: () => _navigateToBook(book, isFinished: true),
-              child: _buildBookCover(book, double.infinity, double.infinity),
+              child: _buildCoverWithRating(book),
             );
           },
           childCount: books.length,
@@ -868,8 +876,17 @@ class _UserBooksPageState extends State<UserBooksPage> {
                           : AppColors.textSecondary,
                     ))
                 : null,
-            trailing: const Icon(LucideIcons.chevronRight,
-                size: 16, color: AppColors.sageGreen),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (_myRatings[book.id] != null) ...[
+                  _MyRatingChip(rating: _myRatings[book.id]!),
+                  const SizedBox(width: 8),
+                ],
+                const Icon(LucideIcons.chevronRight,
+                    size: 16, color: AppColors.sageGreen),
+              ],
+            ),
             onTap: () => _navigateToBook(book, isFinished: true),
           );
         },
@@ -985,6 +1002,23 @@ class _UserBooksPageState extends State<UserBooksPage> {
     );
   }
 
+  /// Couverture + pastille de la note de l'utilisateur (si elle existe).
+  Widget _buildCoverWithRating(Book book) {
+    final rating = _myRatings[book.id];
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        _buildBookCover(book, double.infinity, double.infinity),
+        if (rating != null)
+          Positioned(
+            left: 6,
+            bottom: 6,
+            child: _MyRatingChip(rating: rating, onCover: true),
+          ),
+      ],
+    );
+  }
+
   Widget _buildBookCover(Book book, double width, double height) {
     // Toujours passer par CachedBookCover : même quand cover_url est vide en
     // base, sa chaîne de résolution (googleId/ISBN/titre+auteur) retrouve la
@@ -1069,9 +1103,51 @@ class _UserBooksPageState extends State<UserBooksPage> {
           title: title,
           books: books,
           isFinished: isFinished,
+          ratings: _myRatings,
           onReturn: _loadAll,
         ),
       ),
+    );
+  }
+}
+
+// ─── MY RATING CHIP ─────────────────────────────────────
+
+/// Petite pastille ★ 4,5 — sur une couverture (fond sombre) ou en ligne.
+class _MyRatingChip extends StatelessWidget {
+  final double rating;
+  final bool onCover;
+
+  const _MyRatingChip({required this.rating, this.onCover = false});
+
+  @override
+  Widget build(BuildContext context) {
+    final isInt = rating.truncateToDouble() == rating;
+    final text = rating.toStringAsFixed(isInt ? 0 : 1);
+    final label = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(Icons.star_rounded, size: 14, color: Color(0xFFF5B301)),
+        const SizedBox(width: 2),
+        Text(
+          text,
+          style: TextStyle(
+            fontFamily: 'Inter',
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: onCover ? Colors.white : null,
+          ),
+        ),
+      ],
+    );
+    if (!onCover) return label;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.65),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: label,
     );
   }
 }
@@ -1082,12 +1158,14 @@ class _SeeAllBooksPage extends StatelessWidget {
   final String title;
   final List<Map<String, dynamic>> books;
   final bool isFinished;
+  final Map<int, double> ratings;
   final VoidCallback onReturn;
 
   const _SeeAllBooksPage({
     required this.title,
     required this.books,
     required this.isFinished,
+    this.ratings = const {},
     required this.onReturn,
   });
 
@@ -1142,8 +1220,17 @@ class _SeeAllBooksPage extends StatelessWidget {
                               : AppColors.textSecondary,
                         ))
                     : null,
-                trailing: const Icon(LucideIcons.chevronRight,
-                    size: 16, color: AppColors.sageGreen),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (ratings[book.id] != null) ...[
+                      _MyRatingChip(rating: ratings[book.id]!),
+                      const SizedBox(width: 8),
+                    ],
+                    const Icon(LucideIcons.chevronRight,
+                        size: 16, color: AppColors.sageGreen),
+                  ],
+                ),
                 onTap: () {
                   if (isFinished) {
                     Navigator.push(
@@ -1191,7 +1278,6 @@ class _BookDetailPageState extends State<BookDetailPage> {
   bool get _isDark => Theme.of(context).brightness == Brightness.dark;
   final ReadingSessionService _sessionService = ReadingSessionService();
   final BooksService _booksService = BooksService();
-  final UserCustomListsService _customListsService = UserCustomListsService();
   final AnnotationService _annotationService = AnnotationService();
   final AiService _aiService = AiService();
   final BookRatingsService _ratingsService = BookRatingsService();
@@ -1600,30 +1686,8 @@ class _BookDetailPageState extends State<BookDetailPage> {
     );
   }
 
-  void _showAddToListSheet() async {
-    // Charger les listes et savoir lesquelles contiennent déjà ce livre
-    final results = await Future.wait([
-      _customListsService.getUserLists(),
-      _customListsService.getListIdsContainingBook(widget.book.id),
-    ]);
-
-    final lists = results[0] as List<UserCustomList>;
-    final containingIds = results[1] as Set<int>;
-
-    if (!mounted) return;
-
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => _AddToListSheet(
-        lists: lists,
-        containingIds: containingIds,
-        bookId: widget.book.id,
-        service: _customListsService,
-      ),
-    );
+  void _showAddToListSheet() {
+    showAddToListSheet(context, bookId: widget.book.id);
   }
 
   Future<void> _markAsFinished() async {
@@ -3516,178 +3580,6 @@ class _StatItem extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _AddToListSheet extends StatefulWidget {
-  final List<UserCustomList> lists;
-  final Set<int> containingIds;
-  final int bookId;
-  final UserCustomListsService service;
-
-  const _AddToListSheet({
-    required this.lists,
-    required this.containingIds,
-    required this.bookId,
-    required this.service,
-  });
-
-  @override
-  State<_AddToListSheet> createState() => _AddToListSheetState();
-}
-
-class _AddToListSheetState extends State<_AddToListSheet> {
-  late Set<int> _containingIds;
-
-  @override
-  void initState() {
-    super.initState();
-    _containingIds = Set<int>.from(widget.containingIds);
-  }
-
-  Future<void> _toggleList(UserCustomList list) async {
-    final wasInList = _containingIds.contains(list.id);
-    setState(() {
-      if (wasInList) {
-        _containingIds.remove(list.id);
-      } else {
-        _containingIds.add(list.id);
-      }
-    });
-
-    try {
-      if (wasInList) {
-        await widget.service.removeBookFromList(list.id, widget.bookId);
-      } else {
-        await widget.service.addBookToList(list.id, widget.bookId);
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          if (wasInList) {
-            _containingIds.add(list.id);
-          } else {
-            _containingIds.remove(list.id);
-          }
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context).errorGeneric(e.toString())), backgroundColor: Colors.red),
-        );
-      }
-    }
-  }
-
-  Future<void> _createNewList() async {
-    Navigator.pop(context);
-    final result = await showCreateCustomListSheet(context);
-    if (result != null) {
-      // Ajouter le livre à la liste nouvellement créée
-      try {
-        await widget.service.addBookToList(result.id, widget.bookId);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(AppLocalizations.of(context).addedToListNamed(result.title)),
-              backgroundColor: Colors.green,
-            ),
-          );
-        }
-      } catch (e) {
-        debugPrint('Erreur ajout à nouvelle liste: $e');
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Poignée
-          Padding(
-            padding: const EdgeInsets.only(top: 12),
-            child: Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Theme.of(context)
-                      .colorScheme
-                      .onSurface
-                      .withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Text(
-              AppLocalizations.of(context).addToList,
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
-                  ?.copyWith(fontWeight: FontWeight.bold),
-            ),
-          ),
-          if (widget.lists.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Text(
-                AppLocalizations.of(context).noPersonalList,
-                style: TextStyle(
-                  color: Theme.of(context)
-                      .colorScheme
-                      .onSurface
-                      .withValues(alpha: 0.5),
-                ),
-              ),
-            )
-          else
-            ...widget.lists.map((list) {
-              final isInList = _containingIds.contains(list.id);
-              final gradientColors = list.gradientColors;
-              return ListTile(
-                leading: Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(colors: gradientColors),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(list.icon, size: 18, color: Colors.white),
-                ),
-                title: Text(list.title),
-                trailing: Icon(
-                  isInList ? Icons.check_circle : Icons.circle_outlined,
-                  color: isInList ? const Color(0xFFFF6B35) : null,
-                ),
-                onTap: () => _toggleList(list),
-              );
-            }),
-          const Divider(),
-          ListTile(
-            leading: Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: const Color(0xFFFF6B35).withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(LucideIcons.plus,
-                  size: 18, color: Color(0xFFFF6B35)),
-            ),
-            title: Text(
-              AppLocalizations.of(context).createNewList,
-              style: const TextStyle(color: Color(0xFFFF6B35)),
-            ),
-            onTap: _createNewList,
-          ),
-          const SizedBox(height: 8),
-        ],
-      ),
     );
   }
 }

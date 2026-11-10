@@ -25,6 +25,7 @@ import '../groups/group_detail_page.dart';
 import 'friend_profile_page.dart';
 import 'people_you_may_know_page.dart';
 import '../../widgets/constrained_content.dart';
+import '../../services/analytics_service.dart';
 import '../../services/referral_service.dart';
 
 class SearchUsersPage extends StatefulWidget {
@@ -151,12 +152,16 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
 
   void _shareApp() {
     final l = AppLocalizations.of(context);
+    AnalyticsService().track(
+      AnalyticsEvent.referralShareTapped,
+      properties: {'source': 'search_page'},
+    );
     final bookTitle = _currentReadingBook?.title;
     final text = bookTitle != null
         ? '\u{1F4D6} Je suis en train de lire $bookTitle\n\n'
             'Tu lis quoi en ce moment ? \u{1F440}\n'
             '${ReferralService.shareUrl}'
-        : l.shareInviteText;
+        : l.referralPromptShareText(ReferralService.shareUrl);
     final box = context.findRenderObject() as RenderBox?;
     final origin = box != null ? box.localToGlobal(Offset.zero) & box.size : null;
     Share.share(text, sharePositionOrigin: origin);

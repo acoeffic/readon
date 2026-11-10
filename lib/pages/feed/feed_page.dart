@@ -10,6 +10,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:provider/provider.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers/guest_mode_provider.dart';
+import '../../services/analytics_service.dart';
+import '../../services/referral_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/constrained_content.dart';
 import '../../widgets/require_account_sheet.dart';
@@ -23,6 +25,7 @@ import '../../services/flow_service.dart';
 import '../../models/reading_flow.dart';
 import 'flow_detail_page.dart';
 import 'widgets/continue_reading_card.dart';
+import 'widgets/first_session_banner.dart';
 import '../../services/books_service.dart';
 import '../../models/book.dart';
 import '../reading/start_reading_session_page_unified.dart';
@@ -791,7 +794,15 @@ class _FeedPageState extends State<FeedPage> {
   }
 
   void _shareInviteLink() {
-    final text = AppLocalizations.of(context).shareInviteText;
+    // Lien de parrainage personnel (attribué, multi-plateforme) : l'ancien
+    // texte `shareInviteText` portait une URL App Store en dur, inutile pour
+    // un destinataire Android et sans aucune attribution.
+    AnalyticsService().track(
+      AnalyticsEvent.referralShareTapped,
+      properties: {'source': 'feed_empty'},
+    );
+    final text = AppLocalizations.of(context)
+        .referralPromptShareText(ReferralService.shareUrl);
     final box = context.findRenderObject() as RenderBox?;
     final origin = box != null ? box.localToGlobal(Offset.zero) & box.size : null;
     Share.share(text, sharePositionOrigin: origin);
@@ -1476,6 +1487,10 @@ class _FeedPageState extends State<FeedPage> {
                 ),
                 const SizedBox(height: AppSpace.l),
               ],
+
+              // 👉 Première session : inscrits avec un livre mais 0 session
+              if (!loading && !isGuest && currentReadingBook == null)
+                FirstSessionBanner(onReturn: loadFeed),
 
               // 👉 Continuer la lecture
               if (!loading && currentReadingBook != null) ...[
