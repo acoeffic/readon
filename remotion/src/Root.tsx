@@ -16,6 +16,9 @@ import { AdPacteS2, AD_PACTE_S2_DURATION } from './compositions/ad-pacte-s2/AdPa
 import { AdPacteS3, AD_PACTE_S3_DURATION } from './compositions/ad-pacte-s3/AdPacteS3';
 import { AdPacteS4, AD_PACTE_S4_DURATION } from './compositions/ad-pacte-s4/AdPacteS4';
 import { AdPacteS5, AD_PACTE_S5_DURATION } from './compositions/ad-pacte-s5/AdPacteS5';
+import { AdPacteS6, AD_PACTE_S6_DURATION } from './compositions/ad-pacte-s6/AdPacteS6';
+import { AdPrix2026, AD_PRIX_2026_DURATION } from './compositions/ad-prix-2026/AdPrix2026';
+import { AdStats120, AD_STATS_120_DURATION } from './compositions/ad-stats-120/AdStats120';
 import { AdHalloween, AD_HALLOWEEN_DURATION } from './compositions/ad-halloween/AdHalloween';
 import { AdMuseGift, AD_MUSE_GIFT_DURATION } from './compositions/ad-muse-gift/AdMuseGift';
 import {
@@ -138,30 +141,30 @@ const adStreak30Defaults: AdStreak30Input = {
   trimSweep: 0,
 };
 
-// ─── Ad Wrapped septembre 2026 — vraies stats d'Adrien (màj mensuelle) ──
+// ─── Ad Wrapped octobre 2026 — vraies stats d'Adrien (màj mensuelle) ──
 const adWrappedDefaults: AdWrappedInput = {
-  hookLine1: 'Mon bilan de septembre : 143 minutes…',
-  hookLine2: "c'est mieux qu'août 📈",
+  hookLine1: "Mon bilan d'octobre : 58 minutes…",
+  hookLine2: "l'app ne m'a pas raté 📉",
   wrapped: {
     format: 'story',
-    month: 9,
+    month: 10,
     year: 2026,
-    totalMinutes: 143,
+    totalMinutes: 58,
     sessions: 11,
-    avgSessionMinutes: 13,
+    avgSessionMinutes: 5,
     booksFinished: 2,
-    booksInProgress: 3,
-    longestSessionMinutes: 25,
-    bestDayWeekday: 7,
-    longestFlow: 2,
-    currentFlow: 2,
+    booksInProgress: 4,
+    longestSessionMinutes: 27,
+    bestDayWeekday: 1,
+    longestFlow: 3,
+    currentFlow: 0,
     topBook: {
-      title: 'Pourquoi lire les classiques',
-      author: 'Italo Calvino',
-      totalMinutes: 52,
+      title: 'Le Livre des Baltimore',
+      author: 'Joël Dicker',
+      totalMinutes: 27,
     },
-    vsLastMonthPercent: 119,
-    dailyMinutes: [0,0,0,0,0,0,0,0,0,0,0,0,44,26,0,0,0,0,0,0,0,0,0,17,0,29,9,0,14,4],
+    vsLastMonthPercent: -59,
+    dailyMinutes: [0,4,0,3,3,3,0,0,0,6,0,32,1,6,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
     badges: [],
   },
 };
@@ -306,6 +309,39 @@ export const RemotionRoot: React.FC = () => {
         id="AdPacteS5"
         component={AdPacteS5}
         durationInFrames={AD_PACTE_S5_DURATION}
+        fps={FPS}
+        width={1080}
+        height={1920}
+        defaultProps={{}}
+      />
+
+      {/* Pub TikTok — « Pacte : la série est cassée » (9:16, 15 s) */}
+      <Composition
+        id="AdPacteS6"
+        component={AdPacteS6}
+        durationInFrames={AD_PACTE_S6_DURATION}
+        fps={FPS}
+        width={1080}
+        height={1920}
+        defaultProps={{}}
+      />
+
+      {/* Pub TikTok — « Grands prix 2026 : 0/6 » (9:16, 15 s) */}
+      <Composition
+        id="AdPrix2026"
+        component={AdPrix2026}
+        durationInFrames={AD_PRIX_2026_DURATION}
+        fps={FPS}
+        width={1080}
+        height={1920}
+        defaultProps={{}}
+      />
+
+      {/* Pub TikTok — « 120 h de lecture en 30 jours » (9:16, 15 s) */}
+      <Composition
+        id="AdStats120"
+        component={AdStats120}
+        durationInFrames={AD_STATS_120_DURATION}
         fps={FPS}
         width={1080}
         height={1920}
