@@ -1,13 +1,18 @@
 // lib/pages/reading/book_completed_summary_page.dart
 // Page de résumé affichée après avoir terminé un livre
 
+import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../models/book.dart';
+import '../../models/book_rating.dart';
+import '../../services/book_ratings_service.dart';
+import '../../widgets/star_rating.dart';
 import '../../models/reading_session.dart';
 import '../../models/feature_flags.dart';
 import '../../providers/subscription_provider.dart';
@@ -15,6 +20,10 @@ import '../../services/native_paywall_service.dart';
 import '../../services/reading_session_service.dart';
 import '../../services/books_service.dart';
 import '../../services/app_review_service.dart';
+import '../../services/analytics_service.dart';
+import '../../services/referral_prompt.dart';
+import '../../services/referral_service.dart';
+import '../../widgets/referral_invite_card.dart';
 import 'package:lexday/features/badges/services/badges_service.dart';
 import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
@@ -42,10 +51,13 @@ class _BookCompletedSummaryPageState extends State<BookCompletedSummaryPage>
   final ReadingSessionService _sessionService = ReadingSessionService();
   final BooksService _booksService = BooksService();
   final BadgesService _badgesService = BadgesService();
+  final BookRatingsService _ratingsService = BookRatingsService();
+  BookRating? _myRating;
   BookReadingStats? _stats;
   List<ReadingSession> _sessions = [];
   List<UserBadge> _unlockedBadges = [];
   bool _isLoading = true;
+  bool _showReferralPrompt = false;
 
   late AnimationController _trophyController;
   late Animation<double> _trophyScale;
@@ -93,6 +105,7 @@ class _BookCompletedSummaryPageState extends State<BookCompletedSummaryPage>
         _sessionService.getBookStats(widget.book.id.toString()),
         _sessionService.getBookSessions(widget.book.id.toString()),
         _badgesService.getUserBadges(),
+        _ratingsService.getMyRating(widget.book.id),
       ]);
       if (!mounted) return;
       setState(() {
@@ -103,12 +116,53 @@ class _BookCompletedSummaryPageState extends State<BookCompletedSummaryPage>
         _unlockedBadges = (results[2] as List<UserBadge>)
             .where((b) => b.isUnlocked)
             .toList();
+        _myRating = results[3] as BookRating?;
         _isLoading = false;
       });
+      _maybeOfferReferral();
     } catch (e) {
       debugPrint('Erreur loadData: $e');
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  /// Invitation parrainage : un livre terminé est le meilleur moment pour
+  /// proposer d'inviter un ami. Une seule fois par compte (ReferralPrompt).
+  Future<void> _maybeOfferReferral() async {
+    try {
+      if (widget.lastSession?.isExcludedFromStats == true) return;
+      if (!await ReferralPrompt.shouldPrompt(ReferralPrompt.bookFinished) ||
+          !mounted) {
+        return;
+      }
+      await ReferralPrompt.markShown(ReferralPrompt.bookFinished);
+      if (!mounted) return;
+      setState(() => _showReferralPrompt = true);
+      unawaited(AnalyticsService().track(
+        AnalyticsEvent.referralPromptShown,
+        properties: {'source': ReferralPrompt.bookFinished},
+      ));
+    } catch (e) {
+      debugPrint('Erreur _maybeOfferReferral: $e');
+    }
+  }
+
+  void _onReferralShare(Rect? origin) {
+    unawaited(AnalyticsService().track(
+      AnalyticsEvent.referralShareTapped,
+      properties: {'source': ReferralPrompt.bookFinished},
+    ));
+    final text = AppLocalizations.of(context)
+        .referralPromptShareText(ReferralService.shareUrl);
+    Share.share(text, sharePositionOrigin: origin);
+  }
+
+  void _onReferralLater() {
+    unawaited(AnalyticsService().track(
+      AnalyticsEvent.referralPromptDismissed,
+      properties: {'source': ReferralPrompt.bookFinished},
+    ));
+    setState(() => _showReferralPrompt = false);
   }
 
   Future<void> _removeFromLibrary() async {
@@ -292,9 +346,18 @@ class _BookCompletedSummaryPageState extends State<BookCompletedSummaryPage>
                                 _buildAppBar(isDark),
                                 const SizedBox(height: 20),
                                 _buildTrophyHeader(isDark),
+                                if (widget.lastSession?.isExcludedFromStats ==
+                                    true) ...[
+                                  const SizedBox(height: 14),
+                                  _buildExclusionBanner(isDark),
+                                ],
                                 const SizedBox(height: 24),
                                 _buildBookCard(isDark),
                                 const SizedBox(height: 16),
+                                if (_myRating != null) ...[
+                                  _buildMyRatingCard(isDark),
+                                  const SizedBox(height: 16),
+                                ],
                                 _buildFreeStatsCard(isDark),
                                 const SizedBox(height: 12),
                                 _buildReadingPeriodCard(isDark),
@@ -303,6 +366,18 @@ class _BookCompletedSummaryPageState extends State<BookCompletedSummaryPage>
                                 const SizedBox(height: 20),
                                 if (_unlockedBadges.isNotEmpty) ...[
                                   _buildBadgesSection(isDark),
+                                  const SizedBox(height: 24),
+                                ],
+                                if (_showReferralPrompt) ...[
+                                  ReferralInviteCard(
+                                    isDark: isDark,
+                                    title: AppLocalizations.of(context)
+                                        .referralPromptBookTitle,
+                                    body: AppLocalizations.of(context)
+                                        .referralPromptBookBody,
+                                    onShare: _onReferralShare,
+                                    onLater: _onReferralLater,
+                                  ),
                                   const SizedBox(height: 24),
                                 ],
                               ],
@@ -462,6 +537,50 @@ class _BookCompletedSummaryPageState extends State<BookCompletedSummaryPage>
   }
 
   // ── Trophy header ───────────────────────────────────────────────────
+
+  /// Prévient l'utilisateur que sa dernière session est exclue des stats de
+  /// badges/flow. `isTooLong` est prioritaire sur `isTooFast` (une session
+  /// trop longue force aussi `is_too_fast` côté serveur).
+  Widget _buildExclusionBanner(bool isDark) {
+    final l = AppLocalizations.of(context);
+    final session = widget.lastSession!;
+    final message =
+        session.isTooLong ? l.sessionTooLongBanner : l.sessionTooFastBanner;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: isDark
+            ? Colors.orange.withValues(alpha: 0.12)
+            : Colors.orange.shade50,
+        borderRadius: BorderRadius.circular(AppRadius.l),
+        border: Border.all(
+          color: isDark
+              ? Colors.orange.withValues(alpha: 0.35)
+              : Colors.orange.shade200,
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.info_outline_rounded,
+              color: Colors.orange.shade700, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(
+                fontSize: 13,
+                height: 1.35,
+                color:
+                    isDark ? AppColors.textPrimaryDark : Colors.orange.shade900,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildTrophyHeader(bool isDark) {
     return Column(
@@ -639,6 +758,63 @@ class _BookCompletedSummaryPageState extends State<BookCompletedSummaryPage>
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  // ── My rating card ──────────────────────────────────────────────────
+  Widget _buildMyRatingCard(bool isDark) {
+    final rating = _myRating!;
+    final isInt = rating.rating.truncateToDouble() == rating.rating;
+    final review = rating.reviewText?.trim() ?? '';
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        borderRadius: BorderRadius.circular(AppRadius.l),
+        boxShadow: [
+          if (!isDark)
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 16,
+              offset: const Offset(0, 4),
+            ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            AppLocalizations.of(context).yourRating,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: isDark
+                  ? AppColors.textSecondaryDark
+                  : AppColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              StarRating(rating: rating.rating, size: 28),
+              const SizedBox(width: 8),
+              Text(
+                rating.rating.toStringAsFixed(isInt ? 0 : 1),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          if (review.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Text(review, style: const TextStyle(fontSize: 14, height: 1.4)),
+          ],
         ],
       ),
     );

@@ -2,14 +2,18 @@
 // Demande d'avis App Store / Play Store via la popup native (package in_app_review).
 //
 // Garde-fous locaux :
-// - jamais avant 3 jours après la première ouverture de l'app ;
+// - jamais avant 1 jour après la première ouverture de l'app ;
 // - au maximum une demande tous les 90 jours.
 // En plus de ça, c'est Apple/Google qui décident d'afficher ou non la popup
 // (limite système iOS : 3 affichages/an/utilisateur, jamais re-montrée si
 // l'utilisateur a déjà noté) — donc aucun risque de spammer.
 //
 // Usage : appeler AppReviewService.maybeRequestReview(trigger: '...') à un
-// "moment de fierté" (fin de livre, streak milestone, badge débloqué).
+// "moment de fierté" (fin de livre, streak milestone, 3e session terminée).
+//
+// Volontairement SANS pré-question du type « Tu aimes l'app ? » : les
+// consignes Google (et l'esprit des règles Apple) interdisent de filtrer les
+// utilisateurs selon leur satisfaction avant d'afficher la popup d'avis.
 
 import 'package:flutter/foundation.dart';
 import 'package:in_app_review/in_app_review.dart';
@@ -18,8 +22,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 class AppReviewService {
   static const String _firstLaunchKey = 'app_review_first_launch_ms';
   static const String _lastRequestKey = 'app_review_last_request_ms';
+  static const String _sessionCountKey = 'app_review_completed_sessions';
 
-  static const int _minDaysSinceFirstLaunch = 3;
+  static const int _minDaysSinceFirstLaunch = 1;
+  static const int _sessionsBeforeAsk = 3;
   static const int _minDaysBetweenRequests = 90;
 
   /// À appeler au démarrage de l'app : mémorise la date de première ouverture
@@ -35,6 +41,23 @@ class AppReviewService {
       }
     } catch (_) {
       // Non critique — ne doit jamais bloquer le démarrage.
+    }
+  }
+
+  /// À appeler à chaque session de lecture terminée. À partir de la
+  /// [_sessionsBeforeAsk]-ième session, tente la popup d'avis (les garde-fous
+  /// ci-dessous évitent toute répétition). Les lecteurs qui ont fait 3
+  /// sessions sont ceux qui aiment l'app : c'est le bon moment.
+  static Future<void> onSessionCompleted() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final count = (prefs.getInt(_sessionCountKey) ?? 0) + 1;
+      await prefs.setInt(_sessionCountKey, count);
+      if (count >= _sessionsBeforeAsk) {
+        await maybeRequestReview(trigger: 'session_$count');
+      }
+    } catch (_) {
+      // Non critique.
     }
   }
 

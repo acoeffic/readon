@@ -34,6 +34,31 @@ class BookRatingsService {
     }
   }
 
+  /// Notes de l'utilisateur courant indexées par book_id
+  /// (la lecture la plus récente l'emporte).
+  Future<Map<int, double>> getMyRatingsByBookId() async {
+    try {
+      final userId = _supabase.auth.currentUser?.id;
+      if (userId == null) return {};
+
+      final rows = await _supabase
+          .from('book_ratings')
+          .select('book_id, rating, created_at')
+          .eq('user_id', userId)
+          .order('created_at', ascending: false);
+
+      final result = <int, double>{};
+      for (final row in rows) {
+        final bookId = row['book_id'] as int;
+        result.putIfAbsent(bookId, () => (row['rating'] as num).toDouble());
+      }
+      return result;
+    } catch (e) {
+      debugPrint('Erreur getMyRatingsByBookId: $e');
+      return {};
+    }
+  }
+
   /// Crée ou met à jour la note de la lecture courante (unique par user_book).
   Future<BookRating> upsertRating({
     required int bookId,

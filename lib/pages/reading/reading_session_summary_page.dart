@@ -19,6 +19,7 @@ import '../../services/app_review_service.dart';
 import '../../services/analytics_service.dart';
 import '../../services/first_session_goal_offer.dart';
 import '../../services/friend_challenge_offer.dart';
+import '../../services/referral_prompt.dart';
 import '../../services/referral_service.dart';
 import '../../services/focus_mode_service.dart';
 import '../../services/push_notification_service.dart';
@@ -30,6 +31,7 @@ import '../../widgets/cached_book_cover.dart';
 import '../../widgets/constrained_content.dart';
 import '../../widgets/first_session_goal_card.dart';
 import '../../widgets/friend_challenge_card.dart';
+import '../../widgets/referral_invite_card.dart';
 import '../../widgets/reading_for_picker.dart';
 import '../../features/wrapped/share/share_format.dart';
 import '../../navigation/main_navigation.dart';
@@ -86,6 +88,10 @@ class _ReadingSessionSummaryPageState
   /// fois sur cet écran.
   bool _showGoalOffer = false;
   bool _showFriendChallenge = false;
+
+  /// Déclencheur de l'invitation parrainage affichée (streak_7, …), null si
+  /// aucune. Voir ReferralPrompt.
+  String? _referralTrigger;
   bool _goalBusy = false;
   bool _goalSaved = false;
   FirstSessionGoalPreset? _goalPreset;
@@ -235,6 +241,46 @@ class _ReadingSessionSummaryPageState
     final text = AppLocalizations.of(context)
         .friendChallengeShareText(ReferralService.shareUrl);
     Share.share(text, sharePositionOrigin: origin);
+  }
+
+  /// Invitation parrainage aux paliers de flow (7, 14, 30 jours). Jamais en
+  /// même temps que la carte d'objectif ou le défi à deux, qui sont prioritaires.
+  Future<void> _maybeOfferReferralForStreak() async {
+    try {
+      if (widget.session.isExcludedFromStats) return;
+      if (!ReferralPrompt.streakMilestones.contains(_currentStreak)) return;
+      final trigger = ReferralPrompt.streak(_currentStreak);
+      if (!await ReferralPrompt.shouldPrompt(trigger) || !mounted) return;
+      if (_showGoalOffer || _showFriendChallenge) return;
+      await ReferralPrompt.markShown(trigger);
+      if (!mounted) return;
+      setState(() => _referralTrigger = trigger);
+      unawaited(AnalyticsService().track(
+        AnalyticsEvent.referralPromptShown,
+        properties: {'source': trigger},
+      ));
+    } catch (e) {
+      debugPrint('Erreur _maybeOfferReferralForStreak: $e');
+    }
+  }
+
+  void _onReferralShare(Rect? origin) {
+    final trigger = _referralTrigger ?? 'unknown';
+    unawaited(AnalyticsService().track(
+      AnalyticsEvent.referralShareTapped,
+      properties: {'source': trigger},
+    ));
+    final text = AppLocalizations.of(context)
+        .referralPromptShareText(ReferralService.shareUrl);
+    Share.share(text, sharePositionOrigin: origin);
+  }
+
+  void _onReferralLater() {
+    unawaited(AnalyticsService().track(
+      AnalyticsEvent.referralPromptDismissed,
+      properties: {'source': _referralTrigger ?? 'unknown'},
+    ));
+    setState(() => _referralTrigger = null);
   }
 
   void _onFriendChallengeLater() {
@@ -407,9 +453,21 @@ class _ReadingSessionSummaryPageState
         _userAverages = results[2] as Map<String, double>;
       });
       _maybeAskReviewForStreakMilestone();
+      _maybeAskReviewAfterSession();
+      _maybeOfferReferralForStreak();
     } catch (_) {
       // Non-critical — page still renders with fallback data
     }
+  }
+
+  /// Moment de fierté : 3e session de lecture terminée (et suivantes, le
+  /// service limite lui-même la fréquence).
+  void _maybeAskReviewAfterSession() {
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) {
+        AppReviewService.onSessionCompleted();
+      }
+    });
   }
 
   /// Moment de fierté : streak qui atteint un palier symbolique.
@@ -525,6 +583,16 @@ class _ReadingSessionSummaryPageState
                           onLater: _onFriendChallengeLater,
                         ),
                       ],
+                      if (_referralTrigger != null) ...[
+                        const SizedBox(height: 12),
+                        ReferralInviteCard(
+                          isDark: isDark,
+                          title: l.referralPromptStreakTitle(_currentStreak),
+                          body: l.referralPromptStreakBody,
+                          onShare: _onReferralShare,
+                          onLater: _onReferralLater,
+                        ),
+                      ],
                       const SizedBox(height: 12),
                       _entryReveal(
                         begin: 0.55,
@@ -533,7 +601,8 @@ class _ReadingSessionSummaryPageState
                       ),
                       if (_showFocusSuggestion &&
                           !_showGoalOffer &&
-                          !_showFriendChallenge) ...[
+                          !_showFriendChallenge &&
+                          _referralTrigger == null) ...[
                         const SizedBox(height: 12),
                         _entryReveal(
                           begin: 0.65,
