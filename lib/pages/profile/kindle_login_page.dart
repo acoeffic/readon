@@ -222,16 +222,29 @@ class _KindleLoginPageState extends State<KindleLoginPage>
     final challenge = _challengeKind(url);
     if (challenge != null) _trackStep('challenge_$challenge');
 
-    // Cas 1 : page de login Amazon
-    if (url.contains('/ap/signin') || url.contains('/ap/register')) {
-      _trackStep('signin_shown');
+    // On raisonne sur host + path, jamais sur `url.contains(...)` : les pages
+    // de vérification Amazon (/ap/mfa, /ap/cvf…) portent `read.amazon.com`
+    // dans leur paramètre `return_to`, ce qui les faisait passer pour la
+    // bibliothèque → phase « syncing » → WebView masquée avant la saisie du
+    // code SMS (écran de chargement infini, aucun champ pour le code).
+    final uri = Uri.tryParse(url);
+    final host = (uri?.host ?? '').toLowerCase();
+    final path = uri?.path ?? '';
+
+    // Cas 1 : page de login / vérification Amazon (signin, register, mfa,
+    // cvf, challenge…) → la WebView reste visible pour que la personne
+    // puisse saisir son mot de passe ou son code.
+    if (path.startsWith('/ap/')) {
+      if (path.startsWith('/ap/signin') || path.startsWith('/ap/register')) {
+        _trackStep('signin_shown');
+      }
       if (mounted) setState(() => _phase = _SyncPhase.login);
       return;
     }
 
     // Cas 2a : Landing Amazon (non-auth) → clic sur "Sign in" pour rediriger
     // vers le form de signin (avec le bon assoc_handle géré par Amazon).
-    if (url.contains('read.amazon.com/landing')) {
+    if (host == 'read.amazon.com' && path.startsWith('/landing')) {
       if (mounted) setState(() => _phase = _SyncPhase.login);
       try {
         await _libraryController.runJavaScriptReturningResult(
@@ -245,7 +258,7 @@ class _KindleLoginPageState extends State<KindleLoginPage>
     // Cas 2b : Kindle Cloud Reader (URL kindle-library) → on est authentifié,
     // lancer l'extraction. L'URL elle-même est le signal d'auth (Amazon
     // redirige les non-auth vers /landing, jamais /kindle-library).
-    if (url.contains('read.amazon.com')) {
+    if (host == 'read.amazon.com') {
       if (_phase == _SyncPhase.login || _phase == _SyncPhase.connecting) {
         _trackStep('authenticated');
         if (mounted) setState(() => _phase = _SyncPhase.syncing);
@@ -255,7 +268,7 @@ class _KindleLoginPageState extends State<KindleLoginPage>
     }
 
     // Cas 3 : Reading Insights (redirigé après login)
-    if (url.contains('/kindle/reading/insights')) {
+    if (path.startsWith('/kindle/reading/insights')) {
       if (_phase == _SyncPhase.login) {
         setState(() => _phase = _SyncPhase.connecting);
         await _libraryController.loadRequest(Uri.parse(_kindleLibraryUrl));
@@ -264,8 +277,7 @@ class _KindleLoginPageState extends State<KindleLoginPage>
     }
 
     // Cas 4 : post-login, page Amazon quelconque
-    if ((url.contains('amazon.com') || url.contains('amazon.fr')) &&
-        !url.contains('/ap/')) {
+    if (host.endsWith('amazon.com') || host.endsWith('amazon.fr')) {
       if (_phase == _SyncPhase.login) {
         setState(() => _phase = _SyncPhase.connecting);
         await _libraryController.loadRequest(Uri.parse(_kindleLibraryUrl));
@@ -275,7 +287,8 @@ class _KindleLoginPageState extends State<KindleLoginPage>
 
   Future<void> _onInsightsPageFinished(String url) async {
     // On attend que la page insights se charge pour extraire
-    if (url.contains('/kindle/reading/insights')) {
+    if (Uri.tryParse(url)?.path.startsWith('/kindle/reading/insights') ??
+        false) {
       await Future.delayed(const Duration(milliseconds: 800));
       await _extractInsights();
     }
@@ -490,6 +503,10 @@ class _KindleLoginPageState extends State<KindleLoginPage>
               builder: (_) => KindleBookReviewPage(
                 newBooks: newBooks,
                 isFirstSync: isFirstSync,
+                readTitles: insights?.books
+                        .map((b) => b.title.toLowerCase())
+                        .toSet() ??
+                    const {},
               ),
             ),
           );

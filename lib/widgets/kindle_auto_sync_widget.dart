@@ -341,9 +341,11 @@ class _KindleAutoSyncWidgetState extends State<KindleAutoSyncWidget> {
     final uri = Uri.tryParse(url);
     if (uri == null) return false;
     final path = uri.path;
-    if (path.startsWith('/ap/signin') || path.startsWith('/ap/register')) {
-      return true;
-    }
+    // Toute page d'authentification Amazon (signin, register, mfa, cvf,
+    // challenge, captcha…) = session expirée. Sans ça, une page de code SMS
+    // (dont le `return_to` contient read.amazon.com) était prise pour la
+    // bibliothèque et l'extraction tournait sur la mauvaise page.
+    if (path.startsWith('/ap/')) return true;
     return uri.host.contains('read.amazon.') && path.startsWith('/landing');
   }
 

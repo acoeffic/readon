@@ -9,7 +9,9 @@ import '../../widgets/constrained_content.dart';
 ///
 /// L'utilisateur voit la liste des nouveaux livres trouvés (ceux pas encore
 /// dans sa bibliothèque LexDay) et peut décocher ceux qu'il ne veut pas.
-/// Tous les livres sont cochés par défaut.
+/// Seuls les livres où une lecture est détectée (progression Kindle > 0, ou
+/// présents dans « titres lus » d'Amazon) sont cochés par défaut : les achats
+/// et échantillons jamais ouverts restent décochés, ajoutables à la main.
 ///
 /// Renvoie via [Navigator.pop] :
 /// - `Set<String>` des titres de livres acceptés (peut être vide si l'user a
@@ -19,10 +21,14 @@ class KindleBookReviewPage extends StatefulWidget {
   final List<KindleBookProgress> newBooks;
   final bool isFirstSync;
 
+  /// Titres (en minuscules) listés comme lus par Reading Insights.
+  final Set<String> readTitles;
+
   const KindleBookReviewPage({
     super.key,
     required this.newBooks,
     required this.isFirstSync,
+    this.readTitles = const {},
   });
 
   @override
@@ -35,7 +41,12 @@ class _KindleBookReviewPageState extends State<KindleBookReviewPage> {
   @override
   void initState() {
     super.initState();
-    _selectedTitles = widget.newBooks.map((b) => b.title).toSet();
+    _selectedTitles = widget.newBooks
+        .where((b) =>
+            (b.percentComplete ?? 0) > 0 ||
+            widget.readTitles.contains(b.title.toLowerCase()))
+        .map((b) => b.title)
+        .toSet();
   }
 
   void _toggle(String title) {
@@ -63,9 +74,6 @@ class _KindleBookReviewPageState extends State<KindleBookReviewPage> {
   /// Détermine le statut affiché pour chaque livre selon la même logique
   /// que [BooksService.importKindleBooks].
   String _statusFor(int index, KindleBookProgress book) {
-    if (widget.isFirstSync) {
-      return index < 2 ? 'reading' : 'finished';
-    }
     if (book.percentComplete == 100) return 'finished';
     if (book.percentComplete != null && book.percentComplete! > 0) {
       return 'reading';

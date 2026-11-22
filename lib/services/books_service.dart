@@ -867,6 +867,14 @@ class BooksService {
     // tardif, et gagne le rôle de « livre en cours » dès la baseline.
     for (final kindleBook in kindleBooks.reversed) {
       try {
+        // Un livre « lu » = Kindle rapporte une progression > 0. La
+        // bibliothèque Kindle contient aussi achats, échantillons et envois
+        // jamais ouverts : hors premier sync (où l'utilisateur valide la liste
+        // à la main), on ne les ajoute pas à LexDay. Un livre déjà présent
+        // reste mis à jour normalement.
+        final readPercent = kindleBook.percentComplete;
+        final hasReadingEvidence = readPercent != null && readPercent > 0;
+
         // Vérifier si le livre existe déjà (par titre + source kindle).
         // `.limit(1)` plutôt que `.maybeSingle()` : deux éditions peuvent
         // partager le même titre, et maybeSingle() jette (PGRST116) dès qu'il y
@@ -891,6 +899,9 @@ class BooksService {
           needsCoverUpdate = kindleBook.coverUrl != null && !_isPromotionalImageUrl(kindleBook.coverUrl!);
           needsEnrichment = (existing['cover_url'] == null && !needsCoverUpdate) || existing['author'] == null;
         } else {
+          // Livre inconnu et jamais ouvert : on ne le crée pas (ni appel
+          // Google Books inutile).
+          if (!isFirstSync && !hasReadingEvidence) continue;
           // Chercher les métadonnées sur Google Books (titre nettoyé + auteur Kindle si disponible)
           // Skip if circuit breaker is open — unreliable results would pollute the DB.
           final cleanTitle = _cleanBookTitle(kindleBook.title);
@@ -950,14 +961,16 @@ class BooksService {
         bool autoFinished = false;
 
         if (isFirstSync) {
-          // Premier sync : les 2 premiers livres (les plus récents) restent en "reading",
-          // tous les autres sont auto-marqués comme "finished"
-          final index = kindleBooks.indexOf(kindleBook);
-          if (index < 2) {
-            newStatus = 'reading';
-          } else {
+          // Premier sync : le statut suit la progression Kindle, plus l'ordre
+          // de la liste (l'ancienne règle « tout sauf les 2 plus récents =
+          // terminé » marquait comme lus des livres jamais ouverts). Sans
+          // progression connue, le livre coché par l'utilisateur reste « à lire ».
+          final firstPercent = kindleBook.percentComplete;
+          if (firstPercent == 100) {
             newStatus = 'finished';
             autoFinished = true;
+          } else if (firstPercent != null && firstPercent > 0) {
+            newStatus = 'reading';
           }
         }
 
@@ -969,6 +982,12 @@ class BooksService {
             .eq('user_id', userId)
             .eq('book_id', bookId)
             .maybeSingle();
+
+        // Livre absent de la bibliothèque LexDay et jamais ouvert sur Kindle
+        // (il existait déjà dans `books`, d'où le passage par ici).
+        if (existingUserBook == null && !isFirstSync && !hasReadingEvidence) {
+          continue;
+        }
 
         final percent = kindleBook.percentComplete;
         final previousPercent =
